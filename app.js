@@ -7,7 +7,7 @@ const fs = require("fs");
 const apiRouter = require("./src/routes/api.route");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000; // Asegúrate de que esta línea esté corregida
 
 // Middleware Globales
 app.use(express.json());
@@ -55,6 +55,12 @@ app.post("/admin/password", (req, res) => {
   const { nueva } = req.body;
   fs.writeFileSync(passwordPath, JSON.stringify({ password: nueva }, null, 2));
   res.json({ exito: true, mensaje: "Contraseña actualizada" });
+});
+
+// 🚀 NUEVA RUTA PARA LA URL RAÍZ (/)
+app.get("/", (req, res) => {
+  // Envía el archivo index.html como respuesta a la ruta raíz
+  res.sendFile(path.join(__dirname, "Public/index.html"));
 });
 
 // Ruta protegida para /admin
