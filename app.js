@@ -7,11 +7,13 @@ const fs = require("fs");
 const apiRouter = require("./src/routes/api.route");
 
 const app = express();
-const PORT = process.env.PORT || 3000; // Asegúrate de que esta línea esté corregida
+// CORRECCIÓN 1: Usar process.env.PORT
+const PORT = process.env.PORT || 3000;
 
 // Middleware Globales
 app.use(express.json());
-app.use(express.static("public"));
+// CORRECCIÓN 2: Usar path.join para rutas estáticas robustas
+app.use(express.static(path.join(__dirname, "Public")));
 
 app.use(
   session({
@@ -57,9 +59,8 @@ app.post("/admin/password", (req, res) => {
   res.json({ exito: true, mensaje: "Contraseña actualizada" });
 });
 
-// 🚀 NUEVA RUTA PARA LA URL RAÍZ (/)
+// CORRECCIÓN 3: Manejar la ruta raíz para servir index.html
 app.get("/", (req, res) => {
-  // Envía el archivo index.html como respuesta a la ruta raíz
   res.sendFile(path.join(__dirname, "Public/index.html"));
 });
 
