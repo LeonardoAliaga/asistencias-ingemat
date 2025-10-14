@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Administrar Asistencia INGEMAT</title>
+    <link rel="stylesheet" href="../css/admin.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    />
+  </head>
+  <body>
+    <nav class="navbar">
+      <div class="logo-ingemat">
+        <a href="/"
+          ><img href="/" src="../img/Logo 1x4 b&w.svg" alt="Logo INGEMAT"
+        /></a>
+      </div>
+      <div class="nav-links">
+        <button class="nav-button active" id="btn-vista-inicio">
+          <i class="bi bi-house-door-fill"></i> INICIO
+        </button>
+        <button class="nav-button" id="btn-vista-alumnos">
+          <i class="bi bi-people-fill"></i> ESTUDIANTES
+        </button>
+        <button id="btn-logout" title="Cerrar Sesión">
+          <i class="bi bi-box-arrow-right"></i>
+        </button>
+      </div>
+    </nav>
+
+    <div class="container">
+      <h1>PANEL DE CONTROL</h1>
+
+      <div id="vista-principal" class="vista-content">
+        <div class="admin-grid">
+          <section id="horarios-section" style="grid-area: horarios">
+            <h2><i class="bi bi-clock-fill"></i> CONFIGURAR HORARIOS</h2>
+            <form id="form-horarios">
+              <div>
+                <label
+                  >Mañana - Entrada:
+                  <input type="time" id="entrada-manana" required
+                /></label>
+                <label
+                  >Mañana - Tolerancia:
+                  <input type="time" id="tolerancia-manana" required
+                /></label>
+              </div>
+              <div>
+                <label
+                  >Tarde - Entrada:
+                  <input type="time" id="entrada-tarde" required
+                /></label>
+                <label
+                  >Tarde - Tolerancia:
+                  <input type="time" id="tolerancia-tarde" required
+                /></label>
+              </div>
+              <button type="submit">
+                <i class="bi bi-save-fill"></i> GUARDAR HORARIOS
+              </button>
+            </form>
+            <div id="msg-horarios"></div>
+          </section>
+
+          <section id="agregar-usuario-section" style="grid-area: agregar">
+            <h2><i class="bi bi-person-plus-fill"></i> AGREGAR USUARIO</h2>
+            <form id="form-agregar">
+              <input type="text" id="codigo" placeholder="Código" required />
+              <input
+                type="text"
+                id="nombre"
+                placeholder="Nombre Completo"
+                required
+              />
+              <select id="rol" required>
+                <option value="">Selecciona rol</option>
+                <option value="estudiante">Estudiante</option>
+                <option value="docente">Docente</option>
+              </select>
+              <select id="turno" required>
+                <option value="">Selecciona turno</option>
+                <option value="mañana">Mañana</option>
+                <option value="tarde">Tarde</option>
+              </select>
+              <select id="ciclo" required>
+                <option value="">Selecciona ciclo</option>
+                <option value="semestral">Semestral</option>
+                <option value="anual">Anual</option>
+                <option value="sabatino">Sabatino</option>
+                <option value="domingos">Domingos</option>
+              </select>
+              <button type="submit">
+                <i class="bi bi-check-lg"></i> AGREGAR
+              </button>
+            </form>
+          </section>
+
+          <div id="vista-docentes-container" style="grid-area: docentes">
+            <h2 class="sub-header">
+              <i class="bi bi-person-badge-fill"></i> LISTA DE DOCENTES
+            </h2>
+            <div id="vista-docentes"></div>
+          </div>
+
+          <section id="archivos-excel-section" style="grid-area: excel">
+            <h2>
+              <i class="bi bi-file-earmark-excel-fill"></i> DESCARGAR ARCHIVOS
+            </h2>
+            <div id="archivos-excel"></div>
+          </section>
+
+          <section id="gestion-acceso-section" style="grid-area: password">
+            <h2><i class="bi bi-key-fill"></i> GESTIÓN DE ACCESO</h2>
+            <form id="form-password">
+              <input
+                type="password"
+                id="nueva-password"
+                placeholder="Nueva contraseña"
+                required
+              />
+              <button type="submit">
+                <i class="bi bi-pencil-square"></i> CAMBIAR CONTRASEÑA
+              </button>
+            </form>
+            <div id="msg-password"></div>
+          </section>
+        </div>
+      </div>
+
+      <div
+        id="vista-alumnos-completa"
+        class="vista-content"
+        style="display: none"
+      >
+        <h2 class="sub-header">
+          <i class="bi bi-card-list"></i> LISTADO COMPLETO DE ALUMNOS POR CICLO
+        </h2>
+        <div id="vista-alumnos"></div>
+      </div>
+    </div>
+
+    <div id="preview-modal" class="modal">
+      <div class="modal-content">
+        <span class="close-btn" id="close-preview">&times;</span>
+        <h2>VISTA PREVIA DEL ARCHIVO</h2>
+        <h3 id="preview-filename"></h3>
+        <div id="preview-content" class="preview-scroll"></div>
+      </div>
+    </div>
+
+    <script src="../js/admin.js"></script>
+  </body>
+</html>

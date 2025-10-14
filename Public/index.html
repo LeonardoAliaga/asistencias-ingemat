@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="shortcut icon"
+      href="./img/Logo 1x1 b&w.jpg"
+      type="image/x-icon"
+    />
+    <link rel="stylesheet" href="./css/index.css" />
+    <link rel="stylesheet" href="./css/index-responsive.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    />
+    <title>Ingemat</title>
+  </head>
+  <body>
+    <nav class="navbar" id="navbar">
+      <a href="#"><img src="./img/Logo 1x4 b&w.svg" alt="Ingemat Logo" /></a>
+      <ul>
+        <li>
+          <a href="#" id="btn-inicio" onclick="toggle()">Inicio</a>
+        </li>
+        <li>
+          <a href="#" id="btn-asistencias" onclick="toggle()">Asistencias</a>
+        </li>
+        <li><a href="#" onclick="toggle()">Ciclos</a></li>
+        <li><a href="#sobre-nosotros" onclick="toggle()">Sobre Nosotros</a></li>
+        <li><a href="/admin" onclick="toggle()">Admin</a></li>
+      </ul>
+      <div class="toggle" onclick="toggle()"></div>
+    </nav>
+    <header>
+      <div class="carousel-ingresantes">
+        <button class="carousel-btn prev-btn">
+          <i class="bi bi-chevron-left"></i>
+        </button>
+        <div class="carousel-slides">
+          <div class="carousel-slide active">
+            <img src="./img/ingresantes2.png" alt="Ingresantes UNI" />
+          </div>
+          <div class="carousel-slide">
+            <img src="./img/ingresantes.png" alt="Estudiantes Ingemat" />
+          </div>
+          <div class="carousel-slide">
+            <img src="./img/estudiantes.png" alt="Estudiantes Grupo Ingemat" />
+          </div>
+        </div>
+        <button class="carousel-btn next-btn">
+          <i class="bi bi-chevron-right"></i>
+        </button>
+      </div>
+      <div class="box-header">
+        <img src="./img/universidades.png" alt="Universidades" />
+        <div class="text-header">
+          <span>Grupo Ingemat</span>
+          <h1>CONTIGO HASTA<br />TU INGRESO</h1>
+          <a class="btn-red" href="#">Nuestros ciclos</a>
+        </div>
+      </div>
+    </header>
+
+    <section id="spam">
+      <div class="text">
+        <h3>¿QUE ESPERAS?</h3>
+        <span>Escribenos para más información sobre nuestros ciclos.</span>
+      </div>
+      <a
+        href="https://api.whatsapp.com/send?phone=51960606020&text=%F0%9F%99%80%20Quisiera%20m%C3%A1s%20informaci%C3%B3n%20sobre%20sus%20ciclos.%20%F0%9F%93%9A"
+        class="btn"
+        ><i class="bi bi-whatsapp"></i> ¡INSCRIBETE YA!</a
+      >
+      <div class="estudiantes">
+        <div class="logo-carousel-track">
+          <img src="./img/UNMSM.png" alt="Logo UNMSM" />
+          <img src="./img/UNI.png" alt="Logo UNI" />
+          <img src="./img/UNFV.png" alt="Logo UNFV" />
+          <img src="./img/UNE.png" alt="Logo UNE" />
+          <img src="./img/UNAC.png" alt="Logo UNAC" />
+          <img src="./img/MOLINA.png" alt="Logo MOLINA" />
+          <img src="./img/BECA18.png" alt="Logo BECA 18" />
+
+          <img src="./img/UNMSM.png" alt="Logo UNMSM" />
+          <img src="./img/UNI.png" alt="Logo UNI" />
+          <img src="./img/UNFV.png" alt="Logo UNFV" />
+          <img src="./img/UNE.png" alt="Logo UNE" />
+          <img src="./img/UNAC.png" alt="Logo UNAC" />
+          <img src="./img/MOLINA.png" alt="Logo MOLINA" />
+          <img src="./img/BECA18.png" alt="Logo BECA 18" />
+
+          <img src="./img/UNMSM.png" alt="Logo UNMSM" />
+          <img src="./img/UNI.png" alt="Logo UNI" />
+          <img src="./img/UNFV.png" alt="Logo UNFV" />
+          <img src="./img/UNE.png" alt="Logo UNE" />
+          <img src="./img/UNAC.png" alt="Logo UNAC" />
+          <img src="./img/MOLINA.png" alt="Logo MOLINA" />
+          <img src="./img/BECA18.png" alt="Logo BECA 18" />
+        </div>
+      </div>
+    </section>
+    <section id="sobre-nosotros">
+      <div class="container">
+        <h2>Sobre Nosotros</h2>
+        <p>
+          Nuestro grupo de estudio está diseñado para ayudar a los estudiantes
+          preuniversitarios a prepararse para sus exámenes de ingreso a diversas
+          universidades. Ofrecemos un ambiente de aprendizaje colaborativo y
+          recursos educativos de alta calidad.
+        </p>
+        <ul>
+          <li>
+            <i class="bi bi-check-lg"></i> Clases personalizadas con tutores
+            expertos
+          </li>
+          <li>
+            <i class="bi bi-check-lg"></i> Material de estudio actualizado
+          </li>
+          <li><i class="bi bi-check-lg"></i> Simulacros de exámenes</li>
+          <li>
+            <i class="bi bi-check-lg"></i> Asesoría en técnicas de estudio
+          </li>
+          <li>
+            <i class="bi bi-check-lg"></i> Acceso a una comunidad de estudiantes
+            motivados
+          </li>
+        </ul>
+        <div class="redes">
+          <a
+            href="https://api.whatsapp.com/send?phone=51960606020&text=%F0%9F%99%80%20Quisiera%20m%C3%A1s%20informaci%C3%B3n%20sobre%20sus%20ciclos.%20%F0%9F%93%9A"
+            ><i class="bi bi-whatsapp"></i> Whatsapp</a
+          >
+          <a href="https://www.facebook.com/profile.php?id=100043734836276"
+            ><i class="bi bi-facebook"></i> Facebook</a
+          >
+          <a href="https://www.tiktok.com/@grupoingemat"
+            ><i class="bi bi-tiktok"></i> TikTok</a
+          >
+        </div>
+      </div>
+      <div class="mapa">
+        <iframe
+          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3902.356923148911!2d-76.96421952502885!3d-12.018930841382964!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9105c5003a25f383%3A0xaaf025ee2a9ff8ac!2sINGEMAT!5e0!3m2!1ses!2spe!4v1728868352765!5m2!1ses!2spe"
+          width="600"
+          height="450"
+          style="border: 0"
+          allowfullscreen=""
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+        ></iframe>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="footer-container">
+        <div class="footer-section about">
+          <h2>Sobre Nosotros</h2>
+          <p>
+            Somos INGEMAT, dedicados a proporcionar educación de alta calidad
+            para estudiantes preuniversitarios. Nuestro objetivo es ayudarte a
+            alcanzar tus metas académicas.
+          </p>
+        </div>
+        <div class="footer-section links">
+          <h2>Enlaces Rápidos</h2>
+          <ul>
+            <li><a href="#intranet">Intranet</a></li>
+            <li><a href="#ciclos">Ciclos</a></li>
+            <li><a href="#sobre-nosotros">Sobre Nosotros</a></li>
+          </ul>
+        </div>
+        <div class="footer-section contact">
+          <h2>Contacto</h2>
+          <ul>
+            <li>
+              <i class="bi bi-geo-alt"></i> Dirección: C. 8 151, San Juan de
+              Lurigancho 15457
+            </li>
+            <li><i class="bi bi-telephone"></i> Teléfono: 960 606 020</li>
+            <li><i class="bi bi-envelope"></i> Email: info@ingemat.com</li>
+          </ul>
+        </div>
+        <div class="footer-section social">
+          <h2>Síguenos</h2>
+          <ul>
+            <li>
+              <a
+                href="https://api.whatsapp.com/send?phone=51960606020&text=%F0%9F%99%80%20Quisiera%20m%C3%A1s%20informaci%C3%B3n%20sobre%20sus%20ciclos.%20%F0%9F%93%9A"
+                ><i class="bi bi-whatsapp"></i> Whatsapp</a
+              >
+            </li>
+            <li>
+              <a href="https://www.facebook.com/profile.php?id=100043734836276"
+                ><i class="bi bi-facebook"></i> Facebook</a
+              >
+            </li>
+            <li>
+              <a href="https://www.tiktok.com/@grupoingemat"
+                ><i class="bi bi-tiktok"></i> TikTok</a
+              >
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        © 2024 INGEMAT. Todos los derechos reservados.
+      </div>
+    </footer>
+
+    <script src="./js/asistencias.js"></script>
+    <script src="./js/inicio.js"></script>
+    <script src="./js/navbar.js"></script>
+    <script src="./js/carousel.js"></script>
+  </body>
+</html>

@@ -1,0 +1,24 @@
+{
+  "name": "asistencias",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev:server": "nodemon app.js",
+    "dev:watch": "browser-sync start --proxy \"localhost:3000\" --files \"public/**/*, src/**/*.js\"",
+    "dev": "npm-run-all --parallel dev:server dev:watch"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "exceljs": "^4.4.0",
+    "express": "^5.1.0",
+    "express-session": "^1.18.2"
+  },
+  "devDependencies": {
+    "npm-run-all": "^4.1.5"
+  }
+}

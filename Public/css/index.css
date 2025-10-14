@@ -1,0 +1,515 @@
+* {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  font-family: "Rabbid Highway";
+  scroll-behavior: smooth;
+}
+@font-face {
+  font-family: "Rabbid Highway";
+  src: url(../fonts/RabbidHighwaySignII.otf);
+}
+@font-face {
+  font-family: "Gatha";
+  src: url(../fonts/ZTGatha-SemiBold.otf);
+}
+@font-face {
+  font-family: "Coolvetica";
+  src: url(../fonts/coolvetica\ rg.otf);
+}
+:root {
+  --red: #b72107;
+  --red2: #da2b08;
+  --black: #272727;
+  --white1: #f4f4f4;
+  --white2: #dadada;
+}
+
+/* Estilos personalizados para la barra de desplazamiento */
+::-webkit-scrollbar {
+  width: 10px; /* Ancho de la barra de desplazamiento */
+}
+
+::-webkit-scrollbar-track {
+  background: var(--white2); /* Color de fondo de la pista de desplazamiento */
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--red); /* Color del pulgar de desplazamiento */
+  border-radius: 5px; /* Bordes redondeados del pulgar */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--red2); /* Color del pulgar al pasar el ratón por encima */
+}
+.navbar {
+  width: 100%;
+  top: 0;
+  left: 0;
+  padding: 1.5rem 3rem;
+  position: fixed;
+  display: flex;
+  /* background: var(--red); */
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  transition: 0.5s;
+  z-index: 1000;
+}
+.navbar.sticky {
+  background: var(--white1);
+  padding: 1rem 6rem;
+  box-shadow: 0px 1px 20px 0px #0000002b;
+}
+
+.navbar.sticky img {
+  filter: none;
+  width: 10rem;
+}
+.navbar a {
+  z-index: 1000;
+  position: relative;
+}
+.navbar img {
+  position: relative;
+  filter: invert(100%) sepia(95%) saturate(0%) hue-rotate(143deg)
+    brightness(105%) contrast(108%);
+  width: 14rem;
+  transition: 0.5s;
+}
+.navbar ul {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.navbar ul li {
+  position: relative;
+  list-style: none;
+}
+.navbar ul li a {
+  position: relative;
+  text-decoration: none;
+  font-size: 1.2rem;
+  color: var(--black);
+  transition: 0.5s;
+  padding: 0.5rem 0;
+  margin: 0 0.5rem;
+}
+.navbar ul li a:hover {
+  color: #000;
+}
+.navbar .toggle {
+  display: none;
+}
+
+header {
+  max-width: 100vw;
+  min-height: 100vh;
+  background-image: url(../img/fondo.png);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+}
+header .ingresantes img {
+  max-height: 100vh;
+}
+.ingresantes {
+  height: 100vh;
+  width: 50vw;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.box-header {
+  width: 50vw;
+  height: 100vh;
+  background-image: url(../img/wave.png);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+.box-header img {
+  width: 14rem;
+  margin: 1rem;
+}
+.box-header .text-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.box-header .text-header h1 {
+  font-size: 3rem;
+  color: var(--black);
+  margin: 1rem 0 0;
+}
+.btn-red {
+  border: none;
+  color: #f4f4f4;
+  text-decoration: none;
+  font-size: 1.2rem;
+  transition: 0.5s;
+  padding: 0.8rem 1rem 0.5rem;
+  background: var(--red);
+  border-radius: 5px;
+}
+.btn-red:hover {
+  letter-spacing: 1px;
+  background: var(--red2);
+}
+
+/* SPAM */
+#spam {
+  max-width: 100vw;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-evenly;
+  align-items: center;
+  /* box-shadow: inset 0 0 0 1px var(--black); */
+}
+#spam .estudiantes img {
+  margin: auto;
+  padding: 0 10px;
+}
+
+#spam .estudiantes {
+  /* Estilos para el contenedor del carrusel */
+  background-image: none;
+  background-color: var(--white1);
+  overflow: hidden;
+  white-space: nowrap;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  width: 25rem;
+  height: 7rem;
+  position: relative;
+}
+
+/* Pista de Logos con animación */
+.logo-carousel-track {
+  display: flex;
+  white-space: nowrap;
+  animation: scrollLogos 35s linear infinite; /* 25 segundos para un movimiento suave */
+}
+
+.logo-carousel-track img {
+  height: 80px; /* Tamaño fijo para los logos */
+  width: auto;
+  margin: 0 20px; /* Espacio entre logos */
+  vertical-align: middle;
+  flex-shrink: 0;
+  /* Logos en escala de grises */
+  opacity: 0.7;
+  transition: opacity 0.3s, filter 0.3s;
+}
+
+.logo-carousel-track img:hover {
+  opacity: 1;
+  filter: grayscale(0%);
+}
+
+/* Definición de la animación de scroll */
+@keyframes scrollLogos {
+  from {
+    transform: translateX(0);
+  }
+  /* Mueve el 33.33% de la pista (1/3 del contenido duplicado) para un loop perfecto */
+  to {
+    transform: translateX(-33.33%);
+  }
+}
+#spam .text h3 {
+  letter-spacing: 1px;
+  font-size: 1.5rem;
+  font-family: "Coolvetica", sans-serif;
+}
+#spam .text span {
+  font-size: 1rem;
+  font-family: "Gatha";
+}
+#spam .btn {
+  text-align: center;
+  font-size: 1.2rem;
+  font-family: "Coolvetica", sans-serif;
+}
+
+/* ... contenido existente ... */
+
+/* Estilos para el carrusel en SPAM */
+#spam .carousel-container {
+  display: flex;
+  justify-content: center;
+  /* Mantiene el fondo y tamaño de la clase .estudiantes original */
+  background-image: url(../img/fondo\ 2.png);
+  background-position: center;
+  background-size: cover;
+  width: 25rem;
+  height: 15rem; /* Altura fija para el carrusel */
+  position: relative;
+  overflow: hidden; /* Oculta las imágenes fuera de la vista */
+  border-radius: 5px;
+}
+
+#spam .carousel-slide {
+  display: flex; /* Muestra las imágenes una al lado de la otra */
+  height: 100%;
+  transition: transform 0.5s ease-in-out; /* Transición suave para el movimiento */
+}
+
+#spam .carousel-slide img {
+  height: 100%; /* La imagen ocupa la altura completa */
+  max-width: none; /* Permite que la imagen se adapte al ancho que le dé JS */
+  margin: auto;
+  object-fit: contain;
+  flex-shrink: 0; /* Evita que las imágenes se encojan */
+}
+
+/* ... contenido existente ... */
+
+header {
+  max-width: 100vw;
+  min-height: 100vh;
+  background-image: url(../img/fondo.png);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+}
+/* Estilos Eliminados: header .ingresantes img, .ingresantes */
+
+/* Nuevo Carousel Container */
+.carousel-ingresantes {
+  height: 100vh;
+  width: 50vw;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  position: relative;
+  /* background-color: var(
+    --black
+  ); */ /* Fondo negro para imágenes con fondo transparente */
+  overflow: hidden;
+}
+
+/* Slides container */
+.carousel-slides {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Individual slide */
+.carousel-slide {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0; /* Oculto por defecto */
+  transition: opacity 0.5s ease-in-out;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.carousel-slide.active {
+  opacity: 1; /* Slide activo es visible */
+}
+
+.carousel-slide img {
+  max-height: 100vh;
+  width: auto;
+  object-fit: contain;
+}
+
+/* Navigation Buttons */
+.carousel-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  color: var(--white1);
+  border: none;
+  padding: 1rem 0.5rem;
+  cursor: pointer;
+  z-index: 10;
+  font-size: 2rem;
+  opacity: 0.7;
+  transition: opacity 0.3s;
+}
+
+.carousel-btn:hover {
+  opacity: 1;
+}
+
+.prev-btn {
+  left: 10px;
+}
+
+.next-btn {
+  right: 10px;
+}
+
+/* ... contenido existente ... */
+/* SOBRE NOSOTROS */
+#sobre-nosotros {
+  background-color: var(--white1);
+  max-width: 100vw;
+  min-height: 100vh;
+  padding: 6rem;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-around;
+}
+#sobre-nosotros .container {
+  max-width: 40vw;
+}
+
+#sobre-nosotros .container h2 {
+  font-size: 2.5rem;
+  color: var(--black);
+  text-align: center;
+  margin: 1rem;
+}
+#sobre-nosotros .container p {
+  text-align: justify;
+  font-family: "Gatha";
+  font-size: 1rem;
+}
+#sobre-nosotros .container ul {
+  list-style-type: none;
+  padding: 1rem;
+}
+#sobre-nosotros .container ul li {
+  font-family: "Gatha";
+}
+#sobre-nosotros .container .redes {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+}
+#sobre-nosotros .container .redes a,
+#spam .btn {
+  text-decoration: none;
+  margin: 0 1rem;
+  transition: 0.5s;
+}
+
+#sobre-nosotros .container .redes a:hover,
+#spam .btn:hover {
+  letter-spacing: 1px;
+}
+
+#sobre-nosotros .container .redes a:nth-child(1),
+#spam .btn {
+  background: #25d366;
+  text-decoration: none;
+  padding: 0.8rem 1rem 0.5rem;
+  border-radius: 5px;
+  color: var(--white1);
+  margin: 0 1rem;
+}
+
+#sobre-nosotros .container .redes a:nth-child(2) {
+  background: #0000ff;
+  text-decoration: none;
+  padding: 0.8rem 1rem 0.5rem;
+  border-radius: 5px;
+  color: var(--white1);
+  margin: 0 1rem;
+}
+
+#sobre-nosotros .container .redes a:nth-child(3) {
+  background: #fe2858;
+  text-decoration: none;
+  padding: 0.8rem 1rem 0.5rem;
+  border-radius: 5px;
+  color: var(--white1);
+  margin: 0 1rem;
+}
+
+/* Estilos para el footer */
+.footer {
+  background-color: var(--black);
+  color: var(--white1);
+  padding: 40px 0;
+  text-align: center;
+}
+
+.footer-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-around;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.footer-section {
+  flex: 1;
+  padding: 20px;
+  min-width: 250px;
+}
+
+.footer-section h2 {
+  font-family: "Gatha", sans-serif;
+  font-size: 1.5em;
+  margin-bottom: 20px;
+}
+
+.footer-section p,
+.footer-section ul,
+.footer-section li {
+  font-family: "Gatha", sans-serif;
+  font-size: 1em;
+  line-height: 1.6;
+}
+
+.footer-section ul {
+  list-style: none;
+  padding: 0;
+}
+
+.footer-section ul li {
+  margin-bottom: 10px;
+}
+
+.footer-section ul li a {
+  font-family: "Gatha", sans-serif;
+  color: var(--white1);
+  text-decoration: none;
+}
+
+.footer-section ul li a:hover {
+  text-decoration: underline;
+}
+
+.footer-section .social ul {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+
+.footer-section .social ul li {
+  display: inline;
+}
+
+.footer-section .social ul li a {
+  font-size: 1.5em;
+}
+
+.footer-bottom {
+  background-color: var(--black);
+  color: var(--white2);
+  padding: 10px 0;
+  font-size: 0.9em;
+}

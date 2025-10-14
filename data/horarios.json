@@ -1,0 +1,10 @@
+{
+  "mañana": {
+    "entrada": "08:30",
+    "tolerancia": "08:35"
+  },
+  "tarde": {
+    "entrada": "15:00",
+    "tolerancia": "15:15"
+  }
+}

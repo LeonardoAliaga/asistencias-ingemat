@@ -1,0 +1,132 @@
+[
+  {
+    "codigo": "A002",
+    "nombre": "BERAUN YMBERTIS JO ANN",
+    "rol": "estudiante",
+    "turno": "mañana",
+    "ciclo": "semestral"
+  },
+  {
+    "codigo": "A003",
+    "nombre": "CHUMPITAZ MORENO ADRIANO",
+    "rol": "estudiante",
+    "turno": "mañana",
+    "ciclo": "anual"
+  },
+  {
+    "codigo": "A004",
+    "nombre": "CONOPUMA ARENAZA PAOLA",
+    "rol": "estudiante",
+    "turno": "mañana",
+    "ciclo": "anual"
+  },
+  {
+    "codigo": "A005",
+    "nombre": "CUBA YARANGA JOSUE RICARCO",
+    "rol": "estudiante",
+    "turno": "mañana",
+    "ciclo": "sabatino"
+  },
+  {
+    "codigo": "A006",
+    "nombre": "CURO GONZALES DENNIS",
+    "rol": "estudiante",
+    "turno": "mañana",
+    "ciclo": "sabatino"
+  },
+  {
+    "codigo": "A007",
+    "nombre": "DIAZ HIDALGO DIOMER",
+    "rol": "estudiante",
+    "turno": "mañana",
+    "ciclo": "anual"
+  },
+  {
+    "codigo": "A008",
+    "nombre": "FERNANDEZ ALISSON",
+    "rol": "estudiante",
+    "turno": "tarde",
+    "ciclo": "semestral"
+  },
+  {
+    "codigo": "A009",
+    "nombre": "GONZALES NAVARRO DANIELA",
+    "rol": "estudiante",
+    "turno": "tarde",
+    "ciclo": "anual"
+  },
+  {
+    "codigo": "A010",
+    "nombre": "LOPE CONDORI JEREMY SEBASTIAN",
+    "rol": "estudiante",
+    "turno": "tarde",
+    "ciclo": "sabatino"
+  },
+  {
+    "codigo": "A011",
+    "nombre": "ORTIZ LIPA ROSA",
+    "rol": "estudiante",
+    "turno": "tarde",
+    "ciclo": "semestral"
+  },
+  {
+    "codigo": "A012",
+    "nombre": "QUIROZ HOYOS MATHIAS",
+    "rol": "estudiante",
+    "turno": "tarde",
+    "ciclo": "anual"
+  },
+  {
+    "codigo": "A013",
+    "nombre": "RODRIGUEZ QUISPE SERGIO",
+    "rol": "estudiante",
+    "turno": "tarde",
+    "ciclo": "anual"
+  },
+  {
+    "codigo": "A014",
+    "nombre": "ROJAS SANTIAGO DAFNE",
+    "rol": "estudiante",
+    "turno": "tarde",
+    "ciclo": "sabatino"
+  },
+  {
+    "codigo": "A015",
+    "nombre": "VILLENA HOYOS RODRIGO",
+    "rol": "estudiante",
+    "turno": "tarde",
+    "ciclo": "semestral"
+  },
+  {
+    "codigo": "P001",
+    "nombre": "MARIA LOPEZ",
+    "rol": "docente"
+  },
+  {
+    "codigo": "P002",
+    "nombre": "PEDRO VILLALOBOS",
+    "rol": "docente"
+  },
+  {
+    "codigo": "P003",
+    "nombre": "CARLA MENDOZA",
+    "rol": "docente"
+  },
+  {
+    "codigo": "P004",
+    "nombre": "JAVIER RAMIREZ",
+    "rol": "docente"
+  },
+  {
+    "codigo": "P005",
+    "nombre": "DANIELA CORDOVA",
+    "rol": "docente"
+  },
+  {
+    "codigo": "75516107",
+    "nombre": "ALIAGA URIONDO JHERSON LEONARDO",
+    "rol": "estudiante",
+    "turno": "mañana",
+    "ciclo": "semestral"
+  }
+]
