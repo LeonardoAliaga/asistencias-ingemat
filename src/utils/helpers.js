@@ -14,6 +14,13 @@ function obtenerHorarios() {
   }
 }
 
+// Helper para obtener la abreviatura del día de la semana
+function getDayAbbreviation(fecha) {
+  // 0=Dom, 1=Lun, 2=Mar, 3=Miércoles, 4=Jue, 5=Vie, 6=Sáb
+  const dayNames = ["D", "L", "M", "MI", "J", "V", "S"];
+  return dayNames[fecha.getDay()];
+}
+
 // 🎯 FUNCIÓN CONVERTIR A HORAS (Maneja HH:MM 24H)
 function convertirAHoras(horaStr) {
   const partes = horaStr.trim().split(":").map(Number);
@@ -62,4 +69,5 @@ module.exports = {
   normalizarTexto,
   aplicarEstiloCelda,
   obtenerHorarios,
+  getDayAbbreviation,
 };

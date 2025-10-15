@@ -4,6 +4,8 @@
     <meta charset="UTF-8" />
     <title>Administrar Asistencia INGEMAT</title>
     <link rel="stylesheet" href="../css/admin.css" />
+    <link rel="stylesheet" href="../css/admin-forms.css" />
+    <link rel="stylesheet" href="../css/admin-views.css" />
     <link
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
@@ -47,6 +49,7 @@
                   <input type="time" id="tolerancia-manana" required
                 /></label>
               </div>
+              <p id="summary-manana" class="schedule-summary"></p>
               <div>
                 <label
                   >Tarde - Entrada:
@@ -57,6 +60,7 @@
                   <input type="time" id="tolerancia-tarde" required
                 /></label>
               </div>
+              <p id="summary-tarde" class="schedule-summary"></p>
               <button type="submit">
                 <i class="bi bi-save-fill"></i> GUARDAR HORARIOS
               </button>
@@ -91,6 +95,31 @@
                 <option value="sabatino">Sabatino</option>
                 <option value="domingos">Domingos</option>
               </select>
+
+              <div id="dias-asistencia-selector">
+                <label>Días de Asistencia:</label>
+                <div class="day-buttons-container">
+                  <button type="button" class="day-btn active" data-day="L">
+                    L
+                  </button>
+                  <button type="button" class="day-btn active" data-day="M">
+                    M
+                  </button>
+                  <button type="button" class="day-btn active" data-day="MI">
+                    Mi
+                  </button>
+                  <button type="button" class="day-btn active" data-day="J">
+                    J
+                  </button>
+                  <button type="button" class="day-btn active" data-day="V">
+                    V
+                  </button>
+                  <button type="button" class="day-btn active" data-day="S">
+                    S
+                  </button>
+                  <button type="button" class="day-btn" data-day="D">D</button>
+                </div>
+              </div>
               <button type="submit">
                 <i class="bi bi-check-lg"></i> AGREGAR
               </button>
@@ -137,7 +166,7 @@
         <h2 class="sub-header">
           <i class="bi bi-card-list"></i> LISTADO COMPLETO DE ALUMNOS POR CICLO
         </h2>
-        <div id="vista-alumnos"></div>
+        <div id="vista-alumnos" class="accordion-container"></div>
       </div>
     </div>
 
@@ -150,6 +179,6 @@
       </div>
     </div>
 
-    <script src="../js/admin.js"></script>
+    <script type="module" src="../js/admin.js"></script>
   </body>
 </html>

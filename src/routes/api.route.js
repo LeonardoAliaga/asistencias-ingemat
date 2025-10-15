@@ -1,14 +1,47 @@
+// Proyecto/src/routes/api.route.js
+
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const ExcelJS = require("exceljs");
 const { guardarRegistro } = require("../services/excel.service");
-const { estadoAsistencia } = require("../utils/helpers");
+const {
+  estadoAsistencia,
+  getDayAbbreviation,
+  normalizarTexto,
+} = require("../utils/helpers");
 
 const router = express.Router();
 const usuariosPath = path.join(__dirname, "../../data/usuarios.json");
 const registrosPath = path.join(__dirname, "../../Registros");
 const horariosPath = path.join(__dirname, "../../data/horarios.json");
+
+// Helper para convertir "HH:MM" (24h) a "HH:MM AM/PM" (12h)
+function convertTo12Hour(time24h) {
+  if (
+    !time24h ||
+    time24h.toUpperCase() === "FALTA" ||
+    time24h.toUpperCase() === "NO ASISTE" ||
+    !time24h.includes(":")
+  )
+    return time24h;
+
+  const [hour, minute] = time24h.split(":").map(Number);
+  if (isNaN(hour) || isNaN(minute)) return time24h;
+
+  // Usamos una fecha fija para el objeto Date
+  const date = new Date(2000, 0, 1, hour, minute);
+
+  // Usamos Intl.DateTimeFormat para conversión localizada a 12h
+  return date
+    .toLocaleTimeString("es-PE", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    })
+    .replace(/\s/g, "")
+    .toUpperCase();
+}
 
 router.post("/registrar", async (req, res) => {
   const { codigo } = req.body;
@@ -23,6 +56,7 @@ router.post("/registrar", async (req, res) => {
 
   const fecha = new Date();
   const fechaStr = fecha.toLocaleDateString("es-PE");
+  const diaAbbr = getDayAbbreviation(fecha);
 
   // 💡 Generar la hora de registro en formato 24 horas (HH:MM)
   const horaStr = fecha.toLocaleTimeString("es-PE", {
@@ -31,9 +65,37 @@ router.post("/registrar", async (req, res) => {
     hour12: false, // Forzamos el formato 24H
   });
 
+  // Chequeo de días de asistencia antes de llamar a guardarRegistro
+  if (
+    usuario.rol === "estudiante" &&
+    usuario.dias_asistencia &&
+    !usuario.dias_asistencia.includes(diaAbbr)
+  ) {
+    return res.status(409).json({
+      exito: false,
+      mensaje: `${usuario.nombre} no está programado para los ${diaAbbr}. No se puede registrar.`,
+    });
+  }
+
   const guardado = await guardarRegistro(usuario, fechaStr, horaStr);
 
   if (!guardado) {
+    // Si la función devuelve false, significa que el registro fue rechazado por estar
+    // fuera de hora, ya registrado, o marcado como "NO ASISTE" en el Excel.
+
+    // Para dar un mensaje claro, comprobamos si el rechazo fue por "NO ASISTE"
+    const diaAbbr = getDayAbbreviation(fecha);
+    if (
+      usuario.rol === "estudiante" &&
+      usuario.dias_asistencia &&
+      !usuario.dias_asistencia.includes(diaAbbr)
+    ) {
+      return res.status(409).json({
+        exito: false,
+        mensaje: `${usuario.nombre} no está programado para los ${diaAbbr}.`,
+      });
+    }
+
     return res.status(409).json({
       exito: false,
       mensaje: `${usuario.nombre} ya tiene registro.`,
@@ -51,12 +113,8 @@ router.post("/registrar", async (req, res) => {
     turno = usuario.turno;
   }
 
-  // Opcional: convertir a 12h solo para mostrar en la respuesta al usuario
-  const hora12h = fecha.toLocaleTimeString("es-PE", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  });
+  // Convertir a 12h solo para mostrar en la respuesta al usuario
+  const hora12h = convertTo12Hour(horaStr);
 
   res.json({
     exito: true,
@@ -77,7 +135,14 @@ router.get("/usuarios", (req, res) => {
 // Agregar usuario
 router.post("/usuarios", (req, res) => {
   const usuarios = JSON.parse(fs.readFileSync(usuariosPath, "utf8"));
-  usuarios.push(req.body);
+  // Validamos y si tiene dias_asistencia lo añadimos.
+  const nuevoUsuario = req.body;
+  if (nuevoUsuario.rol === "estudiante" && !nuevoUsuario.dias_asistencia) {
+    // Valor por defecto si se agregó sin seleccion de días (aunque el front lo fuerza)
+    nuevoUsuario.dias_asistencia = ["L", "M", "MI", "J", "V", "S"];
+  }
+
+  usuarios.push(nuevoUsuario);
   fs.writeFileSync(usuariosPath, JSON.stringify(usuarios, null, 2));
   res.json({ exito: true });
 });
@@ -124,11 +189,10 @@ router.get("/excel/preview/:archivo", async (req, res) => {
 
     let csvContent = "";
 
-    // Iteramos sobre las filas para extraer los datos como texto CSV
     worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
       let rowValues = [];
 
-      // 1. Detección de títulos (celdas fusionadas, en Columna 1)
+      // Detección de títulos (celdas fusionadas, en Columna 1)
       const firstCell = row.getCell(1);
       const cellValue = firstCell.value;
 
@@ -136,21 +200,21 @@ router.get("/excel/preview/:archivo", async (req, res) => {
         typeof cellValue === "string" &&
         cellValue.startsWith("REGISTRO DE ASISTENCIA")
       ) {
-        // Fila de título: enviamos solo el título
         csvContent += cellValue + "\n";
-        csvContent += "\n"; // Agregamos una fila vacía de separación visual
+        csvContent += "\n"; // Fila de separación visual
         return;
       }
 
-      // 2. Detección de filas de separación completamente vacías (las ignoramos)
+      // Detección de filas de separación completamente vacías (ignoramos)
       if (!row.values.some((v) => v !== null && v !== undefined && v !== "")) {
         return;
       }
 
-      // 3. Extracción de datos normales/encabezados de tabla
       let rowHasContent = false;
 
-      row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+      // Recorremos hasta la columna 5 (Registro de Hora)
+      for (let colNumber = 1; colNumber <= 5; colNumber++) {
+        const cell = row.getCell(colNumber);
         let value = cell.value;
         let finalValue = "";
 
@@ -160,10 +224,8 @@ router.get("/excel/preview/:archivo", async (req, res) => {
             if (value.richText) {
               finalValue = value.richText.map((t) => t.text).join("");
             } else if (value.result) {
-              // Es una fórmula
               finalValue = value.result;
             } else if (value.text) {
-              // Es un objeto de texto
               finalValue = value.text;
             } else {
               finalValue = String(value);
@@ -173,19 +235,27 @@ router.get("/excel/preview/:archivo", async (req, res) => {
           }
         }
 
-        // Usamos las columnas relevantes (2 a 5 o hasta donde haya datos)
-        if (colNumber >= 2) {
-          rowValues.push(finalValue.trim());
+        // CONVERSIÓN A 12H para la columna de hora (columna 5)
+        if (colNumber === 5) {
+          finalValue = convertTo12Hour(finalValue);
         }
-      });
+
+        // **MEJORA DE EXTRACCIÓN:** Aseguramos que la columna 4 (DÍAS ASISTENCIA) se envuelva en comillas
+        // si contiene comas, para evitar el split en el frontend.
+        if (colNumber === 4 && finalValue.includes(",")) {
+          finalValue = `"${finalValue}"`;
+        }
+
+        rowValues.push(finalValue.trim());
+      }
 
       // 4. Si es una fila de datos o encabezado válido
       if (rowHasContent) {
-        // Unir los valores, asegurando que haya suficientes comas para un formato de 4 columnas
-        while (rowValues.length < 4) {
+        // Unimos los valores, asegurando 5 columnas
+        while (rowValues.length < 5) {
           rowValues.push("");
         }
-        csvContent += rowValues.join(",") + "\n";
+        csvContent += rowValues.slice(0, 5).join(",") + "\n";
       }
     });
 
