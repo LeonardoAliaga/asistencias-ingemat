@@ -68,6 +68,23 @@
             <div id="msg-horarios"></div>
           </section>
 
+          <section id="gestion-ciclos-section" style="grid-area: ciclos">
+            <h2><i class="bi bi-calendar-range"></i> GESTIÓN DE CICLOS</h2>
+            <div id="ciclos-list-container">
+              <ul id="ciclos-list" class="lista-gestion-ciclos"></ul>
+            </div>
+            <form id="form-agregar-ciclo">
+              <input
+                type="text"
+                id="nuevo-ciclo-nombre"
+                placeholder="Nombre del nuevo ciclo"
+                required
+              />
+              <button type="submit">
+                <i class="bi bi-plus-circle-fill"></i> AGREGAR CICLO
+              </button>
+            </form>
+          </section>
           <section id="agregar-usuario-section" style="grid-area: agregar">
             <h2><i class="bi bi-person-plus-fill"></i> AGREGAR USUARIO</h2>
             <form id="form-agregar">
@@ -89,11 +106,7 @@
                 <option value="tarde">Tarde</option>
               </select>
               <select id="ciclo" required>
-                <option value="">Selecciona ciclo</option>
-                <option value="semestral">Semestral</option>
-                <option value="anual">Anual</option>
-                <option value="sabatino">Sabatino</option>
-                <option value="domingos">Domingos</option>
+                <option value="">Cargando ciclos...</option>
               </select>
 
               <div id="dias-asistencia-selector">

@@ -15,6 +15,7 @@ const router = express.Router();
 const usuariosPath = path.join(__dirname, "../../data/usuarios.json");
 const registrosPath = path.join(__dirname, "../../Registros");
 const horariosPath = path.join(__dirname, "../../data/horarios.json");
+const ciclosPath = path.join(__dirname, "../../data/ciclos.json"); // 🚀 NUEVO
 
 // Helper para convertir "HH:MM" (24h) a "HH:MM AM/PM" (12h)
 function convertTo12Hour(time24h) {
@@ -41,6 +42,14 @@ function convertTo12Hour(time24h) {
     })
     .replace(/\s/g, "")
     .toUpperCase();
+}
+
+function getCiclosData() {
+  try {
+    return JSON.parse(fs.readFileSync(ciclosPath, "utf8"));
+  } catch {
+    return { ciclos: ["semestral", "anual", "sabatino", "domingos"] };
+  }
 }
 
 router.post("/registrar", async (req, res) => {
@@ -71,31 +80,16 @@ router.post("/registrar", async (req, res) => {
     usuario.dias_asistencia &&
     !usuario.dias_asistencia.includes(diaAbbr)
   ) {
-    return res.status(409).json({
-      exito: false,
-      mensaje: `${usuario.nombre} no está programado para los ${diaAbbr}. No se puede registrar.`,
-    });
+    // No retornamos aquí, dejamos que el servicio intente registrar, solo para mostrar el error específico si falla.
   }
 
   const guardado = await guardarRegistro(usuario, fechaStr, horaStr);
 
   if (!guardado) {
-    // Si la función devuelve false, significa que el registro fue rechazado por estar
-    // fuera de hora, ya registrado, o marcado como "NO ASISTE" en el Excel.
+    // Si la función devuelve false, significa que el registro fue rechazado porque
+    // *YA TIENE* un registro de hora válido (no FALTA ni NO ASISTE).
 
-    // Para dar un mensaje claro, comprobamos si el rechazo fue por "NO ASISTE"
-    const diaAbbr = getDayAbbreviation(fecha);
-    if (
-      usuario.rol === "estudiante" &&
-      usuario.dias_asistencia &&
-      !usuario.dias_asistencia.includes(diaAbbr)
-    ) {
-      return res.status(409).json({
-        exito: false,
-        mensaje: `${usuario.nombre} no está programado para los ${diaAbbr}.`,
-      });
-    }
-
+    // Mostramos el mensaje genérico de "ya tiene registro".
     return res.status(409).json({
       exito: false,
       mensaje: `${usuario.nombre} ya tiene registro.`,
@@ -153,6 +147,37 @@ router.delete("/usuarios/:codigo", (req, res) => {
   fs.writeFileSync(usuariosPath, JSON.stringify(usuarios, null, 2));
   res.json({ exito: true });
 });
+
+// 🚀 RUTAS DE CICLOS
+router.get("/ciclos", (req, res) => {
+  res.json(getCiclosData());
+});
+
+router.post("/ciclos", (req, res) => {
+  const { nombre } = req.body;
+  let data = getCiclosData();
+  const nombreNormalizado = normalizarTexto(nombre);
+
+  if (data.ciclos.map(normalizarTexto).includes(nombreNormalizado)) {
+    return res.status(409).json({ mensaje: "El ciclo ya existe." });
+  }
+
+  data.ciclos.push(nombreNormalizado);
+  fs.writeFileSync(ciclosPath, JSON.stringify(data, null, 2));
+  res.json({ mensaje: `Ciclo ${nombreNormalizado.toUpperCase()} agregado.` });
+});
+
+router.delete("/ciclos/:ciclo", (req, res) => {
+  const cicloABorrar = normalizarTexto(req.params.ciclo);
+  let data = getCiclosData();
+
+  data.ciclos = data.ciclos.filter((c) => normalizarTexto(c) !== cicloABorrar);
+
+  fs.writeFileSync(ciclosPath, JSON.stringify(data, null, 2));
+  res.json({ mensaje: `Ciclo ${cicloABorrar.toUpperCase()} eliminado.` });
+});
+// --------------------
+
 // Listar archivos Excel
 router.get("/excel", (req, res) => {
   const archivos = fs

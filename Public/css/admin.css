@@ -189,7 +189,7 @@ h1 {
     display: grid;
     grid-template-areas:
       "horarios agregar excel"
-      "docentes docentes password";
+      "docentes ciclos password";
     grid-template-columns: repeat(3, 1fr);
   }
 }
@@ -209,6 +209,9 @@ h1 {
 }
 #gestion-acceso-section {
   grid-area: password;
+}
+#gestion-ciclos-section {
+  grid-area: ciclos;
 }
 
 /* Contenedores de vista de usuarios */

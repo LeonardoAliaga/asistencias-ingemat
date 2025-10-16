@@ -5,7 +5,12 @@ import {
   initUserFormEvents,
   cargarHorarios,
 } from "./admin/users.js";
-import { cargarArchivosExcel, initModalEvents } from "./admin/excel-preview.js";
+import {
+  cargarArchivosExcel,
+  initModalEvents,
+  cargarCiclos,
+  initCicloFormEvents,
+} from "./admin/excel-preview.js";
 
 // Lógica para el manejo de vistas (manteniendo las funciones principales aquí)
 function mostrarVista(vistaId, buttonId) {
@@ -30,6 +35,7 @@ document.getElementById("btn-vista-inicio").onclick = () => {
   cargarUsuarios();
   cargarArchivosExcel();
   cargarHorarios();
+  cargarCiclos(); // 🚀 Cargar la lista de ciclos
 };
 
 document.getElementById("btn-vista-alumnos").onclick = () => {
@@ -91,16 +97,15 @@ document.getElementById("btn-logout").onclick = async function () {
 // ====================================================
 
 window.onload = function () {
-  // FIX: Se mantiene la llamada explícita aquí, ya que el initUserFormEvents es el único
-  // que inicia los campos condicionales y listeners.
   initUserFormEvents();
   initModalEvents();
+  initCicloFormEvents(); // 🚀 Inicializar eventos del formulario de ciclos
 
-  // Cargar datos (Esto debe ejecutarse al final para asegurar que los elementos existan)
+  // Cargar datos
   cargarUsuarios();
   cargarArchivosExcel();
   cargarHorarios();
+  cargarCiclos(); // 🚀 Cargar ciclos al inicio
 
-  // Inicializar la vista después de que todo esté cargado
   mostrarVista("vista-principal", "btn-vista-inicio");
 };

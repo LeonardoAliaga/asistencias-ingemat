@@ -2,8 +2,6 @@
 
 /**
  * Convierte el contenido "CSV" plano en una tabla HTML, detectando Títulos y Encabezados.
- * @param {string} csvText Contenido del texto extraído del XLSX.
- * @returns {string} HTML de la tabla con clases de estilo.
  */
 function csvToHtmlTable(csvText) {
   const rows = csvText.trim().split("\n");
@@ -11,7 +9,7 @@ function csvToHtmlTable(csvText) {
 
   let html = "<table><tbody>";
 
-  // Expresión regular para dividir CSV: divide por coma solo si NO está dentro de comillas
+  // Regex para dividir CSV: divide por coma solo si NO está dentro de comillas
   const csvRegex = /,(?=(?:(?:[^"]*"){2})*[^"]*$)/;
 
   rows.forEach((line) => {
@@ -117,6 +115,83 @@ export async function cargarArchivosExcel() {
         mostrarPreview(filename);
       });
     });
+  }
+}
+
+/**
+ * Carga la lista de ciclos y asigna eventos de eliminación.
+ */
+export async function cargarCiclos() {
+  const listContainer = document.getElementById("ciclos-list");
+  if (!listContainer) return;
+
+  const res = await fetch("/api/ciclos");
+  const data = await res.json();
+
+  listContainer.innerHTML = data.ciclos
+    .map(
+      (ciclo) => `
+        <li class="ciclo-item">
+            ${ciclo.charAt(0).toUpperCase() + ciclo.slice(1)}
+            <button class="btn-eliminar-ciclo" data-ciclo="${ciclo}" title="Eliminar ciclo">
+                <i class="bi bi-x-circle-fill"></i>
+            </button>
+        </li>
+    `
+    )
+    .join("");
+
+  document.querySelectorAll(".btn-eliminar-ciclo").forEach((btn) => {
+    btn.onclick = async function () {
+      const ciclo = this.getAttribute("data-ciclo");
+      if (
+        confirm(`¿Seguro que desea eliminar el ciclo "${ciclo.toUpperCase()}"?`)
+      ) {
+        await fetch(`/api/ciclos/${ciclo}`, { method: "DELETE" });
+        // Recargar las listas
+        cargarCiclos();
+        // Necesitamos initUserFormEvents aquí para actualizar el select, pero lo exportamos
+        window.dispatchEvent(new CustomEvent("cyclesUpdated"));
+      }
+    };
+  });
+
+  // 🚀 ACTUALIZAR SELECT DE USUARIO
+  const selectCiclo = document.getElementById("ciclo");
+  if (selectCiclo) {
+    selectCiclo.innerHTML = '<option value="">Selecciona ciclo</option>';
+    data.ciclos.forEach((ciclo) => {
+      const option = document.createElement("option");
+      option.value = ciclo;
+      option.textContent = ciclo.charAt(0).toUpperCase() + ciclo.slice(1);
+      selectCiclo.appendChild(option);
+    });
+  }
+}
+
+/**
+ * Inicializa los eventos del formulario de agregar ciclo.
+ */
+export function initCicloFormEvents() {
+  const form = document.getElementById("form-agregar-ciclo");
+  if (form) {
+    form.onsubmit = async function (e) {
+      e.preventDefault();
+      const nombre = document
+        .getElementById("nuevo-ciclo-nombre")
+        .value.trim()
+        .toLowerCase();
+      if (!nombre) return;
+
+      await fetch("/api/ciclos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nombre }),
+      });
+
+      document.getElementById("nuevo-ciclo-nombre").value = "";
+      cargarCiclos();
+    };
   }
 }
 

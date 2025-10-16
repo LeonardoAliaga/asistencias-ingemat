@@ -4,9 +4,6 @@ import { initAccordion } from "./accordion.js";
 
 /**
  * Crea la estructura HTML para los elementos de lista de usuarios.
- * @param {Array} usuarios - Lista de objetos de usuario.
- * @param {boolean} esDocente - Indica si la lista es de docentes.
- * @returns {string} HTML de la lista.
  */
 function crearListaUsuarios(usuarios, esDocente = false) {
   return usuarios
@@ -45,7 +42,6 @@ function agregarEventosEliminar() {
     btn.parentElement.onmouseleave = () => (btn.style.display = "none");
     btn.onclick = async function (e) {
       e.stopPropagation();
-      // Obtener el nombre para el mensaje de confirmación
       const nombreCompleto = btn.parentElement.textContent.trim();
       const nombre = nombreCompleto.split(" - ")[1]
         ? nombreCompleto.split(" - ")[1].split("(")[0].trim()
@@ -64,8 +60,13 @@ function agregarEventosEliminar() {
  * Carga y renderiza la lista de usuarios, agrupada por ciclo en acordeones.
  */
 export async function cargarUsuarios(forceReload = false) {
-  const res = await fetch("/api/usuarios");
-  const usuarios = await res.json();
+  const resUsuarios = await fetch("/api/usuarios");
+  const usuarios = await resUsuarios.json();
+
+  // 🚀 NUEVO: Obtener la lista dinámica de ciclos
+  const resCiclos = await fetch("/api/ciclos");
+  const ciclosData = await resCiclos.json();
+  const ciclosOrdenados = ciclosData.ciclos;
 
   const ciclos = {};
   const docentes = [];
@@ -83,9 +84,15 @@ export async function cargarUsuarios(forceReload = false) {
   if (alumnosCompletaDiv) {
     alumnosCompletaDiv.innerHTML = "";
 
-    Object.keys(ciclos).forEach((ciclo, index) => {
+    // Itera usando la lista ordenada y completa de ciclos
+    ciclosOrdenados.forEach((ciclo, index) => {
+      const grupo = ciclos[ciclo] || [];
+      const count = grupo.length;
+
+      if (count === 0) return;
+
       // Ordenación: Turno y luego Alfabético
-      ciclos[ciclo].sort((a, b) => {
+      grupo.sort((a, b) => {
         if (a.turno === "mañana" && b.turno === "tarde") return -1;
         if (a.turno === "tarde" && b.turno === "mañana") return 1;
         return a.nombre.localeCompare(b.nombre, "es");
@@ -96,15 +103,13 @@ export async function cargarUsuarios(forceReload = false) {
       alumnosCompletaDiv.innerHTML += `
           <div class="accordion-item">
             <button class="accordion-header ${isActive}" data-target="ciclo-${ciclo}">
-              <h3>CICLO ${ciclo.toUpperCase()} (${
-        ciclos[ciclo].length
-      } Alumnos)</h3>
+              <h3>CICLO ${ciclo.toUpperCase()} (${count} Alumnos)</h3>
               <i class="bi bi-chevron-down"></i>
             </button>
             <div id="ciclo-${ciclo}" class="accordion-content ${
         isActive ? "show" : ""
       }">
-              <ul>${crearListaUsuarios(ciclos[ciclo])}</ul>
+              <ul>${crearListaUsuarios(grupo)}</ul>
             </div>
           </div>
         `;
@@ -117,7 +122,6 @@ export async function cargarUsuarios(forceReload = false) {
   docentes.sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
   const docentesDiv = document.getElementById("vista-docentes");
   if (docentesDiv) {
-    // FIX: Se usa crearListaUsuarios para docentes también
     docentesDiv.innerHTML = `<ul>${crearListaUsuarios(docentes, true)}</ul>`;
   }
 
@@ -168,14 +172,40 @@ export async function cargarHorarios() {
  * Inicializa los eventos del formulario de agregar usuario y los botones de días.
  */
 export function initUserFormEvents() {
-  // Lógica de los botones de día
+  // 1. Botones de Día
   document.querySelectorAll(".day-btn").forEach((button) => {
     button.addEventListener("click", function () {
       this.classList.toggle("active");
     });
   });
 
-  // Evento de submit del formulario
+  // 2. Formulario Agregar Usuario (FIX: Campos condicionales)
+  const rolSelect = document.getElementById("rol");
+  if (rolSelect) {
+    const toggleUserFields = function () {
+      const esEstudiante = rolSelect.value === "estudiante";
+      const esDocente = rolSelect.value === "docente";
+
+      const turno = document.getElementById("turno");
+      const ciclo = document.getElementById("ciclo");
+      const diasSelector = document.getElementById("dias-asistencia-selector");
+
+      if (turno) turno.disabled = !esEstudiante;
+      if (ciclo) ciclo.disabled = !esEstudiante;
+      if (diasSelector)
+        diasSelector.style.display =
+          esEstudiante || esDocente ? "block" : "none";
+
+      if (!esEstudiante) {
+        if (turno) turno.value = "";
+        if (ciclo) ciclo.value = "";
+      }
+    };
+    rolSelect.onchange = toggleUserFields;
+    toggleUserFields();
+  }
+
+  // 3. Formulario Agregar Submit
   const formAgregar = document.getElementById("form-agregar");
   if (formAgregar) {
     formAgregar.onsubmit = async function (e) {
@@ -204,7 +234,6 @@ export function initUserFormEvents() {
 
       const payload = { codigo, nombre, rol, turno, ciclo };
       if (rol === "estudiante" || rol === "docente") {
-        // Aplicar días también a docentes
         payload.dias_asistencia = diasAsistencia;
       }
 
@@ -216,9 +245,8 @@ export function initUserFormEvents() {
 
       cargarUsuarios(true);
 
-      // Restablecer el formulario
+      // Restablecer
       document.getElementById("form-agregar").reset();
-      // Restablecer botones de día a L-S activo (por defecto)
       document.querySelectorAll(".day-btn").forEach((button) => {
         if (button.getAttribute("data-day") !== "D") {
           button.classList.add("active");
@@ -227,37 +255,5 @@ export function initUserFormEvents() {
         }
       });
     };
-
-    // Evento de cambio de rol para mostrar/ocultar campos
-    const rolSelect = document.getElementById("rol");
-    if (rolSelect) {
-      const toggleUserFields = function () {
-        const esEstudiante = rolSelect.value === "estudiante";
-        const esDocente = rolSelect.value === "docente";
-
-        const turno = document.getElementById("turno");
-        const ciclo = document.getElementById("ciclo");
-        const diasSelector = document.getElementById(
-          "dias-asistencia-selector"
-        );
-
-        // Turno y Ciclo solo para estudiantes
-        if (turno) turno.disabled = !esEstudiante;
-        if (ciclo) ciclo.disabled = !esEstudiante;
-
-        // Días de asistencia para estudiantes y docentes
-        if (diasSelector)
-          diasSelector.style.display =
-            esEstudiante || esDocente ? "block" : "none";
-
-        if (!esEstudiante) {
-          if (turno) turno.value = "";
-          if (ciclo) ciclo.value = "";
-        }
-      };
-      rolSelect.onchange = toggleUserFields;
-      // Ejecutar al cargar
-      toggleUserFields();
-    }
   }
 }

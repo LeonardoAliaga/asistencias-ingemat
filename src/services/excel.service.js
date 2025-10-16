@@ -12,6 +12,8 @@ const {
 
 const usuariosPath = path.join(__dirname, "../../data/usuarios.json");
 const registrosPath = path.join(__dirname, "../../registros");
+const ciclosPath = path.join(__dirname, "../../data/ciclos.json"); // 🚀 NUEVO
+
 // --- Definición de Estilos (Mover fuera de la función principal es más limpio)
 const borderStyle = {
   top: { style: "thin" },
@@ -46,6 +48,41 @@ const estiloEncabezado = {
   border: borderStyle,
 };
 // --- FIN DE DEFINICIÓN DE ESTILOS
+
+// Helper para convertir "HH:MM" (24h) a "HH:MM AM/PM" (12h)
+function convertTo12Hour(time24h) {
+  if (
+    !time24h ||
+    time24h.toUpperCase() === "FALTA" ||
+    time24h.toUpperCase() === "NO ASISTE" ||
+    !time24h.includes(":")
+  )
+    return time24h;
+
+  const [hour, minute] = time24h.split(":").map(Number);
+  if (isNaN(hour) || isNaN(minute)) return time24h;
+
+  const date = new Date(2000, 0, 1, hour, minute);
+
+  return date
+    .toLocaleTimeString("es-PE", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    })
+    .replace(/\s/g, "")
+    .toUpperCase();
+}
+
+// Función para obtener la lista de ciclos (Duplicada para modularidad en el servidor)
+function getCiclosList() {
+  try {
+    const data = JSON.parse(fs.readFileSync(ciclosPath, "utf8"));
+    return data.ciclos;
+  } catch {
+    return ["semestral", "anual", "sabatino", "domingos"];
+  }
+}
 
 // 🏆 FUNCIÓN PRINCIPAL DE REGISTRO
 async function guardarRegistro(usuario, fechaStr, horaStr) {
@@ -93,7 +130,7 @@ async function guardarRegistro(usuario, fechaStr, horaStr) {
       hoja = workbook.addWorksheet("Asistencia");
 
       let fila = 1;
-      const ciclos = ["semestral", "anual", "sabatino"];
+      const ciclos = getCiclosList(); // 🚀 LISTA DINÁMICA
       const turnos = ["mañana", "tarde"];
 
       for (const ciclo of ciclos) {
@@ -284,21 +321,20 @@ async function guardarRegistro(usuario, fechaStr, horaStr) {
     const celdaHora = filaEncontrada.getCell(5);
     const valorCelda = (celdaHora.value || "").toString().trim().toUpperCase();
 
-    // LÓGICA CLAVE: Si ya dice "NO ASISTE", no se puede registrar la hora
-    if (valorCelda === "NO ASISTE") {
+    // LÓGICA DE VALIDACIÓN: Solo rechazar si ya existe una hora registrada (no FALTA ni NO ASISTE).
+    if (
+      valorCelda !== "" &&
+      valorCelda !== "FALTA" &&
+      valorCelda !== "NO ASISTE"
+    ) {
       console.log(
-        `⚠️ ${usuario.nombre} no está programado hoy. Registro rechazado.`
+        `⚠️ ${usuario.nombre} ya tiene registro de hora: ${valorCelda}. Registro rechazado.`
       );
       return false;
     }
 
-    if (valorCelda !== "" && valorCelda !== "FALTA") {
-      console.log(`⚠️ ${usuario.nombre} ya tiene registro.`);
-      return false;
-    }
-
-    const valoresFilaOriginal = filaEncontrada.values;
-    const [_, num, nombre, turno, dias, __] = valoresFilaOriginal; // Desestructuramos el nuevo campo DÍAS
+    // 🚀 LÓGICA CLAVE: CONVERTIMOS LA HORA A 12H ANTES DE ESCRIBIR EN EL EXCEL
+    const hora12h = convertTo12Hour(horaStr);
 
     // --- Lógica de Estilo por Asistencia ---
     let nuevoEstiloColumnaE = {
@@ -332,8 +368,11 @@ async function guardarRegistro(usuario, fechaStr, horaStr) {
     }
 
     // 2. Definir los valores de la nueva fila y reemplazar
-    // Incluimos DÍAS ASISTENCIA (dias)
-    const nuevaFilaValores = [num, nombre, turno, dias, horaStr];
+    const valoresFilaOriginal = filaEncontrada.values;
+    const [_, num, nombre, turno, dias, __] = valoresFilaOriginal;
+
+    // Escribimos la hora ya convertida a 12h
+    const nuevaFilaValores = [num, nombre, turno, dias, hora12h];
     hoja.spliceRows(numFila, 1, nuevaFilaValores);
 
     // 3. Aplicar estilos
