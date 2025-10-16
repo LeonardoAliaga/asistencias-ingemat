@@ -50,6 +50,9 @@ button {
   font-family: var(--font-body);
   text-transform: uppercase;
   letter-spacing: 1px;
+  background: transparent;
+  border: none;
+  color: #b72107;
 }
 
 button[type="submit"] {

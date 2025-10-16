@@ -103,7 +103,7 @@ export async function cargarArchivosExcel() {
           `
               <div class="excel-item">
                   <a href="/api/excel/${a}" download title="Descargar"><i class="bi bi-file-earmark-arrow-down-fill"></i> ${a}</a>
-                  <button class="btn-preview" data-filename="${a}" title="Vista Previa"><i class="bi bi-eye-fill"></i> Previsualizar</button>
+                  <button class="btn-preview" data-filename="${a}" title="Vista Previa"><i class="bi bi-eye-fill"></i></button>
               </div>
               `
       )

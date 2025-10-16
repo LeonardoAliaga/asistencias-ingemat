@@ -5,7 +5,14 @@
     "rol": "estudiante",
     "turno": "mañana",
     "ciclo": "semestral",
-    "dias_asistencia": ["L", "M", "MI", "J", "V", "S"]
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ]
   },
   {
     "codigo": "75516107",
@@ -13,7 +20,13 @@
     "rol": "estudiante",
     "turno": "mañana",
     "ciclo": "semestral",
-    "dias_asistencia": ["L", "MI", "J", "V", "S"]
+    "dias_asistencia": [
+      "L",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ]
   },
   {
     "codigo": "A002",
@@ -21,7 +34,14 @@
     "rol": "estudiante",
     "turno": "mañana",
     "ciclo": "semestral",
-    "dias_asistencia": ["L", "M", "MI", "J", "V", "S"]
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ]
   },
   {
     "codigo": "A003",
@@ -29,7 +49,14 @@
     "rol": "estudiante",
     "turno": "mañana",
     "ciclo": "anual",
-    "dias_asistencia": ["L", "M", "MI", "J", "V", "S"]
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ]
   },
   {
     "codigo": "A004",
@@ -37,7 +64,14 @@
     "rol": "estudiante",
     "turno": "mañana",
     "ciclo": "anual",
-    "dias_asistencia": ["L", "M", "MI", "J", "V", "S"]
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ]
   },
   {
     "codigo": "A005",
@@ -45,7 +79,14 @@
     "rol": "estudiante",
     "turno": "mañana",
     "ciclo": "sabatino",
-    "dias_asistencia": ["L", "M", "MI", "J", "V", "S"]
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ]
   },
   {
     "codigo": "A006",
@@ -53,7 +94,14 @@
     "rol": "estudiante",
     "turno": "mañana",
     "ciclo": "sabatino",
-    "dias_asistencia": ["L", "M", "MI", "J", "V", "S"]
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ]
   },
   {
     "codigo": "A007",
@@ -61,7 +109,14 @@
     "rol": "estudiante",
     "turno": "mañana",
     "ciclo": "anual",
-    "dias_asistencia": ["L", "M", "MI", "J", "V", "S"]
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ]
   },
   {
     "codigo": "A008",
@@ -69,7 +124,14 @@
     "rol": "estudiante",
     "turno": "tarde",
     "ciclo": "semestral",
-    "dias_asistencia": ["L", "M", "MI", "J", "V", "S"]
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ]
   },
   {
     "codigo": "A009",
@@ -77,7 +139,14 @@
     "rol": "estudiante",
     "turno": "tarde",
     "ciclo": "anual",
-    "dias_asistencia": ["L", "M", "MI", "J", "V", "S"]
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ]
   },
   {
     "codigo": "A010",
@@ -85,7 +154,14 @@
     "rol": "estudiante",
     "turno": "tarde",
     "ciclo": "sabatino",
-    "dias_asistencia": ["L", "M", "MI", "J", "V", "S"]
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ]
   },
   {
     "codigo": "A011",
@@ -93,7 +169,14 @@
     "rol": "estudiante",
     "turno": "tarde",
     "ciclo": "semestral",
-    "dias_asistencia": ["L", "M", "MI", "J", "V", "S"]
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ]
   },
   {
     "codigo": "A012",
@@ -101,7 +184,14 @@
     "rol": "estudiante",
     "turno": "tarde",
     "ciclo": "anual",
-    "dias_asistencia": ["L", "M", "MI", "J", "V", "S"]
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ]
   },
   {
     "codigo": "A013",
@@ -109,7 +199,14 @@
     "rol": "estudiante",
     "turno": "tarde",
     "ciclo": "anual",
-    "dias_asistencia": ["L", "M", "MI", "J", "V", "S"]
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ]
   },
   {
     "codigo": "A014",
@@ -117,7 +214,14 @@
     "rol": "estudiante",
     "turno": "tarde",
     "ciclo": "sabatino",
-    "dias_asistencia": ["L", "M", "MI", "J", "V", "S"]
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ]
   },
   {
     "codigo": "A015",
@@ -125,36 +229,93 @@
     "rol": "estudiante",
     "turno": "tarde",
     "ciclo": "semestral",
-    "dias_asistencia": ["L", "M", "MI", "J", "V", "S"]
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ]
   },
   {
     "codigo": "P001",
     "nombre": "MARIA LOPEZ",
     "rol": "docente",
-    "dias_asistencia": ["L", "M", "MI", "J", "V", "S"]
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ]
   },
   {
     "codigo": "P002",
     "nombre": "PEDRO VILLALOBOS",
     "rol": "docente",
-    "dias_asistencia": ["L", "M", "MI", "J", "V", "S"]
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ]
   },
   {
     "codigo": "P003",
     "nombre": "CARLA MENDOZA",
     "rol": "docente",
-    "dias_asistencia": ["L", "M", "MI", "J", "V", "S"]
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ]
   },
   {
     "codigo": "P004",
     "nombre": "JAVIER RAMIREZ",
     "rol": "docente",
-    "dias_asistencia": ["L", "M", "MI", "J", "V", "S"]
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ]
   },
   {
     "codigo": "P005",
     "nombre": "DANIELA CORDOVA",
     "rol": "docente",
-    "dias_asistencia": ["L", "M", "MI", "J", "V", "S"]
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ]
+  },
+  {
+    "codigo": "210106",
+    "nombre": "AAAAA",
+    "rol": "estudiante",
+    "turno": "mañana",
+    "ciclo": "domingos",
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ]
   }
 ]

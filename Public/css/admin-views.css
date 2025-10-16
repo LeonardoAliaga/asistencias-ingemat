@@ -138,10 +138,15 @@ li:hover {
   align-items: center;
   margin: 8px 0;
   gap: 10px;
+  transition: 0.3s;
   background-color: var(--black);
   color: var(--white1);
   padding: 5px;
   border-radius: 5px;
+}
+.excel-item:hover {
+  background-color: #008000;
+  transform: translateX(5px);
 }
 
 #archivos-excel a {
@@ -149,6 +154,7 @@ li:hover {
   letter-spacing: 1px;
   color: var(--white1);
   padding: 5px 10px;
+  transition: 0.3s;
   text-decoration: none;
   font-family: var(--font-body);
   flex-grow: 1;
@@ -156,12 +162,10 @@ li:hover {
 
 #archivos-excel a:hover {
   background-color: transparent;
-  transform: none;
-  color: #008000;
 }
 
 .btn-preview {
-  background-color: var(--blue1);
+  background-color: transparent;
   color: var(--white1);
   border: none;
   padding: 8px 10px;
@@ -173,7 +177,7 @@ li:hover {
 }
 
 .btn-preview:hover {
-  background-color: var(--blue2);
+  background-color: #006800;
 }
 
 /* ======================================================= */
