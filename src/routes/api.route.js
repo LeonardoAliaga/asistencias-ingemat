@@ -4,12 +4,14 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const ExcelJS = require("exceljs");
-const { guardarRegistro } = require("../services/excel.service");
-const {
-  estadoAsistencia,
-  getDayAbbreviation,
-  normalizarTexto,
-} = require("../utils/helpers");
+const { guardarRegistro } = path.join(
+  process.cwd(),
+  "../services/excel.service"
+);
+const { estadoAsistencia, getDayAbbreviation, normalizarTexto } = path.join(
+  process.cwd(),
+  "../utils/helpers"
+);
 
 const router = express.Router();
 const usuariosPath = path.join(process.cwd(), "../../data/usuarios.json");

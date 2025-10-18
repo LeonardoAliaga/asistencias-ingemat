@@ -13,7 +13,7 @@ const PORT = process.env.PORT || 3000;
 // Middleware Globales
 app.use(express.json());
 // CORRECCIÓN 2: Usar path.join para rutas estáticas robustas
-app.use(express.static(path.join(__dirname, "Public")));
+app.use(express.static(path.join(process.cwd(), "Public")));
 
 app.use(
   session({
@@ -61,15 +61,17 @@ app.post("/admin/password", (req, res) => {
 
 // CORRECCIÓN 3: Manejar la ruta raíz para servir index.html
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "Public/index.html"));
+  res.sendFile(path.join(process.cwd(), "Public/index.html"));
 });
 
 // Ruta protegida para /admin
 app.get("/admin", (req, res) => {
   if (!req.session.admin) {
-    return res.sendFile(path.join(__dirname, "Public/pages/admin-login.html"));
+    return res.sendFile(
+      path.join(process.cwd(), "Public/pages/admin-login.html")
+    );
   }
-  res.sendFile(path.join(__dirname, "Public/pages/admin.html"));
+  res.sendFile(path.join(process.cwd(), "Public/pages/admin.html"));
 });
 
 // Configuración de rutas de la API
