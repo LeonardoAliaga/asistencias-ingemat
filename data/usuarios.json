@@ -119,21 +119,6 @@
     ]
   },
   {
-    "codigo": "A008",
-    "nombre": "FERNANDEZ ALISSON",
-    "rol": "estudiante",
-    "turno": "tarde",
-    "ciclo": "semestral",
-    "dias_asistencia": [
-      "L",
-      "M",
-      "MI",
-      "J",
-      "V",
-      "S"
-    ]
-  },
-  {
     "codigo": "A009",
     "nombre": "GONZALES NAVARRO DANIELA",
     "rol": "estudiante",
@@ -154,21 +139,6 @@
     "rol": "estudiante",
     "turno": "tarde",
     "ciclo": "sabatino",
-    "dias_asistencia": [
-      "L",
-      "M",
-      "MI",
-      "J",
-      "V",
-      "S"
-    ]
-  },
-  {
-    "codigo": "A011",
-    "nombre": "ORTIZ LIPA ROSA",
-    "rol": "estudiante",
-    "turno": "tarde",
-    "ciclo": "semestral",
     "dias_asistencia": [
       "L",
       "M",
@@ -265,19 +235,6 @@
     ]
   },
   {
-    "codigo": "P003",
-    "nombre": "CARLA MENDOZA",
-    "rol": "docente",
-    "dias_asistencia": [
-      "L",
-      "M",
-      "MI",
-      "J",
-      "V",
-      "S"
-    ]
-  },
-  {
     "codigo": "P004",
     "nombre": "JAVIER RAMIREZ",
     "rol": "docente",
@@ -294,21 +251,6 @@
     "codigo": "P005",
     "nombre": "DANIELA CORDOVA",
     "rol": "docente",
-    "dias_asistencia": [
-      "L",
-      "M",
-      "MI",
-      "J",
-      "V",
-      "S"
-    ]
-  },
-  {
-    "codigo": "210106",
-    "nombre": "AAAAA",
-    "rol": "estudiante",
-    "turno": "mañana",
-    "ciclo": "domingos",
     "dias_asistencia": [
       "L",
       "M",

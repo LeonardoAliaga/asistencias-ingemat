@@ -2,6 +2,7 @@
   "ciclos": [
     "semestral",
     "anual",
-    "sabatino"
+    "sabatino",
+    "domingos"
   ]
 }
