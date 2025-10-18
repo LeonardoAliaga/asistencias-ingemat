@@ -13,7 +13,7 @@ const PORT = process.env.PORT || 3000;
 // Middleware Globales
 app.use(express.json());
 // CORRECCIÓN 2: Usar path.join para rutas estáticas robustas
-app.use(express.static(path.join(process.cwd(), "Public")));
+app.use(express.static(path.join(path.dirname(process.execPath), "Public")));
 
 app.use(
   session({
@@ -23,7 +23,10 @@ app.use(
   })
 );
 
-const passwordPath = path.join(process.cwd(), "data/password.json");
+const passwordPath = path.join(
+  path.dirname(process.execPath),
+  "data/password.json"
+);
 
 // Función para obtener la contraseña actual
 function getPassword() {
@@ -61,17 +64,19 @@ app.post("/admin/password", (req, res) => {
 
 // CORRECCIÓN 3: Manejar la ruta raíz para servir index.html
 app.get("/", (req, res) => {
-  res.sendFile(path.join(process.cwd(), "Public/index.html"));
+  res.sendFile(path.join(path.dirname(process.execPath), "Public/index.html"));
 });
 
 // Ruta protegida para /admin
 app.get("/admin", (req, res) => {
   if (!req.session.admin) {
     return res.sendFile(
-      path.join(process.cwd(), "Public/pages/admin-login.html")
+      path.join(path.dirname(process.execPath), "Public/pages/admin-login.html")
     );
   }
-  res.sendFile(path.join(process.cwd(), "Public/pages/admin.html"));
+  res.sendFile(
+    path.join(path.dirname(process.execPath), "Public/pages/admin.html")
+  );
 });
 
 // Configuración de rutas de la API
@@ -80,7 +85,7 @@ app.use("/api", apiRouter);
 app.use("/api", require("./src/routes/api.route"));
 
 // Asegurar que la carpeta de registros exista
-const registrosPath = path.join(process.cwd(), "registros");
+const registrosPath = path.join(path.dirname(process.execPath), "registros");
 if (!fs.existsSync(registrosPath)) fs.mkdirSync(registrosPath);
 
 app.listen(PORT, () => console.log(`Servidor en http://localhost:${PORT}`));

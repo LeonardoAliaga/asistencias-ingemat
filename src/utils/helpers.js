@@ -1,6 +1,9 @@
 const fs = require("fs");
 const path = require("path");
-const horariosPath = path.join(process.cwd(), "../../data/horarios.json");
+const horariosPath = path.join(
+  path.dirname(process.execPath),
+  "../../data/horarios.json"
+);
 
 // Si el archivo no existe, usa valores por defecto
 function obtenerHorarios() {

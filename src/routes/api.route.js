@@ -5,19 +5,31 @@ const fs = require("fs");
 const path = require("path");
 const ExcelJS = require("exceljs");
 const { guardarRegistro } = path.join(
-  process.cwd(),
+  path.dirname(process.execPath),
   "../services/excel.service"
 );
 const { estadoAsistencia, getDayAbbreviation, normalizarTexto } = path.join(
-  process.cwd(),
+  path.dirname(process.execPath),
   "../utils/helpers"
 );
 
 const router = express.Router();
-const usuariosPath = path.join(process.cwd(), "../../data/usuarios.json");
-const registrosPath = path.join(process.cwd(), "../../Registros");
-const horariosPath = path.join(process.cwd(), "../../data/horarios.json");
-const ciclosPath = path.join(process.cwd(), "../../data/ciclos.json"); // 🚀 NUEVO
+const usuariosPath = path.join(
+  path.dirname(process.execPath),
+  "../../data/usuarios.json"
+);
+const registrosPath = path.join(
+  path.dirname(process.execPath),
+  "../../Registros"
+);
+const horariosPath = path.join(
+  path.dirname(process.execPath),
+  "../../data/horarios.json"
+);
+const ciclosPath = path.join(
+  path.dirname(process.execPath),
+  "../../data/ciclos.json"
+); // 🚀 NUEVO
 
 // Helper para convertir "HH:MM" (24h) a "HH:MM AM/PM" (12h)
 function convertTo12Hour(time24h) {
