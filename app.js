@@ -23,7 +23,7 @@ app.use(
   })
 );
 
-const passwordPath = path.join(__dirname, "data/password.json");
+const passwordPath = path.join(process.cwd(), "data/password.json");
 
 // Función para obtener la contraseña actual
 function getPassword() {
@@ -78,7 +78,7 @@ app.use("/api", apiRouter);
 app.use("/api", require("./src/routes/api.route"));
 
 // Asegurar que la carpeta de registros exista
-const registrosPath = path.join(__dirname, "registros");
+const registrosPath = path.join(process.cwd(), "registros");
 if (!fs.existsSync(registrosPath)) fs.mkdirSync(registrosPath);
 
 app.listen(PORT, () => console.log(`Servidor en http://localhost:${PORT}`));

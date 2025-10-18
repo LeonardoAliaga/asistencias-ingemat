@@ -10,9 +10,9 @@ const {
   getDayAbbreviation,
 } = require("../utils/helpers");
 
-const usuariosPath = path.join(__dirname, "../../data/usuarios.json");
-const registrosPath = path.join(__dirname, "../../registros");
-const ciclosPath = path.join(__dirname, "../../data/ciclos.json"); // 🚀 NUEVO
+const usuariosPath = path.join(process.cwd(), "../../data/usuarios.json");
+const registrosPath = path.join(process.cwd(), "../../registros");
+const ciclosPath = path.join(process.cwd(), "../../data/ciclos.json"); // 🚀 NUEVO
 
 // --- Definición de Estilos (Mover fuera de la función principal es más limpio)
 const borderStyle = {

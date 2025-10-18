@@ -12,10 +12,10 @@ const {
 } = require("../utils/helpers");
 
 const router = express.Router();
-const usuariosPath = path.join(__dirname, "../../data/usuarios.json");
-const registrosPath = path.join(__dirname, "../../Registros");
-const horariosPath = path.join(__dirname, "../../data/horarios.json");
-const ciclosPath = path.join(__dirname, "../../data/ciclos.json"); // 🚀 NUEVO
+const usuariosPath = path.join(process.cwd(), "../../data/usuarios.json");
+const registrosPath = path.join(process.cwd(), "../../Registros");
+const horariosPath = path.join(process.cwd(), "../../data/horarios.json");
+const ciclosPath = path.join(process.cwd(), "../../data/ciclos.json"); // 🚀 NUEVO
 
 // Helper para convertir "HH:MM" (24h) a "HH:MM AM/PM" (12h)
 function convertTo12Hour(time24h) {
