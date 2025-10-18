@@ -4,32 +4,20 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const ExcelJS = require("exceljs");
-const { guardarRegistro } = path.join(
-  path.dirname(process.execPath),
-  "../services/excel.service"
-);
-const { estadoAsistencia, getDayAbbreviation, normalizarTexto } = path.join(
-  path.dirname(process.execPath),
-  "../utils/helpers"
-);
+const { guardarRegistro } = require("../services/excel.service");
+const {
+  estadoAsistencia,
+  getDayAbbreviation,
+  normalizarTexto,
+} = require("../utils/helpers");
+
+const execRoot = path.dirname(process.execPath);
 
 const router = express.Router();
-const usuariosPath = path.join(
-  path.dirname(process.execPath),
-  "../../data/usuarios.json"
-);
-const registrosPath = path.join(
-  path.dirname(process.execPath),
-  "../../Registros"
-);
-const horariosPath = path.join(
-  path.dirname(process.execPath),
-  "../../data/horarios.json"
-);
-const ciclosPath = path.join(
-  path.dirname(process.execPath),
-  "../../data/ciclos.json"
-); // 🚀 NUEVO
+const usuariosPath = path.join(execRoot, "data/usuarios.json");
+const registrosPath = path.join(execRoot, "Registros"); // Carpeta junto al EXE
+const horariosPath = path.join(execRoot, "data/horarios.json");
+const ciclosPath = path.join(execRoot, "data/ciclos.json");
 
 // Helper para convertir "HH:MM" (24h) a "HH:MM AM/PM" (12h)
 function convertTo12Hour(time24h) {

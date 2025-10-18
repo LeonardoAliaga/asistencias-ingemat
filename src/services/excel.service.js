@@ -8,20 +8,11 @@ const {
   normalizarTexto,
   aplicarEstiloCelda,
   getDayAbbreviation,
-} = path.join(path.dirname(process.execPath), "../utils/helpers");
+} = require("../utils/helpers");
 
-const usuariosPath = path.join(
-  path.dirname(process.execPath),
-  "../../data/usuarios.json"
-);
-const registrosPath = path.join(
-  path.dirname(process.execPath),
-  "../../registros"
-);
-const ciclosPath = path.join(
-  path.dirname(process.execPath),
-  "../../data/ciclos.json"
-); // 🚀 NUEVO
+const usuariosPath = path.join(__dirname, "../../data/usuarios.json");
+const registrosPath = path.join(path.dirname(process.execPath), "registros"); // o "../../Registros" dependiendo de tu estructura final al construir.
+const ciclosPath = path.join(__dirname, "../../data/ciclos.json");
 
 // --- Definición de Estilos (Mover fuera de la función principal es más limpio)
 const borderStyle = {
