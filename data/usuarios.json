@@ -1,34 +1,5 @@
 [
   {
-    "codigo": "A001",
-    "nombre": "ALIAGA URIONDO JHERSON LEONARDO",
-    "rol": "estudiante",
-    "turno": "mañana",
-    "ciclo": "semestral",
-    "dias_asistencia": [
-      "L",
-      "M",
-      "MI",
-      "J",
-      "V",
-      "S"
-    ]
-  },
-  {
-    "codigo": "75516107",
-    "nombre": "ALIAGA URIONDO JHERSON LEONARDO",
-    "rol": "estudiante",
-    "turno": "mañana",
-    "ciclo": "semestral",
-    "dias_asistencia": [
-      "L",
-      "MI",
-      "J",
-      "V",
-      "S"
-    ]
-  },
-  {
     "codigo": "A002",
     "nombre": "BERAUN YMBERTIS JO ANN",
     "rol": "estudiante",
@@ -94,21 +65,6 @@
     "rol": "estudiante",
     "turno": "mañana",
     "ciclo": "sabatino",
-    "dias_asistencia": [
-      "L",
-      "M",
-      "MI",
-      "J",
-      "V",
-      "S"
-    ]
-  },
-  {
-    "codigo": "A007",
-    "nombre": "DIAZ HIDALGO DIOMER",
-    "rol": "estudiante",
-    "turno": "mañana",
-    "ciclo": "anual",
     "dias_asistencia": [
       "L",
       "M",
@@ -194,21 +150,6 @@
     ]
   },
   {
-    "codigo": "A015",
-    "nombre": "VILLENA HOYOS RODRIGO",
-    "rol": "estudiante",
-    "turno": "tarde",
-    "ciclo": "semestral",
-    "dias_asistencia": [
-      "L",
-      "M",
-      "MI",
-      "J",
-      "V",
-      "S"
-    ]
-  },
-  {
     "codigo": "P001",
     "nombre": "MARIA LOPEZ",
     "rol": "docente",
@@ -258,6 +199,20 @@
       "J",
       "V",
       "S"
+    ]
+  },
+  {
+    "codigo": "75516107",
+    "nombre": "ALIAGA URIONDO JHERSON LEONARDO",
+    "rol": "estudiante",
+    "turno": "mañana",
+    "ciclo": "semestral",
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V"
     ]
   }
 ]

@@ -11,7 +11,7 @@ const {
 } = require("../utils/helpers");
 
 const usuariosPath = path.join(__dirname, "../../data/usuarios.json");
-const registrosPath = path.join(path.dirname(process.execPath), "registros"); // o "../../Registros" dependiendo de tu estructura final al construir.
+const registrosPath = path.join(__dirname, "../../Registros"); // o "../../Registros" dependiendo de tu estructura final al construir.
 const ciclosPath = path.join(__dirname, "../../data/ciclos.json");
 
 // --- Definición de Estilos (Mover fuera de la función principal es más limpio)

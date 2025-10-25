@@ -6,6 +6,7 @@
     <link rel="stylesheet" href="../css/admin.css" />
     <link rel="stylesheet" href="../css/admin-forms.css" />
     <link rel="stylesheet" href="../css/admin-views.css" />
+    <link rel="stylesheet" href="../css/admin-whatsapp.css" />
     <link
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
@@ -24,6 +25,9 @@
         </button>
         <button class="nav-button" id="btn-vista-alumnos">
           <i class="bi bi-people-fill"></i> ESTUDIANTES
+        </button>
+        <button class="nav-button" id="btn-vista-whatsapp">
+          <i class="bi bi-whatsapp"></i> WHATSAPP
         </button>
         <button id="btn-logout" title="Cerrar Sesión">
           <i class="bi bi-box-arrow-right"></i>
@@ -84,6 +88,7 @@
                 <i class="bi bi-plus-circle-fill"></i> AGREGAR CICLO
               </button>
             </form>
+            <div id="msg-ciclos"></div>
           </section>
           <section id="agregar-usuario-section" style="grid-area: agregar">
             <h2><i class="bi bi-person-plus-fill"></i> AGREGAR USUARIO</h2>
@@ -136,6 +141,7 @@
               <button type="submit">
                 <i class="bi bi-check-lg"></i> AGREGAR
               </button>
+              <div id="msg-agregar-usuario"></div>
             </form>
           </section>
 
@@ -181,6 +187,118 @@
         </h2>
         <div id="vista-alumnos" class="accordion-container"></div>
       </div>
+
+      <div id="vista-whatsapp" class="vista-content" style="display: none">
+        <h2 class="sub-header">
+          <i class="bi bi-whatsapp"></i> CONFIGURACIÓN DE WHATSAPP
+        </h2>
+
+        <div
+          id="unsaved-changes-alert"
+          class="unsaved-alert sticky"
+          style="display: none"
+        >
+          <i class="bi bi-exclamation-triangle-fill"></i> Tienes cambios sin
+          guardar en esta sección.
+          <button id="btn-jump-to-save" title="Ir a Guardar">
+            <i class="bi bi-arrow-down-circle"></i>
+          </button>
+        </div>
+
+        <div class="whatsapp-status-section">
+          <h3>
+            Estado de Conexión:
+            <span id="whatsapp-status-indicator" class="status-disconnected"
+              >Desconectado</span
+            >
+          </h3>
+          <p id="whatsapp-status-message">Intentando conectar...</p>
+          <button id="btn-refresh-whatsapp-status" title="Refrescar Estado">
+            <i class="bi bi-arrow-clockwise"></i>
+          </button>
+        </div>
+
+        <section class="whatsapp-config-section">
+          <h3><i class="bi bi-toggles"></i> Activación General</h3>
+          <div class="toggle-switch-container">
+            <label class="switch">
+              <input type="checkbox" id="whatsapp-enabled-toggle" />
+              <span class="slider round"></span>
+            </label>
+            <span id="whatsapp-enabled-label">Notificaciones Desactivadas</span>
+          </div>
+        </section>
+
+        <section class="whatsapp-config-section">
+          <h3>
+            <i class="bi bi-people-fill"></i> Notificaciones de Estudiantes
+          </h3>
+          <div id="student-rules-list">
+            <p>Cargando reglas...</p>
+          </div>
+          <div class="add-rule-form">
+            <h4><i class="bi bi-plus-circle-fill"></i> Agregar Nueva Regla</h4>
+            <div class="form-grid-whatsapp">
+              <select id="rule-ciclo" required>
+                <option value="">Selecciona Ciclo</option>
+              </select>
+              <select id="rule-turno" required>
+                <option value="">Selecciona Turno</option>
+                <option value="mañana">Mañana</option>
+                <option value="tarde">Tarde</option>
+              </select>
+              <select id="rule-target-type" required>
+                <option value="group">Enviar a Grupo</option>
+                <option value="number">Enviar a Número</option>
+              </select>
+
+              <div id="rule-group-field">
+                <label for="rule-group-select">Grupo de WhatsApp:</label>
+                <select id="rule-group-select">
+                  <option value="">Cargando grupos...</option>
+                </select>
+                <input
+                  type="text"
+                  id="rule-group-search"
+                  placeholder="Buscar grupo por nombre..."
+                />
+              </div>
+
+              <div id="rule-number-field" style="display: none">
+                <label for="rule-number-input">Número (ej: 519XXXXXXXX):</label>
+                <input type="tel" id="rule-number-input" placeholder="519..." />
+              </div>
+            </div>
+            <button id="btn-add-student-rule">
+              <i class="bi bi-plus"></i> Agregar Regla
+            </button>
+            <div id="msg-add-rule" class="form-message"></div>
+          </div>
+        </section>
+
+        <section class="whatsapp-config-section">
+          <h3>
+            <i class="bi bi-person-badge-fill"></i> Notificaciones de Docentes
+          </h3>
+          <div class="form-grid-whatsapp simple">
+            <label for="teacher-number-input"
+              >Enviar a Número (ej: 519XXXXXXXX):</label
+            >
+            <input
+              type="tel"
+              id="teacher-number-input"
+              placeholder="519... (dejar vacío para no enviar)"
+            />
+          </div>
+        </section>
+
+        <div class="whatsapp-save-section">
+          <button id="btn-save-whatsapp-config">
+            <i class="bi bi-save-fill"></i> GUARDAR CONFIGURACIÓN WHATSAPP
+          </button>
+          <div id="msg-whatsapp-config" class="form-message"></div>
+        </div>
+      </div>
     </div>
 
     <div id="preview-modal" class="modal">
@@ -191,7 +309,6 @@
         <div id="preview-content" class="preview-scroll"></div>
       </div>
     </div>
-
     <script type="module" src="../js/admin.js"></script>
   </body>
 </html>

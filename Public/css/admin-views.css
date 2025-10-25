@@ -189,17 +189,20 @@ li:hover {
   border-collapse: collapse;
   font-family: var(--font-body);
   font-size: 0.9rem;
-  table-layout: fixed;
+  table-layout: fixed; /* Mantenemos fixed para control de ancho */
   margin: 0;
+  border: 1px solid #ccc; /* Borde exterior tabla */
 }
 
 #preview-content th,
 #preview-content td {
   border: 1px solid #ddd;
-  padding: 8px;
+  padding: 8px 10px; /* Un poco más de padding horizontal */
   text-align: left;
-  white-space: normal;
-  word-wrap: break-word; /* Permite que los nombres largos se dividan dentro de la celda */
+  letter-spacing: 0.5px; /* Reducido para mejor legibilidad */
+  white-space: normal; /* Permitir wrap */
+  word-wrap: break-word;
+  vertical-align: middle; /* Alinear verticalmente al centro */
 }
 
 /* Estilo para Filas de Título de Sección */
@@ -207,33 +210,37 @@ li:hover {
   background-color: var(--black);
   color: var(--white1);
   font-weight: bold;
+  font-size: 1.1rem; /* Un poco más grande */
   text-align: center;
-  padding: 10px 8px;
-  border: 2px solid var(--red);
-  position: sticky;
+  padding: 12px 8px; /* Más padding vertical */
+  border: 1px solid var(--black); /* Borde igual al fondo */
+  /* Quitar sticky para evitar problemas con colspan y scroll */
+  /* position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 10; */
 }
 
-/* Estilo para Fila de Encabezado de Columna ( sticky ) */
+/* Estilo para Fila de Encabezado de Columna */
 .table-header th {
-  background-color: #f0f0f0;
+  background-color: #e9e9e9; /* Gris un poco más oscuro */
   color: var(--black);
   font-weight: bold;
   text-align: center;
-  position: sticky;
-  top: 50px;
+  position: sticky; /* Mantener sticky para encabezados */
+  top: 0; /* Pegado arriba del scroll */
   z-index: 9;
+  border-bottom: 2px solid #bbb; /* Borde inferior más grueso */
 }
 
-/* Definición de anchos de columna para 5 columnas: N°, ALUMNO, TURNO, DÍAS, REGISTRO */
+/* Definición de anchos de columna (ajustados para 5 columnas) */
 .table-header th:nth-child(1) {
   width: 5%;
   text-align: center;
 } /* N° */
 .table-header th:nth-child(2) {
-  width: 35%; /* Aumentado a 35% para el ALUMNO/DOCENTE */
-}
+  width: 35%;
+  text-align: left;
+} /* ALUMNO/DOCENTE */
 .table-header th:nth-child(3) {
   width: 10%;
   text-align: center;
@@ -243,25 +250,59 @@ li:hover {
   text-align: center;
 } /* DÍAS ASISTENCIA */
 .table-header th:nth-child(5) {
-  width: 25%; /* DÍA/HORA + ESTADO */
+  width: 25%;
   text-align: center;
-}
+} /* HORA REGISTRO */
 
 /* Estilo para Filas de Datos */
 .table-data td {
   background-color: var(--white1);
   color: var(--black);
 }
-
-.table-data td:nth-child(1) {
-  text-align: center;
-}
-.table-data td:nth-child(3) {
-  text-align: center;
-}
-.table-data td:nth-child(4) {
-  text-align: center;
-} /* Días */
+/* Centrar columnas específicas */
+.table-data td:nth-child(1), /* N° */
+.table-data td:nth-child(3), /* Turno */
+.table-data td:nth-child(4), /* Días */
 .table-data td:nth-child(5) {
+  /* Hora Registro */
   text-align: center;
-} /* Registro */
+}
+
+/* --- NUEVOS ESTILOS PARA ESTADO DE ASISTENCIA --- */
+.table-data td.status-puntual {
+  background-color: #c6efce; /* Verde claro */
+  color: #006100; /* Verde oscuro */
+  font-weight: bold;
+}
+.table-data td.status-tolerancia {
+  background-color: #ffeb9c; /* Amarillo/Naranja claro */
+  color: #9c5700; /* Naranja oscuro */
+  font-weight: bold;
+}
+.table-data td.status-tarde {
+  background-color: #ffc7ce; /* Rojo claro */
+  color: #9c0006; /* Rojo oscuro */
+  font-weight: bold;
+}
+.table-data td.status-falta {
+  background-color: #d9d9d9; /* Gris claro */
+  color: #333333; /* Gris oscuro texto */
+  font-weight: bold;
+}
+.table-data td.status-no_asiste {
+  background-color: #c0c0c0; /* Gris medio */
+  color: #404040; /* Gris más oscuro texto */
+  font-style: italic; /* Opcional: italica para diferenciar */
+  font-weight: bold;
+}
+.table-data td.status-docente {
+  background-color: #bdd7ee; /* Azul claro */
+  color: #1f4e78; /* Azul oscuro */
+  font-weight: bold;
+}
+/* Estilo genérico para horas registradas sin estado específico (si se usa 'registrado') */
+.table-data td.status-registrado {
+  background-color: #e7e6e6; /* Gris muy claro */
+  color: #000000;
+  font-weight: bold;
+}
