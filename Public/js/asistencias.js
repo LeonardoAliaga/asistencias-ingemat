@@ -8,45 +8,94 @@ document
     <h1>¡Te damos la bienvenida!</h1>
       <div style="display:flex; flex-direction:column; align-items:center; gap:10px;">
         <div id="resultado" style="margin-top:20px; font-size:20px; display: grid; justify-items:center;"></div>
-        <input type="text" id="codigo" placeholder="Introduce el codigo" style="padding:10px; font-size:18px;"/>
+        <input type="text" id="codigo" placeholder="Introduce o escanea el código" style="padding:10px; font-size:18px;"/>
         <button id="registrar-btn" class="btn-red">Registrar</button>
       </div>
     `;
 
-    document.getElementById("registrar-btn").onclick = async function () {
-      const codigo = document.getElementById("codigo").value.trim();
+    // --- NUEVO: Obtener referencias a los elementos ---
+    const codigoInput = document.getElementById("codigo");
+    const registrarBtn = document.getElementById("registrar-btn");
+    const resultadoDiv = document.getElementById("resultado");
 
-      const res = await fetch("/api/registrar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ codigo }),
-      });
+    // --- NUEVO: Función para manejar el registro ---
+    const registrarAsistencia = async () => {
+      const codigo = codigoInput.value.trim(); // Leer valor actual del input
 
-      const data = await res.json();
-      const resultado = document.getElementById("resultado");
+      // Limpiar mensaje anterior mientras se procesa
+      resultadoDiv.innerHTML = "<i>Procesando...</i>";
 
-      if (!codigo) return (resultado.innerHTML = "❌ Nada que registrar");
-      if (data.exito) {
-        let estadoTexto = "";
-        if (data.rol === "estudiante") {
-          if (data.estado === "puntual") estadoTexto = "🟢 Puntual";
-          else if (data.estado === "tolerancia") estadoTexto = "🟠 Tolerancia";
-          else if (data.estado === "tarde") estadoTexto = "🔴 Tarde";
-          resultado.innerHTML = `
-      <span><b>Ciclo:</b> ${data.ciclo} | <b>Turno:</b> ${data.turno}</span>
-      <span>📚 <b>${data.nombre}</b> registrado</span>
-      <span>🕓 ${data.hora} | ${estadoTexto}</span>
-    `;
-        } else {
-          resultado.innerHTML = `
-      <span><b>Docente</b></span>
-      <span>✅ <b>${data.nombre}</b> registrado</span>
-      <span>🕓 ${data.hora}</span>
-    `;
-        }
-      } else {
-        resultado.innerHTML = `❌ ${data.mensaje}`;
+      if (!codigo) {
+        resultadoDiv.innerHTML = "❌ Nada que registrar";
+        codigoInput.focus(); // Re-enfocar para el siguiente escaneo
+        return;
       }
-      document.getElementById("codigo").value = "";
+
+      try {
+        const res = await fetch("/api/registrar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ codigo }),
+        });
+
+        const data = await res.json();
+
+        if (data.exito) {
+          let estadoTexto = "";
+          if (data.rol === "estudiante") {
+            if (data.estado === "puntual") estadoTexto = "🟢 Puntual";
+            else if (data.estado === "tolerancia")
+              estadoTexto = "🟠 Tolerancia";
+            else if (data.estado === "tarde") estadoTexto = "🔴 Tarde";
+            resultadoDiv.innerHTML = `
+            <span><b>Ciclo:</b> ${data.ciclo} | <b>Turno:</b> ${
+              data.turno
+            }</span>
+            <span>📚 <b>${data.nombre}</b> registrado</span>
+            <span>🕓 ${data.hora} | ${estadoTexto}</span>
+            ${
+              data.mensajeAdicional
+                ? `<span style="font-size: smaller; color: grey;">(${data.mensajeAdicional})</span>`
+                : ""
+            }
+          `;
+          } else {
+            // Docente
+            resultadoDiv.innerHTML = `
+            <span><b>Docente</b></span>
+            <span>✅ <b>${data.nombre}</b> registrado</span>
+            <span>🕓 ${data.hora}</span>
+             ${
+               data.mensajeAdicional
+                 ? `<span style="font-size: smaller; color: grey;">(${data.mensajeAdicional})</span>`
+                 : ""
+             }
+          `;
+          }
+        } else {
+          resultadoDiv.innerHTML = `❌ ${data.mensaje}`;
+        }
+      } catch (error) {
+        console.error("Error en fetch:", error);
+        resultadoDiv.innerHTML = `❌ Error de conexión al registrar. Intenta de nuevo.`;
+      } finally {
+        codigoInput.value = ""; // Limpiar el input después de procesar
+        codigoInput.focus(); // Re-enfocar para el siguiente escaneo
+      }
     };
+
+    // --- MODIFICADO: Asignar la función al botón ---
+    registrarBtn.onclick = registrarAsistencia;
+
+    // --- NUEVO: Escuchar por la tecla Enter en el input ---
+    codigoInput.addEventListener("keydown", function (event) {
+      // Verificar si la tecla presionada es Enter
+      if (event.key === "Enter" || event.keyCode === 13) {
+        event.preventDefault(); // Prevenir cualquier comportamiento por defecto (como submit de formulario)
+        registrarAsistencia(); // Llamar a la función de registro
+      }
+    });
+
+    // --- NUEVO: Enfocar el campo de código automáticamente ---
+    codigoInput.focus();
   });

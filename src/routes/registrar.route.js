@@ -2,7 +2,7 @@
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
-const { guardarRegistro } = require("../services/excel.service");
+const { guardarRegistro } = require("../services/excel.service"); // Ajusta la ruta si es necesario
 const {
   estadoAsistencia,
   getDayAbbreviation,

@@ -49,10 +49,10 @@ function mostrarVista(vistaId, buttonId) {
     initWhatsappAdmin();
   } else if (vistaId === "vista-principal") {
     // Recargar datos dinámicos de la vista principal al volver a ella
-    cargarUsuarios(); // Carga docentes aquí
+    cargarUsuarios();
     cargarArchivosExcel();
     cargarHorarios();
-    cargarCiclos(); // Carga lista de ciclos y actualiza select en form agregar usuario
+    cargarCiclos();
   }
 }
 
@@ -297,8 +297,6 @@ window.onload = function () {
   console.log("Admin panel cargado.");
   initUserFormEvents(); // Inicializa eventos de formulario de usuario (toggle de campos, botones de día)
   initModalEvents(); // Inicializa eventos del modal de vista previa
-  // initCicloFormEvents(); // Ya no es necesario, el submit está aquí
-  // Los eventos de submit de los formularios ya están definidos arriba.
 
   // Cargar datos iniciales para la vista principal
   cargarUsuarios(); // Carga docentes para vista principal y alumnos para la otra vista

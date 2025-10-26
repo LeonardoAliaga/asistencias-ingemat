@@ -143,6 +143,11 @@ header .ingresantes img {
   align-items: center;
   text-align: center;
 }
+input#codigo {
+  font-family: sans-serif;
+  border: none;
+  border-radius: 10px;
+}
 .box-header .text-header h1 {
   font-size: 3rem;
   color: var(--black);

@@ -47,6 +47,7 @@
   border-radius: 12px;
   font-size: 0.9rem;
   font-weight: bold;
+  font-family: sans-serif;
   color: white;
 }
 
@@ -345,6 +346,7 @@ input:checked + .slider:before {
 #vista-whatsapp h3,
 #vista-whatsapp h4 {
   text-align: left;
+  letter-spacing: 1px;
   margin-top: 1.5rem;
   margin-bottom: 0.8rem;
   padding-bottom: 5px;

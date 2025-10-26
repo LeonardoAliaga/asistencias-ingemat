@@ -1,168 +1,199 @@
 // Proyecto/Public/js/admin/excel-preview.js
 
 /**
- * Convierte el contenido "CSV" plano en una tabla HTML, detectando Títulos y Encabezados,
- * y aplicando clases de estado a la celda de hora.
+ * Convierte el contenido "CSV" plano de UNA HOJA en una tabla HTML.
+ * (Esta función NO necesita cambios)
  */
 function csvToHtmlTable(csvText) {
   const rows = csvText.trim().split("\n");
-  if (rows.length === 0) return "<p>El archivo está vacío.</p>";
+  if (rows.length === 0) return "<p><i>(Hoja vacía)</i></p>";
 
   let html = "<table><tbody>";
-  const csvRegex = /,(?=(?:(?:[^"]*"){2})*[^"]*$)/; // Regex para dividir CSV
+  const csvRegex = /,(?=(?:(?:[^"]*"){2})*[^"]*$)/;
 
   rows.forEach((line) => {
-    // Si la línea está completamente vacía, genera una fila vacía para espaciado
     if (line.trim() === "") {
-      // html += '<tr><td colspan="5" style="height: 10px; border: none;"></td></tr>'; // Fila vacía como separador
-      return; // O simplemente ignorarla
+      return; // Ignorar líneas vacías
     }
-
     const cells = line.split(csvRegex);
-    // Limpiar comillas y espacios, ahora esperamos 6 celdas
     const cleanedCells = cells.map((cell) =>
-      cell.trim().replace(/^"(.*)"$/, "$1")
+      cell
+        .trim()
+        .replace(/^"(.*)"$/, "$1")
+        .replace(/""/g, '"')
     );
+    while (cleanedCells.length < 6) cleanedCells.push("");
 
-    // Asegurar que siempre haya 6 elementos (rellenar con vacíos si faltan)
-    while (cleanedCells.length < 6) {
-      cleanedCells.push("");
-    }
-
-    // 1. Detección Fila Título Sección (solo tiene contenido en la primera celda)
     if (
       cleanedCells[0].startsWith("REGISTRO DE ASISTENCIA") &&
       cleanedCells.slice(1, 5).every((c) => c === "")
     ) {
       html += `<tr class="table-title"><td colspan="5" class="table-title-cell">${cleanedCells[0]}</td></tr>`;
-      return; // Pasar a la siguiente línea
+      return;
     }
-
-    // 2. Detección Fila Encabezado (primera celda contiene N°)
     const isHeaderRow = cleanedCells[0].toUpperCase().includes("N°");
     if (isHeaderRow) {
       html += '<tr class="table-header">';
-      // Mostrar solo las primeras 5 columnas como encabezados visibles
-      cleanedCells.slice(0, 5).forEach((cell) => {
-        html += `<th>${cell}</th>`;
-      });
+      cleanedCells.slice(0, 5).forEach((cell) => (html += `<th>${cell}</th>`));
       html += "</tr>";
-      return; // Pasar a la siguiente línea
+      return;
     }
-
-    // 3. FILA DE DATOS NORMAL (verificar si la primera celda es un número)
     const cellNro = cleanedCells[0];
-    // Verificar que sea un número y no esté vacío
     if (!isNaN(parseInt(cellNro)) && cellNro.trim().length > 0) {
-      const statusClass = cleanedCells[5] ? `status-${cleanedCells[5]}` : ""; // Obtener clase de la 6ta columna
-
+      const statusClass = cleanedCells[5] ? `status-${cleanedCells[5]}` : "";
       html += '<tr class="table-data">';
-      // Iterar por las 5 celdas de datos visibles
       cleanedCells.slice(0, 5).forEach((cell, index) => {
-        if (index === 4) {
-          // Si es la celda de la HORA (índice 4 = 5ta columna)
-          html += `<td class="${statusClass}">${cell}</td>`; // Añadir la clase de estado
-        } else {
-          html += `<td>${cell}</td>`; // Celda normal
-        }
+        const tdClass = index === 4 ? statusClass : "";
+        html += `<td class="${tdClass}">${cell}</td>`;
       });
       html += "</tr>";
     }
-    // Ignorar otras líneas que no sean título, encabezado o datos válidos
-  }); // Fin forEach row
+  });
 
   html += "</tbody></table>";
   return html;
 }
 
-// --- Resto de funciones (mostrarPreview, cargarArchivosExcel, etc.) SIN CAMBIOS ---
-
+// --- MODIFICADA PARA GENERAR PESTAÑAS ---
 /**
- * Muestra el modal y carga el contenido del archivo Excel (XLSX).
+ * Muestra el modal con pestañas para cada hoja del archivo Excel.
  */
 async function mostrarPreview(archivo) {
   const modal = document.getElementById("preview-modal");
-  const previewContent = document.getElementById("preview-content");
+  const previewContentArea = document.getElementById("preview-content"); // Área para los paneles
   const previewFilename = document.getElementById("preview-filename");
+  const previewTabsContainer = document.getElementById("preview-tabs"); // Contenedor de pestañas
 
-  if (!modal || !previewContent || !previewFilename) return; // Asegurar que existan
+  if (
+    !modal ||
+    !previewContentArea ||
+    !previewFilename ||
+    !previewTabsContainer
+  ) {
+    console.error(
+      "Elementos del modal o contenedor de pestañas no encontrados."
+    );
+    return;
+  }
 
+  // Limpiar contenido y pestañas anteriores
   previewFilename.textContent = archivo;
-  previewContent.innerHTML = "<p><i>Cargando vista previa...</i></p>"; // Mensaje de carga
-  modal.style.display = "block";
+  previewTabsContainer.innerHTML = "";
+  previewContentArea.innerHTML = "<p><i>Cargando vista previa...</i></p>"; // Mensaje inicial en área de contenido
+  modal.style.display = "block"; // Mostrar modal
 
   try {
     const res = await fetch(`/api/excel/preview/${archivo}`);
     if (!res.ok) {
-      // Capturar errores HTTP
-      const errorData = await res.json().catch(() => ({})); // Intentar leer JSON de error
-      throw new Error(
-        errorData.mensaje || `Error ${res.status} al obtener vista previa`
-      );
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.mensaje || `Error ${res.status}`);
     }
     const data = await res.json();
 
-    if (data.exito && data.content) {
-      previewContent.innerHTML = csvToHtmlTable(data.content);
+    // Limpiar mensaje de carga ANTES de procesar datos
+    previewContentArea.innerHTML = "";
+
+    if (data.exito && data.sheets && data.sheets.length > 0) {
+      // Ordenar hojas (Mañana, Tarde, Docentes, otras)
+      data.sheets.sort((a, b) => {
+        const order = { Mañana: 1, Tarde: 2, Docentes: 3 };
+        const orderA = order[a.name] || 99;
+        const orderB = order[b.name] || 99;
+        if (orderA === orderB) return a.name.localeCompare(b.name);
+        return orderA - orderB;
+      });
+
+      // Generar pestañas y paneles de contenido
+      data.sheets.forEach((sheet, index) => {
+        // Crear Pestaña (Botón)
+        const tabButton = document.createElement("button");
+        tabButton.textContent = sheet.name;
+        tabButton.classList.add("preview-tab");
+        tabButton.setAttribute("data-target", `sheet-content-${index}`); // ID del panel asociado
+        previewTabsContainer.appendChild(tabButton);
+
+        // Crear Panel de Contenido (Div)
+        const contentPanel = document.createElement("div");
+        contentPanel.id = `sheet-content-${index}`;
+        contentPanel.classList.add("preview-tab-content");
+        contentPanel.innerHTML = csvToHtmlTable(sheet.content); // Generar tabla HTML
+        previewContentArea.appendChild(contentPanel);
+
+        // Activar la primera pestaña y panel por defecto
+        if (index === 0) {
+          tabButton.classList.add("active");
+          contentPanel.classList.add("active");
+        }
+
+        // Añadir Event Listener a la pestaña
+        tabButton.addEventListener("click", () => {
+          // Desactivar todas las pestañas y paneles
+          previewTabsContainer
+            .querySelectorAll(".preview-tab")
+            .forEach((tab) => tab.classList.remove("active"));
+          previewContentArea
+            .querySelectorAll(".preview-tab-content")
+            .forEach((panel) => panel.classList.remove("active"));
+
+          // Activar la pestaña clickeada y su panel correspondiente
+          tabButton.classList.add("active");
+          contentPanel.classList.add("active");
+        });
+      }); // Fin forEach sheet
+    } else if (data.exito && (!data.sheets || data.sheets.length === 0)) {
+      previewContentArea.innerHTML =
+        '<p style="color:orange;">El archivo existe pero no contiene hojas válidas.</p>';
     } else {
-      // Usar data.mensaje si existe, sino un mensaje genérico
-      previewContent.innerHTML = `<p style="color:red;">Error: ${
-        data.mensaje || "No se pudo generar la vista previa del contenido."
+      previewContentArea.innerHTML = `<p style="color:red;">Error: ${
+        data.mensaje || "No se pudo obtener la vista previa."
       }</p>`;
     }
   } catch (error) {
-    console.error("Error al obtener vista previa:", error);
-    previewContent.innerHTML = `<p style="color:red;">Error al procesar el archivo: ${error.message}</p>`;
+    console.error("Error al obtener o procesar vista previa:", error);
+    // Asegurarse de limpiar el mensaje de carga en caso de error
+    if (previewContentArea.innerHTML.includes("Cargando")) {
+      previewContentArea.innerHTML = "";
+    }
+    previewContentArea.innerHTML += `<p style="color:red;">Error al procesar el archivo: ${error.message}</p>`; // Añadir mensaje de error
   }
 }
 
-/**
- * Carga la lista de archivos Excel y asigna eventos de descarga/previsualización.
- */
+// --- cargarArchivosExcel, cargarCiclos, initModalEvents, initCicloFormEvents NO necesitan cambios ---
+
 export async function cargarArchivosExcel() {
   const excelDiv = document.getElementById("archivos-excel");
   if (!excelDiv) return;
-
-  excelDiv.innerHTML = "<i>Cargando archivos...</i>"; // Indicador de carga
-
+  excelDiv.innerHTML = "<i>Cargando archivos...</i>";
   try {
     const res = await fetch("/api/excel");
     if (!res.ok) throw new Error(`Error ${res.status} al cargar archivos`);
     const archivos = await res.json();
-
     if (archivos.length === 0) {
       excelDiv.innerHTML =
         "<p>No hay archivos de asistencia generados aún.</p>";
       return;
     }
-
     excelDiv.innerHTML = archivos
       .map(
-        (a) =>
-          `
-                  <div class="excel-item">
-                      <a href="/api/excel/${a}" download title="Descargar ${a}"><i class="bi bi-file-earmark-arrow-down-fill"></i> ${a}</a>
-                      <button class="btn-preview" data-filename="${a}" title="Vista Previa de ${a}"><i class="bi bi-eye-fill"></i></button>
-                  </div>
-                  `
+        (a) => `
+        <div class="excel-item">
+            <a href="/api/excel/${a}" download title="Descargar ${a}">
+              <i class="bi bi-file-earmark-arrow-down-fill"></i> ${a}
+            </a>
+            <button class="btn-preview" data-filename="${a}" title="Vista Previa de ${a}">
+              <i class="bi bi-eye-fill"></i>
+            </button>
+        </div>
+      `
       )
       .join("");
-
-    // Reasignar eventos a los nuevos botones
     document
       .querySelectorAll("#archivos-excel .btn-preview")
       .forEach((button) => {
         button.addEventListener("click", (e) => {
           const filename = e.currentTarget.getAttribute("data-filename");
-          if (filename) {
-            // Asegurarse que el atributo existe
-            mostrarPreview(filename);
-          } else {
-            console.error(
-              "Botón de vista previa sin atributo data-filename:",
-              e.currentTarget
-            );
-          }
+          if (filename) mostrarPreview(filename);
+          else console.error("Botón sin data-filename:", e.currentTarget);
         });
       });
   } catch (error) {
@@ -172,40 +203,30 @@ export async function cargarArchivosExcel() {
   }
 }
 
-/**
- * Carga la lista de ciclos y asigna eventos de eliminación.
- * También actualiza el select de ciclos en el formulario de agregar usuario.
- */
 export async function cargarCiclos() {
   const listContainer = document.getElementById("ciclos-list");
-  const selectCiclo = document.getElementById("ciclo"); // Referencia al select de usuario
-
+  const selectCiclo = document.getElementById("ciclo");
   if (listContainer) listContainer.innerHTML = "<i>Cargando ciclos...</i>";
   if (selectCiclo)
     selectCiclo.innerHTML = '<option value="">Cargando...</option>';
-
   try {
     const res = await fetch("/api/ciclos");
     if (!res.ok) throw new Error(`Error ${res.status}`);
     const data = await res.json();
-
-    // Actualizar lista de gestión de ciclos
     if (listContainer) {
       if (data.ciclos && data.ciclos.length > 0) {
         listContainer.innerHTML = data.ciclos
           .map(
             (ciclo) => `
-                    <li class="ciclo-item">
-                        ${ciclo.charAt(0).toUpperCase() + ciclo.slice(1)}
-                        <button class="btn-eliminar-ciclo" data-ciclo="${ciclo}" title="Eliminar ciclo ${ciclo}">
-                            <i class="bi bi-x-circle-fill"></i>
-                        </button>
-                    </li>
-                `
+            <li class="ciclo-item">
+                ${ciclo.charAt(0).toUpperCase() + ciclo.slice(1)}
+                <button class="btn-eliminar-ciclo" data-ciclo="${ciclo}" title="Eliminar ciclo ${ciclo}">
+                    <i class="bi bi-x-circle-fill"></i>
+                </button>
+            </li>
+          `
           )
           .join("");
-
-        // Reasignar eventos de eliminación
         document
           .querySelectorAll("#ciclos-list .btn-eliminar-ciclo")
           .forEach((btn) => {
@@ -213,7 +234,7 @@ export async function cargarCiclos() {
               const ciclo = this.getAttribute("data-ciclo");
               if (
                 confirm(
-                  `¿Seguro que desea eliminar el ciclo "${ciclo.toUpperCase()}"?\n¡Esto NO se puede deshacer!`
+                  `¿Seguro que desea eliminar el ciclo "${ciclo.toUpperCase()}"?`
                 )
               ) {
                 try {
@@ -225,10 +246,7 @@ export async function cargarCiclos() {
                     throw new Error(
                       deleteData.mensaje || `Error ${deleteRes.status}`
                     );
-                  // Recargar las listas después de eliminar
-                  await cargarCiclos(); // Llama de nuevo a esta función para refrescar todo
-                  // Notificar a user.js para actualizar su select (si es necesario, aunque cargarCiclos ya lo hace)
-                  // window.dispatchEvent(new CustomEvent("cyclesUpdated"));
+                  await cargarCiclos();
                 } catch (deleteError) {
                   console.error("Error al eliminar ciclo:", deleteError);
                   alert(`Error al eliminar ciclo: ${deleteError.message}`);
@@ -239,11 +257,9 @@ export async function cargarCiclos() {
       } else {
         listContainer.innerHTML = "<p>No hay ciclos definidos.</p>";
       }
-    } // Fin if(listContainer)
-
-    // Actualizar select en formulario de agregar usuario
+    }
     if (selectCiclo) {
-      selectCiclo.innerHTML = '<option value="">Selecciona ciclo</option>'; // Opción por defecto
+      selectCiclo.innerHTML = '<option value="">Selecciona ciclo</option>';
       if (data.ciclos && data.ciclos.length > 0) {
         data.ciclos.forEach((ciclo) => {
           const option = document.createElement("option");
@@ -252,7 +268,7 @@ export async function cargarCiclos() {
           selectCiclo.appendChild(option);
         });
       } else {
-        selectCiclo.innerHTML = '<option value="">No hay ciclos</option>'; // Indicar si no hay ciclos
+        selectCiclo.innerHTML = '<option value="">No hay ciclos</option>';
       }
     }
   } catch (error) {
@@ -265,41 +281,38 @@ export async function cargarCiclos() {
   }
 }
 
-/**
- * Inicializa los eventos del formulario de agregar ciclo.
- * (Movido a admin.js para centralizar la lógica de formularios)
- */
 export function initCicloFormEvents() {
-  // Esta función ahora solo existe para mantener la importación en admin.js,
-  // pero la lógica real del submit está en admin.js
-  console.log("initCicloFormEvents llamado (lógica en admin.js)");
+  /* Lógica en admin.js */
 }
 
-/**
- * Inicializa los eventos de cierre del modal.
- */
 export function initModalEvents() {
   const closeBtn = document.getElementById("close-preview");
   const modal = document.getElementById("preview-modal");
+  const previewContent = document.getElementById("preview-content");
+  const previewTabs = document.getElementById("preview-tabs"); // Obtener contenedor de pestañas
 
   if (closeBtn && modal) {
-    // Asegurarse que ambos existen
     closeBtn.onclick = function () {
       modal.style.display = "none";
+      // Limpiar contenido Y pestañas al cerrar
+      if (previewContent) previewContent.innerHTML = "";
+      if (previewTabs) previewTabs.innerHTML = "";
     };
   }
-
   if (modal) {
     window.onclick = function (event) {
       if (event.target == modal) {
         modal.style.display = "none";
+        if (previewContent) previewContent.innerHTML = "";
+        if (previewTabs) previewTabs.innerHTML = "";
       }
     };
-    // Cerrar con tecla Escape
     window.addEventListener("keydown", function (event) {
       if (event.key === "Escape" || event.key === "Esc") {
         if (modal.style.display === "block") {
           modal.style.display = "none";
+          if (previewContent) previewContent.innerHTML = "";
+          if (previewTabs) previewTabs.innerHTML = "";
         }
       }
     });

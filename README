@@ -1,0 +1,75 @@
+# Sistema de Gestión de Asistencia - Ingemat
+
+Este proyecto es una aplicación web diseñada para gestionar el registro de asistencia de estudiantes y docentes del Grupo Ingemat. Incluye una interfaz pública para el registro, un panel de administración para la gestión de usuarios, horarios, ciclos académicos, reportes en Excel y notificaciones por WhatsApp.
+
+## Características Principales
+
+- **Registro de Asistencia:** Interfaz simple donde estudiantes y docentes pueden registrar su asistencia ingresando un código único.
+- **Panel de Administración:** Acceso seguro para administradores (`/admin`). La contraseña inicial por defecto se encuentra en `data/password.json` o es 'admin123' si el archivo no existe al iniciar.
+- **Gestión de Usuarios:**
+  - Agregar nuevos estudiantes y docentes con su código, nombre, rol y días de asistencia.
+  - Asignar turno (mañana/tarde) y ciclo académico a los estudiantes.
+  - Visualizar listas de estudiantes (agrupados por ciclo en acordeones) y docentes.
+  - Eliminar usuarios existentes.
+- **Gestión de Horarios:** Configurar la hora de entrada y el tiempo de tolerancia para los turnos de mañana y tarde.
+- **Gestión de Ciclos Académicos:** Agregar, visualizar y eliminar ciclos académicos (ej. Semestral, Anual, Sabatino).
+- **Reportes en Excel:**
+  - Generación automática de archivos Excel diarios (`DD-MM-YYYY.xlsx`) en la carpeta `Registros/`.
+  - Cada archivo contiene hojas separadas para 'Mañana', 'Tarde' y 'Docentes'.
+  - Los estudiantes se agrupan por ciclo dentro de su hoja de turno correspondiente.
+  - Formato condicional en celdas de asistencia (Puntual, Tolerancia, Tarde, Falta, No Asiste).
+  - Descarga de los archivos Excel generados desde el panel de administración.
+  - Vista previa del contenido de los archivos Excel (organizada por hojas/pestañas) directamente en el panel de administración.
+- **Notificaciones por WhatsApp:**
+  - Integración con WhatsApp Web para enviar notificaciones de asistencia.
+  - Configuración para habilitar/deshabilitar las notificaciones.
+  - Reglas para enviar notificaciones de estudiantes a grupos o números específicos según su ciclo y turno.
+  - Configuración de un número específico para notificaciones de docentes.
+  - Visualización del estado de conexión de WhatsApp y opción para refrescar.
+  - Gestión de grupos de WhatsApp disponibles (requiere conexión activa).
+
+## Tecnologías Utilizadas
+
+- **Backend:** Node.js, Express.js
+- **Frontend:** HTML, CSS, JavaScript (Vanilla JS con módulos)
+- **Manejo de Excel:** `exceljs`
+- **Integración WhatsApp:** `whatsapp-web.js`, `qrcode-terminal`
+- **Gestión de Sesiones:** `express-session`
+- **Almacenamiento de Datos:** Archivos JSON
+
+## Instalación y Ejecución
+
+1.  **Clonar el repositorio:**
+    ```bash
+    git clone <url-del-repositorio>
+    cd Proyecto
+    ```
+2.  **Instalar dependencias:**
+    ```bash
+    npm install
+    ```
+3.  **Ejecutar en modo desarrollo:**
+    Este comando utiliza `nodemon` para reiniciar el servidor automáticamente con los cambios y `browser-sync` para recargar el navegador.
+    ```bash
+    npm run dev
+    ```
+4.  **Ejecutar en modo producción:**
+    ```bash
+    npm start
+    ```
+5.  **Acceder a la aplicación:**
+
+    - Página principal: `http://localhost:3000`
+    - Panel de administración: `http://localhost:3000/admin`
+
+6.  **Configuración de WhatsApp:**
+    - Al iniciar la aplicación por primera vez (o si la sesión expira), se mostrará un código QR en la consola del servidor.
+    - Escanea este código QR con la aplicación WhatsApp en tu teléfono (Vincular Dispositivo) para conectar la cuenta que enviará las notificaciones.
+    - La sesión se guardará en la carpeta `LocalAuth/` (asegúrate de que `.gitignore` la ignore si no quieres subirla al repositorio).
+
+## Notas Adicionales
+
+- Asegúrate de tener Node.js (v18 o superior recomendado por dependencias como `whatsapp-web.js`) y npm instalados.
+- La contraseña de administrador se almacena en `data/password.json`. Puedes cambiarla desde el panel de administración o editando el archivo directamente.
+- Los datos de usuarios, horarios y ciclos se guardan en archivos JSON dentro de la carpeta `data/`.
+- Los reportes de asistencia generados se almacenan en la carpeta `Registros/`.

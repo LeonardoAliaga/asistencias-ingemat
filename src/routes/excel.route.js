@@ -3,12 +3,11 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const ExcelJS = require("exceljs");
-// Importar helpers necesarios
-const { convertTo12Hour, normalizarTexto } = require("../utils/helpers"); // No necesitamos estadoAsistencia aquí
+// Importar helpers necesarios (si se usan, aunque en preview no tanto)
+// const { convertTo12Hour, normalizarTexto, aplicarEstiloCelda } = require("../utils/helpers.js");
 
 const router = express.Router();
 const registrosPath = path.join(__dirname, "../../Registros");
-// const usuariosPath = path.join(__dirname, "../../data/usuarios.json"); // No necesitamos usuarios aquí
 
 // Helper para asegurar que la carpeta Registros exista
 function ensureRegistrosDir() {
@@ -29,7 +28,14 @@ router.get("/", (req, res) => {
     const archivos = fs
       .readdirSync(registrosPath)
       .filter((f) => f.endsWith(".xlsx") && !f.startsWith("~"));
-    res.json(archivos.sort().reverse());
+    // Ordenar para mostrar los más recientes primero si el nombre incluye fecha
+    archivos.sort((a, b) => {
+      // Extraer fechas si es posible (formato DD-MM-YYYY)
+      const dateA = a.split(" ")[0].split("-").reverse().join("");
+      const dateB = b.split(" ")[0].split("-").reverse().join("");
+      return dateB.localeCompare(dateA); // Orden descendente
+    });
+    res.json(archivos);
   } catch (err) {
     console.error("Excel Route: Error al listar archivos:", err);
     res.status(500).json([]);
@@ -68,9 +74,10 @@ router.get("/:archivo", (req, res) => {
   });
 });
 
-// GET /api/excel/preview/:archivo - Obtener contenido para vista previa MODIFICADO
+// --- RUTA PREVIEW MODIFICADA PARA MÚLTIPLES HOJAS ---
 router.get("/preview/:archivo", async (req, res) => {
   const archivo = req.params.archivo;
+  // Validación de nombre de archivo (sin cambios)
   if (
     archivo.includes("..") ||
     archivo.includes("/") ||
@@ -83,198 +90,187 @@ router.get("/preview/:archivo", async (req, res) => {
   if (!fs.existsSync(ruta)) {
     return res.status(404).json({ mensaje: "Archivo no encontrado" });
   }
-  console.log(`Excel Route: Generando preview para ${archivo}`);
+  console.log(
+    `Excel Route: Generando preview para ${archivo} (todas las hojas)`
+  );
+
   try {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.readFile(ruta);
-    const worksheet =
-      workbook.getWorksheet("Asistencia") || workbook.worksheets[0];
 
-    if (!worksheet) {
-      console.log(
-        `Excel Preview: No se encontró hoja 'Asistencia' o primera hoja en ${archivo}`
-      );
-      return res
-        .status(404)
-        .json({ mensaje: "No se encontraron hojas válidas en el archivo" });
-    }
+    const sheetsData = []; // Array para guardar los datos de cada hoja
 
-    let csvContent = "";
+    // Iterar sobre cada hoja del workbook
+    workbook.eachSheet((worksheet, sheetId) => {
+      console.log(` - Procesando hoja: ${worksheet.name}`);
+      let csvContent = "";
+      // Mapeo de colores ARGB (usados en excel.service.js) a estados CSS
+      const colorMap = {
+        FFC6EFCE: "puntual", // Verde (Puntual estudiante)
+        FFFFE699: "tolerancia", // Naranja (Tolerancia estudiante)
+        FFFFC7CE: "tarde", // Rojo (Tarde estudiante)
+        FFD9D9D9: "falta", // Gris claro (Falta)
+        FFC0C0C0: "no_asiste", // Gris oscuro (No Asiste)
+        FFBDD7EE: "docente", // Azul claro (Docente registrado)
+        // Puedes añadir más si tienes otros colores/estados
+      };
 
-    // Mapeo de colores ARGB (usados en excel.service.js) a estados CSS
-    // Asegúrate que estos ARGB coincidan EXACTAMENTE con los de excel.service.js
-    const colorMap = {
-      FFC6EFCE: "puntual", // Verde (Puntual estudiante)
-      FFFFE699: "tolerancia", // Naranja (Tolerancia estudiante)
-      FFFFC7CE: "tarde", // Rojo (Tarde estudiante)
-      FFD9D9D9: "falta", // Gris claro (Falta)
-      FFC0C0C0: "no_asiste", // Gris oscuro (No Asiste)
-      FFBDD7EE: "docente", // Azul claro (Docente registrado)
-      // Puedes añadir más si tienes otros colores
-    };
+      // Procesar cada fila de la hoja actual
+      worksheet.eachRow({ includeEmpty: true }, (row, rowNumber) => {
+        let rowValues = [];
+        let rowHasContent = false;
+        let isTitleRow = false;
+        let isHeaderRow = false;
+        let attendanceStatus = ""; // Variable para guardar el estado detectado
 
-    worksheet.eachRow({ includeEmpty: true }, (row, rowNumber) => {
-      let rowValues = [];
-      let rowHasContent = false;
-      let isTitleRow = false;
-      let isHeaderRow = false;
-      let attendanceStatus = ""; // Variable para guardar el estado detectado
+        // Procesar las 5 columnas existentes (N°, Nombre, Turno, Días, Hora)
+        for (let colNumber = 1; colNumber <= 5; colNumber++) {
+          const cell = row.getCell(colNumber);
+          let value = cell.value;
+          let finalValue = "";
 
-      // Procesar las 5 columnas existentes
-      for (let colNumber = 1; colNumber <= 5; colNumber++) {
-        const cell = row.getCell(colNumber);
-        let value = cell.value;
-        let finalValue = "";
-
-        // Detección Título/Encabezado
-        if (
-          colNumber === 1 &&
-          cell.isMerged &&
-          typeof value === "string" &&
-          value.startsWith("REGISTRO DE ASISTENCIA")
-        ) {
-          finalValue = value;
-          rowHasContent = true;
-          isTitleRow = true;
-          rowValues.push(`"${finalValue.replace(/"/g, '""')}"`);
-          break; // Salir del loop de columnas
-        }
-        if (
-          colNumber === 1 &&
-          typeof value === "string" &&
-          (value === "N°" || value?.toString().toUpperCase().includes("N°"))
-        ) {
-          isHeaderRow = true;
-        }
-
-        // Procesamiento de valor (RichText, Date, Formula, String)
-        if (value !== null && value !== undefined) {
-          if (typeof value === "object" && value && value.richText) {
-            finalValue = value.richText.map((rt) => rt.text).join("");
-          } else if (value instanceof Date) {
-            // Formatear fechas correctamente
-            // Si es la columna de hora (5), formatear como hora 12h
-            if (colNumber === 5) {
-              finalValue = value
-                .toLocaleTimeString("es-PE", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  hour12: true,
-                })
-                .replace(/\s/g, "")
-                .toUpperCase();
-            } else {
-              // Otras columnas (si hubiera fechas)
-              finalValue = value.toLocaleDateString("es-PE"); // Formato DD/MM/YYYY
-            }
-          } else if (
-            typeof value === "object" &&
-            value &&
-            value.result !== undefined
-          ) {
-            // Formulas
-            let resultValue = value.result;
-            if (resultValue instanceof Date && colNumber === 5) {
-              // Resultado de formula es fecha/hora
-              finalValue = resultValue
-                .toLocaleTimeString("es-PE", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  hour12: true,
-                })
-                .replace(/\s/g, "")
-                .toUpperCase();
-            } else {
-              // Otro resultado de formula
-              finalValue = String(resultValue);
-            }
-          } else {
-            // Strings, Numbers, etc.
-            finalValue = String(value);
-          }
-
-          // Convertir hora a 12H (Columna 5) si NO es FALTA/NO ASISTE
+          // Detección Título/Encabezado
           if (
-            colNumber === 5 &&
-            !["FALTA", "NO ASISTE", ""].includes(finalValue.toUpperCase())
+            colNumber === 1 &&
+            cell.isMerged &&
+            typeof value === "string" &&
+            value.startsWith("REGISTRO DE ASISTENCIA")
           ) {
-            finalValue = convertTo12Hour(finalValue); // Asegurar formato 12H
+            finalValue = value;
+            rowHasContent = true;
+            isTitleRow = true;
+            rowValues.push(`"${finalValue.replace(/"/g, '""')}"`);
+            break; // Salir del loop de columnas para fila de título
+          }
+          if (
+            colNumber === 1 &&
+            typeof value === "string" &&
+            (value === "N°" || value?.toString().toUpperCase().includes("N°"))
+          ) {
+            isHeaderRow = true;
           }
 
-          finalValue = finalValue.trim();
-          if (finalValue.length > 0) rowHasContent = true;
-
-          // --- DETECTAR ESTADO POR COLOR (Columna 5) ---
-          if (!isTitleRow && !isHeaderRow && colNumber === 5) {
-            const fillColor = cell.fill;
-            if (
-              fillColor &&
-              fillColor.type === "pattern" &&
-              fillColor.pattern === "solid" &&
-              fillColor.fgColor &&
-              fillColor.fgColor.argb
-            ) {
-              const bgColor = fillColor.fgColor.argb.toUpperCase().substring(2); // Quitar FF inicial
-              // Buscar en el mapeo (quitando FF de las claves del map)
-              const mappedStatus = Object.keys(colorMap).find(
-                (key) => key.substring(2) === bgColor
-              );
-              if (mappedStatus) {
-                attendanceStatus = colorMap[mappedStatus];
+          // Procesamiento de valor (RichText, Date, Formula, String)
+          if (value !== null && value !== undefined) {
+            if (typeof value === "object" && value && value.richText) {
+              finalValue = value.richText.map((rt) => rt.text).join("");
+            } else if (value instanceof Date) {
+              // Formatear fechas correctamente
+              // Si es la columna de hora (5), formatear como hora 12h
+              if (colNumber === 5) {
+                finalValue = value
+                  .toLocaleTimeString("es-PE", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: true,
+                  })
+                  .replace(/\s/g, "")
+                  .toUpperCase();
               } else {
-                // Si es una hora pero no tiene color conocido, default a 'registrado' (o lo que prefieras)
-                if (
+                // Otras columnas (si hubiera fechas)
+                finalValue = value.toLocaleDateString("es-PE"); // Formato DD/MM/YYYY
+              }
+            } else if (
+              typeof value === "object" &&
+              value &&
+              value.result !== undefined
+            ) {
+              // Formulas
+              let resultValue = value.result;
+              if (resultValue instanceof Date && colNumber === 5) {
+                // Resultado de formula es fecha/hora
+                finalValue = resultValue
+                  .toLocaleTimeString("es-PE", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: true,
+                  })
+                  .replace(/\s/g, "")
+                  .toUpperCase();
+              } else {
+                // Otro resultado de formula
+                finalValue = String(resultValue);
+              }
+            } else {
+              // Strings, Numbers, etc.
+              finalValue = String(value);
+            }
+
+            // NO necesitamos convertir a 12H aquí, el valor del Excel ya debería estarlo
+            finalValue = finalValue.trim();
+            if (finalValue.length > 0) rowHasContent = true;
+
+            // --- DETECTAR ESTADO POR COLOR (Columna 5) ---
+            if (!isTitleRow && !isHeaderRow && colNumber === 5) {
+              const fillColor = cell.fill;
+              if (
+                fillColor &&
+                fillColor.type === "pattern" &&
+                fillColor.pattern === "solid" &&
+                fillColor.fgColor &&
+                fillColor.fgColor.argb
+              ) {
+                const bgColor = fillColor.fgColor.argb
+                  .toUpperCase()
+                  .substring(2); // Quitar FF inicial
+                const mappedStatus = Object.keys(colorMap).find(
+                  (key) => key.substring(2) === bgColor
+                );
+                if (mappedStatus) {
+                  attendanceStatus = colorMap[mappedStatus];
+                } else if (
                   finalValue &&
                   !["FALTA", "NO ASISTE", ""].includes(finalValue.toUpperCase())
                 ) {
-                  attendanceStatus = "registrado"; // Estado genérico para horas sin color específico
+                  // Si es una hora pero no tiene color conocido, default a 'registrado'
+                  attendanceStatus = "registrado";
                 }
-                // console.log(`Color no mapeado: ${bgColor} en celda ${cell.address}`); // Para debug
+              } else if (finalValue.toUpperCase() === "FALTA") {
+                attendanceStatus = "falta";
+              } else if (finalValue.toUpperCase() === "NO ASISTE") {
+                attendanceStatus = "no_asiste";
+              } else if (
+                finalValue &&
+                !["FALTA", "NO ASISTE", ""].includes(finalValue.toUpperCase())
+              ) {
+                attendanceStatus = "registrado"; // Estado genérico por defecto para horas sin estilo
               }
-            } else if (finalValue.toUpperCase() === "FALTA") {
-              attendanceStatus = "falta"; // Asignar estado si el texto es FALTA y no hay color
-            } else if (finalValue.toUpperCase() === "NO ASISTE") {
-              attendanceStatus = "no_asiste"; // Asignar estado si el texto es NO ASISTE y no hay color
-            } else if (
-              finalValue &&
-              !["FALTA", "NO ASISTE", ""].includes(finalValue.toUpperCase())
-            ) {
-              attendanceStatus = "registrado"; // Estado genérico por defecto para horas sin estilo
-            }
+            } // --- FIN DETECTAR ESTADO ---
+          } // Fin if value !== null/undefined
+
+          // Escapar y añadir a rowValues
+          if (/[",\n\r]/.test(finalValue)) {
+            finalValue = `"${finalValue.replace(/"/g, '""')}"`;
           }
-          // --- FIN DETECTAR ESTADO ---
-        } // Fin if value !== null/undefined
+          rowValues.push(finalValue);
+        } // Fin for columnas 1-5
 
-        // Escapar y añadir a rowValues
-        if (/[",\n\r]/.test(finalValue)) {
-          finalValue = `"${finalValue.replace(/"/g, '""')}"`;
+        // Añadir la fila al CSV si tiene contenido
+        if (rowHasContent) {
+          // Si es fila de datos, añadir el estado detectado como 6ta columna
+          if (!isTitleRow && !isHeaderRow) {
+            rowValues.push(attendanceStatus || ""); // Añadir estado o vacío
+          } else if (isHeaderRow) {
+            rowValues.push("ESTADO"); // Añadir encabezado para la columna virtual de estado
+          }
+          // Asegurar siempre 6 columnas para consistencia
+          while (rowValues.length < 6) {
+            rowValues.push("");
+          }
+
+          csvContent += rowValues.slice(0, 6).join(",") + "\n"; // Enviar 6 columnas
+        } else if (rowNumber > 1) {
+          // Añadir línea vacía si no es la primera y no tiene contenido
+          csvContent += "\n";
         }
-        rowValues.push(finalValue);
-      } // Fin for columnas 1-5
+      }); // Fin eachRow
 
-      // Añadir la fila al CSV si tiene contenido
-      if (rowHasContent) {
-        // Si es fila de datos, añadir el estado detectado como 6ta columna
-        if (!isTitleRow && !isHeaderRow) {
-          rowValues.push(attendanceStatus || ""); // Añadir estado o vacío
-        } else if (isHeaderRow) {
-          rowValues.push("ESTADO"); // Añadir encabezado para la columna virtual de estado
-        }
-        // Asegurar siempre 6 columnas para consistencia (aunque el estado solo aplica a datos)
-        while (rowValues.length < 6) {
-          rowValues.push("");
-        }
+      // Guardar el nombre de la hoja y su contenido CSV procesado
+      sheetsData.push({ name: worksheet.name, content: csvContent.trim() });
+    }); // Fin eachSheet
 
-        csvContent += rowValues.slice(0, 6).join(",") + "\n"; // Enviar 6 columnas
-      } else if (rowNumber > 1) {
-        // Añadir línea vacía si no es la primera y no tiene contenido
-        // No añadir comas extra para líneas vacías
-        // csvContent += ",,,,,\n"; // Evitar esto
-        csvContent += "\n";
-      }
-    }); // Fin eachRow
-
-    res.json({ exito: true, content: csvContent.trim() });
+    // Enviar el array de hojas y sus contenidos al frontend
+    res.json({ exito: true, sheets: sheetsData });
   } catch (error) {
     console.error(`Excel Preview: Error al procesar ${archivo}:`, error);
     res.status(500).json({
