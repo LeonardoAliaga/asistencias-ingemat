@@ -1,0 +1,30 @@
+@media (max-width: 768px) {
+  h1 {
+    font-size: 4rem;
+  }
+  h2,
+  .sub-header {
+    font-size: 2.5rem;
+  }
+  label,
+  input,
+  select {
+    font-size: 2rem;
+  }
+  .schedule-summary {
+    font-size: 2rem;
+  }
+  section {
+    padding: 25px;
+    margin: 15px 30px;
+  }
+  button[type="submit"] {
+    font-size: 2rem;
+  }
+  li {
+    font-size: 2rem;
+  }
+  #archivos-excel a {
+    font-size: 2rem;
+  }
+}

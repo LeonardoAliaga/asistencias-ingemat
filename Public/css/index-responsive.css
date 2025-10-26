@@ -14,13 +14,10 @@
     padding-right: 2rem;
     height: 5rem;
   }
-  .navbar.sticky img {
-    width: 3rem;
-  }
   .navbar img {
     display: block;
     top: 15%;
-    width: 3rem;
+    width: 10rem;
   }
   .navbar .toggle {
     display: block;
@@ -95,6 +92,10 @@
     width: 100vw;
     height: 100vh;
   }
+
+  .carousel-ingresantes {
+    display: none;
+  }
   .box-header img {
     display: none;
   }
@@ -113,7 +114,7 @@
     color: var(--white2);
   }
 
-  .box-header #spam {
+  #spam {
     padding: 1rem;
   }
   #spam .estudiantes {
