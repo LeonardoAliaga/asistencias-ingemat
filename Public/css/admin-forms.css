@@ -5,9 +5,7 @@
 form div {
   display: flex;
   flex-wrap: nowrap;
-  gap: 18px;
-  /* margin-bottom: 20px; */
-  flex-direction: row;
+  gap: 20px;
 }
 
 label,
@@ -159,4 +157,8 @@ button[type="submit"]:hover {
   font-weight: bold;
   color: var(--black);
 }
-/* --- FIN NUEVOS ESTILOS --- */
+
+/* --- NUEVO ESTILO PARA INPUT NOMBRE --- */
+#nombre {
+  text-transform: uppercase;
+}

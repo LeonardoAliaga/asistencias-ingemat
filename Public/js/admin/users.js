@@ -139,7 +139,7 @@ function getSelectedDays() {
   return selectedDays;
 }
 
-// --- *** NUEVOS HELPERS PARA EL SELECTOR DE HORA *** ---
+// --- *** HELPERS PARA EL SELECTOR DE HORA *** ---
 
 /**
  * Rellena los selects de hora (01-12) y minutos (00-59).
@@ -192,10 +192,8 @@ function convert24hTo12h(time24h) {
   }
 }
 
-// --- *** FIN DE NUEVOS HELPERS *** ---
-
 /**
- * Carga y muestra los horarios de entrada y tolerancia. (MODIFICADO)
+ * Carga y muestra los horarios de entrada y tolerancia.
  */
 export async function cargarHorarios() {
   const res = await fetch("/api/horarios");
@@ -252,6 +250,7 @@ export async function cargarHorarios() {
 
 /**
  * Inicializa los eventos del formulario de agregar usuario y los botones de días.
+ * (MODIFICADO)
  */
 export function initUserFormEvents() {
   // 1. Botones de Día
@@ -289,4 +288,15 @@ export function initUserFormEvents() {
 
   // 3. Formulario Agregar Submit
   // (Este listener se movió a admin.js para centralizar)
+
+  // --- *** NUEVO CÓDIGO AÑADIDO *** ---
+  // 4. Forzar mayúsculas en el input de nombre
+  const nombreInput = document.getElementById("nombre");
+  if (nombreInput) {
+    nombreInput.addEventListener("input", function () {
+      // 'this' se refiere al elemento input
+      this.value = this.value.toUpperCase();
+    });
+  }
+  // --- *** FIN DE CÓDIGO AÑADIDO *** ---
 }
