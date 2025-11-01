@@ -205,14 +205,15 @@
     "codigo": "75516107",
     "nombre": "ALIAGA URIONDO JHERSON LEONARDO",
     "rol": "estudiante",
-    "turno": "mañana",
+    "turno": "tarde",
     "ciclo": "semestral",
     "dias_asistencia": [
       "L",
       "M",
       "MI",
       "J",
-      "V"
+      "V",
+      "S"
     ]
   }
 ]

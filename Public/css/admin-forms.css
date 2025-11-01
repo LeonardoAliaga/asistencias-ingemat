@@ -71,6 +71,15 @@ button[type="submit"]:hover {
   background-color: var(--red2);
   transform: translateY(-2px);
 }
+.ciclo-item .btn-eliminar-ciclo {
+    display: none;
+    transition: 1s;
+}
+.ciclo-item:hover .btn-eliminar-ciclo {
+    display: block;
+}
+
+
 
 /* Estilo para el resumen de horarios */
 .schedule-summary {

@@ -3,9 +3,9 @@
   "studentRules": [
     {
       "ciclo": "semestral",
-      "turno": "mañana",
-      "targetType": "number",
-      "targetId": "51920647665@c.us"
+      "turno": "tarde",
+      "targetType": "group",
+      "targetId": "120363402977562212@g.us"
     }
   ],
   "teacherTargetType": "number",
