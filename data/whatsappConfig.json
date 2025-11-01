@@ -1,12 +1,6 @@
 {
   "enabled": true,
-  "studentRules": [
-    {
-      "ciclo": "semestral",
-      "turno": "mañana",
-      "targetType": "group",
-      "targetId": "120363402977562212@g.us"
-    }
-  ],
-  "teacherNumber": null
+  "studentRules": [],
+  "teacherTargetType": "number",
+  "teacherTargetId": null
 }

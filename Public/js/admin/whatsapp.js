@@ -3,10 +3,13 @@
 let currentWhatsappConfig = {
   enabled: false,
   studentRules: [],
-  teacherNumber: null,
+  // teacherNumber: null, (obsoleto)
+  teacherTargetType: "number",
+  teacherTargetId: null,
 };
 let availableGroups = [];
 let hasUnsavedChanges = false;
+let statusCheckInterval = null; // para polling
 
 // --- Elementos del DOM ---
 const statusIndicator = document.getElementById("whatsapp-status-indicator");
@@ -25,7 +28,7 @@ const ruleNumberField = document.getElementById("rule-number-field");
 const ruleNumberInput = document.getElementById("rule-number-input");
 const addRuleBtn = document.getElementById("btn-add-student-rule");
 const msgAddRule = document.getElementById("msg-add-rule");
-const teacherNumberInput = document.getElementById("teacher-number-input");
+// const teacherNumberInput = document.getElementById("teacher-number-input"); // (Reemplazado)
 const saveConfigBtn = document.getElementById("btn-save-whatsapp-config");
 const msgWhatsappConfig = document.getElementById("msg-whatsapp-config");
 
@@ -33,25 +36,36 @@ const unsavedAlert = document.getElementById("unsaved-changes-alert");
 const jumpToSaveBtn = document.getElementById("btn-jump-to-save");
 const saveSection = document.getElementById("whatsapp-save-section");
 
-// --- Funciones ---
+const configContent = document.getElementById("whatsapp-config-content");
+const qrContainer = document.getElementById("whatsapp-qr-container");
+const qrCanvas = document.getElementById("whatsapp-qr-canvas");
+const qrMessage = document.getElementById("whatsapp-qr-message");
 
-// Muestra/Oculta la alerta de cambios sin guardar
+const forceRestartBtn = document.getElementById("btn-force-whatsapp-restart");
+const msgForceRestart = document.getElementById("msg-force-restart");
+
+// --- NUEVOS ELEMENTOS PARA DOCENTES ---
+const teacherTargetTypeSelect = document.getElementById("teacher-target-type");
+const teacherGroupField = document.getElementById("teacher-group-field");
+const teacherGroupSelect = document.getElementById("teacher-group-select");
+const teacherGroupSearch = document.getElementById("teacher-group-search");
+const teacherNumberField = document.getElementById("teacher-number-field");
+const teacherNumberInputEl = document.getElementById("teacher-number-input"); // (ID ya existe, solo nueva variable)
+
+// --- Funciones ---
+// ... (showUnsavedNotification, markUnsavedChanges, showMessage sin cambios) ...
 function showUnsavedNotification(show = true) {
   if (unsavedAlert) {
-    unsavedAlert.style.display = show ? "flex" : "none"; // Usar flex por el botón
+    unsavedAlert.style.display = show ? "flex" : "none";
   }
-  hasUnsavedChanges = show; // Actualizar bandera
+  hasUnsavedChanges = show;
 }
-
-// Marca que hay cambios y muestra la notificación
 function markUnsavedChanges() {
   if (!hasUnsavedChanges) {
     console.log("Cambios detectados, mostrando notificación.");
     showUnsavedNotification(true);
   }
 }
-
-// Muestra mensajes temporales
 function showMessage(element, message, isError = false) {
   if (!element) return;
   element.textContent = message;
@@ -59,7 +73,6 @@ function showMessage(element, message, isError = false) {
   element.style.display = "block";
   setTimeout(() => {
     if (element) {
-      // Re-check if element still exists
       element.style.display = "none";
       element.textContent = "";
       element.className = "form-message";
@@ -67,45 +80,115 @@ function showMessage(element, message, isError = false) {
   }, 4000);
 }
 
-// Actualiza el indicador de estado de conexión
-async function updateWhatsappStatus() {
-  if (!statusIndicator || !statusMessage) return;
-  statusIndicator.textContent = "Verificando...";
-  statusIndicator.className = "status-checking";
-  statusMessage.textContent = "";
-  if (refreshStatusBtn) refreshStatusBtn.disabled = true;
-  console.log("Verificando estado de WhatsApp...");
+// ... (fetchAndRenderQR, startStatusPolling, stopStatusPolling sin cambios) ...
+async function fetchAndRenderQR() {
+  if (!qrContainer || !qrCanvas || !qrMessage) return;
+
+  let data;
+  try {
+    const response = await fetch("/whatsapp/api/qr");
+    if (!response.ok) {
+      throw new Error(`El servidor respondió con ${response.status}`);
+    }
+    data = await response.json();
+    if (!data.exito) {
+      throw new Error(data.mensaje || "La API de QR falló.");
+    }
+  } catch (error) {
+    console.error("Error al BUSCAR QR:", error);
+    qrMessage.textContent = `Error al contactar el servidor: ${error.message}`;
+    qrCanvas.style.display = "none";
+    startStatusPolling();
+    return;
+  }
 
   try {
+    if (data.qr) {
+      qrMessage.textContent =
+        "Se necesita iniciar sesión. Escanea el código QR con tu teléfono.";
+      qrCanvas.style.display = "block";
+
+      if (typeof QRCode === "undefined") {
+        throw new Error(
+          "La librería QRCode no se cargó. Asegúrate de que 'qrcode.min.js' esté en 'public/js/'."
+        );
+      }
+
+      QRCode.toCanvas(qrCanvas, data.qr, { width: 300 }, (error) => {
+        if (error) {
+          console.error("Error al generar QR en canvas:", error);
+          qrMessage.textContent = "Error al dibujar el código QR.";
+          qrCanvas.style.display = "none";
+        } else {
+          console.log("QR renderizado en canvas.");
+        }
+      });
+      startStatusPolling();
+    } else {
+      qrMessage.textContent =
+        "Iniciando cliente de WhatsApp... Si se requiere sesión, el QR aparecerá aquí.";
+      qrCanvas.style.display = "none";
+      startStatusPolling();
+    }
+  } catch (error) {
+    console.error("Error al RENDERIZAR QR:", error);
+    qrMessage.textContent = `Error al renderizar: ${error.message}`;
+    qrCanvas.style.display = "none";
+    startStatusPolling();
+  }
+}
+function startStatusPolling() {
+  if (statusCheckInterval) return;
+  console.log("Iniciando polling de estado de WhatsApp (cada 5 seg).");
+  statusCheckInterval = setInterval(updateWhatsappStatus, 5000);
+}
+function stopStatusPolling() {
+  if (statusCheckInterval) {
+    console.log("Deteniendo polling de estado de WhatsApp.");
+    clearInterval(statusCheckInterval);
+    statusCheckInterval = null;
+  }
+}
+
+// ... (updateWhatsappStatus sin cambios) ...
+async function updateWhatsappStatus() {
+  if (!statusIndicator || !statusMessage || !configContent || !qrContainer) {
+    return;
+  }
+  if (refreshStatusBtn && !statusCheckInterval) {
+    statusIndicator.textContent = "Verificando...";
+    statusIndicator.className = "status-checking";
+    statusMessage.textContent = "";
+    refreshStatusBtn.disabled = true;
+  }
+  console.log("Verificando estado de WhatsApp...");
+  try {
     const response = await fetch("/whatsapp/api/status");
-    console.log("Respuesta de /status:", response.status);
     if (!response.ok) {
       throw new Error(`Error ${response.status} del servidor`);
     }
     const data = await response.json();
-    console.log("Datos de /status:", data);
-
     if (data.exito) {
       if (data.isReady) {
         statusIndicator.textContent = "Conectado";
         statusIndicator.className = "status-connected";
         statusMessage.textContent = "El cliente de WhatsApp está operativo.";
-        console.log("WhatsApp conectado, llamando a loadGroups...");
-        await loadGroups(); // Llamar a cargar grupos ahora que está conectado
+        configContent.style.display = "block";
+        qrContainer.style.display = "none";
+        stopStatusPolling();
+        if (availableGroups.length === 0) {
+          console.log("WhatsApp conectado, llamando a loadGroups...");
+          await loadGroups();
+        }
       } else {
         statusIndicator.textContent = "Desconectado";
         statusIndicator.className = "status-disconnected";
-        statusMessage.textContent =
-          "Cliente no listo. Revisa la consola del servidor o escanea el QR si es necesario.";
-        if (ruleGroupSelect)
-          ruleGroupSelect.innerHTML =
-            '<option value="">WhatsApp no conectado</option>';
-        if (ruleGroupSelect) ruleGroupSelect.disabled = true;
-        if (ruleGroupSearch) ruleGroupSearch.disabled = true;
+        statusMessage.textContent = "Cliente no listo. Iniciando sesión...";
+        configContent.style.display = "none";
+        qrContainer.style.display = "block";
         availableGroups = [];
-        console.log("WhatsApp desconectado.");
-        // Limpiar la lista visualmente si estaba poblada
-        populateGroupSelect([]);
+        populateGroupSelect(availableGroups); // <-- Modificado para limpiar ambos selects
+        await fetchAndRenderQR();
       }
     } else {
       throw new Error(data.mensaje || "Respuesta API /status sin éxito");
@@ -115,12 +198,13 @@ async function updateWhatsappStatus() {
     statusIndicator.textContent = "Error";
     statusIndicator.className = "status-error";
     statusMessage.textContent = `Error al verificar: ${error.message}`;
-    if (ruleGroupSelect)
-      ruleGroupSelect.innerHTML =
-        '<option value="">Error al verificar</option>';
-    if (ruleGroupSelect) ruleGroupSelect.disabled = true;
-    if (ruleGroupSearch) ruleGroupSearch.disabled = true;
+    configContent.style.display = "none";
+    qrContainer.style.display = "block";
+    qrMessage.textContent = `Error al verificar estado: ${error.message}`;
+    if (qrCanvas) qrCanvas.style.display = "none";
     availableGroups = [];
+    populateGroupSelect(availableGroups); // <-- Modificado para limpiar ambos selects
+    stopStatusPolling();
   } finally {
     if (refreshStatusBtn) {
       refreshStatusBtn.disabled = false;
@@ -129,7 +213,40 @@ async function updateWhatsappStatus() {
   }
 }
 
-// Carga la configuración desde el backend
+// --- *** NUEVA FUNCIÓN *** ---
+// Muestra/oculta los campos de docente según el select
+function updateTeacherTargetUI() {
+  if (!teacherTargetTypeSelect) return;
+
+  const isGroup = teacherTargetTypeSelect.value === "group";
+  if (teacherGroupField)
+    teacherGroupField.style.display = isGroup ? "block" : "none";
+  if (teacherNumberField)
+    teacherNumberField.style.display = isGroup ? "none" : "block";
+
+  const isConnected =
+    statusIndicator && statusIndicator.classList.contains("status-connected");
+
+  if (isGroup) {
+    if (teacherGroupSelect) teacherGroupSelect.disabled = !isConnected;
+    if (teacherGroupSearch) teacherGroupSearch.disabled = !isConnected;
+    if (!isConnected) {
+      if (teacherGroupSelect)
+        teacherGroupSelect.innerHTML =
+          '<option value="">WhatsApp no conectado</option>';
+    } else if (availableGroups.length === 0) {
+      if (teacherGroupSelect)
+        teacherGroupSelect.innerHTML =
+          '<option value="">No hay grupos disponibles</option>';
+    } else {
+      // Si está conectado y hay grupos, poblarlo (filtrado o no)
+      filterTeacherGroupOptions();
+    }
+  }
+}
+// --- *** FIN NUEVA FUNCIÓN *** ---
+
+// Carga la configuración desde el backend (MODIFICADO)
 async function loadWhatsappConfig() {
   try {
     const response = await fetch("/whatsapp/api/config");
@@ -137,16 +254,34 @@ async function loadWhatsappConfig() {
     const data = await response.json();
     if (data.exito && data.config) {
       currentWhatsappConfig = data.config;
-      // Actualizar UI
+
+      // Actualizar UI General
       if (enabledToggle) enabledToggle.checked = currentWhatsappConfig.enabled;
       if (enabledLabel)
         enabledLabel.textContent = currentWhatsappConfig.enabled
           ? "Notificaciones Activadas"
           : "Notificaciones Desactivadas";
-      const teacherNum = currentWhatsappConfig.teacherNumber || "";
-      if (teacherNumberInput)
-        teacherNumberInput.value = teacherNum.replace("@c.us", "");
-      renderStudentRules(); // Renderizar reglas después de cargar la configuración
+
+      // Actualizar UI Docentes
+      const targetType = currentWhatsappConfig.teacherTargetType || "number";
+      const targetId = currentWhatsappConfig.teacherTargetId || "";
+      if (teacherTargetTypeSelect) teacherTargetTypeSelect.value = targetType;
+      if (targetType === "number") {
+        if (teacherNumberInputEl)
+          teacherNumberInputEl.value = targetId.replace("@c.us", "");
+        if (teacherGroupSelect) teacherGroupSelect.value = "";
+      } else {
+        // group
+        if (teacherGroupSelect) teacherGroupSelect.value = targetId;
+        if (teacherNumberInputEl) teacherNumberInputEl.value = "";
+      }
+
+      // *** CAMBIO CLAVE: ***
+      // NO disparamos 'change', llamamos a la función de UI directamente
+      updateTeacherTargetUI();
+
+      // Actualizar UI Estudiantes
+      renderStudentRules();
     } else {
       throw new Error(data.mensaje || "No se pudo cargar la configuración");
     }
@@ -160,34 +295,53 @@ async function loadWhatsappConfig() {
   }
 }
 
-// Guarda la configuración en el backend
+// ... (saveWhatsappConfig, loadCiclosForRuleSelect, loadGroups sin cambios) ...
 async function saveWhatsappConfig() {
   if (!saveConfigBtn) return;
   saveConfigBtn.disabled = true;
   showMessage(msgWhatsappConfig, "Guardando...", false);
+  const teacherType = teacherTargetTypeSelect
+    ? teacherTargetTypeSelect.value
+    : "number";
+  let teacherId = null;
 
-  const configToSave = {
-    enabled: enabledToggle ? enabledToggle.checked : false,
-    studentRules: currentWhatsappConfig.studentRules || [],
-    teacherNumber: null,
-  };
-  const teacherNumRaw = teacherNumberInput
-    ? teacherNumberInput.value.trim()
-    : "";
-  const teacherNum = teacherNumRaw.replace(/\D/g, "");
-  if (teacherNum) {
-    if (teacherNum.length >= 9) {
-      configToSave.teacherNumber = `${teacherNum}@c.us`;
-    } else {
+  if (teacherType === "number") {
+    const teacherNumRaw = teacherNumberInputEl
+      ? teacherNumberInputEl.value.trim()
+      : "";
+    const teacherNum = teacherNumRaw.replace(/\D/g, "");
+    if (teacherNum) {
+      if (teacherNum.length >= 9) {
+        teacherId = `${teacherNum}@c.us`;
+      } else {
+        showMessage(
+          msgWhatsappConfig,
+          "El número de docente parece inválido (muy corto).",
+          true
+        );
+        saveConfigBtn.disabled = false;
+        return;
+      }
+    }
+  } else {
+    teacherId = teacherGroupSelect ? teacherGroupSelect.value : "";
+    if (!teacherId) {
       showMessage(
         msgWhatsappConfig,
-        "El número de docente parece inválido (muy corto).",
+        "Debes seleccionar un grupo para docentes.",
         true
       );
       saveConfigBtn.disabled = false;
       return;
     }
   }
+
+  const configToSave = {
+    enabled: enabledToggle ? enabledToggle.checked : false,
+    studentRules: currentWhatsappConfig.studentRules || [],
+    teacherTargetType: teacherType,
+    teacherTargetId: teacherId,
+  };
 
   try {
     const response = await fetch("/whatsapp/api/config", {
@@ -200,7 +354,7 @@ async function saveWhatsappConfig() {
     if (data.exito) {
       showMessage(msgWhatsappConfig, data.mensaje || "Configuración guardada.");
       currentWhatsappConfig = configToSave;
-      showUnsavedNotification(false); // <-- Ocultar notificación al guardar
+      showUnsavedNotification(false);
     } else {
       throw new Error(data.mensaje || "Error desconocido al guardar");
     }
@@ -211,8 +365,6 @@ async function saveWhatsappConfig() {
     saveConfigBtn.disabled = false;
   }
 }
-
-// Carga los ciclos disponibles en el select de reglas
 async function loadCiclosForRuleSelect() {
   if (!ruleCicloSelect) return;
   try {
@@ -233,17 +385,16 @@ async function loadCiclosForRuleSelect() {
     ruleCicloSelect.innerHTML = '<option value="">Error al cargar</option>';
   }
 }
-
-// Carga los grupos desde el backend y popula el select y el filtro
 async function loadGroups() {
   console.log("Iniciando loadGroups...");
-  if (!ruleGroupSelect || !ruleGroupSearch) return;
-
-  ruleGroupSelect.innerHTML = '<option value="">Cargando grupos...</option>';
-  ruleGroupSelect.disabled = true;
-  ruleGroupSearch.value = "";
-  ruleGroupSearch.disabled = true;
-
+  [ruleGroupSelect, teacherGroupSelect].forEach((selectEl) => {
+    if (selectEl) {
+      selectEl.innerHTML = '<option value="">Cargando grupos...</option>';
+      selectEl.disabled = true;
+    }
+  });
+  if (ruleGroupSearch) ruleGroupSearch.disabled = true;
+  if (teacherGroupSearch) teacherGroupSearch.disabled = true;
   try {
     console.log("Haciendo fetch a /whatsapp/api/groups...");
     const response = await fetch("/whatsapp/api/groups");
@@ -251,17 +402,24 @@ async function loadGroups() {
     if (!response.ok) throw new Error(`Error ${response.status} del servidor`);
     const data = await response.json();
     console.log("Datos de /groups:", data);
-
     if (data.exito && Array.isArray(data.groups)) {
       availableGroups = data.groups.sort((a, b) =>
         a.name.localeCompare(b.name)
       );
       console.log(`Grupos cargados: ${availableGroups.length}`);
-      populateGroupSelect(availableGroups); // Llenar con todos inicialmente
-      ruleGroupSelect.disabled = false;
-      ruleGroupSearch.disabled = false;
-      // Renderizar reglas de nuevo por si los nombres de grupo estaban pendientes
+      populateGroupSelect(availableGroups);
+      [ruleGroupSelect, teacherGroupSelect].forEach(
+        (selectEl) => selectEl && (selectEl.disabled = false)
+      );
+      if (ruleGroupSearch) ruleGroupSearch.disabled = false;
+      if (teacherGroupSearch) teacherGroupSearch.disabled = false;
       renderStudentRules();
+      if (
+        currentWhatsappConfig.teacherTargetType === "group" &&
+        teacherGroupSelect
+      ) {
+        teacherGroupSelect.value = currentWhatsappConfig.teacherTargetId || "";
+      }
     } else {
       throw new Error(
         data.mensaje || "Formato de respuesta inválido de la API de grupos"
@@ -269,101 +427,115 @@ async function loadGroups() {
     }
   } catch (error) {
     console.error("Error cargando grupos:", error);
-    ruleGroupSelect.innerHTML = `<option value="">Error: ${error.message}</option>`;
+    [ruleGroupSelect, teacherGroupSelect].forEach((selectEl) => {
+      if (selectEl)
+        selectEl.innerHTML = `<option value="">Error: ${error.message}</option>`;
+    });
     availableGroups = [];
-    ruleGroupSelect.disabled = true;
-    ruleGroupSearch.disabled = true;
   }
   console.log("loadGroups finalizado.");
 }
 
-// Popula el select de grupos con las opciones dadas
-function populateGroupSelect(groups) {
-  if (!ruleGroupSelect) return;
-  console.log("Populando select con", groups.length, "grupos.");
-  ruleGroupSelect.innerHTML = ""; // Limpiar
-
-  // Añadir opción por defecto primero
-  const defaultOption = document.createElement("option");
-  defaultOption.value = "";
-  defaultOption.textContent = "Selecciona un grupo";
-  ruleGroupSelect.appendChild(defaultOption);
-
-  const isConnected =
-    statusIndicator && statusIndicator.classList.contains("status-connected");
-  if (!isConnected) {
-    ruleGroupSelect.innerHTML =
-      '<option value="">WhatsApp no conectado</option>';
-    return;
+// ... (populateGroupSelect, filterStudentGroupOptions, filterTeacherGroupOptions sin cambios) ...
+function populateGroupSelect(groups, searchTerm = "", targetSelect = "all") {
+  const selectsToPopulate = [];
+  if (targetSelect === "all") {
+    if (ruleGroupSelect) selectsToPopulate.push(ruleGroupSelect);
+    if (teacherGroupSelect) selectsToPopulate.push(teacherGroupSelect);
+  } else if (targetSelect === "student" && ruleGroupSelect) {
+    selectsToPopulate.push(ruleGroupSelect);
+  } else if (targetSelect === "teacher" && teacherGroupSelect) {
+    selectsToPopulate.push(teacherGroupSelect);
   }
-
-  if (groups.length === 0) {
-    const noGroupOption = document.createElement("option");
-    noGroupOption.value = "";
-    noGroupOption.disabled = true;
-    const searchTerm = ruleGroupSearch ? ruleGroupSearch.value.trim() : "";
-    noGroupOption.textContent = searchTerm
-      ? "No hay coincidencias"
-      : "No se encontraron grupos";
-    ruleGroupSelect.appendChild(noGroupOption);
-    return;
-  }
-
-  const searchTerm = ruleGroupSearch ? ruleGroupSearch.value.trim() : "";
-  let groupsToShow = groups;
-  let messageOption = null;
-
-  if (!searchTerm && availableGroups.length > 10) {
-    groupsToShow = groups.slice(0, 10);
-    messageOption = document.createElement("option");
-    messageOption.value = "";
-    messageOption.disabled = true;
-    messageOption.textContent = `(${
-      availableGroups.length - 10
-    } más - usa la búsqueda)`;
-  }
-
-  groupsToShow.forEach((group) => {
-    if (group && group.id && group.name) {
-      const option = document.createElement("option");
-      option.value = group.id;
-      option.textContent = group.name;
-      ruleGroupSelect.appendChild(option);
-    } else {
-      console.warn("Grupo inválido encontrado:", group);
+  if (selectsToPopulate.length === 0) return;
+  console.log(
+    `Populando ${targetSelect} select(s) con ${groups.length} grupos.`
+  );
+  selectsToPopulate.forEach((selectEl) => {
+    const currentValue = selectEl.value;
+    selectEl.innerHTML = "";
+    const defaultOption = document.createElement("option");
+    defaultOption.value = "";
+    defaultOption.textContent = "Selecciona un grupo";
+    selectEl.appendChild(defaultOption);
+    const isConnected =
+      statusIndicator && statusIndicator.classList.contains("status-connected");
+    if (!isConnected) {
+      selectEl.innerHTML = '<option value="">WhatsApp no conectado</option>';
+      return;
+    }
+    if (groups.length === 0) {
+      const noGroupOption = document.createElement("option");
+      noGroupOption.value = "";
+      noGroupOption.disabled = true;
+      noGroupOption.textContent = searchTerm
+        ? "No hay coincidencias"
+        : "No se encontraron grupos";
+      selectEl.appendChild(noGroupOption);
+      return;
+    }
+    let groupsToShow = groups;
+    let messageOption = null;
+    if (!searchTerm && availableGroups.length > 10) {
+      groupsToShow = groups.slice(0, 10);
+      messageOption = document.createElement("option");
+      messageOption.value = "";
+      messageOption.disabled = true;
+      messageOption.textContent = `(${
+        availableGroups.length - 10
+      } más - usa la búsqueda)`;
+    }
+    groupsToShow.forEach((group) => {
+      if (group && group.id && group.name) {
+        const option = document.createElement("option");
+        option.value = group.id;
+        option.textContent = group.name;
+        selectEl.appendChild(option);
+      } else {
+        console.warn("Grupo inválido encontrado:", group);
+      }
+    });
+    if (messageOption) {
+      selectEl.appendChild(messageOption);
+    }
+    if (
+      Array.from(selectEl.options)
+        .map((o) => o.value)
+        .includes(currentValue)
+    ) {
+      selectEl.value = currentValue;
     }
   });
-
-  if (messageOption) {
-    ruleGroupSelect.appendChild(messageOption);
-  }
 }
-
-// Filtra las opciones del select de grupos según el input de búsqueda
-function filterGroupOptions() {
+function filterStudentGroupOptions() {
   if (!ruleGroupSearch || !availableGroups) return;
   const searchTerm = ruleGroupSearch.value.toLowerCase().trim();
   const filteredGroups = availableGroups.filter((group) =>
     group.name.toLowerCase().includes(searchTerm)
   );
-  populateGroupSelect(filteredGroups);
+  populateGroupSelect(filteredGroups, searchTerm, "student");
+}
+function filterTeacherGroupOptions() {
+  if (!teacherGroupSearch || !availableGroups) return;
+  const searchTerm = teacherGroupSearch.value.toLowerCase().trim();
+  const filteredGroups = availableGroups.filter((group) =>
+    group.name.toLowerCase().includes(searchTerm)
+  );
+  populateGroupSelect(filteredGroups, searchTerm, "teacher");
 }
 
-// Renderiza la lista de reglas de estudiantes
+// ... (renderStudentRules, handleDeleteRule, addStudentRule sin cambios) ...
 function renderStudentRules() {
   if (!studentRulesListDiv) return;
   studentRulesListDiv.innerHTML = "";
   const rules = currentWhatsappConfig.studentRules || [];
-
   if (rules.length === 0) {
     studentRulesListDiv.innerHTML =
       "<p>No hay reglas definidas para estudiantes.</p>";
     return;
   }
-
   const ul = document.createElement("ul");
   ul.className = "rules-ul";
-
   rules.forEach((rule, index) => {
     const li = document.createElement("li");
     let targetDisplay = "Destino no válido";
@@ -371,7 +543,7 @@ function renderStudentRules() {
       const group = availableGroups.find((g) => g.id === rule.targetId);
       targetDisplay = group
         ? `Grupo: ${group.name}`
-        : `Grupo ID: ${rule.targetId || "N/A"}`;
+        : `Grupo ID: ${rule.targetId || "N/A"} (No encontrado)`;
     } else if (rule.targetType === "number") {
       targetDisplay = `Número: ${
         rule.targetId ? rule.targetId.replace("@c.us", "") : "N/A"
@@ -383,37 +555,29 @@ function renderStudentRules() {
     const turnoDisplay = rule.turno
       ? rule.turno.charAt(0).toUpperCase() + rule.turno.slice(1)
       : "N/A";
-
     li.innerHTML = `
             <span><b>${cicloDisplay} - ${turnoDisplay}:</b> ${targetDisplay}</span>
             <button class="btn-delete-rule" data-index="${index}" title="Eliminar Regla"><i class="bi bi-trash-fill"></i></button>
         `;
     ul.appendChild(li);
   });
-
   studentRulesListDiv.appendChild(ul);
-
   document.querySelectorAll(".btn-delete-rule").forEach((button) => {
     button.addEventListener("click", handleDeleteRule);
   });
 }
-
-// Maneja la eliminación de una regla de estudiante
 function handleDeleteRule(event) {
   const index = parseInt(event.currentTarget.getAttribute("data-index"), 10);
   if (!isNaN(index) && confirm("¿Seguro que deseas eliminar esta regla?")) {
     if (currentWhatsappConfig.studentRules) {
       currentWhatsappConfig.studentRules.splice(index, 1);
       renderStudentRules();
-      markUnsavedChanges(); // <-- Marcar cambios al eliminar
-      showMessage(msgWhatsappConfig, "Regla eliminada.", false); // Mensaje más corto
+      markUnsavedChanges();
+      showMessage(msgWhatsappConfig, "Regla eliminada.", false);
     }
   }
 }
-
-// Añade una nueva regla de estudiante (localmente)
 function addStudentRule() {
-  // ... (validaciones existentes sin cambios) ...
   const ciclo = ruleCicloSelect ? ruleCicloSelect.value : "";
   const turno = ruleTurnoSelect ? ruleTurnoSelect.value : "";
   const targetType = ruleTargetTypeSelect
@@ -421,15 +585,12 @@ function addStudentRule() {
     : "group";
   let targetId = "";
   let validationError = null;
-
   if (!ciclo || !turno) {
     validationError = "Debes seleccionar un ciclo y un turno.";
   }
-
   if (!currentWhatsappConfig.studentRules) {
     currentWhatsappConfig.studentRules = [];
   }
-
   if (
     !validationError &&
     currentWhatsappConfig.studentRules.some(
@@ -438,7 +599,6 @@ function addStudentRule() {
   ) {
     validationError = `Ya existe una regla para ${ciclo} - ${turno}. Elimina la anterior primero.`;
   }
-
   if (!validationError) {
     if (targetType === "group") {
       targetId = ruleGroupSelect ? ruleGroupSelect.value : "";
@@ -446,7 +606,6 @@ function addStudentRule() {
         validationError = "Debes seleccionar un grupo de WhatsApp.";
       }
     } else {
-      // number
       const numberRaw = ruleNumberInput
         ? ruleNumberInput.value.trim().replace(/\D/g, "")
         : "";
@@ -459,12 +618,10 @@ function addStudentRule() {
       }
     }
   }
-
   if (validationError) {
     showMessage(msgAddRule, validationError, true);
     return;
   }
-
   currentWhatsappConfig.studentRules.push({
     ciclo,
     turno,
@@ -472,8 +629,6 @@ function addStudentRule() {
     targetId,
   });
   renderStudentRules();
-
-  // Limpiar formulario y mostrar mensaje
   if (ruleCicloSelect) ruleCicloSelect.value = "";
   if (ruleTurnoSelect) ruleTurnoSelect.value = "";
   if (ruleTargetTypeSelect) ruleTargetTypeSelect.value = "group";
@@ -482,26 +637,25 @@ function addStudentRule() {
   if (ruleNumberInput) ruleNumberInput.value = "";
   if (ruleTargetTypeSelect)
     ruleTargetTypeSelect.dispatchEvent(new Event("change"));
-  filterGroupOptions();
+  filterStudentGroupOptions();
   showMessage(msgAddRule, "Regla agregada temporalmente.");
-  markUnsavedChanges(); // <-- Marcar cambios al añadir
+  markUnsavedChanges();
 }
 
-// --- Inicialización y Event Listeners ---
+// --- Inicialización y Event Listeners (MODIFICADO) ---
 
 export function initWhatsappAdmin() {
   console.log("Inicializando admin WhatsApp...");
 
-  // Resetear estado al iniciar/cambiar a la pestaña
   hasUnsavedChanges = false;
-  showUnsavedNotification(false); // Asegurarse de que esté oculta al inicio
+  showUnsavedNotification(false);
+  stopStatusPolling();
 
-  // Cargar estado inicial y configuración
   updateWhatsappStatus();
   loadWhatsappConfig();
   loadCiclosForRuleSelect();
 
-  // Listeners existentes
+  // Listeners Generales
   if (refreshStatusBtn) {
     refreshStatusBtn.addEventListener("click", updateWhatsappStatus);
   }
@@ -511,9 +665,46 @@ export function initWhatsappAdmin() {
         enabledLabel.textContent = enabledToggle.checked
           ? "Notificaciones Activadas"
           : "Notificaciones Desactivadas";
-      markUnsavedChanges(); // <-- Marcar cambios
+      markUnsavedChanges();
     });
   }
+  if (saveConfigBtn) {
+    saveConfigBtn.addEventListener("click", saveWhatsappConfig);
+  }
+  if (jumpToSaveBtn && saveSection) {
+    jumpToSaveBtn.addEventListener("click", () => {
+      saveSection.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }
+  if (forceRestartBtn) {
+    forceRestartBtn.onclick = async () => {
+      if (
+        !confirm(
+          "Esto borrará la sesión actual de WhatsApp y generará un nuevo QR. ¿Continuar?"
+        )
+      ) {
+        return;
+      }
+      showMessage(msgForceRestart, "Forzando reinicio...", false);
+      forceRestartBtn.disabled = true;
+      try {
+        const res = await fetch("/whatsapp/api/restart", { method: "POST" });
+        const data = await res.json();
+        if (data.exito) {
+          showMessage(msgForceRestart, data.mensaje, false);
+          await updateWhatsappStatus();
+        } else {
+          throw new Error(data.mensaje);
+        }
+      } catch (e) {
+        showMessage(msgForceRestart, `Error: ${e.message}`, true);
+      } finally {
+        forceRestartBtn.disabled = false;
+      }
+    };
+  }
+
+  // Listeners de Estudiantes
   if (ruleTargetTypeSelect) {
     ruleTargetTypeSelect.addEventListener("change", () => {
       const isGroup = ruleTargetTypeSelect.value === "group";
@@ -521,48 +712,62 @@ export function initWhatsappAdmin() {
         ruleGroupField.style.display = isGroup ? "block" : "none";
       if (ruleNumberField)
         ruleNumberField.style.display = isGroup ? "none" : "block";
+
       const isConnected =
         statusIndicator &&
         statusIndicator.classList.contains("status-connected");
-      if (ruleGroupSelect) ruleGroupSelect.disabled = !isConnected;
-      if (ruleGroupSearch) ruleGroupSearch.disabled = !isConnected;
-      if (!isConnected && isGroup && ruleGroupSelect) {
-        ruleGroupSelect.innerHTML =
-          '<option value="">WhatsApp no conectado</option>';
-      } else if (
-        isConnected &&
-        isGroup &&
-        ruleGroupSelect &&
-        availableGroups.length === 0
-      ) {
-        ruleGroupSelect.innerHTML =
-          '<option value="">No hay grupos disponibles</option>';
-      } else if (isConnected && isGroup && ruleGroupSelect) {
-        filterGroupOptions();
+      if (isGroup) {
+        if (ruleGroupSelect) ruleGroupSelect.disabled = !isConnected;
+        if (ruleGroupSearch) ruleGroupSearch.disabled = !isConnected;
+        if (!isConnected) {
+          if (ruleGroupSelect)
+            ruleGroupSelect.innerHTML =
+              '<option value="">WhatsApp no conectado</option>';
+        } else if (availableGroups.length === 0) {
+          if (ruleGroupSelect)
+            ruleGroupSelect.innerHTML =
+              '<option value="">No hay grupos disponibles</option>';
+        } else {
+          filterStudentGroupOptions();
+        }
       }
     });
-    ruleTargetTypeSelect.dispatchEvent(new Event("change"));
   }
   if (ruleGroupSearch) {
-    ruleGroupSearch.addEventListener("input", filterGroupOptions);
+    ruleGroupSearch.addEventListener("input", filterStudentGroupOptions);
   }
   if (addRuleBtn) {
     addRuleBtn.addEventListener("click", addStudentRule);
   }
-  if (teacherNumberInput) {
-    teacherNumberInput.addEventListener("input", () => {
-      // Usar 'input' para detectar cambios al escribir
-      markUnsavedChanges(); // <-- Marcar cambios
-    });
-  }
-  if (saveConfigBtn) {
-    saveConfigBtn.addEventListener("click", saveWhatsappConfig);
-  }
+  // Añadir listeners para marcar cambios en formulario de estudiantes
+  [
+    ruleCicloSelect,
+    ruleTurnoSelect,
+    ruleTargetTypeSelect,
+    ruleGroupSelect,
+    ruleNumberInput,
+  ].forEach((el) => {
+    if (el) el.addEventListener("change", markUnsavedChanges);
+  });
 
-  // Listener para el botón de ir a guardar
-  if (jumpToSaveBtn && saveSection) {
-    jumpToSaveBtn.addEventListener("click", () => {
-      saveSection.scrollIntoView({ behavior: "smooth", block: "center" });
+  // --- LISTENERS MODIFICADOS/NUEVOS PARA DOCENTES ---
+  if (teacherTargetTypeSelect) {
+    teacherTargetTypeSelect.addEventListener("change", () => {
+      // *** CAMBIO CLAVE: ***
+      // 1. Llamar a la función de UI
+      updateTeacherTargetUI();
+      // 2. Marcar cambios (porque esto SÍ es un cambio del usuario)
+      markUnsavedChanges();
     });
+  }
+  if (teacherGroupSearch) {
+    teacherGroupSearch.addEventListener("input", filterTeacherGroupOptions);
+  }
+  // Añadir listeners para marcar cambios en formulario de docentes
+  if (teacherGroupSelect) {
+    teacherGroupSelect.addEventListener("change", markUnsavedChanges);
+  }
+  if (teacherNumberInputEl) {
+    teacherNumberInputEl.addEventListener("input", markUnsavedChanges);
   }
 }

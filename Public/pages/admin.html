@@ -12,6 +12,7 @@
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
     />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.1/qrcode.min.js"></script>
   </head>
   <body>
     <nav class="navbar">
@@ -45,25 +46,107 @@
             <h2><i class="bi bi-clock-fill"></i> CONFIGURAR HORARIOS</h2>
             <form id="form-horarios">
               <div>
-                <label
-                  >Mañana - Entrada:
-                  <input type="time" id="entrada-manana" required
-                /></label>
-                <label
-                  >Mañana - Tolerancia:
-                  <input type="time" id="tolerancia-manana" required
-                /></label>
+                <div class="time-picker-group">
+                  <label for="entrada-manana-hr">Mañana - Entrada:</label>
+                  <div class="time-picker-inputs">
+                    <select
+                      id="entrada-manana-hr"
+                      aria-label="Hora de entrada mañana"
+                      required
+                    ></select>
+                    <span>:</span>
+                    <select
+                      id="entrada-manana-min"
+                      aria-label="Minuto de entrada mañana"
+                      required
+                    ></select>
+                    <select
+                      id="entrada-manana-ampm"
+                      aria-label="AM/PM de entrada mañana"
+                      required
+                    >
+                      <option value="AM">AM</option>
+                      <option value="PM">PM</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="time-picker-group">
+                  <label for="tolerancia-manana-hr">Mañana - Tolerancia:</label>
+                  <div class="time-picker-inputs">
+                    <select
+                      id="tolerancia-manana-hr"
+                      aria-label="Hora de tolerancia mañana"
+                      required
+                    ></select>
+                    <span>:</span>
+                    <select
+                      id="tolerancia-manana-min"
+                      aria-label="Minuto de tolerancia mañana"
+                      required
+                    ></select>
+                    <select
+                      id="tolerancia-manana-ampm"
+                      aria-label="AM/PM de tolerancia mañana"
+                      required
+                    >
+                      <option value="AM">AM</option>
+                      <option value="PM">PM</option>
+                    </select>
+                  </div>
+                </div>
               </div>
               <p id="summary-manana" class="schedule-summary"></p>
               <div>
-                <label
-                  >Tarde - Entrada:
-                  <input type="time" id="entrada-tarde" required
-                /></label>
-                <label
-                  >Tarde - Tolerancia:
-                  <input type="time" id="tolerancia-tarde" required
-                /></label>
+                <div class="time-picker-group">
+                  <label for="entrada-tarde-hr">Tarde - Entrada:</label>
+                  <div class="time-picker-inputs">
+                    <select
+                      id="entrada-tarde-hr"
+                      aria-label="Hora de entrada tarde"
+                      required
+                    ></select>
+                    <span>:</span>
+                    <select
+                      id="entrada-tarde-min"
+                      aria-label="Minuto de entrada tarde"
+                      required
+                    ></select>
+                    <select
+                      id="entrada-tarde-ampm"
+                      aria-label="AM/PM de entrada tarde"
+                      required
+                    >
+                      <option value="AM">AM</option>
+                      <option value="PM">PM</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="time-picker-group">
+                  <label for="tolerancia-tarde-hr">Tarde - Tolerancia:</label>
+                  <div class="time-picker-inputs">
+                    <select
+                      id="tolerancia-tarde-hr"
+                      aria-label="Hora de tolerancia tarde"
+                      required
+                    ></select>
+                    <span>:</span>
+                    <select
+                      id="tolerancia-tarde-min"
+                      aria-label="Minuto de tolerancia tarde"
+                      required
+                    ></select>
+                    <select
+                      id="tolerancia-tarde-ampm"
+                      aria-label="AM/PM de tolerancia tarde"
+                      required
+                    >
+                      <option value="AM">AM</option>
+                      <option value="PM">PM</option>
+                    </select>
+                  </div>
+                </div>
               </div>
               <p id="summary-tarde" class="schedule-summary"></p>
               <button type="submit">
@@ -195,109 +278,206 @@
         </h2>
 
         <div
-          id="unsaved-changes-alert"
-          class="unsaved-alert sticky"
-          style="display: none"
+          id="whatsapp-qr-container"
+          style="display: none; text-align: center; padding: 20px"
         >
-          <i class="bi bi-exclamation-triangle-fill"></i> Tienes cambios sin
-          guardar en esta sección.
-          <button id="btn-jump-to-save" title="Ir a Guardar">
-            <i class="bi bi-arrow-down-circle"></i>
-          </button>
-        </div>
+          <h3><i class="bi bi-qr-code-scan"></i> Iniciar Sesión</h3>
+          <p id="whatsapp-qr-message" style="margin-bottom: 15px">
+            Se necesita iniciar sesión. Escanea el código QR con tu teléfono.
+          </p>
+          <canvas
+            id="whatsapp-qr-canvas"
+            style="
+              border: 1px solid #ddd;
+              padding: 10px;
+              border-radius: 8px;
+              background: white;
+            "
+          ></canvas>
+          <p style="font-size: 0.9rem; color: #555; margin-top: 15px">
+            La página se actualizará automáticamente una vez que inicies sesión.
+          </p>
 
-        <div class="whatsapp-status-section">
-          <h3>
-            Estado de Conexión:
-            <span id="whatsapp-status-indicator" class="status-disconnected"
-              >Desconectado</span
+          <div
+            style="
+              margin-top: 20px;
+              border-top: 1px solid #eee;
+              padding-top: 20px;
+            "
+          >
+            <p style="font-size: 0.9rem; color: #666; margin-bottom: 10px">
+              ¿No aparece el QR o la sesión está bloqueada?
+            </p>
+            <button
+              id="btn-force-whatsapp-restart"
+              class="btn-delete-rule"
+              style="
+                background-color: #ffc107;
+                color: #333;
+                border: none;
+                padding: 10px 15px;
+                border-radius: 5px;
+                font-family: var(--font-body);
+                text-transform: uppercase;
+                letter-spacing: 1px;
+              "
             >
-          </h3>
-          <p id="whatsapp-status-message">Intentando conectar...</p>
-          <button id="btn-refresh-whatsapp-status" title="Refrescar Estado">
-            <i class="bi bi-arrow-clockwise"></i>
-          </button>
+              <i class="bi bi-exclamation-triangle-fill"></i> Forzar Reinicio
+            </button>
+            <div
+              id="msg-force-restart"
+              class="form-message"
+              style="margin-top: 10px"
+            ></div>
+          </div>
         </div>
 
-        <section class="whatsapp-config-section">
-          <h3><i class="bi bi-toggles"></i> Activación General</h3>
-          <div class="toggle-switch-container">
-            <label class="switch">
-              <input type="checkbox" id="whatsapp-enabled-toggle" />
-              <span class="slider round"></span>
-            </label>
-            <span id="whatsapp-enabled-label">Notificaciones Desactivadas</span>
+        <div id="whatsapp-config-content" style="display: none">
+          <div
+            id="unsaved-changes-alert"
+            class="unsaved-alert sticky"
+            style="display: none"
+          >
+            <i class="bi bi-exclamation-triangle-fill"></i> Tienes cambios sin
+            guardar en esta sección.
+            <button id="btn-jump-to-save" title="Ir a Guardar">
+              <i class="bi bi-arrow-down-circle"></i>
+            </button>
           </div>
-        </section>
 
-        <section class="whatsapp-config-section">
-          <h3>
-            <i class="bi bi-people-fill"></i> Notificaciones de Estudiantes
-          </h3>
-          <div id="student-rules-list">
-            <p>Cargando reglas...</p>
+          <div class="whatsapp-status-section">
+            <h3>
+              Estado de Conexión:
+              <span id="whatsapp-status-indicator" class="status-disconnected"
+                >Desconectado</span
+              >
+            </h3>
+            <p id="whatsapp-status-message">Intentando conectar...</p>
+            <button id="btn-refresh-whatsapp-status" title="Refrescar Estado">
+              <i class="bi bi-arrow-clockwise"></i>
+            </button>
           </div>
-          <div class="add-rule-form">
-            <h4><i class="bi bi-plus-circle-fill"></i> Agregar Nueva Regla</h4>
+
+          <section class="whatsapp-config-section">
+            <h3><i class="bi bi-toggles"></i> Activación General</h3>
+            <div class="toggle-switch-container">
+              <label class="switch">
+                <input type="checkbox" id="whatsapp-enabled-toggle" />
+                <span class="slider round"></span>
+              </label>
+              <span id="whatsapp-enabled-label"
+                >Notificaciones Desactivadas</span
+              >
+            </div>
+          </section>
+
+          <section class="whatsapp-config-section">
+            <h3>
+              <i class="bi bi-people-fill"></i> Notificaciones de Estudiantes
+            </h3>
+            <div id="student-rules-list">
+              <p>Cargando reglas...</p>
+            </div>
+            <div class="add-rule-form">
+              <h4>
+                <i class="bi bi-plus-circle-fill"></i> Agregar Nueva Regla
+              </h4>
+              <div class="form-grid-whatsapp">
+                <select id="rule-ciclo" required>
+                  <option value="">Selecciona Ciclo</option>
+                </select>
+                <select id="rule-turno" required>
+                  <option value="">Selecciona Turno</option>
+                  <option value="mañana">Mañana</option>
+                  <option value="tarde">Tarde</option>
+                </select>
+                <select id="rule-target-type" required>
+                  <option value="group">Enviar a Grupo</option>
+                  <option value="number">Enviar a Número</option>
+                </select>
+
+                <div id="rule-group-field">
+                  <label for="rule-group-select">Grupo de WhatsApp:</label>
+                  <select id="rule-group-select">
+                    <option value="">Cargando grupos...</option>
+                  </select>
+                  <input
+                    type="text"
+                    id="rule-group-search"
+                    placeholder="Buscar grupo por nombre..."
+                  />
+                </div>
+
+                <div id="rule-number-field" style="display: none">
+                  <label for="rule-number-input"
+                    >Número (ej: 519XXXXXXXX):</label
+                  >
+                  <input
+                    type="tel"
+                    id="rule-number-input"
+                    placeholder="519..."
+                  />
+                </div>
+              </div>
+              <button id="btn-add-student-rule">
+                <i class="bi bi-plus"></i> Agregar Regla
+              </button>
+              <div id="msg-add-rule" class="form-message"></div>
+            </div>
+          </section>
+
+          <section class="whatsapp-config-section">
+            <h3>
+              <i class="bi bi-person-badge-fill"></i> Notificaciones de Docentes
+            </h3>
+            <p
+              style="
+                font-size: 0.9rem;
+                color: #555;
+                margin-top: -10px;
+                margin-bottom: 15px;
+              "
+            >
+              Define un único destino (grupo o número) para todas las
+              notificaciones de docentes.
+            </p>
             <div class="form-grid-whatsapp">
-              <select id="rule-ciclo" required>
-                <option value="">Selecciona Ciclo</option>
-              </select>
-              <select id="rule-turno" required>
-                <option value="">Selecciona Turno</option>
-                <option value="mañana">Mañana</option>
-                <option value="tarde">Tarde</option>
-              </select>
-              <select id="rule-target-type" required>
-                <option value="group">Enviar a Grupo</option>
+              <select id="teacher-target-type" required>
                 <option value="number">Enviar a Número</option>
+                <option value="group">Enviar a Grupo</option>
               </select>
 
-              <div id="rule-group-field">
-                <label for="rule-group-select">Grupo de WhatsApp:</label>
-                <select id="rule-group-select">
+              <div id="teacher-group-field" style="display: none">
+                <label for="teacher-group-select">Grupo de WhatsApp:</label>
+                <select id="teacher-group-select">
                   <option value="">Cargando grupos...</option>
                 </select>
                 <input
                   type="text"
-                  id="rule-group-search"
+                  id="teacher-group-search"
                   placeholder="Buscar grupo por nombre..."
                 />
               </div>
 
-              <div id="rule-number-field" style="display: none">
-                <label for="rule-number-input">Número (ej: 519XXXXXXXX):</label>
-                <input type="tel" id="rule-number-input" placeholder="519..." />
+              <div id="teacher-number-field">
+                <label for="teacher-number-input"
+                  >Número (ej: 519XXXXXXXX):</label
+                >
+                <input
+                  type="tel"
+                  id="teacher-number-input"
+                  placeholder="519... (dejar vacío para no enviar)"
+                />
               </div>
             </div>
-            <button id="btn-add-student-rule">
-              <i class="bi bi-plus"></i> Agregar Regla
+          </section>
+
+          <div class="whatsapp-save-section" id="whatsapp-save-section">
+            <button id="btn-save-whatsapp-config">
+              <i class="bi bi-save-fill"></i> GUARDAR CONFIGURACIÓN WHATSAPP
             </button>
-            <div id="msg-add-rule" class="form-message"></div>
+            <div id="msg-whatsapp-config" class="form-message"></div>
           </div>
-        </section>
-
-        <section class="whatsapp-config-section">
-          <h3>
-            <i class="bi bi-person-badge-fill"></i> Notificaciones de Docentes
-          </h3>
-          <div class="form-grid-whatsapp simple">
-            <label for="teacher-number-input"
-              >Enviar a Número (ej: 519XXXXXXXX):</label
-            >
-            <input
-              type="tel"
-              id="teacher-number-input"
-              placeholder="519... (dejar vacío para no enviar)"
-            />
-          </div>
-        </section>
-
-        <div class="whatsapp-save-section">
-          <button id="btn-save-whatsapp-config">
-            <i class="bi bi-save-fill"></i> GUARDAR CONFIGURACIÓN WHATSAPP
-          </button>
-          <div id="msg-whatsapp-config" class="form-message"></div>
         </div>
       </div>
     </div>

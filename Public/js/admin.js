@@ -86,21 +86,64 @@ document.getElementById("btn-vista-whatsapp").onclick = () => {
   mostrarVista("vista-whatsapp", "btn-vista-whatsapp");
 };
 
-// Formulario Horarios
+// --- *** NUEVO HELPER (para submit de horarios) *** ---
+/**
+ * Lee 3 selects (por ID) y devuelve una hora 24h (ej: "03", "00", "PM" -> "15:00")
+ */
+function get24hFromPicker(hrId, minId, ampmId) {
+  try {
+    let hours = parseInt(document.getElementById(hrId).value, 10);
+    const minutes = document.getElementById(minId).value;
+    const ampm = document.getElementById(ampmId).value;
+
+    if (ampm === "PM" && hours !== 12) {
+      hours += 12;
+    }
+    if (ampm === "AM" && hours === 12) {
+      hours = 0; // Medianoche
+    }
+    return `${hours.toString().padStart(2, "0")}:${minutes}`;
+  } catch (e) {
+    console.error("Error al convertir 12h a 24h:", hrId, e);
+    return "00:00"; // Fallback
+  }
+}
+// --- *** FIN HELPER *** ---
+
+// Formulario Horarios (MODIFICADO)
 document.getElementById("form-horarios").onsubmit = async function (e) {
   e.preventDefault();
   const botonSubmit = this.querySelector('button[type="submit"]');
   botonSubmit.disabled = true;
+
+  // Modificado para usar el helper
   const payload = {
     mañana: {
-      entrada: document.getElementById("entrada-manana").value,
-      tolerancia: document.getElementById("tolerancia-manana").value,
+      entrada: get24hFromPicker(
+        "entrada-manana-hr",
+        "entrada-manana-min",
+        "entrada-manana-ampm"
+      ),
+      tolerancia: get24hFromPicker(
+        "tolerancia-manana-hr",
+        "tolerancia-manana-min",
+        "tolerancia-manana-ampm"
+      ),
     },
     tarde: {
-      entrada: document.getElementById("entrada-tarde").value,
-      tolerancia: document.getElementById("tolerancia-tarde").value,
+      entrada: get24hFromPicker(
+        "entrada-tarde-hr",
+        "entrada-tarde-min",
+        "entrada-tarde-ampm"
+      ),
+      tolerancia: get24hFromPicker(
+        "tolerancia-tarde-hr",
+        "tolerancia-tarde-min",
+        "tolerancia-tarde-ampm"
+      ),
     },
   };
+
   try {
     const res = await fetch("/api/horarios", {
       method: "POST",
@@ -301,7 +344,7 @@ window.onload = function () {
   // Cargar datos iniciales para la vista principal
   cargarUsuarios(); // Carga docentes para vista principal y alumnos para la otra vista
   cargarArchivosExcel();
-  cargarHorarios();
+  cargarHorarios(); // Carga horarios y puebla los nuevos <select>
   cargarCiclos(); // Carga lista de ciclos y actualiza select en form agregar usuario
 
   // Mostrar vista principal por defecto

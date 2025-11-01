@@ -139,32 +139,114 @@ function getSelectedDays() {
   return selectedDays;
 }
 
+// --- *** NUEVOS HELPERS PARA EL SELECTOR DE HORA *** ---
+
 /**
- * Carga y muestra los horarios de entrada y tolerancia.
+ * Rellena los selects de hora (01-12) y minutos (00-59).
+ */
+function populateTimeSelects(hrSelect, minSelect) {
+  // Horas (01-12)
+  for (let i = 1; i <= 12; i++) {
+    const val = i.toString().padStart(2, "0");
+    hrSelect.options.add(new Option(val, val));
+  }
+  // Minutos (00-59)
+  for (let i = 0; i < 60; i++) {
+    const val = i.toString().padStart(2, "0");
+    minSelect.options.add(new Option(val, val));
+  }
+}
+
+/**
+ * Establece los 3 selects (hr, min, ampm) a partir de una hora 24h (ej: "15:30").
+ */
+function setPickerFrom24h(time24h, hrSelect, minSelect, ampmSelect) {
+  if (!time24h || !hrSelect || !minSelect || !ampmSelect) return;
+
+  const [hours, minutes] = time24h.split(":").map(Number);
+  const ampm = hours >= 12 ? "PM" : "AM";
+  let hr12 = hours % 12;
+  if (hr12 === 0) hr12 = 12; // 0h (medianoche) y 12h (mediodía) son "12"
+
+  hrSelect.value = hr12.toString().padStart(2, "0");
+  minSelect.value = minutes.toString().padStart(2, "0");
+  ampmSelect.value = ampm;
+}
+
+/**
+ * Convierte una hora 24h (ej: "15:00") a un string 12h (ej: "03:00 PM").
+ */
+function convert24hTo12h(time24h) {
+  if (!time24h) return "";
+  try {
+    const [hours, minutes] = time24h.split(":").map(Number);
+    const ampm = hours >= 12 ? "PM" : "AM";
+    let hr12 = hours % 12;
+    if (hr12 === 0) hr12 = 12;
+    return `${hr12.toString().padStart(2, "0")}:${minutes
+      .toString()
+      .padStart(2, "0")} ${ampm}`;
+  } catch (e) {
+    console.error("Error convirtiendo 24h a 12h:", time24h, e);
+    return "Error";
+  }
+}
+
+// --- *** FIN DE NUEVOS HELPERS *** ---
+
+/**
+ * Carga y muestra los horarios de entrada y tolerancia. (MODIFICADO)
  */
 export async function cargarHorarios() {
   const res = await fetch("/api/horarios");
   const horarios = await res.json();
 
-  const entradaManana = document.getElementById("entrada-manana");
+  // Referencias a los selects de hora
+  const em_hr = document.getElementById("entrada-manana-hr");
+  const em_min = document.getElementById("entrada-manana-min");
+  const em_ampm = document.getElementById("entrada-manana-ampm");
+  const tm_hr = document.getElementById("tolerancia-manana-hr");
+  const tm_min = document.getElementById("tolerancia-manana-min");
+  const tm_ampm = document.getElementById("tolerancia-manana-ampm");
+  const et_hr = document.getElementById("entrada-tarde-hr");
+  const et_min = document.getElementById("entrada-tarde-min");
+  const et_ampm = document.getElementById("entrada-tarde-ampm");
+  const tt_hr = document.getElementById("tolerancia-tarde-hr");
+  const tt_min = document.getElementById("tolerancia-tarde-min");
+  const tt_ampm = document.getElementById("tolerancia-tarde-ampm");
+
   const summaryManana = document.getElementById("summary-manana");
 
-  if (entradaManana) {
-    document.getElementById("entrada-manana").value = horarios.mañana.entrada;
-    document.getElementById("tolerancia-manana").value =
-      horarios.mañana.tolerancia;
-    document.getElementById("entrada-tarde").value = horarios.tarde.entrada;
-    document.getElementById("tolerancia-tarde").value =
-      horarios.tarde.tolerancia;
+  // Rellenar los selects (si están presentes y vacíos)
+  if (em_hr && em_hr.options.length === 0) {
+    console.log("Rellenando selectores de hora por primera vez.");
+    populateTimeSelects(em_hr, em_min);
+    populateTimeSelects(tm_hr, tm_min);
+    populateTimeSelects(et_hr, et_min);
+    populateTimeSelects(tt_hr, tt_min);
   }
 
+  // Establecer los valores de los selects desde la API
+  if (em_hr) {
+    setPickerFrom24h(horarios.mañana.entrada, em_hr, em_min, em_ampm);
+    setPickerFrom24h(horarios.mañana.tolerancia, tm_hr, tm_min, tm_ampm);
+    setPickerFrom24h(horarios.tarde.entrada, et_hr, et_min, et_ampm);
+    setPickerFrom24h(horarios.tarde.tolerancia, tt_hr, tt_min, tt_ampm);
+  }
+
+  // Actualizar el resumen de texto (ahora en formato 12h)
   if (summaryManana) {
+    const h12_em = convert24hTo12h(horarios.mañana.entrada);
+    const h12_tm = convert24hTo12h(horarios.mañana.tolerancia);
+    const h12_et = convert24hTo12h(horarios.tarde.entrada);
+    const h12_tt = convert24hTo12h(horarios.tarde.tolerancia);
+
     document.getElementById(
       "summary-manana"
-    ).textContent = `Entrada: ${horarios.mañana.entrada} | Tolerancia: ${horarios.mañana.tolerancia}`;
+    ).textContent = `Entrada: ${h12_em} | Tolerancia: ${h12_tm}`;
     document.getElementById(
       "summary-tarde"
-    ).textContent = `Entrada: ${horarios.tarde.entrada} | Tolerancia: ${horarios.tarde.tolerancia}`;
+    ).textContent = `Entrada: ${h12_et} | Tolerancia: ${h12_tt}`;
   }
 }
 
@@ -206,54 +288,5 @@ export function initUserFormEvents() {
   }
 
   // 3. Formulario Agregar Submit
-  const formAgregar = document.getElementById("form-agregar");
-  if (formAgregar) {
-    formAgregar.onsubmit = async function (e) {
-      e.preventDefault();
-      const codigo = document.getElementById("codigo").value.trim();
-      const nombre = document.getElementById("nombre").value.trim();
-      const rol = document.getElementById("rol").value;
-      const turno = document.getElementById("turno").value;
-      const ciclo = document.getElementById("ciclo").value;
-      const diasAsistencia = getSelectedDays();
-
-      if (!codigo || !nombre || !rol) {
-        alert("Todos los campos son obligatorios.");
-        return;
-      }
-      if (rol === "estudiante" && (!turno || !ciclo)) {
-        alert("El turno y ciclo son obligatorios para estudiantes.");
-        return;
-      }
-      if (rol === "estudiante" && diasAsistencia.length === 0) {
-        alert(
-          "Debes seleccionar al menos un día de asistencia para el estudiante."
-        );
-        return;
-      }
-
-      const payload = { codigo, nombre, rol, turno, ciclo };
-      if (rol === "estudiante" || rol === "docente") {
-        payload.dias_asistencia = diasAsistencia;
-      }
-
-      await fetch("/api/usuarios", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      cargarUsuarios(true);
-
-      // Restablecer
-      document.getElementById("form-agregar").reset();
-      document.querySelectorAll(".day-btn").forEach((button) => {
-        if (button.getAttribute("data-day") !== "D") {
-          button.classList.add("active");
-        } else {
-          button.classList.remove("active");
-        }
-      });
-    };
-  }
+  // (Este listener se movió a admin.js para centralizar)
 }

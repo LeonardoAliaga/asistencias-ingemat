@@ -22,11 +22,25 @@ const whatsappConfigPath = path.join(
 );
 
 // Función para leer config de WhatsApp (específica para esta ruta)
+// (Usamos la misma lógica de migración que en whatsapp.route.js para ser seguros)
 const readWhatsappConfig = () => {
+  const defaultConfig = {
+    enabled: false,
+    studentRules: [],
+    teacherTargetType: "number",
+    teacherTargetId: null,
+  };
   try {
     if (fs.existsSync(whatsappConfigPath)) {
       const data = fs.readFileSync(whatsappConfigPath, "utf8");
-      return JSON.parse(data);
+      let config = JSON.parse(data);
+
+      if (config.teacherNumber !== undefined) {
+        config.teacherTargetType = "number";
+        config.teacherTargetId = config.teacherNumber;
+        delete config.teacherNumber;
+      }
+      return { ...defaultConfig, ...config };
     }
     console.log(
       "Registrar Route: Archivo de config WhatsApp no encontrado, usando default."
@@ -37,7 +51,7 @@ const readWhatsappConfig = () => {
       error
     );
   }
-  return { enabled: false, studentRules: [], teacherNumber: null };
+  return defaultConfig;
 };
 
 router.post("/", async (req, res) => {
@@ -120,7 +134,7 @@ router.post("/", async (req, res) => {
     `Registrar Route: Guardado en Excel exitoso para ${usuario.nombre}.`
   );
 
-  // --- Lógica de Envío de WhatsApp ---
+  // --- Lógica de Envío de WhatsApp (MODIFICADA) ---
   const whatsappConfig = readWhatsappConfig();
   let whatsappEnviado = false;
   let mensajeWhatsapp = "";
@@ -154,6 +168,7 @@ router.post("/", async (req, res) => {
         );
       }
     } else if (usuario.rol === "docente") {
+      // --- LÓGICA DE DOCENTE MODIFICADA ---
       mensajeWhatsapp = `Docente *${usuario.nombre}*\nIngreso: *${hora12h}* 👨‍🏫`;
       const isTeacherScheduled =
         usuario.dias_asistencia && usuario.dias_asistencia.includes(diaAbbr);
@@ -164,16 +179,17 @@ router.post("/", async (req, res) => {
         );
       }
 
-      destinatarioWhatsapp = whatsappConfig.teacherNumber;
+      destinatarioWhatsapp = whatsappConfig.teacherTargetId; // <--- USAR NUEVA CLAVE
       if (destinatarioWhatsapp) {
         console.log(
-          ` - Regla encontrada para Docente: Enviar a número ${destinatarioWhatsapp}`
+          ` - Regla encontrada para Docente: Enviar a ${whatsappConfig.teacherTargetType} ${destinatarioWhatsapp}` // <--- Log mejorado
         );
       } else {
         console.log(
-          ` - No se configuró número para notificaciones de docentes.`
+          ` - No se configuró un destinatario para notificaciones de docentes.` // <--- Mensaje mejorado
         );
       }
+      // --- FIN LÓGICA DE DOCENTE ---
     }
 
     if (destinatarioWhatsapp && mensajeWhatsapp) {
