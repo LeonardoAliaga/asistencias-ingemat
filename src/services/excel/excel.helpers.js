@@ -1,6 +1,6 @@
 // src/services/excel/excel.helpers.js
 const path = require("path");
-const { aplicarEstiloCelda } = require("../../utils/helpers.js"); // Helper general
+// const { aplicarEstiloCelda } = require("../../utils/helpers.js"); // <-- ELIMINADO
 
 const registrosPath = path.join(__dirname, "../../../Registros");
 
@@ -74,10 +74,13 @@ function setColumnWidths(worksheet) {
  * @param {object} leftAlign - El estilo de alineación izquierda importado de constants.
  */
 function applyBaseDataRowStyles(row, estiloBase, centerAlign, leftAlign) {
-  aplicarEstiloCelda(row.getCell(1), { ...estiloBase, alignment: centerAlign }); // N°
-  aplicarEstiloCelda(row.getCell(2), { ...estiloBase, alignment: leftAlign }); // Nombre
-  aplicarEstiloCelda(row.getCell(3), { ...estiloBase, alignment: centerAlign }); // Turno
-  aplicarEstiloCelda(row.getCell(4), { ...estiloBase, alignment: centerAlign }); // Días
+  // --- CORRECCIÓN DEFINITIVA ---
+  // Reemplazar aplicarEstiloCelda por asignación de .style
+  row.getCell(1).style = { ...estiloBase, alignment: centerAlign }; // N°
+  row.getCell(2).style = { ...estiloBase, alignment: leftAlign }; // Nombre
+  row.getCell(3).style = { ...estiloBase, alignment: centerAlign }; // Turno
+  row.getCell(4).style = { ...estiloBase, alignment: centerAlign }; // Días
+  // --- FIN CORRECCIÓN ---
 }
 
 module.exports = {

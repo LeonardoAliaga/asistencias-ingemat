@@ -11,11 +11,11 @@ import {
   cargarCiclos,
   initCicloFormEvents,
 } from "./admin/excel-preview.js";
-// Importar la inicialización de la pestaña WhatsApp
-import { initWhatsappAdmin } from "./admin/whatsapp.js"; // Ajusta la ruta si es necesario
+import { initWhatsappAdmin } from "./admin/whatsapp.js";
 
 // --- Lógica para el manejo de vistas ---
-function mostrarVista(vistaId, buttonId) {
+async function mostrarVista(vistaId, buttonId) {
+  // <-- Convertida a async
   document.querySelectorAll(".vista-content").forEach((el) => {
     el.style.display = "none";
   });
@@ -24,9 +24,8 @@ function mostrarVista(vistaId, buttonId) {
     vistaActiva.style.display = "block";
   } else {
     console.error("Error: Vista no encontrada -", vistaId);
-    // Mostrar vista principal por defecto en caso de error
     document.getElementById("vista-principal").style.display = "block";
-    buttonId = "btn-vista-inicio"; // Asegurar que el botón activo sea el correcto
+    buttonId = "btn-vista-inicio";
   }
 
   document.querySelectorAll(".nav-button").forEach((btn) => {
@@ -37,31 +36,31 @@ function mostrarVista(vistaId, buttonId) {
     botonActivo.classList.add("active");
   } else {
     console.error("Error: Botón no encontrado -", buttonId);
-    // Activar botón de inicio por defecto
     document.getElementById("btn-vista-inicio").classList.add("active");
   }
 
-  // Cargar datos específicos de la vista si es necesario
-  if (vistaId === "vista-alumnos-completa") {
-    cargarUsuarios(true); // Forzar recarga al cambiar a esta vista
+  if (vistaId === "vista-usuarios-completa") {
+    await cargarUsuarios(true); // Esperar a que cargue
   } else if (vistaId === "vista-whatsapp") {
-    // Inicializar la lógica de la pestaña WhatsApp CADA VEZ que se muestra
     initWhatsappAdmin();
   } else if (vistaId === "vista-principal") {
     // Recargar datos dinámicos de la vista principal al volver a ella
-    cargarUsuarios();
-    cargarArchivosExcel();
-    cargarHorarios();
-    cargarCiclos();
+    // Esperar a que los usuarios carguen es crucial para el buscador
+    await cargarUsuarios();
+    await cargarArchivosExcel();
+    await cargarHorarios();
+    await cargarCiclos();
+    // *** CORRECCIÓN: Eliminar llamada duplicada a initUserFormEvents() ***
+    // (Ya se llama en window.onload después de la carga inicial)
   }
 }
 
-// Muestra mensajes globales (para agregar usuario, ciclos, etc.)
+// Muestra mensajes globales
 function showGlobalMessage(elementId, message, isError = false) {
   const element = document.getElementById(elementId);
   if (!element) return;
   element.textContent = message;
-  element.className = isError ? "form-message error" : "form-message success"; // Asumiendo clases CSS
+  element.className = isError ? "form-message error" : "form-message success";
   element.style.display = "block";
   setTimeout(() => {
     element.style.display = "none";
@@ -77,19 +76,15 @@ document.getElementById("btn-vista-inicio").onclick = () => {
   mostrarVista("vista-principal", "btn-vista-inicio");
 };
 
-document.getElementById("btn-vista-alumnos").onclick = () => {
-  mostrarVista("vista-alumnos-completa", "btn-vista-alumnos");
+document.getElementById("btn-vista-usuarios").onclick = () => {
+  mostrarVista("vista-usuarios-completa", "btn-vista-usuarios");
 };
 
-// Nuevo botón WhatsApp
 document.getElementById("btn-vista-whatsapp").onclick = () => {
   mostrarVista("vista-whatsapp", "btn-vista-whatsapp");
 };
 
 // --- *** NUEVO HELPER (para submit de horarios) *** ---
-/**
- * Lee 3 selects (por ID) y devuelve una hora 24h (ej: "03", "00", "PM" -> "15:00")
- */
 function get24hFromPicker(hrId, minId, ampmId) {
   try {
     let hours = parseInt(document.getElementById(hrId).value, 10);
@@ -108,15 +103,13 @@ function get24hFromPicker(hrId, minId, ampmId) {
     return "00:00"; // Fallback
   }
 }
-// --- *** FIN HELPER *** ---
 
-// Formulario Horarios (MODIFICADO)
+// Formulario Horarios
 document.getElementById("form-horarios").onsubmit = async function (e) {
   e.preventDefault();
   const botonSubmit = this.querySelector('button[type="submit"]');
   botonSubmit.disabled = true;
 
-  // Modificado para usar el helper
   const payload = {
     mañana: {
       entrada: get24hFromPicker(
@@ -153,7 +146,6 @@ document.getElementById("form-horarios").onsubmit = async function (e) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.mensaje || `Error ${res.status}`);
     showGlobalMessage("msg-horarios", data.mensaje || "Horarios guardados.");
-    // Recargar horarios en la UI
     cargarHorarios();
   } catch (error) {
     showGlobalMessage("msg-horarios", `Error: ${error.message}`, true);
@@ -180,7 +172,7 @@ document.getElementById("form-password").onsubmit = async function (e) {
       "msg-password",
       data.mensaje || "Contraseña actualizada."
     );
-    this.reset(); // Limpiar campo
+    this.reset();
   } catch (error) {
     showGlobalMessage("msg-password", `Error: ${error.message}`, true);
   } finally {
@@ -188,7 +180,7 @@ document.getElementById("form-password").onsubmit = async function (e) {
   }
 };
 
-// Formulario Agregar Ciclo (movido desde excel-preview.js para centralizar)
+// Formulario Agregar Ciclo
 document.getElementById("form-agregar-ciclo").onsubmit = async function (e) {
   e.preventDefault();
   const botonSubmit = this.querySelector('button[type="submit"]');
@@ -214,10 +206,9 @@ document.getElementById("form-agregar-ciclo").onsubmit = async function (e) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.mensaje || `Error ${res.status}`);
 
-    nombreInput.value = ""; // Limpiar input
+    nombreInput.value = "";
     showGlobalMessage("msg-ciclos", data.mensaje || "Ciclo agregado.");
-    await cargarCiclos(); // Recargar lista de ciclos
-    // Disparar evento para que users.js actualice el select
+    await cargarCiclos();
     window.dispatchEvent(new CustomEvent("cyclesUpdated"));
   } catch (error) {
     showGlobalMessage("msg-ciclos", `Error: ${error.message}`, true);
@@ -226,7 +217,7 @@ document.getElementById("form-agregar-ciclo").onsubmit = async function (e) {
   }
 };
 
-// Formulario Agregar Usuario (movido desde users.js para centralizar)
+// Formulario Agregar Usuario
 document.getElementById("form-agregar").onsubmit = async function (e) {
   e.preventDefault();
   const botonSubmit = this.querySelector('button[type="submit"]');
@@ -238,7 +229,6 @@ document.getElementById("form-agregar").onsubmit = async function (e) {
   const turno = document.getElementById("turno").value;
   const ciclo = document.getElementById("ciclo").value;
 
-  // Función auxiliar para obtener días seleccionados
   const getSelectedDays = () => {
     const selected = [];
     document
@@ -250,7 +240,6 @@ document.getElementById("form-agregar").onsubmit = async function (e) {
   };
   const diasAsistencia = getSelectedDays();
 
-  // Validaciones
   let errorMsg = null;
   if (!codigo || !nombre || !rol) {
     errorMsg = "Código, Nombre y Rol son obligatorios.";
@@ -276,7 +265,6 @@ document.getElementById("form-agregar").onsubmit = async function (e) {
     payload.dias_asistencia = diasAsistencia;
   } else if (rol === "docente") {
     payload.dias_asistencia = diasAsistencia;
-    // Asegurarse de no enviar turno/ciclo para docentes
     payload.turno = "";
     payload.ciclo = "";
   }
@@ -294,24 +282,19 @@ document.getElementById("form-agregar").onsubmit = async function (e) {
       "msg-agregar-usuario",
       data.mensaje || "Usuario agregado."
     );
-    await cargarUsuarios(true); // Recargar ambas vistas (docentes y alumnos)
+    await cargarUsuarios(true);
 
-    // Restablecer formulario
     this.reset();
-    // Resetear botones de días (activar L-S por defecto)
     document
       .querySelectorAll("#dias-asistencia-selector .day-btn")
       .forEach((button) => {
         const day = button.getAttribute("data-day");
         if (day !== "D") {
-          // Activar L, M, MI, J, V, S
           button.classList.add("active");
         } else {
-          // Desactivar D
           button.classList.remove("active");
         }
       });
-    // Resetear visibilidad de campos condicionales
     document.getElementById("rol").dispatchEvent(new Event("change"));
   } catch (error) {
     showGlobalMessage("msg-agregar-usuario", `Error: ${error.message}`, true);
@@ -320,14 +303,62 @@ document.getElementById("form-agregar").onsubmit = async function (e) {
   }
 };
 
+// --- FORMULARIO JUSTIFICAR FALTA (ACTUALIZADO) ---
+document.getElementById("form-justificar-falta").onsubmit = async function (e) {
+  e.preventDefault();
+  const botonSubmit = this.querySelector('button[type="submit"]');
+  botonSubmit.disabled = true;
+
+  // Leer del input oculto
+  const codigo = document.getElementById("justificar-alumno-hidden").value;
+  const fechaInput = document.getElementById("justificar-fecha").value; // "YYYY-MM-DD"
+  const filtroInput = document.getElementById("justificar-usuario-filtro");
+
+  if (!codigo || !fechaInput) {
+    showGlobalMessage(
+      "msg-justificar-falta",
+      "Debes seleccionar fecha y un usuario válido de la lista.",
+      true
+    );
+    botonSubmit.disabled = false;
+    return;
+  }
+
+  // Convertir fecha de YYYY-MM-DD a DD-MM-YYYY
+  const fechaParts = fechaInput.split("-");
+  const fechaFormateada = `${fechaParts[2]}-${fechaParts[1]}-${fechaParts[0]}`;
+
+  try {
+    const res = await fetch("/api/excel/justificar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ codigo: codigo, fecha: fechaFormateada }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.mensaje || `Error ${res.status}`);
+
+    showGlobalMessage(
+      "msg-justificar-falta",
+      data.mensaje || "Falta justificada."
+    );
+    // Limpiar los campos
+    filtroInput.value = "";
+    document.getElementById("justificar-alumno-hidden").value = "";
+  } catch (error) {
+    showGlobalMessage("msg-justificar-falta", `Error: ${error.message}`, true);
+  } finally {
+    botonSubmit.disabled = false;
+  }
+};
+// --- FIN FORMULARIO JUSTIFICAR ---
+
 // Botón Logout
 document.getElementById("btn-logout").onclick = async function () {
   try {
     await fetch("/admin/logout", { method: "POST" });
-    window.location.href = "/admin"; // Redirigir siempre
+    window.location.href = "/admin";
   } catch (error) {
     console.error("Error al cerrar sesión:", error);
-    // Igual intenta redirigir
     window.location.href = "/admin";
   }
 };
@@ -336,22 +367,42 @@ document.getElementById("btn-logout").onclick = async function () {
 // Inicialización General
 // ====================================================
 
-window.onload = function () {
+window.onload = async function () {
+  // <-- *** FUNCIÓN CONVERTIDA A ASYNC ***
   console.log("Admin panel cargado.");
-  initUserFormEvents(); // Inicializa eventos de formulario de usuario (toggle de campos, botones de día)
-  initModalEvents(); // Inicializa eventos del modal de vista previa
+
+  initModalEvents(); // Esta no depende de datos, puede ir primero
 
   // Cargar datos iniciales para la vista principal
-  cargarUsuarios(); // Carga docentes para vista principal y alumnos para la otra vista
-  cargarArchivosExcel();
-  cargarHorarios(); // Carga horarios y puebla los nuevos <select>
-  cargarCiclos(); // Carga lista de ciclos y actualiza select en form agregar usuario
+  // *** CORRECCIÓN: Esperar (await) a que los datos carguen ***
+  await cargarUsuarios();
+  await cargarArchivosExcel();
+  await cargarHorarios();
+  await cargarCiclos();
 
-  // Mostrar vista principal por defecto
+  // *** CORRECCIÓN: Llamar a initUserFormEvents DESPUÉS de que cargarUsuarios haya terminado ***
+  initUserFormEvents();
+
   mostrarVista("vista-principal", "btn-vista-inicio");
 
-  // Escuchar evento para actualizar select de ciclo cuando se añaden/eliminan ciclos
   window.addEventListener("cyclesUpdated", async () => {
-    await cargarCiclos(); // Recarga la lista y actualiza el select
+    await cargarCiclos();
   });
+
+  // --- AÑADIDO: Poner fecha de hoy por defecto ---
+  try {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = (today.getMonth() + 1).toString().padStart(2, "0");
+    const day = today.getDate().toString().padStart(2, "0");
+    const fechaHoy = `${year}-${month}-${day}`; // Formato YYYY-MM-DD
+
+    const justificarFechaInput = document.getElementById("justificar-fecha");
+    if (justificarFechaInput) {
+      justificarFechaInput.value = fechaHoy;
+    }
+  } catch (e) {
+    console.error("Error al setear fecha por defecto:", e);
+  }
+  // --- FIN AÑADIDO ---
 };

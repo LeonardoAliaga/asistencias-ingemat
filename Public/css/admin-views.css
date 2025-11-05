@@ -52,7 +52,6 @@ li:hover {
 /* ======================================================= */
 
 #vista-alumnos h3 {
-  /* Estilos base de h3 anulados para ser controlados por accordion-header */
   margin: 0;
   padding: 0;
   font-family: monospace;
@@ -114,7 +113,7 @@ li:hover {
 }
 
 .accordion-content.show {
-  max-height: 5000px; /* Altura suficiente para mostrar contenido */
+  max-height: 5000px;
   padding: 15px;
 }
 .accordion-item h3 {
@@ -131,12 +130,10 @@ li:hover {
 #archivos-excel {
   max-height: 390px;
   overflow-y: auto;
-  padding-right: 10px; /* Para que la barra de scroll no tape el contenido */
-  /* Estilos personalizados para la barra de desplazamiento */
-  scrollbar-width: thin; /* Firefox */
-  scrollbar-color: var(--red) var(--white2); /* Firefox */
+  padding-right: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--red) var(--white2);
 }
-/* Webkit (Chrome, Safari, Edge) */
 #archivos-excel::-webkit-scrollbar {
   width: 8px;
 }
@@ -165,7 +162,7 @@ li:hover {
   border-radius: 5px;
 }
 .excel-item:hover {
-  background-color: #008000; /* Verde oscuro para hover */
+  background-color: #008000;
   transform: translateX(5px);
 }
 
@@ -177,14 +174,14 @@ li:hover {
   transition: 0.3s;
   text-decoration: none;
   font-family: var(--font-body);
-  flex-grow: 1; /* Ocupa el espacio disponible */
-  white-space: nowrap; /* Evita que el nombre del archivo se rompa */
+  flex-grow: 1;
+  white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis; /* Añade puntos suspensivos si es muy largo */
+  text-overflow: ellipsis;
 }
 
 #archivos-excel a:hover {
-  background-color: transparent; /* No cambiar fondo al pasar sobre el enlace */
+  background-color: transparent;
 }
 
 .btn-preview {
@@ -196,32 +193,28 @@ li:hover {
   border-radius: 5px;
   transition: background-color 0.3s;
   font-size: 0.9rem;
-  text-transform: none; /* No capitalizar */
-  flex-shrink: 0; /* Evita que el botón se encoja */
+  text-transform: none;
+  flex-shrink: 0;
 }
 
 .btn-preview:hover {
-  background-color: #006800; /* Verde más oscuro al pasar sobre el botón */
+  background-color: #006800;
 }
 
 /* ======================================================= */
 /* Estilos de Vista Previa de Excel (Tabla) */
 /* ======================================================= */
-/* Contenedor del contenido con scroll */
 .preview-content-area {
-  max-height: 60vh; /* Altura máxima antes de mostrar scroll */
+  max-height: 60vh;
   overflow-y: auto;
   border: 1px solid var(--white2);
-  padding: 15px; /* Espacio interno */
-  margin-top: -1px; /* Para conectar visualmente con las pestañas */
-  border-radius: 0 0 5px 5px; /* Bordes inferiores redondeados */
-  background-color: #fff; /* Fondo blanco */
-
-  /* Estilos personalizados para la barra de desplazamiento */
-  scrollbar-width: thin; /* Firefox */
-  scrollbar-color: var(--red) var(--white2); /* Firefox */
+  padding: 15px;
+  margin-top: -1px;
+  border-radius: 0 0 5px 5px;
+  background-color: #fff;
+  scrollbar-width: thin;
+  scrollbar-color: var(--red) var(--white2);
 }
-/* Webkit (Chrome, Safari, Edge) */
 .preview-content-area::-webkit-scrollbar {
   width: 8px;
 }
@@ -238,17 +231,16 @@ li:hover {
 }
 
 #preview-content table {
-  /* Ahora apunta a tablas DENTRO de #preview-content */
   width: 100%;
   border-collapse: collapse;
   font-family: var(--font-body);
   font-size: 0.9rem;
   table-layout: fixed;
-  margin: 0 0 20px 0; /* Margen inferior entre tablas si hay varias hojas */
+  margin: 0 0 20px 0;
   border: 1px solid #ccc;
 }
 #preview-content table:last-child {
-  margin-bottom: 0; /* Sin margen inferior en la última tabla */
+  margin-bottom: 0;
 }
 
 #preview-content th,
@@ -257,12 +249,11 @@ li:hover {
   padding: 8px 10px;
   text-align: left;
   letter-spacing: 0.5px;
-  white-space: normal; /* Permitir wrap */
+  white-space: normal;
   word-wrap: break-word;
   vertical-align: middle;
 }
 
-/* Estilo para Filas de Título de Sección */
 .table-title-cell {
   background-color: var(--black);
   color: var(--white1);
@@ -275,19 +266,16 @@ li:hover {
   border: 1px solid var(--black);
 }
 
-/* Estilo para Fila de Encabezado de Columna */
 .table-header th {
   background-color: #e9e9e9;
   color: var(--black);
   font-weight: bold;
   text-align: center;
-  /* Encabezados fijos al hacer scroll */
-  top: -15px; /* Ajustar para que se pegue justo debajo del contenedor con padding */
+  top: -15px;
   z-index: 9;
   border-bottom: 2px solid #bbb;
 }
 
-/* Anchos de columna (5 columnas visibles) */
 .table-header th:nth-child(1) {
   width: 5%;
   text-align: center;
@@ -309,17 +297,14 @@ li:hover {
   text-align: center;
 } /* HORA REGISTRO */
 
-/* Estilo para Filas de Datos */
 .table-data td {
   background-color: var(--white1);
   color: var(--black);
 }
-/* Centrar columnas específicas */
-.table-data td:nth-child(1), /* N° */
-.table-data td:nth-child(3), /* Turno */
-.table-data td:nth-child(4), /* Días */
+.table-data td:nth-child(1),
+.table-data td:nth-child(3),
+.table-data td:nth-child(4),
 .table-data td:nth-child(5) {
-  /* Hora Registro */
   text-align: center;
 }
 
@@ -360,48 +345,53 @@ li:hover {
   color: #000000;
   font-weight: bold;
 }
+/* --- ESTILO AÑADIDO --- */
+.table-data td.status-justificado {
+  background-color: #ddeeff;
+  color: #003366;
+  font-weight: bold;
+}
+/* --- FIN ESTILO AÑADIDO --- */
 
 /* ======================================================= */
-/* == NUEVOS ESTILOS PARA PESTAÑAS EN VISTA PREVIA == */
+/* == PESTAÑAS EN VISTA PREVIA == */
 /* ======================================================= */
 
 .preview-tab-container {
   display: flex;
-  border-bottom: 1px solid var(--white2); /* Línea debajo de las pestañas */
-  margin-bottom: 0; /* Quitar margen inferior */
+  border-bottom: 1px solid var(--white2);
+  margin-bottom: 0;
 }
 
 .preview-tab {
   padding: 10px 15px;
   cursor: pointer;
   border: 1px solid transparent;
-  border-bottom: none; /* Sin borde inferior por defecto */
+  border-bottom: none;
   margin-right: 5px;
-  background-color: var(--white1); /* Fondo inactivo */
+  background-color: var(--white1);
   color: var(--black);
-  border-radius: 5px 5px 0 0; /* Bordes superiores redondeados */
+  border-radius: 5px 5px 0 0;
   font-weight: bold;
   font-family: var(--font-body);
   transition: background-color 0.3s, color 0.3s;
 }
 
 .preview-tab:hover {
-  background-color: var(--white2); /* Fondo al pasar el ratón */
+  background-color: var(--white2);
 }
 
 .preview-tab.active {
-  background-color: #fff; /* Fondo blanco activo */
-  color: var(--red); /* Color activo */
-  border-color: var(--white2) var(--white2) #fff var(--white2); /* Bordes laterales y superior */
+  background-color: #fff;
+  color: var(--red);
+  border-color: var(--white2) var(--white2) #fff var(--white2);
   position: relative;
-  /* top: 1px;  Pequeño ajuste para que parezca conectada al contenido */
 }
 
 .preview-tab-content {
-  display: none; /* Oculto por defecto */
-  /* El padding y scrollbar se manejan en .preview-content-area */
+  display: none;
 }
 
 .preview-tab-content.active {
-  display: block; /* Mostrar contenido activo */
+  display: block;
 }

@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="../css/admin-forms.css" />
     <link rel="stylesheet" href="../css/admin-views.css" />
     <link rel="stylesheet" href="../css/admin-whatsapp.css" />
+    <link rel="stylesheet" href="../css/admin-whatsapp-rules.css" />
     <link rel="stylesheet" href="../css/admin-responsive.css" />
     <link
       rel="stylesheet"
@@ -25,8 +26,8 @@
         <button class="nav-button active" id="btn-vista-inicio">
           <i class="bi bi-house-door-fill"></i> INICIO
         </button>
-        <button class="nav-button" id="btn-vista-alumnos">
-          <i class="bi bi-people-fill"></i> ESTUDIANTES
+        <button class="nav-button" id="btn-vista-usuarios">
+          <i class="bi bi-people-fill"></i> USUARIOS
         </button>
         <button class="nav-button" id="btn-vista-whatsapp">
           <i class="bi bi-whatsapp"></i> WHATSAPP
@@ -42,7 +43,7 @@
 
       <div id="vista-principal" class="vista-content">
         <div class="admin-grid">
-          <section id="horarios-section" style="grid-area: horarios">
+          <section id="horarios-section">
             <h2><i class="bi bi-clock-fill"></i> CONFIGURAR HORARIOS</h2>
             <form id="form-horarios">
               <div>
@@ -156,7 +157,7 @@
             <div id="msg-horarios"></div>
           </section>
 
-          <section id="gestion-ciclos-section" style="grid-area: ciclos">
+          <section id="gestion-ciclos-section">
             <h2><i class="bi bi-calendar-range"></i> GESTIÓN DE CICLOS</h2>
             <div id="ciclos-list-container">
               <ul id="ciclos-list" class="lista-gestion-ciclos"></ul>
@@ -174,7 +175,7 @@
             </form>
             <div id="msg-ciclos"></div>
           </section>
-          <section id="agregar-usuario-section" style="grid-area: agregar">
+          <section id="agregar-usuario-section">
             <h2><i class="bi bi-person-plus-fill"></i> AGREGAR USUARIO</h2>
             <form id="form-agregar">
               <input type="text" id="codigo" placeholder="Código" required />
@@ -229,21 +230,14 @@
             </form>
           </section>
 
-          <div id="vista-docentes-container" style="grid-area: docentes">
-            <h2 class="sub-header">
-              <i class="bi bi-person-badge-fill"></i> LISTA DE DOCENTES
-            </h2>
-            <div id="vista-docentes"></div>
-          </div>
-
-          <section id="archivos-excel-section" style="grid-area: excel">
+          <section id="archivos-excel-section">
             <h2>
               <i class="bi bi-file-earmark-excel-fill"></i> DESCARGAR ARCHIVOS
             </h2>
             <div id="archivos-excel"></div>
           </section>
 
-          <section id="gestion-acceso-section" style="grid-area: password">
+          <section id="gestion-acceso-section">
             <h2><i class="bi bi-key-fill"></i> GESTIÓN DE ACCESO</h2>
             <form id="form-password">
               <input
@@ -258,18 +252,50 @@
             </form>
             <div id="msg-password"></div>
           </section>
+
+          <section id="justificar-falta-section">
+            <h2>
+              <i class="bi bi-patch-check-fill"></i> Justificar Inasistencia
+            </h2>
+            <form id="form-justificar-falta">
+              <label for="justificar-fecha">Fecha de la falta:</label>
+              <input type="date" id="justificar-fecha" required />
+
+              <div class="autocomplete-container">
+                <label for="justificar-usuario-filtro"
+                  >Buscar Alumno o Docente:</label
+                >
+                <input
+                  type="text"
+                  id="justificar-usuario-filtro"
+                  placeholder="Escribe un nombre para buscar..."
+                  autocomplete="off"
+                />
+                <input type="hidden" id="justificar-alumno-hidden" required />
+
+                <div
+                  class="autocomplete-items"
+                  id="justificar-resultados"
+                ></div>
+              </div>
+              <button type="submit">
+                <i class="bi bi-check-lg"></i> JUSTIFICAR
+              </button>
+            </form>
+            <div id="msg-justificar-falta" class="form-message"></div>
+          </section>
         </div>
       </div>
 
       <div
-        id="vista-alumnos-completa"
+        id="vista-usuarios-completa"
         class="vista-content"
         style="display: none"
       >
         <h2 class="sub-header">
-          <i class="bi bi-card-list"></i> LISTADO COMPLETO DE ALUMNOS POR CICLO
+          <i class="bi bi-card-list"></i> LISTADO COMPLETO DE USUARIOS
         </h2>
-        <div id="vista-alumnos" class="accordion-container"></div>
+        <div id="vista-usuarios-list" class="accordion-container"></div>
       </div>
 
       <div id="vista-whatsapp" class="vista-content" style="display: none">
@@ -359,21 +385,53 @@
           </div>
 
           <section class="whatsapp-config-section">
-            <h3><i class="bi bi-toggles"></i> Activación General</h3>
-            <div class="toggle-switch-container">
+            <h3><i class="bi bi-toggles"></i> Controles de Activación</h3>
+
+            <div class="toggle-switch-container master-toggle">
               <label class="switch">
-                <input type="checkbox" id="whatsapp-enabled-toggle" />
+                <input type="checkbox" id="whatsapp-enabled-general" />
                 <span class="slider round"></span>
               </label>
-              <span id="whatsapp-enabled-label"
-                >Notificaciones Desactivadas</span
+              <span id="whatsapp-enabled-general-label"
+                >Activación General de WhatsApp</span
               >
+            </div>
+
+            <hr class="divider" />
+
+            <div class="toggle-switch-container">
+              <label class="switch">
+                <input type="checkbox" id="student-notifications-toggle" />
+                <span class="slider round"></span>
+              </label>
+              <span id="student-notifications-label"
+                >Notificaciones de Estudiantes (al registrar)</span
+              >
+            </div>
+
+            <div class="toggle-switch-container">
+              <label class="switch">
+                <input type="checkbox" id="teacher-notifications-toggle" />
+                <span class="slider round"></span>
+              </label>
+              <span id="teacher-notifications-label"
+                >Notificaciones de Docentes (al registrar)</span
+              >
+            </div>
+
+            <div class="toggle-switch-container">
+              <label class="switch">
+                <input type="checkbox" id="report-enabled-toggle" />
+                <span class="slider round"></span>
+              </label>
+              <span id="report-enabled-label">Reporte por Imagen (Manual)</span>
             </div>
           </section>
 
           <section class="whatsapp-config-section">
             <h3>
-              <i class="bi bi-people-fill"></i> Notificaciones de Estudiantes
+              <i class="bi bi-people-fill"></i> Config. Notificaciones de
+              Estudiantes
             </h3>
             <div id="student-rules-list">
               <p>Cargando reglas...</p>
@@ -396,18 +454,20 @@
                   <option value="number">Enviar a Número</option>
                 </select>
 
-                <div id="rule-group-field">
-                  <label for="rule-group-select">Grupo de WhatsApp:</label>
-                  <select id="rule-group-select">
-                    <option value="">Cargando grupos...</option>
-                  </select>
+                <div id="rule-group-field" class="autocomplete-container">
+                  <label for="rule-group-filtro">Grupo de WhatsApp:</label>
                   <input
                     type="text"
-                    id="rule-group-search"
+                    id="rule-group-filtro"
                     placeholder="Buscar grupo por nombre..."
+                    autocomplete="off"
                   />
+                  <input type="hidden" id="rule-group-hidden" />
+                  <div
+                    class="autocomplete-items"
+                    id="rule-group-resultados"
+                  ></div>
                 </div>
-
                 <div id="rule-number-field" style="display: none">
                   <label for="rule-number-input"
                     >Número (ej: 519XXXXXXXX):</label
@@ -428,7 +488,8 @@
 
           <section class="whatsapp-config-section">
             <h3>
-              <i class="bi bi-person-badge-fill"></i> Notificaciones de Docentes
+              <i class="bi bi-person-badge-fill"></i> Config. Notificaciones de
+              Docentes
             </h3>
             <p
               style="
@@ -447,18 +508,24 @@
                 <option value="group">Enviar a Grupo</option>
               </select>
 
-              <div id="teacher-group-field" style="display: none">
-                <label for="teacher-group-select">Grupo de WhatsApp:</label>
-                <select id="teacher-group-select">
-                  <option value="">Cargando grupos...</option>
-                </select>
+              <div
+                id="teacher-group-field"
+                class="autocomplete-container"
+                style="display: none"
+              >
+                <label for="teacher-group-filtro">Grupo de WhatsApp:</label>
                 <input
                   type="text"
-                  id="teacher-group-search"
+                  id="teacher-group-filtro"
                   placeholder="Buscar grupo por nombre..."
+                  autocomplete="off"
                 />
+                <input type="hidden" id="teacher-group-hidden" />
+                <div
+                  class="autocomplete-items"
+                  id="teacher-group-resultados"
+                ></div>
               </div>
-
               <div id="teacher-number-field">
                 <label for="teacher-number-input"
                   >Número (ej: 519XXXXXXXX):</label
@@ -469,6 +536,76 @@
                   placeholder="519... (dejar vacío para no enviar)"
                 />
               </div>
+            </div>
+          </section>
+
+          <section class="whatsapp-config-section">
+            <h3>
+              <i class="bi bi-images"></i> Config. Reporte por Imagen (Manual)
+            </h3>
+            <p
+              style="
+                font-size: 0.9rem;
+                color: #555;
+                margin-top: -10px;
+                margin-bottom: 15px;
+              "
+            >
+              Configura los grupos de destino para enviar el reporte de
+              asistencia manualmente.
+            </p>
+
+            <h4><i class="bi bi-geo-alt-fill"></i> Destinos del Reporte</h4>
+            <div id="report-rules-list">
+              <p>No hay destinos configurados.</p>
+            </div>
+
+            <div class="add-rule-form">
+              <h5
+                style="
+                  margin-top: 1.5rem;
+                  margin-bottom: 1rem;
+                  border-top: 1px solid var(--white2);
+                  padding-top: 1rem;
+                "
+              >
+                <i class="bi bi-plus-circle-fill"></i> Agregar Destino de
+                Reporte
+              </h5>
+              <div class="form-grid-whatsapp">
+                <select id="report-rule-ciclo" required>
+                  <option value="">Selecciona Ciclo</option>
+                </select>
+                <select id="report-rule-turno" required>
+                  <option value="">Selecciona Turno</option>
+                  <option value="mañana">Mañana</option>
+                  <option value="tarde">Tarde</option>
+                </select>
+
+                <div
+                  id="report-rule-group-field"
+                  class="autocomplete-container"
+                >
+                  <label for="report-rule-group-filtro"
+                    >Grupo de WhatsApp:</label
+                  >
+                  <input
+                    type="text"
+                    id="report-rule-group-filtro"
+                    placeholder="Buscar grupo por nombre..."
+                    autocomplete="off"
+                  />
+                  <input type="hidden" id="report-rule-group-hidden" />
+                  <div
+                    class="autocomplete-items"
+                    id="report-rule-resultados"
+                  ></div>
+                </div>
+              </div>
+              <button id="btn-add-report-rule">
+                <i class="bi bi-plus"></i> Agregar Destino
+              </button>
+              <div id="msg-add-report-rule" class="form-message"></div>
             </div>
           </section>
 

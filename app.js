@@ -3,11 +3,11 @@ const path = require("path");
 const session = require("express-session");
 const fs = require("fs");
 const apiRouter = require("./src/routes/api.route");
-const whatsappRouter = require("./src/routes/whatsapp.route.js"); // <-- Importar nuevo router
-// const { whatsappClient } = require("./Whatsapp/WhatsappClient"); // <-- Ya no es necesario inicializar desde aquí
+const whatsappRouter = require("./src/routes/whatsapp.route.js");
+// const reportScheduler = require("./src/services/report-scheduler.js"); // <-- ELIMINADO
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 // Middleware Globales
 app.use(express.json());
@@ -51,7 +51,7 @@ app.post("/admin/login", (req, res) => {
     req.session.admin = true;
     return res.json({ exito: true });
   }
-  res.status(401).json({ exito: false, mensaje: "Contraseña incorrecta" }); // Mejor usar 401
+  res.status(401).json({ exito: false, mensaje: "Contraseña incorrecta" });
 });
 
 // Ruta de logout
@@ -76,7 +76,6 @@ const requireAdmin = (req, res, next) => {
   if (req.session && req.session.admin) {
     next();
   } else {
-    // Si es una petición API, devuelve 401, sino redirige al login
     if (req.path.startsWith("/api/") || req.path.startsWith("/whatsapp/api/")) {
       res.status(401).json({ exito: false, mensaje: "No autorizado" });
     } else {
@@ -89,7 +88,6 @@ const requireAdmin = (req, res, next) => {
 app.post("/admin/password", requireAdmin, (req, res) => {
   const { nueva } = req.body;
   if (!nueva || nueva.length < 4) {
-    // Añadir validación básica
     return res.status(400).json({
       exito: false,
       mensaje: "La contraseña debe tener al menos 4 caracteres",
@@ -125,11 +123,10 @@ app.get("/admin", (req, res) => {
 
 // Routers de API
 app.use("/api", apiRouter);
-// Añadir el nuevo router de WhatsApp bajo un prefijo y protegerlo
-app.use("/whatsapp/api", requireAdmin, whatsappRouter); // <-- Usar router y proteger
+app.use("/whatsapp/api", requireAdmin, whatsappRouter);
 
 // Asegurar que la carpeta de registros exista
-const registrosDir = path.join(__dirname, "Registros"); // Corregido: 'Registros' con R mayúscula como tus archivos CSV
+const registrosDir = path.join(__dirname, "Registros");
 if (!fs.existsSync(registrosDir)) {
   try {
     fs.mkdirSync(registrosDir);
@@ -153,5 +150,5 @@ app.listen(PORT, () =>
   console.log(`Servidor iniciado en http://localhost:${PORT}`)
 );
 
-// La inicialización de WhatsApp ahora está dentro de WhatsappClient.js
-// whatsappClient.initialize(); // <-- Ya no es necesario
+// Iniciar el programador de reportes
+// reportScheduler.init(); // <-- ELIMINADO

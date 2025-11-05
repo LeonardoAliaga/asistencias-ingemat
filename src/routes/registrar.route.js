@@ -2,12 +2,12 @@
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
-const { guardarRegistro } = require("../services/excel.service"); // Ajusta la ruta si es necesario
+const { guardarRegistro } = require("../services/excel.service");
 const {
   estadoAsistencia,
   getDayAbbreviation,
-  convertTo12Hour, // Importar desde helpers
-  normalizarTexto, // Posiblemente no necesario aquí, pero por si acaso
+  convertTo12Hour,
+  normalizarTexto,
 } = require("../utils/helpers");
 const {
   sendMessage,
@@ -21,11 +21,12 @@ const whatsappConfigPath = path.join(
   "../../data/whatsappConfig.json"
 );
 
-// Función para leer config de WhatsApp (específica para esta ruta)
-// (Usamos la misma lógica de migración que en whatsapp.route.js para ser seguros)
+// Función para leer config de WhatsApp (con nuevos defaults)
 const readWhatsappConfig = () => {
   const defaultConfig = {
-    enabled: false,
+    enabledGeneral: false,
+    studentNotificationsEnabled: false,
+    teacherNotificationsEnabled: false,
     studentRules: [],
     teacherTargetType: "number",
     teacherTargetId: null,
@@ -35,11 +36,13 @@ const readWhatsappConfig = () => {
       const data = fs.readFileSync(whatsappConfigPath, "utf8");
       let config = JSON.parse(data);
 
-      if (config.teacherNumber !== undefined) {
-        config.teacherTargetType = "number";
-        config.teacherTargetId = config.teacherNumber;
-        delete config.teacherNumber;
+      // --- Lógica de Migración ---
+      if (config.enabled !== undefined) {
+        config.studentNotificationsEnabled = config.enabled;
+        delete config.enabled;
       }
+      // --- Fin Migración ---
+
       return { ...defaultConfig, ...config };
     }
     console.log(
@@ -55,7 +58,6 @@ const readWhatsappConfig = () => {
 };
 
 router.post("/", async (req, res) => {
-  // La ruta base "/" corresponde a /api/registrar
   const { codigo } = req.body;
   let usuarios = [];
   try {
@@ -103,22 +105,11 @@ router.post("/", async (req, res) => {
   console.log(
     `\nRegistrar Route: Procesando ${usuario.nombre} (${usuario.rol}) - Código: ${codigo}`
   );
-  console.log(
-    ` - Fecha: ${fechaStr}, Hora: ${horaStr} (${hora12h}), Día: ${diaAbbr}`
-  );
 
   const isScheduledToday =
     usuario.rol !== "estudiante" ||
     (usuario.dias_asistencia && usuario.dias_asistencia.includes(diaAbbr));
-  if (!isScheduledToday) {
-    console.log(
-      `Registrar Route: ${usuario.nombre} NO tiene clases programadas hoy (${diaAbbr}), pero se permite registrar.`
-    );
-  }
 
-  console.log(
-    `Registrar Route: Intentando guardar en Excel con hora ${horaStr}...`
-  );
   const guardado = await guardarRegistro(usuario, fechaStr, horaStr);
 
   if (!guardado) {
@@ -140,9 +131,15 @@ router.post("/", async (req, res) => {
   let mensajeWhatsapp = "";
   let destinatarioWhatsapp = null;
 
-  if (whatsappConfig.enabled && isWhatsappReady()) {
+  // 1. Chequeo General
+  if (whatsappConfig.enabledGeneral && isWhatsappReady()) {
     console.log("Registrar Route: Verificando reglas de WhatsApp...");
-    if (usuario.rol === "estudiante") {
+
+    // 2. Chequeo por Rol
+    if (
+      usuario.rol === "estudiante" &&
+      whatsappConfig.studentNotificationsEnabled
+    ) {
       const estado = estadoAsistencia(usuario.turno, horaStr);
       let estadoEmoji = "";
       if (estado === "puntual") estadoEmoji = "✅";
@@ -159,63 +156,34 @@ router.post("/", async (req, res) => {
       );
       if (regla) {
         destinatarioWhatsapp = regla.targetId;
-        console.log(
-          ` - Regla encontrada para Estudiante: Enviar a ${regla.targetType} ${destinatarioWhatsapp}`
-        );
-      } else {
-        console.log(
-          ` - No se encontró regla de WhatsApp para ${usuario.ciclo} - ${usuario.turno}.`
-        );
       }
-    } else if (usuario.rol === "docente") {
-      // --- LÓGICA DE DOCENTE MODIFICADA ---
+    } else if (
+      usuario.rol === "docente" &&
+      whatsappConfig.teacherNotificationsEnabled
+    ) {
       mensajeWhatsapp = `Docente *${usuario.nombre}*\nIngreso: *${hora12h}* 👨‍🏫`;
       const isTeacherScheduled =
         usuario.dias_asistencia && usuario.dias_asistencia.includes(diaAbbr);
       if (!isTeacherScheduled) {
         mensajeWhatsapp += `\n_(Registro fuera de día programado)_`;
-        console.log(
-          `Registrar Route: Docente ${usuario.nombre} registrando fuera de día programado (${diaAbbr}).`
-        );
       }
-
-      destinatarioWhatsapp = whatsappConfig.teacherTargetId; // <--- USAR NUEVA CLAVE
-      if (destinatarioWhatsapp) {
-        console.log(
-          ` - Regla encontrada para Docente: Enviar a ${whatsappConfig.teacherTargetType} ${destinatarioWhatsapp}` // <--- Log mejorado
-        );
-      } else {
-        console.log(
-          ` - No se configuró un destinatario para notificaciones de docentes.` // <--- Mensaje mejorado
-        );
-      }
-      // --- FIN LÓGICA DE DOCENTE ---
+      destinatarioWhatsapp = whatsappConfig.teacherTargetId;
     }
 
+    // 3. Enviar si hay destinatario
     if (destinatarioWhatsapp && mensajeWhatsapp) {
       whatsappEnviado = await sendMessage(
         destinatarioWhatsapp,
         mensajeWhatsapp
       );
-      if (!whatsappEnviado) {
-        console.warn(
-          "Registrar Route: No se pudo enviar el mensaje de WhatsApp (ver logs de WhatsappClient)."
-        );
-      }
-    } else {
-      console.log(
-        "Registrar Route: No hay destinatario o mensaje para enviar por WhatsApp."
-      );
     }
-  } else if (whatsappConfig.enabled && !isWhatsappReady()) {
+  } else if (whatsappConfig.enabledGeneral && !isWhatsappReady()) {
     console.warn(
       "Registrar Route: Notificación WhatsApp habilitada pero el cliente no está listo."
     );
-  } else {
-    console.log("Registrar Route: Notificaciones de WhatsApp deshabilitadas.");
   }
+  // --- Fin Lógica WhatsApp ---
 
-  // --- Respuesta al Cliente ---
   let estadoRespuesta = "";
   if (usuario.rol === "estudiante") {
     estadoRespuesta = estadoAsistencia(usuario.turno, horaStr);
@@ -235,7 +203,6 @@ router.post("/", async (req, res) => {
         ? `Registrado fuera de día programado (${diaAbbr}).`
         : null,
   };
-  console.log("Registrar Route: Respuesta enviada al frontend:", responseData);
   res.json(responseData);
 });
 

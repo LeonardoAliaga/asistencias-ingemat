@@ -16,9 +16,24 @@ select {
   width: 100%;
 }
 
+/* --- ETIQUETA SOLO LECTOR DE PANTALLA (para select sin label visible) --- */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+/* --- FIN --- */
+
 input[type="text"],
 input[type="time"],
 input[type="password"],
+input[type="date"], /* <-- AÑADIDO */
 select {
   flex-grow: 1;
   min-width: 200px;
@@ -31,6 +46,16 @@ select {
   transition: border-color 0.3s, box-shadow 0.3s;
 }
 
+/* --- ESTILO PARA SELECT CON FILTRO --- */
+#justificar-usuario-filtro {
+  margin-bottom: 5px; /* Espacio entre filtro y select */
+}
+#justificar-alumno {
+  height: auto; /* Quitar altura fija si se usa size */
+  padding: 8px; /* Ajustar padding para select con size */
+}
+/* --- FIN --- */
+
 input:focus,
 select:focus {
   border-color: var(--red2);
@@ -40,7 +65,10 @@ select:focus {
 
 #form-agregar input,
 #form-agregar select,
-#login-form input {
+#login-form input,
+#form-justificar-falta input, /* <-- AÑADIDO */
+#form-justificar-falta select {
+  /* <-- AÑADIDO */
   margin: 0 0 10px;
 }
 
@@ -72,18 +100,15 @@ button[type="submit"]:hover {
   transform: translateY(-2px);
 }
 .ciclo-item .btn-eliminar-ciclo {
-    display: none;
-    transition: 1s;
+  display: none;
+  transition: 1s;
 }
 .ciclo-item:hover .btn-eliminar-ciclo {
-    display: block;
+  display: block;
 }
-
-
 
 /* Estilo para el resumen de horarios */
 .schedule-summary {
-  /* Corregido: ya no hay margen negativo, el párrafo aparece entre los inputs */
   margin: 20px 0;
   font-size: 0.9rem;
   color: var(--blue2);
@@ -128,31 +153,31 @@ button[type="submit"]:hover {
 /* --- NUEVOS ESTILOS PARA SELECTOR DE HORA --- */
 .time-picker-group {
   flex-grow: 1;
-  min-width: 250px; /* Ancho mínimo para el grupo */
+  min-width: 250px;
   width: auto;
 }
 
 .time-picker-group label {
-  display: block; /* Etiqueta arriba */
+  display: block;
   margin-bottom: 5px;
   font-weight: bold;
   font-size: 0.9rem;
   color: var(--black);
-  width: 100%; /* Ocupa todo el ancho del grupo */
+  width: 100%;
 }
 
 .time-picker-inputs {
   display: flex;
-  gap: 8px; /* Espacio entre los selects */
+  gap: 8px;
   align-items: center;
 }
 
 .time-picker-inputs select {
-  flex-grow: 1; /* Elige el espacio */
-  width: auto; /* Ancho automático basado en el flex */
-  min-width: 50px; /* Ancho mínimo */
-  padding: 12px 8px; /* Ajuste de padding */
-  margin-bottom: 0; /* Quitar margen de <select> */
+  flex-grow: 1;
+  width: auto;
+  min-width: 50px;
+  padding: 12px 8px;
+  margin-bottom: 0;
 }
 
 /* Específico para el select de AM/PM */
@@ -171,3 +196,74 @@ button[type="submit"]:hover {
 #nombre {
   text-transform: uppercase;
 }
+
+/* --- NUEVOS ESTILOS: Componente Autocomplete --- */
+
+.autocomplete-container {
+  position: relative;
+  flex-wrap: wrap;
+  gap: 0;
+  width: 100%;
+  /* Margen que antes tenían los inputs */
+}
+
+/* El input de búsqueda principal */
+#justificar-usuario-filtro {
+  width: 100%;
+  margin-bottom: 0; /* Quitamos el margen inferior */
+}
+
+/* Contenedor de los resultados */
+.autocomplete-items {
+  position: absolute;
+  border: 1px solid var(--white2);
+  border-top: none;
+  z-index: 99;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: #ffffff;
+  border-radius: 0 0 5px 5px;
+  max-height: 220px;
+  overflow-y: auto;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* * LA REGLA QUE OCULTABA TODO (.autocomplete-items div { display: none; }) 
+ * HA SIDO ELIMINADA.
+ */
+
+/* Estilo de cada item en la lista */
+.autocomplete-item {
+  display: block; /* Aseguramos que se muestre */
+  padding: 10px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--white1);
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+.autocomplete-item:last-child {
+  border-bottom: none;
+}
+
+/* El resaltado personalizado (adiós azul) */
+.autocomplete-item:hover {
+  background-color: #f4f4f4; /* var(--white1) */
+}
+
+/* Resaltado para teclado */
+.autocomplete-item.autocomplete-active {
+  background-color: var(--red2);
+  color: var(--white1);
+}
+
+/* Estilo para el texto que coincide */
+.autocomplete-item strong {
+  color: var(--red);
+  font-weight: 900;
+}
+.autocomplete-item.autocomplete-active strong {
+  color: var(--white1);
+}
+
+/* --- Fin Estilos Autocomplete --- */

@@ -2,7 +2,6 @@
 
 /**
  * Convierte el contenido "CSV" plano de UNA HOJA en una tabla HTML.
- * (Esta función NO necesita cambios)
  */
 function csvToHtmlTable(csvText) {
   const rows = csvText.trim().split("\n");
@@ -40,6 +39,7 @@ function csvToHtmlTable(csvText) {
     }
     const cellNro = cleanedCells[0];
     if (!isNaN(parseInt(cellNro)) && cellNro.trim().length > 0) {
+      // El backend (excel.route.js) ahora envía "justificado" en cleanedCells[5]
       const statusClass = cleanedCells[5] ? `status-${cleanedCells[5]}` : "";
       html += '<tr class="table-data">';
       cleanedCells.slice(0, 5).forEach((cell, index) => {
@@ -54,15 +54,14 @@ function csvToHtmlTable(csvText) {
   return html;
 }
 
-// --- MODIFICADA PARA GENERAR PESTAÑAS ---
 /**
  * Muestra el modal con pestañas para cada hoja del archivo Excel.
  */
 async function mostrarPreview(archivo) {
   const modal = document.getElementById("preview-modal");
-  const previewContentArea = document.getElementById("preview-content"); // Área para los paneles
+  const previewContentArea = document.getElementById("preview-content");
   const previewFilename = document.getElementById("preview-filename");
-  const previewTabsContainer = document.getElementById("preview-tabs"); // Contenedor de pestañas
+  const previewTabsContainer = document.getElementById("preview-tabs");
 
   if (
     !modal ||
@@ -76,11 +75,10 @@ async function mostrarPreview(archivo) {
     return;
   }
 
-  // Limpiar contenido y pestañas anteriores
   previewFilename.textContent = archivo;
   previewTabsContainer.innerHTML = "";
-  previewContentArea.innerHTML = "<p><i>Cargando vista previa...</i></p>"; // Mensaje inicial en área de contenido
-  modal.style.display = "block"; // Mostrar modal
+  previewContentArea.innerHTML = "<p><i>Cargando vista previa...</i></p>";
+  modal.style.display = "block";
 
   try {
     const res = await fetch(`/api/excel/preview/${archivo}`);
@@ -90,11 +88,9 @@ async function mostrarPreview(archivo) {
     }
     const data = await res.json();
 
-    // Limpiar mensaje de carga ANTES de procesar datos
     previewContentArea.innerHTML = "";
 
     if (data.exito && data.sheets && data.sheets.length > 0) {
-      // Ordenar hojas (Mañana, Tarde, Docentes, otras)
       data.sheets.sort((a, b) => {
         const order = { Mañana: 1, Tarde: 2, Docentes: 3 };
         const orderA = order[a.name] || 99;
@@ -103,31 +99,25 @@ async function mostrarPreview(archivo) {
         return orderA - orderB;
       });
 
-      // Generar pestañas y paneles de contenido
       data.sheets.forEach((sheet, index) => {
-        // Crear Pestaña (Botón)
         const tabButton = document.createElement("button");
         tabButton.textContent = sheet.name;
         tabButton.classList.add("preview-tab");
-        tabButton.setAttribute("data-target", `sheet-content-${index}`); // ID del panel asociado
+        tabButton.setAttribute("data-target", `sheet-content-${index}`);
         previewTabsContainer.appendChild(tabButton);
 
-        // Crear Panel de Contenido (Div)
         const contentPanel = document.createElement("div");
         contentPanel.id = `sheet-content-${index}`;
         contentPanel.classList.add("preview-tab-content");
-        contentPanel.innerHTML = csvToHtmlTable(sheet.content); // Generar tabla HTML
+        contentPanel.innerHTML = csvToHtmlTable(sheet.content);
         previewContentArea.appendChild(contentPanel);
 
-        // Activar la primera pestaña y panel por defecto
         if (index === 0) {
           tabButton.classList.add("active");
           contentPanel.classList.add("active");
         }
 
-        // Añadir Event Listener a la pestaña
         tabButton.addEventListener("click", () => {
-          // Desactivar todas las pestañas y paneles
           previewTabsContainer
             .querySelectorAll(".preview-tab")
             .forEach((tab) => tab.classList.remove("active"));
@@ -135,11 +125,10 @@ async function mostrarPreview(archivo) {
             .querySelectorAll(".preview-tab-content")
             .forEach((panel) => panel.classList.remove("active"));
 
-          // Activar la pestaña clickeada y su panel correspondiente
           tabButton.classList.add("active");
           contentPanel.classList.add("active");
         });
-      }); // Fin forEach sheet
+      });
     } else if (data.exito && (!data.sheets || data.sheets.length === 0)) {
       previewContentArea.innerHTML =
         '<p style="color:orange;">El archivo existe pero no contiene hojas válidas.</p>';
@@ -150,15 +139,12 @@ async function mostrarPreview(archivo) {
     }
   } catch (error) {
     console.error("Error al obtener o procesar vista previa:", error);
-    // Asegurarse de limpiar el mensaje de carga en caso de error
     if (previewContentArea.innerHTML.includes("Cargando")) {
       previewContentArea.innerHTML = "";
     }
-    previewContentArea.innerHTML += `<p style="color:red;">Error al procesar el archivo: ${error.message}</p>`; // Añadir mensaje de error
+    previewContentArea.innerHTML += `<p style="color:red;">Error al procesar el archivo: ${error.message}</p>`;
   }
 }
-
-// --- cargarArchivosExcel, cargarCiclos, initModalEvents, initCicloFormEvents NO necesitan cambios ---
 
 export async function cargarArchivosExcel() {
   const excelDiv = document.getElementById("archivos-excel");
@@ -294,7 +280,6 @@ export function initModalEvents() {
   if (closeBtn && modal) {
     closeBtn.onclick = function () {
       modal.style.display = "none";
-      // Limpiar contenido Y pestañas al cerrar
       if (previewContent) previewContent.innerHTML = "";
       if (previewTabs) previewTabs.innerHTML = "";
     };

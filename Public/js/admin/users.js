@@ -2,6 +2,9 @@
 
 import { initAccordion } from "./accordion.js";
 
+let allUserOptions = []; // Caché de usuarios para justificar
+let currentAutocompleteFocus = -1; // Para navegación por teclado
+
 /**
  * Crea la estructura HTML para los elementos de lista de usuarios.
  */
@@ -14,10 +17,8 @@ function crearListaUsuarios(usuarios, esDocente = false) {
         : "";
 
       if (u.rol === "estudiante") {
-        // 🚀 ESTUDIANTE: Muestra Turno y Días
         infoAdicional = ` (${u.turno}) (${diasAsistencia})`;
       } else if (u.rol === "docente") {
-        // 🚀 DOCENTE: Muestra solo Días
         infoAdicional = ` (${diasAsistencia})`;
       }
 
@@ -56,14 +57,161 @@ function agregarEventosEliminar() {
   });
 }
 
+// --- INICIO LÓGICA DE AUTOCOMPLETADO ---
+
 /**
- * Carga y renderiza la lista de usuarios, agrupada por ciclo en acordeones.
+ * Cierra todas las listas de autocompletado activas.
+ */
+function closeAllAutocompleteLists(elmnt) {
+  const items = document.getElementById("justificar-resultados");
+  if (items) {
+    items.innerHTML = ""; // Limpiamos los items
+  }
+  currentAutocompleteFocus = -1;
+}
+
+/**
+ * Añade la clase 'activa' para navegación por teclado.
+ */
+function addAutocompleteActive(items) {
+  if (!items) return false;
+  removeAutocompleteActive(items);
+  if (currentAutocompleteFocus >= items.length) currentAutocompleteFocus = 0;
+  if (currentAutocompleteFocus < 0) currentAutocompleteFocus = items.length - 1;
+
+  const activeItem = items[currentAutocompleteFocus];
+  if (activeItem) {
+    activeItem.classList.add("autocomplete-active");
+    activeItem.scrollIntoView({ block: "nearest" });
+  }
+}
+
+/**
+ * Remueve la clase 'activa' de los items.
+ */
+function removeAutocompleteActive(items) {
+  for (let i = 0; i < items.length; i++) {
+    items[i].classList.remove("autocomplete-active");
+  }
+}
+
+/**
+ * Inicializa los listeners para el nuevo autocompletado.
+ */
+function initAutocomplete() {
+  const input = document.getElementById("justificar-usuario-filtro");
+  const hiddenInput = document.getElementById("justificar-alumno-hidden");
+  const resultsContainer = document.getElementById("justificar-resultados");
+
+  if (!input || !hiddenInput || !resultsContainer) {
+    console.error(
+      "Faltan elementos del autocompletado (input, hidden, o results)."
+    );
+    return;
+  }
+
+  // Listener para cuando el usuario escribe
+  input.addEventListener("input", function (e) {
+    const val = this.value;
+    closeAllAutocompleteLists();
+    if (!val || val.length < 2) {
+      hiddenInput.value = ""; // Limpiamos el valor si no hay texto
+      return false;
+    }
+
+    const valNorm = val
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, ""); // Rango correcto para acentos
+
+    allUserOptions.forEach((user) => {
+      const userNameNorm = user.nombre
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, ""); // Rango correcto para acentos
+
+      const index = userNameNorm.indexOf(valNorm);
+
+      if (index !== -1) {
+        const itemDiv = document.createElement("div");
+        itemDiv.classList.add("autocomplete-item");
+
+        // Resaltar la coincidencia
+        itemDiv.innerHTML =
+          user.nombre.substring(0, index) +
+          "<strong>" +
+          user.nombre.substring(index, index + val.length) +
+          "</strong>" +
+          user.nombre.substring(index + val.length) +
+          ` <small>(${user.rol})</small>`;
+
+        // Guardar los datos en el div
+        itemDiv.dataset.codigo = user.codigo;
+        itemDiv.dataset.nombre = user.nombre;
+
+        // Listener de clic para el item
+        itemDiv.addEventListener("click", function (e) {
+          input.value = this.dataset.nombre;
+          hiddenInput.value = this.dataset.codigo;
+          closeAllAutocompleteLists();
+        });
+        resultsContainer.appendChild(itemDiv);
+      }
+    });
+  });
+
+  // Listener para navegación por teclado
+  input.addEventListener("keydown", function (e) {
+    let items = resultsContainer.getElementsByClassName("autocomplete-item");
+    if (e.keyCode == 40) {
+      // Flecha Abajo
+      currentAutocompleteFocus++;
+      addAutocompleteActive(items);
+      e.preventDefault();
+    } else if (e.keyCode == 38) {
+      // Flecha Arriba
+      currentAutocompleteFocus--;
+      addAutocompleteActive(items);
+      e.preventDefault();
+    } else if (e.keyCode == 13) {
+      // Enter
+      e.preventDefault();
+      if (currentAutocompleteFocus > -1 && items[currentAutocompleteFocus]) {
+        items[currentAutocompleteFocus].click();
+      }
+    } else if (e.keyCode == 27) {
+      // Escape
+      closeAllAutocompleteLists();
+      input.value = "";
+      hiddenInput.value = "";
+    }
+  });
+
+  // Cerrar la lista al hacer clic fuera
+  document.addEventListener("click", function (e) {
+    if (e.target !== input) {
+      closeAllAutocompleteLists(e.target);
+    }
+  });
+}
+
+// --- FIN LÓGICA DE AUTOCOMPLETADO ---
+
+/**
+ * Carga y renderiza la lista de usuarios.
  */
 export async function cargarUsuarios(forceReload = false) {
+  // --- Referencias a elementos del DOM ---
   const resUsuarios = await fetch("/api/usuarios");
   const usuarios = await resUsuarios.json();
 
-  // 🚀 NUEVO: Obtener la lista dinámica de ciclos
+  // --- LÓGICA DE FILTRO (NUEVA) ---
+  // Guardar todos los usuarios ordenados en el caché
+  allUserOptions = usuarios.sort((a, b) =>
+    a.nombre.localeCompare(b.nombre, "es")
+  );
+  // --- FIN LÓGICA DE FILTRO ---
+
   const resCiclos = await fetch("/api/ciclos");
   const ciclosData = await resCiclos.json();
   const ciclosOrdenados = ciclosData.ciclos;
@@ -79,36 +227,50 @@ export async function cargarUsuarios(forceReload = false) {
     }
   });
 
-  // --- Vista Estudiantes (Acordeón) ---
-  const alumnosCompletaDiv = document.getElementById("vista-alumnos");
-  if (alumnosCompletaDiv) {
-    alumnosCompletaDiv.innerHTML = "";
+  // --- Vista Usuarios (Acordeón) ---
+  const usuariosCompletaDiv = document.getElementById("vista-usuarios-list");
+  if (usuariosCompletaDiv && (forceReload || !usuariosCompletaDiv.innerHTML)) {
+    usuariosCompletaDiv.innerHTML = "";
 
-    // Itera usando la lista ordenada y completa de ciclos
+    // --- NUEVO: Renderizar Docentes Primero ---
+    docentes.sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+    if (docentes.length > 0) {
+      usuariosCompletaDiv.innerHTML += `
+        <div class="accordion-item">
+          <button class="accordion-header active" data-target="ciclo-docentes">
+            <h3>DOCENTES (${docentes.length} Usuarios)</h3>
+            <i class="bi bi-chevron-down"></i>
+          </button>
+          <div id="ciclo-docentes" class="accordion-content show">
+            <ul>${crearListaUsuarios(docentes, true)}</ul>
+          </div>
+        </div>
+      `;
+    }
+
     ciclosOrdenados.forEach((ciclo, index) => {
       const grupo = ciclos[ciclo] || [];
       const count = grupo.length;
 
       if (count === 0) return;
 
-      // Ordenación: Turno y luego Alfabético
       grupo.sort((a, b) => {
         if (a.turno === "mañana" && b.turno === "tarde") return -1;
         if (a.turno === "tarde" && b.turno === "mañana") return 1;
         return a.nombre.localeCompare(b.nombre, "es");
       });
 
-      const isActive = index === 0 ? "active" : "";
+      // Solo activa el primero si NO hay docentes
+      const isActive = index === 0 && docentes.length === 0 ? "active" : "";
+      const show = index === 0 && docentes.length === 0 ? "show" : "";
 
-      alumnosCompletaDiv.innerHTML += `
+      usuariosCompletaDiv.innerHTML += `
           <div class="accordion-item">
             <button class="accordion-header ${isActive}" data-target="ciclo-${ciclo}">
               <h3>CICLO ${ciclo.toUpperCase()} (${count} Alumnos)</h3>
               <i class="bi bi-chevron-down"></i>
             </button>
-            <div id="ciclo-${ciclo}" class="accordion-content ${
-        isActive ? "show" : ""
-      }">
+            <div id="ciclo-${ciclo}" class="accordion-content ${show}">
               <ul>${crearListaUsuarios(grupo)}</ul>
             </div>
           </div>
@@ -118,12 +280,7 @@ export async function cargarUsuarios(forceReload = false) {
     initAccordion();
   }
 
-  // --- Vista Docentes (Dashboard) ---
-  docentes.sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
-  const docentesDiv = document.getElementById("vista-docentes");
-  if (docentesDiv) {
-    docentesDiv.innerHTML = `<ul>${crearListaUsuarios(docentes, true)}</ul>`;
-  }
+  // --- (Vista Docentes (Dashboard) ELIMINADA) ---
 
   agregarEventosEliminar();
 }
@@ -140,42 +297,30 @@ function getSelectedDays() {
 }
 
 // --- *** HELPERS PARA EL SELECTOR DE HORA *** ---
-
-/**
- * Rellena los selects de hora (01-12) y minutos (00-59).
- */
 function populateTimeSelects(hrSelect, minSelect) {
-  // Horas (01-12)
   for (let i = 1; i <= 12; i++) {
     const val = i.toString().padStart(2, "0");
     hrSelect.options.add(new Option(val, val));
   }
-  // Minutos (00-59)
   for (let i = 0; i < 60; i++) {
     const val = i.toString().padStart(2, "0");
     minSelect.options.add(new Option(val, val));
   }
 }
 
-/**
- * Establece los 3 selects (hr, min, ampm) a partir de una hora 24h (ej: "15:30").
- */
 function setPickerFrom24h(time24h, hrSelect, minSelect, ampmSelect) {
   if (!time24h || !hrSelect || !minSelect || !ampmSelect) return;
 
   const [hours, minutes] = time24h.split(":").map(Number);
   const ampm = hours >= 12 ? "PM" : "AM";
   let hr12 = hours % 12;
-  if (hr12 === 0) hr12 = 12; // 0h (medianoche) y 12h (mediodía) son "12"
+  if (hr12 === 0) hr12 = 12;
 
   hrSelect.value = hr12.toString().padStart(2, "0");
   minSelect.value = minutes.toString().padStart(2, "0");
   ampmSelect.value = ampm;
 }
 
-/**
- * Convierte una hora 24h (ej: "15:00") a un string 12h (ej: "03:00 PM").
- */
 function convert24hTo12h(time24h) {
   if (!time24h) return "";
   try {
@@ -192,14 +337,10 @@ function convert24hTo12h(time24h) {
   }
 }
 
-/**
- * Carga y muestra los horarios de entrada y tolerancia.
- */
 export async function cargarHorarios() {
   const res = await fetch("/api/horarios");
   const horarios = await res.json();
 
-  // Referencias a los selects de hora
   const em_hr = document.getElementById("entrada-manana-hr");
   const em_min = document.getElementById("entrada-manana-min");
   const em_ampm = document.getElementById("entrada-manana-ampm");
@@ -215,7 +356,6 @@ export async function cargarHorarios() {
 
   const summaryManana = document.getElementById("summary-manana");
 
-  // Rellenar los selects (si están presentes y vacíos)
   if (em_hr && em_hr.options.length === 0) {
     console.log("Rellenando selectores de hora por primera vez.");
     populateTimeSelects(em_hr, em_min);
@@ -224,7 +364,6 @@ export async function cargarHorarios() {
     populateTimeSelects(tt_hr, tt_min);
   }
 
-  // Establecer los valores de los selects desde la API
   if (em_hr) {
     setPickerFrom24h(horarios.mañana.entrada, em_hr, em_min, em_ampm);
     setPickerFrom24h(horarios.mañana.tolerancia, tm_hr, tm_min, tm_ampm);
@@ -232,7 +371,6 @@ export async function cargarHorarios() {
     setPickerFrom24h(horarios.tarde.tolerancia, tt_hr, tt_min, tt_ampm);
   }
 
-  // Actualizar el resumen de texto (ahora en formato 12h)
   if (summaryManana) {
     const h12_em = convert24hTo12h(horarios.mañana.entrada);
     const h12_tm = convert24hTo12h(horarios.mañana.tolerancia);
@@ -248,10 +386,6 @@ export async function cargarHorarios() {
   }
 }
 
-/**
- * Inicializa los eventos del formulario de agregar usuario y los botones de días.
- * (MODIFICADO)
- */
 export function initUserFormEvents() {
   // 1. Botones de Día
   document.querySelectorAll(".day-btn").forEach((button) => {
@@ -289,14 +423,14 @@ export function initUserFormEvents() {
   // 3. Formulario Agregar Submit
   // (Este listener se movió a admin.js para centralizar)
 
-  // --- *** NUEVO CÓDIGO AÑADIDO *** ---
   // 4. Forzar mayúsculas en el input de nombre
   const nombreInput = document.getElementById("nombre");
   if (nombreInput) {
     nombreInput.addEventListener("input", function () {
-      // 'this' se refiere al elemento input
       this.value = this.value.toUpperCase();
     });
   }
-  // --- *** FIN DE CÓDIGO AÑADIDO *** ---
+
+  // 5. Inicializar el autocompletado
+  initAutocomplete();
 }

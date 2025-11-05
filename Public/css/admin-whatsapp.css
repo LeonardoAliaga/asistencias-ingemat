@@ -2,17 +2,27 @@
 
 #vista-whatsapp h2,
 #vista-whatsapp h3,
-#vista-whatsapp h4 {
-  text-align: left; /* Alineación estándar para títulos de sección */
+#vista-whatsapp h4,
+#vista-whatsapp h5 {
+  /* Añadido h5 */
+  text-align: left;
+  letter-spacing: 1px;
   margin-top: 1.5rem;
   margin-bottom: 0.8rem;
   padding-bottom: 5px;
   border-bottom: 1px solid var(--white2);
 }
 #vista-whatsapp h2 {
-  text-align: center; /* Título principal centrado */
+  text-align: center;
   border-bottom: none;
   margin-bottom: 1.5rem;
+}
+#vista-whatsapp h4 {
+  font-size: 1.2rem; /* Tamaño para sub-secciones */
+}
+#vista-whatsapp h5 {
+  font-size: 1rem; /* Tamaño para formularios de agregar */
+  color: var(--blue2);
 }
 
 .whatsapp-status-section {
@@ -38,7 +48,7 @@
   margin: 0;
   font-size: 0.9rem;
   color: #555;
-  flex-grow: 1; /* Ocupa espacio disponible */
+  flex-grow: 1;
 }
 
 #whatsapp-status-indicator {
@@ -79,18 +89,35 @@
   cursor: not-allowed;
 }
 
-/* Toggle Switch */
+/* --- ESTILOS DE TOGGLES (PETICIÓN 1) --- */
 .toggle-switch-container {
   display: flex;
   align-items: center;
   gap: 10px;
   margin-bottom: 15px;
 }
+/* Estilo para el Master Toggle */
+.toggle-switch-container.master-toggle {
+  padding-bottom: 15px;
+}
+.toggle-switch-container.master-toggle span {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: var(--black);
+}
+/* Línea divisoria */
+hr.divider {
+  border: none;
+  border-top: 1px solid var(--white2);
+  margin: 0 0 15px 0;
+}
+
 .switch {
   position: relative;
   display: inline-block;
   width: 60px;
   height: 34px;
+  flex-shrink: 0; /* Evita que se encoja */
 }
 .switch input {
   opacity: 0;
@@ -118,7 +145,7 @@
   transition: 0.4s;
 }
 input:checked + .slider {
-  background-color: var(--color-exito); /* Verde cuando está activo */
+  background-color: var(--color-exito);
 }
 input:checked + .slider:before {
   transform: translateX(26px);
@@ -130,11 +157,15 @@ input:checked + .slider:before {
   border-radius: 50%;
 }
 
-#whatsapp-enabled-label {
+#whatsapp-enabled-label,
+#student-notifications-label,
+#teacher-notifications-label,
+#report-enabled-label,
+#whatsapp-enabled-general-label {
   font-weight: bold;
 }
+/* --- FIN ESTILOS DE TOGGLES --- */
 
-/* Secciones de Configuración */
 .whatsapp-config-section {
   background-color: var(--white1);
   padding: 20px;
@@ -143,224 +174,51 @@ input:checked + .slider:before {
   border: 1px solid var(--white2);
 }
 
-/* Grid para formularios dentro de WhatsApp */
 .form-grid-whatsapp {
   display: grid;
-  grid-template-columns: repeat(
-    auto-fit,
-    minmax(200px, 1fr)
-  ); /* Columnas responsivas */
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 15px;
   margin-bottom: 15px;
-  align-items: end; /* Alinear elementos al final para labels arriba */
+  align-items: end;
 }
 .form-grid-whatsapp label {
-  display: block; /* Asegura que label esté sobre el input/select */
+  display: block;
   margin-bottom: 5px;
   font-weight: bold;
   font-size: 0.9rem;
 }
-/* Grid simple para docente */
 .form-grid-whatsapp.simple {
-  grid-template-columns: 1fr; /* Una sola columna */
+  grid-template-columns: 1fr;
 }
 
-/* Campos específicos grupo/número */
-/* #rule-group-field, */
-/* #rule-number-field { */
-/* Estilos para agrupar label y control */
-/* } */
-
-#rule-group-search {
-  margin-top: 5px; /* Espacio entre select y search */
-}
-
-/* Lista de Reglas */
-#student-rules-list {
-  margin-bottom: 20px;
-  max-height: 300px; /* Altura máxima con scroll si hay muchas reglas */
-  overflow-y: auto;
-  border: 1px solid var(--white2);
-  padding: 10px;
-  border-radius: 5px;
-  background-color: #fff; /* Fondo blanco para la lista */
-}
-#student-rules-list p {
-  color: #666;
-  font-style: italic;
-}
-.rules-ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-.rules-ul li {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 10px;
-  border-bottom: 1px dashed var(--white2);
-  background-color: transparent; /* Heredar fondo */
-  box-shadow: none; /* Sin sombra interna */
-  border-left: none; /* Sin borde izquierdo */
-  margin-bottom: 0; /* Sin margen inferior */
-  border-radius: 0; /* Sin bordes redondeados */
-}
-.rules-ul li:last-child {
-  border-bottom: none;
-}
-.rules-ul li span {
-  flex-grow: 1;
-  margin-right: 10px;
-  font-size: 0.95rem;
-}
-.btn-delete-rule {
-  background: none;
-  border: none;
-  color: var(--red);
-  cursor: pointer;
-  font-size: 1.2rem;
-  padding: 0 5px;
-}
-.btn-delete-rule:hover {
-  color: var(--red2);
-}
-
-/* Botones y Mensajes */
-.add-rule-form h4 {
-  margin-top: 1.5rem;
-  margin-bottom: 1rem;
-  padding-bottom: 5px;
-  border-bottom: 1px solid var(--white2);
-  font-size: 1.1rem;
-}
-#btn-add-student-rule,
+/* --- Botones y Mensajes --- */
 #btn-save-whatsapp-config {
-  /* Reutiliza estilos de botón existentes si es posible */
-  /* Ejemplo: */
   font-family: var(--font-body);
   text-transform: uppercase;
   letter-spacing: 1px;
-  background-color: var(--blue2); /* Azul para acciones principales */
+  background-color: var(--color-exito);
   color: var(--white1);
   border: none;
   cursor: pointer;
   padding: 10px 20px;
   margin-top: 10px;
   border-radius: 5px;
-  display: inline-block; /* Para que no ocupe todo el ancho */
+  display: inline-block;
   transition: background-color 0.3s, transform 0.2s;
 }
-#btn-add-student-rule i,
 #btn-save-whatsapp-config i {
   margin-right: 5px;
 }
-
-#btn-add-student-rule:hover,
 #btn-save-whatsapp-config:hover {
-  background-color: var(--blue1); /* Azul más oscuro al pasar el ratón */
+  background-color: #218838;
   transform: translateY(-1px);
-}
-#btn-save-whatsapp-config {
-  background-color: var(--color-exito); /* Verde para guardar */
-}
-#btn-save-whatsapp-config:hover {
-  background-color: #218838; /* Verde más oscuro */
 }
 
 .whatsapp-save-section {
-  text-align: center; /* Centrar botón de guardar */
+  text-align: center;
   margin-top: 30px;
 }
 
-/* Mensajes de feedback para formularios */
-.form-message {
-  display: none; /* Oculto por defecto */
-  margin-top: 10px;
-  padding: 8px 12px;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  text-align: center;
-}
-.form-message.success {
-  background-color: #d4edda;
-  color: #155724;
-  border: 1px solid #c3e6cb;
-}
-.form-message.error {
-  background-color: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
-}
-
-/* Ajustes responsivos si son necesarios */
-@media (max-width: 768px) {
-  .form-grid-whatsapp {
-    grid-template-columns: 1fr; /* Una columna en móviles */
-  }
-}
-
-/* Notificación Sticky Cambios sin Guardar */
-.unsaved-alert {
-  display: none; /* Oculto por defecto */
-  background-color: #fff3cd; /* Amarillo alerta suave */
-  color: #856404;
-  padding: 10px 15px;
-  border: 1px solid #ffeeba;
-  border-radius: 5px;
-  margin-bottom: 20px; /* Espacio antes del siguiente elemento */
-  text-align: center;
-  font-weight: bold;
-  font-size: 0.95rem;
-  position: sticky; /* Fijo en la parte superior */
-  top: 65px; /* Ajusta según la altura de tu navbar + un pequeño margen */
-  z-index: 1050; /* Por encima de otros elementos pero debajo de modales */
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  display: flex; /* Para alinear el botón */
-  justify-content: space-between; /* Espacio entre texto y botón */
-  align-items: center;
-}
-
-.unsaved-alert i {
-  /* Icono de advertencia */
-  margin-right: 8px;
-  color: #cea100; /* Amarillo más oscuro */
-}
-
-#btn-jump-to-save {
-  background: none;
-  border: none;
-  color: var(--blue2); /* Color de enlace */
-  font-size: 1.3rem; /* Tamaño del icono */
-  cursor: pointer;
-  padding: 0 5px;
-  line-height: 1; /* Alinear verticalmente */
-}
-#btn-jump-to-save:hover {
-  color: var(--blue1);
-}
-
-/* --- ESTILOS EXISTENTES --- */
-
-#vista-whatsapp h2,
-#vista-whatsapp h3,
-#vista-whatsapp h4 {
-  text-align: left;
-  letter-spacing: 1px;
-  margin-top: 1.5rem;
-  margin-bottom: 0.8rem;
-  padding-bottom: 5px;
-  border-bottom: 1px solid var(--white2);
-}
-#vista-whatsapp h2 {
-  text-align: center;
-  border-bottom: none;
-  margin-bottom: 1.5rem;
-}
-
-/* ... (resto de estilos existentes sin cambios) ... */
-
-/* Mensajes de feedback para formularios */
 .form-message {
   display: none;
   margin-top: 10px;
@@ -380,13 +238,48 @@ input:checked + .slider:before {
   border: 1px solid #f5c6cb;
 }
 
-/* Ajustes responsivos si son necesarios */
+/* Notificación Sticky Cambios sin Guardar */
+.unsaved-alert {
+  background-color: #fff3cd;
+  color: #856404;
+  padding: 10px 15px;
+  border: 1px solid #ffeeba;
+  border-radius: 5px;
+  margin-bottom: 20px;
+  text-align: center;
+  font-weight: bold;
+  font-size: 0.95rem;
+  position: sticky;
+  top: 65px;
+  z-index: 1050;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.unsaved-alert i {
+  margin-right: 8px;
+  color: #cea100;
+}
+#btn-jump-to-save {
+  background: none;
+  border: none;
+  color: var(--blue2);
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 0 5px;
+  line-height: 1;
+}
+#btn-jump-to-save:hover {
+  color: var(--blue1);
+}
+
 @media (max-width: 768px) {
   .form-grid-whatsapp {
     grid-template-columns: 1fr;
   }
   .unsaved-alert {
-    top: 55px; /* Ajustar posición si la navbar cambia en móvil */
+    top: 55px;
     font-size: 0.85rem;
   }
   #btn-jump-to-save {

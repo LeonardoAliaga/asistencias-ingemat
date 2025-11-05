@@ -3,8 +3,17 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const ExcelJS = require("exceljs");
-// Importar helpers necesarios (si se usan, aunque en preview no tanto)
-// const { convertTo12Hour, normalizarTexto, aplicarEstiloCelda } = require("../utils/helpers.js");
+// --- IMPORTACIONES CORREGIDAS ---
+const { normalizarTexto } = require("../utils/helpers.js");
+const {
+  estiloJustificado,
+  estilosEstadoEstudiante, // Importar para el map de preview
+  estiloFalta,
+  estiloNoAsiste,
+  estiloDocenteRegistrado,
+} = require("../services/excel/excel.constants.js");
+const usuariosPath = path.join(__dirname, "../../data/usuarios.json");
+// --- FIN IMPORTACIONES ---
 
 const router = express.Router();
 const registrosPath = path.join(__dirname, "../../Registros");
@@ -28,9 +37,8 @@ router.get("/", (req, res) => {
     const archivos = fs
       .readdirSync(registrosPath)
       .filter((f) => f.endsWith(".xlsx") && !f.startsWith("~"));
-    // Ordenar para mostrar los más recientes primero si el nombre incluye fecha
+    // Ordenar para mostrar los más recientes primero
     archivos.sort((a, b) => {
-      // Extraer fechas si es posible (formato DD-MM-YYYY)
       const dateA = a.split(" ")[0].split("-").reverse().join("");
       const dateB = b.split(" ")[0].split("-").reverse().join("");
       return dateB.localeCompare(dateA); // Orden descendente
@@ -74,10 +82,9 @@ router.get("/:archivo", (req, res) => {
   });
 });
 
-// --- RUTA PREVIEW MODIFICADA PARA MÚLTIPLES HOJAS ---
+// --- RUTA PREVIEW MODIFICADA PARA MÚLTIPLES HOJAS Y JUSTIFICADO ---
 router.get("/preview/:archivo", async (req, res) => {
   const archivo = req.params.archivo;
-  // Validación de nombre de archivo (sin cambios)
   if (
     archivo.includes("..") ||
     archivo.includes("/") ||
@@ -98,38 +105,38 @@ router.get("/preview/:archivo", async (req, res) => {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.readFile(ruta);
 
-    const sheetsData = []; // Array para guardar los datos de cada hoja
+    const sheetsData = [];
 
-    // Iterar sobre cada hoja del workbook
+    // --- MAPA DE COLORES ACTUALIZADO ---
+    const colorMap = {
+      [estilosEstadoEstudiante.puntual.fill.fgColor.argb.substring(2)]:
+        "puntual",
+      [estilosEstadoEstudiante.tolerancia.fill.fgColor.argb.substring(2)]:
+        "tolerancia",
+      [estilosEstadoEstudiante.tarde.fill.fgColor.argb.substring(2)]: "tarde",
+      [estiloFalta.fill.fgColor.argb.substring(2)]: "falta",
+      [estiloNoAsiste.fill.fgColor.argb.substring(2)]: "no_asiste",
+      [estiloDocenteRegistrado.fill.fgColor.argb.substring(2)]: "docente",
+      [estiloJustificado.fill.fgColor.argb.substring(2)]: "justificado",
+    };
+    // --- FIN ACTUALIZACIÓN ---
+
     workbook.eachSheet((worksheet, sheetId) => {
       console.log(` - Procesando hoja: ${worksheet.name}`);
       let csvContent = "";
-      // Mapeo de colores ARGB (usados en excel.service.js) a estados CSS
-      const colorMap = {
-        FFC6EFCE: "puntual", // Verde (Puntual estudiante)
-        FFFFE699: "tolerancia", // Naranja (Tolerancia estudiante)
-        FFFFC7CE: "tarde", // Rojo (Tarde estudiante)
-        FFD9D9D9: "falta", // Gris claro (Falta)
-        FFC0C0C0: "no_asiste", // Gris oscuro (No Asiste)
-        FFBDD7EE: "docente", // Azul claro (Docente registrado)
-        // Puedes añadir más si tienes otros colores/estados
-      };
 
-      // Procesar cada fila de la hoja actual
       worksheet.eachRow({ includeEmpty: true }, (row, rowNumber) => {
         let rowValues = [];
         let rowHasContent = false;
         let isTitleRow = false;
         let isHeaderRow = false;
-        let attendanceStatus = ""; // Variable para guardar el estado detectado
+        let attendanceStatus = "";
 
-        // Procesar las 5 columnas existentes (N°, Nombre, Turno, Días, Hora)
         for (let colNumber = 1; colNumber <= 5; colNumber++) {
           const cell = row.getCell(colNumber);
           let value = cell.value;
           let finalValue = "";
 
-          // Detección Título/Encabezado
           if (
             colNumber === 1 &&
             cell.isMerged &&
@@ -140,7 +147,7 @@ router.get("/preview/:archivo", async (req, res) => {
             rowHasContent = true;
             isTitleRow = true;
             rowValues.push(`"${finalValue.replace(/"/g, '""')}"`);
-            break; // Salir del loop de columnas para fila de título
+            break;
           }
           if (
             colNumber === 1 &&
@@ -150,13 +157,10 @@ router.get("/preview/:archivo", async (req, res) => {
             isHeaderRow = true;
           }
 
-          // Procesamiento de valor (RichText, Date, Formula, String)
           if (value !== null && value !== undefined) {
             if (typeof value === "object" && value && value.richText) {
               finalValue = value.richText.map((rt) => rt.text).join("");
             } else if (value instanceof Date) {
-              // Formatear fechas correctamente
-              // Si es la columna de hora (5), formatear como hora 12h
               if (colNumber === 5) {
                 finalValue = value
                   .toLocaleTimeString("es-PE", {
@@ -167,18 +171,15 @@ router.get("/preview/:archivo", async (req, res) => {
                   .replace(/\s/g, "")
                   .toUpperCase();
               } else {
-                // Otras columnas (si hubiera fechas)
-                finalValue = value.toLocaleDateString("es-PE"); // Formato DD/MM/YYYY
+                finalValue = value.toLocaleDateString("es-PE");
               }
             } else if (
               typeof value === "object" &&
               value &&
               value.result !== undefined
             ) {
-              // Formulas
               let resultValue = value.result;
               if (resultValue instanceof Date && colNumber === 5) {
-                // Resultado de formula es fecha/hora
                 finalValue = resultValue
                   .toLocaleTimeString("es-PE", {
                     hour: "2-digit",
@@ -188,97 +189,195 @@ router.get("/preview/:archivo", async (req, res) => {
                   .replace(/\s/g, "")
                   .toUpperCase();
               } else {
-                // Otro resultado de formula
                 finalValue = String(resultValue);
               }
             } else {
-              // Strings, Numbers, etc.
               finalValue = String(value);
             }
 
-            // NO necesitamos convertir a 12H aquí, el valor del Excel ya debería estarlo
             finalValue = finalValue.trim();
             if (finalValue.length > 0) rowHasContent = true;
 
-            // --- DETECTAR ESTADO POR COLOR (Columna 5) ---
+            // --- DETECTAR ESTADO (CORREGIDO) ---
             if (!isTitleRow && !isHeaderRow && colNumber === 5) {
-              const fillColor = cell.fill;
-              if (
-                fillColor &&
-                fillColor.type === "pattern" &&
-                fillColor.pattern === "solid" &&
-                fillColor.fgColor &&
-                fillColor.fgColor.argb
-              ) {
-                const bgColor = fillColor.fgColor.argb
-                  .toUpperCase()
-                  .substring(2); // Quitar FF inicial
-                const mappedStatus = Object.keys(colorMap).find(
-                  (key) => key.substring(2) === bgColor
-                );
-                if (mappedStatus) {
-                  attendanceStatus = colorMap[mappedStatus];
-                } else if (
-                  finalValue &&
-                  !["FALTA", "NO ASISTE", ""].includes(finalValue.toUpperCase())
-                ) {
-                  // Si es una hora pero no tiene color conocido, default a 'registrado'
-                  attendanceStatus = "registrado";
-                }
-              } else if (finalValue.toUpperCase() === "FALTA") {
-                attendanceStatus = "falta";
-              } else if (finalValue.toUpperCase() === "NO ASISTE") {
-                attendanceStatus = "no_asiste";
-              } else if (
-                finalValue &&
-                !["FALTA", "NO ASISTE", ""].includes(finalValue.toUpperCase())
-              ) {
-                attendanceStatus = "registrado"; // Estado genérico por defecto para horas sin estilo
-              }
-            } // --- FIN DETECTAR ESTADO ---
-          } // Fin if value !== null/undefined
+              const upperVal = finalValue.toUpperCase();
 
-          // Escapar y añadir a rowValues
+              // 1. Priorizar el TEXTO para estados literales
+              if (upperVal === "FALTA") {
+                attendanceStatus = "falta";
+              } else if (upperVal === "NO ASISTE") {
+                attendanceStatus = "no_asiste";
+              } else if (upperVal === "JUSTIFICADO") {
+                attendanceStatus = "justificado";
+              } else if (finalValue) {
+                // 2. Si es un valor (hora), usar el COLOR para el estado
+                const fillColor = cell.fill;
+                if (
+                  fillColor &&
+                  fillColor.type === "pattern" &&
+                  fillColor.pattern === "solid" &&
+                  fillColor.fgColor &&
+                  fillColor.fgColor.argb
+                ) {
+                  const bgColor = fillColor.fgColor.argb
+                    .toUpperCase()
+                    .substring(2);
+                  // Usar colorMap, default a 'registrado' (para horas)
+                  attendanceStatus = colorMap[bgColor] || "registrado";
+                } else {
+                  attendanceStatus = "registrado"; // Default para horas sin color
+                }
+              }
+            }
+            // --- FIN DETECTAR ESTADO ---
+          }
+
           if (/[",\n\r]/.test(finalValue)) {
             finalValue = `"${finalValue.replace(/"/g, '""')}"`;
           }
           rowValues.push(finalValue);
-        } // Fin for columnas 1-5
+        }
 
-        // Añadir la fila al CSV si tiene contenido
         if (rowHasContent) {
-          // Si es fila de datos, añadir el estado detectado como 6ta columna
           if (!isTitleRow && !isHeaderRow) {
-            rowValues.push(attendanceStatus || ""); // Añadir estado o vacío
+            rowValues.push(attendanceStatus || "");
           } else if (isHeaderRow) {
-            rowValues.push("ESTADO"); // Añadir encabezado para la columna virtual de estado
+            rowValues.push("ESTADO");
           }
-          // Asegurar siempre 6 columnas para consistencia
           while (rowValues.length < 6) {
             rowValues.push("");
           }
-
-          csvContent += rowValues.slice(0, 6).join(",") + "\n"; // Enviar 6 columnas
+          csvContent += rowValues.slice(0, 6).join(",") + "\n";
         } else if (rowNumber > 1) {
-          // Añadir línea vacía si no es la primera y no tiene contenido
           csvContent += "\n";
         }
-      }); // Fin eachRow
+      });
 
-      // Guardar el nombre de la hoja y su contenido CSV procesado
       sheetsData.push({ name: worksheet.name, content: csvContent.trim() });
-    }); // Fin eachSheet
+    });
 
-    // Enviar el array de hojas y sus contenidos al frontend
     res.json({ exito: true, sheets: sheetsData });
   } catch (error) {
     console.error(`Excel Preview: Error al procesar ${archivo}:`, error);
     res.status(500).json({
-      mensaje:
-        "Error al procesar el archivo XLSX. Puede estar corrupto o tener un formato no estándar.",
+      mensaje: "Error al procesar el archivo XLSX.",
       detalle: error.message,
     });
   }
 });
+
+// --- NUEVA RUTA PARA JUSTIFICAR FALTAS ---
+router.post("/justificar", async (req, res) => {
+  const { codigo, fecha } = req.body; // fecha debe ser "DD-MM-YYYY"
+
+  if (!codigo || !fecha) {
+    return res
+      .status(400)
+      .json({ exito: false, mensaje: "Faltan código o fecha." });
+  }
+
+  const fileName = `${fecha}.xlsx`;
+  const rutaExcel = path.join(registrosPath, fileName);
+
+  if (!fs.existsSync(rutaExcel)) {
+    return res
+      .status(404)
+      .json({ exito: false, mensaje: `El archivo ${fileName} no existe.` });
+  }
+
+  try {
+    // 1. Encontrar al usuario y su hoja
+    const usuarios = JSON.parse(fs.readFileSync(usuariosPath, "utf8"));
+    const usuario = usuarios.find((u) => u.codigo === codigo);
+
+    if (!usuario) {
+      return res
+        .status(404)
+        .json({ exito: false, mensaje: "Código de usuario no encontrado." });
+    }
+
+    let sheetName = "";
+    if (usuario.rol === "docente") sheetName = "Docentes";
+    else if (usuario.turno === "mañana") sheetName = "Mañana";
+    else if (usuario.turno === "tarde") sheetName = "Tarde";
+
+    if (!sheetName) {
+      return res
+        .status(400)
+        .json({ exito: false, mensaje: "No se pudo determinar la hoja." });
+    }
+
+    // 2. Abrir el Excel y buscar al alumno
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(rutaExcel);
+    const hoja = workbook.getWorksheet(sheetName);
+    if (!hoja) {
+      return res
+        .status(404)
+        .json({ exito: false, mensaje: `Hoja ${sheetName} no encontrada.` });
+    }
+
+    let filaEncontrada = null;
+    hoja.eachRow((row, rowNumber) => {
+      let celdaNombre = row.getCell(2).value;
+      if (typeof celdaNombre === "object" && celdaNombre?.richText) {
+        celdaNombre = celdaNombre.richText.map((t) => t.text).join("");
+      }
+
+      if (
+        normalizarTexto(celdaNombre?.toString() || "") ===
+        normalizarTexto(usuario.nombre)
+      ) {
+        filaEncontrada = row;
+        return false; // Detener bucle
+      }
+    });
+
+    if (!filaEncontrada) {
+      return res.status(404).json({
+        exito: false,
+        mensaje: `Usuario ${usuario.nombre} no encontrado en la hoja ${sheetName}.`,
+      });
+    }
+
+    // 3. Verificar y aplicar la justificación
+    const celdaEstado = filaEncontrada.getCell(5);
+    const valorActual = celdaEstado.value?.toString().toUpperCase();
+
+    if (valorActual === "FALTA") {
+      celdaEstado.value = "JUSTIFICADO";
+
+      // --- CORRECCIÓN DEFINITIVA ---
+      // Asignar un clon profundo del objeto de estilo a la celda
+      celdaEstado.style = {
+        fill: { ...estiloJustificado.fill },
+        font: { ...estiloJustificado.font },
+        alignment: { ...estiloJustificado.alignment },
+        border: { ...estiloJustificado.border },
+      };
+      // --- FIN CORRECCIÓN ---
+
+      await workbook.xlsx.writeFile(rutaExcel);
+      res.json({ exito: true, mensaje: "Falta justificada correctamente." });
+    } else if (valorActual === "JUSTIFICADO") {
+      res
+        .status(400)
+        .json({ exito: false, mensaje: "Esta falta ya estaba justificada." });
+    } else {
+      res.status(400).json({
+        exito: false,
+        mensaje: `No se puede justificar. Estado actual: ${
+          valorActual || "VACÍO"
+        }. (Solo se puede justificar una 'FALTA')`,
+      });
+    }
+  } catch (error) {
+    console.error("Error al justificar falta:", error);
+    res
+      .status(500)
+      .json({ exito: false, mensaje: "Error interno del servidor." });
+  }
+});
+// --- FIN NUEVA RUTA ---
 
 module.exports = router;

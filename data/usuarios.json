@@ -215,5 +215,35 @@
       "V",
       "S"
     ]
+  },
+  {
+    "codigo": "40489414",
+    "nombre": "ALIAGA PEREZ ALAN OSCAR",
+    "rol": "estudiante",
+    "turno": "tarde",
+    "ciclo": "semestral",
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ]
+  },
+  {
+    "codigo": "10668586",
+    "nombre": "URIONDO MANINI CARLA DAYDAMIA",
+    "rol": "docente",
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ],
+    "turno": "",
+    "ciclo": ""
   }
 ]

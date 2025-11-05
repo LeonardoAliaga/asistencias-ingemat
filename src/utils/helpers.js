@@ -130,13 +130,7 @@ function normalizarTexto(txt = "") {
     .toLowerCase();
 }
 
-// FUNCIÓN AUXILIAR PARA APLICAR ESTILO
-function aplicarEstiloCelda(celda, estilo) {
-  if (estilo.fill) celda.fill = estilo.fill;
-  if (estilo.font) celda.font = estilo.font;
-  if (estilo.alignment) celda.alignment = estilo.alignment;
-  if (estilo.border) celda.border = estilo.border;
-}
+// FUNCIÓN AUXILIAR APLICAR ESTILO (ELIMINADA)
 
 // Obtener lista de ciclos (Movido de api.route.js)
 function getCiclosData() {
@@ -164,7 +158,7 @@ module.exports = {
   convertirAHoras, // Necesario para estadoAsistencia
   estadoAsistencia,
   normalizarTexto,
-  aplicarEstiloCelda,
+  // aplicarEstiloCelda, <-- ELIMINADO
   obtenerHorarios,
   getDayAbbreviation,
   convertTo12Hour, // Exportar para usar en otros módulos

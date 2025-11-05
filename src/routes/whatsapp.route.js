@@ -7,7 +7,10 @@ const {
   isWhatsappReady,
   getQR,
   forceRestart,
+  sendMessage,
+  MessageMedia,
 } = require("../../Whatsapp/WhatsappClient"); // Importar funciones necesarias
+const { generateReportImage } = require("../services/report-generator"); // Importar generador
 
 const router = express.Router();
 const configPath = path.join(__dirname, "../../data/whatsappConfig.json");
@@ -15,10 +18,18 @@ const configPath = path.join(__dirname, "../../data/whatsappConfig.json");
 // Función para leer la configuración (MODIFICADA)
 const readConfig = () => {
   const defaultConfig = {
-    enabled: false,
+    enabledGeneral: false,
+    studentNotificationsEnabled: false,
+    teacherNotificationsEnabled: false,
+    automatedReportEnabled: false,
     studentRules: [],
-    teacherTargetType: "number", // <--- NUEVO
-    teacherTargetId: null, // <--- NUEVO (reemplaza a teacherNumber)
+    teacherTargetType: "number",
+    teacherTargetId: null,
+    automatedReport: {
+      sendTimeMañana: "08:50",
+      sendTimeTarde: "17:00",
+      targets: [],
+    },
   };
 
   try {
@@ -26,38 +37,50 @@ const readConfig = () => {
       const data = fs.readFileSync(configPath, "utf8");
       let config = JSON.parse(data);
 
-      // --- Lógica de Migración ---
-      // Si encontramos el formato antiguo (teacherNumber), lo convertimos al nuevo
-      if (config.teacherNumber !== undefined) {
-        console.log(
-          "Config WhatsApp: Detectado formato antiguo (teacherNumber), migrando a nuevo formato."
-        );
-        config.teacherTargetType = "number";
-        config.teacherTargetId = config.teacherNumber;
-        delete config.teacherNumber; // Eliminar la clave antigua
+      // --- Lógica de Migración (si vienes de versiones anteriores) ---
+      if (config.enabled !== undefined) {
+        config.studentNotificationsEnabled = config.enabled;
+        delete config.enabled;
+      }
+      if (
+        config.automatedReport &&
+        config.automatedReport.enabled !== undefined
+      ) {
+        config.automatedReportEnabled = config.automatedReport.enabled;
+        delete config.automatedReport.enabled;
+      }
+      if (
+        config.automatedReport &&
+        config.automatedReport.sendTime !== undefined
+      ) {
+        config.automatedReport.sendTimeMañana = config.automatedReport.sendTime;
+        delete config.automatedReport.sendTime;
       }
       // --- Fin Migración ---
 
       // Fusionar con el default para asegurar que todas las claves existan
-      return { ...defaultConfig, ...config };
+      let finalConfig = { ...defaultConfig, ...config };
+      finalConfig.automatedReport = {
+        ...defaultConfig.automatedReport,
+        ...config.automatedReport,
+      };
+      return finalConfig;
     }
   } catch (error) {
     console.error("Error leyendo configuración de WhatsApp:", error);
   }
-  // Devuelve un objeto con la estructura por defecto si no existe o hay error
   return defaultConfig;
 };
 
-// Función para guardar la configuración (SIN CAMBIOS, ya guarda el objeto)
+// Función para guardar la configuración
 const saveConfig = (config) => {
   try {
-    // Asegurarse que la carpeta data exista
     const dataDir = path.dirname(configPath);
     if (!fs.existsSync(dataDir)) {
       fs.mkdirSync(dataDir, { recursive: true });
     }
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-    console.log("Configuración de WhatsApp guardada:", config); // Log al guardar
+    console.log("Configuración de WhatsApp guardada:", config);
     return true;
   } catch (error) {
     console.error("Error guardando configuración de WhatsApp:", error);
@@ -67,26 +90,26 @@ const saveConfig = (config) => {
 
 // --- RUTAS API ---
 
-// GET /whatsapp/api/config - Obtener configuración actual
+// GET /whatsapp/api/config
 router.get("/config", (req, res) => {
-  console.log("Recibida petición GET /whatsapp/api/config"); // Log
   const config = readConfig();
-  console.log("Configuración leída:", config); // Log
   res.json({ exito: true, config });
 });
 
-// POST /whatsapp/api/config - Guardar nueva configuración (MODIFICADA)
+// POST /whatsapp/api/config
 router.post("/config", (req, res) => {
-  console.log("Recibida petición POST /whatsapp/api/config"); // Log
   const newConfig = req.body;
-  console.log("Datos recibidos para guardar:", newConfig); // Log
   // Validación de la nueva estructura
   if (
-    typeof newConfig.enabled !== "boolean" ||
+    typeof newConfig.enabledGeneral !== "boolean" ||
+    typeof newConfig.studentNotificationsEnabled !== "boolean" ||
+    typeof newConfig.teacherNotificationsEnabled !== "boolean" ||
+    typeof newConfig.automatedReportEnabled !== "boolean" ||
     !Array.isArray(newConfig.studentRules) ||
-    !newConfig.teacherTargetType // Validar que exista la nueva clave
+    !newConfig.teacherTargetType ||
+    !newConfig.automatedReport
   ) {
-    console.error("Datos de configuración inválidos recibidos.");
+    console.error("Datos de configuración inválidos recibidos:", newConfig);
     return res
       .status(400)
       .json({ exito: false, mensaje: "Formato de configuración inválido." });
@@ -101,26 +124,21 @@ router.post("/config", (req, res) => {
   }
 });
 
-// GET /whatsapp/api/status - Obtener estado de conexión de WhatsApp
+// GET /whatsapp/api/status
 router.get("/status", (req, res) => {
-  console.log("Recibida petición GET /whatsapp/api/status"); // Log
   const readyState = isWhatsappReady();
-  console.log("Estado WhatsApp:", readyState); // Log
   res.json({ exito: true, isReady: readyState });
 });
 
-// GET /whatsapp/api/qr - Obtener el QR si existe
+// GET /whatsapp/api/qr
 router.get("/qr", (req, res) => {
-  console.log("Recibida petición GET /whatsapp/api/qr");
   const qr = getQR();
-  res.json({ exito: true, qr: qr }); // Devuelve el QR (puede ser null)
+  res.json({ exito: true, qr: qr });
 });
 
-// GET /whatsapp/api/groups - Obtener lista de grupos
+// GET /whatsapp/api/groups
 router.get("/groups", async (req, res) => {
-  console.log("Recibida petición GET /whatsapp/api/groups"); // Log
   if (!isWhatsappReady()) {
-    console.log("Estado WhatsApp: No listo"); // Log
     return res.status(503).json({
       exito: false,
       mensaje: "WhatsApp no está conectado.",
@@ -128,9 +146,7 @@ router.get("/groups", async (req, res) => {
     });
   }
   try {
-    console.log("Llamando a getGroupChats..."); // Log
     const groups = await getGroupChats();
-    console.log(`getGroupChats devolvió ${groups.length} grupos.`); // Log más conciso
     res.json({ exito: true, groups });
   } catch (error) {
     console.error("Error en API /groups:", error);
@@ -142,11 +158,10 @@ router.get("/groups", async (req, res) => {
   }
 });
 
-// POST /whatsapp/api/restart - Forzar reinicio
+// POST /whatsapp/api/restart
 router.post("/restart", (req, res) => {
-  console.log("Recibida petición POST /whatsapp/api/restart");
   try {
-    forceRestart("manual_restart_request"); // Llama a la función exportada
+    forceRestart("manual_restart_request");
     res.json({
       exito: true,
       mensaje: "Reiniciando cliente de WhatsApp. Refresca en unos segundos.",
@@ -155,6 +170,60 @@ router.post("/restart", (req, res) => {
     res
       .status(500)
       .json({ exito: false, mensaje: "Error al intentar reiniciar." });
+  }
+});
+
+// --- NUEVA RUTA PARA ENVÍO MANUAL ---
+router.post("/send-report-manual", async (req, res) => {
+  const { ciclo, turno, groupId } = req.body;
+  console.log(
+    `API: Solicitud de envío manual para ${ciclo} - ${turno} al grupo ${groupId}`
+  );
+
+  if (!isWhatsappReady()) {
+    return res
+      .status(503)
+      .json({ exito: false, mensaje: "WhatsApp no está conectado." });
+  }
+  if (!ciclo || !turno || !groupId) {
+    return res
+      .status(400)
+      .json({
+        exito: false,
+        mensaje: "Faltan datos (ciclo, turno o groupId).",
+      });
+  }
+
+  try {
+    const imageBuffer = await generateReportImage(ciclo, turno);
+    if (!imageBuffer) {
+      return res.status(404).json({
+        exito: false,
+        mensaje: `No se encontraron datos de asistencia para ${ciclo} - ${turno}. Asegúrate que el archivo Excel del día exista.`,
+      });
+    }
+
+    const media = new MessageMedia(
+      "image/png",
+      imageBuffer.toString("base64"),
+      `Reporte Asistencia ${ciclo} ${turno}.png`
+    );
+
+    const sent = await sendMessage(groupId, media);
+
+    if (sent) {
+      res.json({ exito: true, mensaje: "Reporte enviado exitosamente." });
+    } else {
+      res
+        .status(500)
+        .json({ exito: false, mensaje: "Error al enviar el mensaje." });
+    }
+  } catch (error) {
+    console.error("Error en envío manual:", error);
+    res.status(500).json({
+      exito: false,
+      mensaje: `Error al generar la imagen: ${error.message}`,
+    });
   }
 });
 

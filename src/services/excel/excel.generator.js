@@ -1,14 +1,7 @@
 // src/services/excel/excel.generator.js
-// SIN CAMBIOS respecto a la versión anterior (modularizada).
-// Las funciones generateStudentSheetStructure y generateTeacherSheetStructure
-// ya reciben el objeto 'hoja' y lo llenan, lo cual es perfecto para este nuevo enfoque.
-
 const fs = require("fs");
 const path = require("path");
-const {
-  getDayAbbreviation,
-  aplicarEstiloCelda,
-} = require("../../utils/helpers.js");
+const { getDayAbbreviation } = require("../../utils/helpers.js"); // <-- IMPORTACIÓN CORREGIDA
 const {
   estiloFalta,
   estiloNoAsiste,
@@ -71,12 +64,13 @@ function generateStudentSheetStructure(
       "DÍAS ASISTENCIA",
       nombreColumnaFecha,
     ];
-    hoja.getRow(fila).eachCell((cell) =>
-      aplicarEstiloCelda(cell, {
+    hoja.getRow(fila).eachCell((cell) => {
+      // --- CORRECCIÓN: Asignar .style directamente ---
+      cell.style = {
         ...estiloEncabezadoBase,
-        fill: fillEncabezadoEstudiante,
-      })
-    );
+        fill: { ...fillEncabezadoEstudiante }, // Clonar fill
+      };
+    });
     fila++;
 
     // Datos
@@ -102,10 +96,17 @@ function generateStudentSheetStructure(
         centerAlignment,
         leftAlignment
       );
-      aplicarEstiloCelda(
-        row.getCell(5),
-        isScheduled ? estiloFalta : estiloNoAsiste
-      );
+
+      // --- CORRECCIÓN DEFINITIVA ---
+      // Asignar un clon profundo del objeto de estilo a la celda
+      const styleToApply = isScheduled ? estiloFalta : estiloNoAsiste;
+      row.getCell(5).style = {
+        fill: { ...styleToApply.fill },
+        font: { ...styleToApply.font },
+        alignment: { ...styleToApply.alignment },
+        border: { ...styleToApply.border },
+      };
+      // --- FIN CORRECCIÓN ---
 
       fila++;
     });
@@ -136,12 +137,13 @@ function generateTeacherSheetStructure(hoja, nombreColumnaFecha, diaAbbr) {
     "DÍAS ASISTENCIA",
     nombreColumnaFecha,
   ];
-  hoja.getRow(fila).eachCell((cell) =>
-    aplicarEstiloCelda(cell, {
+  hoja.getRow(fila).eachCell((cell) => {
+    // --- CORRECCIÓN: Asignar .style directamente ---
+    cell.style = {
       ...estiloEncabezadoBase,
-      fill: fillEncabezadoDocente,
-    })
-  );
+      fill: { ...fillEncabezadoDocente }, // Clonar fill
+    };
+  });
   fila++;
 
   // Datos
@@ -167,10 +169,17 @@ function generateTeacherSheetStructure(hoja, nombreColumnaFecha, diaAbbr) {
       centerAlignment,
       leftAlignment
     );
-    aplicarEstiloCelda(
-      row.getCell(5),
-      isScheduled ? estiloFalta : estiloNoAsiste
-    );
+
+    // --- CORRECCIÓN DEFINITIVA ---
+    // Asignar un clon profundo del objeto de estilo a la celda
+    const styleToApply = isScheduled ? estiloFalta : estiloNoAsiste;
+    row.getCell(5).style = {
+      fill: { ...styleToApply.fill },
+      font: { ...styleToApply.font },
+      alignment: { ...styleToApply.alignment },
+      border: { ...styleToApply.border },
+    };
+    // --- FIN CORRECCIÓN ---
   });
 }
 

@@ -25,6 +25,15 @@ const estiloNoAsiste = {
   border: borderStyle,
 };
 
+// --- NUEVO ESTILO AÑADIDO ---
+const estiloJustificado = {
+  fill: { type: "pattern", pattern: "solid", fgColor: { argb: "FFDDEEFF" } }, // Azul claro
+  font: { bold: true, color: { argb: "FF003366" } }, // Azul oscuro
+  alignment: centerAlignment,
+  border: borderStyle,
+};
+// --- FIN NUEVO ESTILO ---
+
 const estiloDatosBase = {
   font: { bold: false, color: { argb: "FF000000" } },
   border: borderStyle,
@@ -81,6 +90,7 @@ module.exports = {
   leftAlignment,
   estiloFalta,
   estiloNoAsiste,
+  estiloJustificado, // <-- AÑADIDO
   estiloDatosBase,
   estiloEncabezadoBase,
   estilosEstadoEstudiante,

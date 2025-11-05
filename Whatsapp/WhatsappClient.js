@@ -179,7 +179,14 @@ const sendMessage = async (to, message) => {
       );
       return false;
     }
-    await whatsappClient.sendMessage(chatId, `${message}\n\n_Ingemat_`);
+    // Modificación para enviar MessageMedia (imágenes) o texto
+    if (typeof message === "string") {
+      await whatsappClient.sendMessage(chatId, `${message}\n\n_Ingemat_`);
+    } else {
+      // Asumimos que es un objeto MessageMedia
+      await whatsappClient.sendMessage(chatId, message);
+    }
+
     console.log(`${color.green("Whatsapp")} Mensaje enviado a ${chatId}`);
     return true;
   } catch (error) {
@@ -209,6 +216,13 @@ const getGroupChats = async () => {
     const groups = chats
       .filter((chat) => chat.isGroup)
       .map((chat) => ({ id: chat.id._serialized, name: chat.name }));
+    // --- NUEVO CONSOLE.LOG ---
+    console.log(
+      `${color.magenta("WhatsappClient")} getGroupChats: Encontrados ${
+        groups.length
+      } grupos.`
+    );
+    // --- FIN CONSOLE.LOG ---
     return groups;
   } catch (error) {
     console.error(`${color.red("Whatsapp")} Error al obtener chats:`, error);
@@ -224,5 +238,6 @@ module.exports = {
   getGroupChats,
   isWhatsappReady: () => isWhatsappReady,
   getQR: () => currentQR,
-  forceRestart: deleteLocalAuthAndRestart, // <--- NUEVA EXPORTACIÓN
+  forceRestart: deleteLocalAuthAndRestart,
+  MessageMedia, // <--- AÑADIDO
 };

@@ -1,13 +1,36 @@
 {
-  "enabled": true,
+  "enabledGeneral": true,
+  "studentNotificationsEnabled": true,
+  "teacherNotificationsEnabled": true,
+  "automatedReportEnabled": true,
   "studentRules": [
     {
       "ciclo": "semestral",
       "turno": "tarde",
       "targetType": "group",
       "targetId": "120363402977562212@g.us"
+    },
+    {
+      "ciclo": "semestral",
+      "turno": "mañana",
+      "targetType": "group",
+      "targetId": "120363423056521733@g.us"
     }
   ],
   "teacherTargetType": "number",
-  "teacherTargetId": null
+  "teacherTargetId": null,
+  "automatedReport": {
+    "targets": [
+      {
+        "ciclo": "semestral",
+        "turno": "tarde",
+        "groupId": "120363402977562212@g.us"
+      },
+      {
+        "ciclo": "semestral",
+        "turno": "mañana",
+        "groupId": "120363423056521733@g.us"
+      }
+    ]
+  }
 }

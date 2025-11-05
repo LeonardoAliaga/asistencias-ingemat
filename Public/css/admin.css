@@ -182,40 +182,40 @@ h1 {
   }
 }
 
-/* AJUSTE DE GRID PARA PANTALLAS GRANDES */
+/* --- AJUSTE DE GRID (MODIFICADO) --- */
 @media (min-width: 1024px) {
   .admin-grid {
     display: grid;
     grid-template-areas:
       "horarios agregar excel"
-      "docentes ciclos password";
-    grid-template-columns: repeat(3, 1fr);
+      "ciclos    justificar excel"
+      "password  justificar excel";
+    grid-template-rows: auto auto 1fr;
+
+    /* Asignación de áreas */
+    #horarios-section {
+      grid-area: horarios;
+    }
+    #gestion-ciclos-section {
+      grid-area: ciclos;
+    }
+    #agregar-usuario-section {
+      grid-area: agregar;
+    }
+    #archivos-excel-section {
+      grid-area: excel;
+    }
+    #gestion-acceso-section {
+      grid-area: password;
+    }
+    #justificar-falta-section {
+      grid-area: justificar;
+    }
   }
 }
 
-/* Asignación de áreas (Se mantienen los IDs de las secciones anteriores) */
-#horarios-section {
-  grid-area: horarios;
-}
-#agregar-usuario-section {
-  grid-area: agregar;
-}
-#vista-docentes-container {
-  grid-area: docentes;
-}
-#archivos-excel-section {
-  grid-area: excel;
-}
-#gestion-acceso-section {
-  grid-area: password;
-}
-#gestion-ciclos-section {
-  grid-area: ciclos;
-}
-
 /* Contenedores de vista de usuarios */
-#vista-docentes-container,
-#vista-alumnos-completa {
+#vista-usuarios-completa {
   background-color: #ebebeb;
   padding: 20px;
   border-radius: 10px;
@@ -257,7 +257,9 @@ h3 {
 
 /* Ocultar mensajes de estado por defecto */
 #msg-horarios,
-#msg-password {
+#msg-password,
+#msg-justificar-falta {
+  /* <-- AÑADIDO */
   display: none;
   margin-top: 15px;
   padding: 10px;

@@ -1,21 +1,23 @@
 // src/services/excel/excel.updater.js
-// SIN CAMBIOS respecto a la versión anterior (modularizada).
-// La función updateAttendanceRecord recibe la hoja correcta y la actualiza.
-
+const ExcelJS = require("exceljs");
 const {
-  estadoAsistencia,
-  normalizarTexto,
-  aplicarEstiloCelda,
-  convertTo12Hour,
-} = require("../../utils/helpers.js");
-const {
-  estilosEstadoEstudiante,
+  estiloFalta,
+  estiloNoAsiste,
   estiloDocenteRegistrado,
+  estilosEstadoEstudiante,
+  borderStyle,
+  // --- IMPORTACIONES PARA HELPERS ---
   estiloDatosBase,
   centerAlignment,
   leftAlignment,
-} = require("./excel.constants.js");
-const { applyBaseDataRowStyles } = require("./excel.helpers.js");
+} = require("./excel.constants");
+const {
+  getDayAbbreviation,
+  normalizarTexto, // Importar normalizarTexto
+  convertTo12Hour, // Importar convertTo12Hour
+  estadoAsistencia, // Importar estadoAsistencia
+} = require("../../utils/helpers");
+const { applyBaseDataRowStyles } = require("./excel.helpers.js"); // Importar helper de estilo
 
 function updateAttendanceRecord(hoja, usuario, horaStr) {
   let filaEncontrada = null;
@@ -60,7 +62,8 @@ function updateAttendanceRecord(hoja, usuario, horaStr) {
   if (
     valorCelda !== "" &&
     valorCelda !== "FALTA" &&
-    valorCelda !== "NO ASISTE"
+    valorCelda !== "NO ASISTE" &&
+    valorCelda !== "JUSTIFICADO" // Permitir sobrescribir justificado
   ) {
     console.log(
       `⚠️ ${usuario.nombre} ya tiene registro: ${valorCelda}. Rechazado.`
@@ -100,7 +103,16 @@ function updateAttendanceRecord(hoja, usuario, horaStr) {
     centerAlignment,
     leftAlignment
   );
-  aplicarEstiloCelda(filaActualizada.getCell(5), estiloCeldaHora);
+
+  // --- CORRECCIÓN DEFINITIVA ---
+  // Asignar un clon profundo del objeto de estilo a la celda
+  filaActualizada.getCell(5).style = {
+    fill: { ...estiloCeldaHora.fill },
+    font: { ...estiloCeldaHora.font },
+    alignment: { ...estiloCeldaHora.alignment },
+    border: { ...estiloCeldaHora.border },
+  };
+  // --- FIN CORRECCIÓN ---
 
   console.log(`✅ Registro actualizado para ${usuario.nombre} a ${hora12h}.`);
   return true;
