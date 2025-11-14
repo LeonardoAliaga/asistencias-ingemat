@@ -14,6 +14,7 @@ const {
   fillEncabezadoDocente,
   fillEncabezadoEstudiante,
 } = require("./excel/excel.constants.js");
+const { normalizarTexto } = require("../utils/helpers.js");
 
 // --- Configuración de Estilos para Canvas ---
 try {
@@ -220,7 +221,18 @@ async function generateReportImage(ciclo, turno) {
   let sectionData;
   try {
     const allData = await getExcelData(fileName);
-    sectionData = findSection(allData, ciclo, turno);
+    // Normalizar el ciclo y turno recibidos para compararlos con los extraídos del Excel
+    const cicloNorm = normalizarTexto(ciclo);
+    const turnoNorm = normalizarTexto(turno);
+    sectionData = findSection(allData, cicloNorm, turnoNorm);
+    // Si no se encontró, intentar con valores sin normalizar (fallback y logging)
+    if (!sectionData) {
+      console.log(
+        `Report-Generator: No se encontró sección exacta para '${cicloNorm} - ${turnoNorm}'. Secciones disponibles: ${allData
+          .map((s) => `${s.ciclo} - ${s.turno}`)
+          .join(", ")}`
+      );
+    }
   } catch (err) {
     console.error(
       `Report-Generator: Error al LEER/PROCESAR datos para ${fileName}: ${err.message}`

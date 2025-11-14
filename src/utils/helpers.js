@@ -129,6 +129,20 @@ function normalizarTexto(txt = "") {
     .trim()
     .toLowerCase();
 }
+// Obtener nombre completo de un usuario (compatibilidad con esquemas antiguos)
+function getFullName(usuario = {}) {
+  if (!usuario) return "";
+
+  // Forma canónica: 'APELLIDO NOMBRE' cuando existan ambos campos
+  const apellido = usuario.apellido ? usuario.apellido.toString().trim() : "";
+  const nombre = usuario.nombre ? usuario.nombre.toString().trim() : "";
+  if (apellido && nombre) return `${apellido} ${nombre}`;
+
+  // Si sólo hay nombre, devolverlo tal cual (sin intentar dividir)
+  if (nombre) return nombre;
+
+  return "";
+}
 
 // FUNCIÓN AUXILIAR APLICAR ESTILO (ELIMINADA)
 
@@ -163,4 +177,5 @@ module.exports = {
   getDayAbbreviation,
   convertTo12Hour, // Exportar para usar en otros módulos
   getCiclosData, // Exportar para usar en otros módulos
+  getFullName,
 };

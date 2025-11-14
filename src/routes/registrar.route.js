@@ -9,6 +9,7 @@ const {
   convertTo12Hour,
   normalizarTexto,
 } = require("../utils/helpers");
+const { getFullName } = require("../utils/helpers");
 const {
   sendMessage,
   isWhatsappReady,
@@ -103,7 +104,9 @@ router.post("/", async (req, res) => {
   const hora12h = convertTo12Hour(horaStr);
 
   console.log(
-    `\nRegistrar Route: Procesando ${usuario.nombre} (${usuario.rol}) - Código: ${codigo}`
+    `\nRegistrar Route: Procesando ${getFullName(usuario)} (${
+      usuario.rol
+    }) - Código: ${codigo}`
   );
 
   const isScheduledToday =
@@ -114,15 +117,19 @@ router.post("/", async (req, res) => {
 
   if (!guardado) {
     console.log(
-      `Registrar Route: ${usuario.nombre} ya tiene registro de hora válido hoy.`
+      `Registrar Route: ${getFullName(
+        usuario
+      )} ya tiene registro de hora válido hoy.`
     );
     return res.status(409).json({
       exito: false,
-      mensaje: `${usuario.nombre} ya tiene un registro de hora válido hoy.`,
+      mensaje: `${getFullName(
+        usuario
+      )} ya tiene un registro de hora válido hoy.`,
     });
   }
   console.log(
-    `Registrar Route: Guardado en Excel exitoso para ${usuario.nombre}.`
+    `Registrar Route: Guardado en Excel exitoso para ${getFullName(usuario)}.`
   );
 
   // --- Lógica de Envío de WhatsApp (MODIFICADA) ---
@@ -146,7 +153,9 @@ router.post("/", async (req, res) => {
       else if (estado === "tolerancia") estadoEmoji = "⚠️";
       else if (estado === "tarde") estadoEmoji = "❌";
 
-      mensajeWhatsapp = `*${usuario.nombre}* (${usuario.ciclo} - ${usuario.turno})\nIngreso: *${hora12h}* ${estadoEmoji}`;
+      mensajeWhatsapp = `*${getFullName(usuario)}* (${usuario.ciclo} - ${
+        usuario.turno
+      })\nIngreso: *${hora12h}* ${estadoEmoji}`;
       if (!isScheduledToday) {
         mensajeWhatsapp += `\n_(Registro fuera de día programado)_`;
       }
@@ -161,7 +170,9 @@ router.post("/", async (req, res) => {
       usuario.rol === "docente" &&
       whatsappConfig.teacherNotificationsEnabled
     ) {
-      mensajeWhatsapp = `Docente *${usuario.nombre}*\nIngreso: *${hora12h}* 👨‍🏫`;
+      mensajeWhatsapp = `Docente *${getFullName(
+        usuario
+      )}*\nIngreso: *${hora12h}* 👨‍🏫`;
       const isTeacherScheduled =
         usuario.dias_asistencia && usuario.dias_asistencia.includes(diaAbbr);
       if (!isTeacherScheduled) {
@@ -191,7 +202,7 @@ router.post("/", async (req, res) => {
 
   const responseData = {
     exito: true,
-    nombre: usuario.nombre,
+    nombre: getFullName(usuario),
     hora: `${fechaStr} ${hora12h}`,
     estado: estadoRespuesta,
     ciclo: usuario.ciclo || "",

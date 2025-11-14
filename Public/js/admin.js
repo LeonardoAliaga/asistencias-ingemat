@@ -186,7 +186,11 @@ document.getElementById("form-agregar-ciclo").onsubmit = async function (e) {
   const botonSubmit = this.querySelector('button[type="submit"]');
   botonSubmit.disabled = true;
   const nombreInput = document.getElementById("nuevo-ciclo-nombre");
-  const nombre = nombreInput.value.trim();
+  // Normalizar: colapsar espacios, trim y forzar mayúsculas
+  const nombre = (nombreInput.value || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toUpperCase();
   if (!nombre) {
     showGlobalMessage(
       "msg-ciclos",
@@ -225,6 +229,10 @@ document.getElementById("form-agregar").onsubmit = async function (e) {
 
   const codigo = document.getElementById("codigo").value.trim();
   const nombre = document.getElementById("nombre").value.trim();
+  const apellido =
+    (document.getElementById("apellido") &&
+      document.getElementById("apellido").value.trim()) ||
+    "";
   const rol = document.getElementById("rol").value;
   const turno = document.getElementById("turno").value;
   const ciclo = document.getElementById("ciclo").value;
@@ -241,8 +249,8 @@ document.getElementById("form-agregar").onsubmit = async function (e) {
   const diasAsistencia = getSelectedDays();
 
   let errorMsg = null;
-  if (!codigo || !nombre || !rol) {
-    errorMsg = "Código, Nombre y Rol son obligatorios.";
+  if (!codigo || !nombre || !apellido || !rol) {
+    errorMsg = "Código, Nombre, Apellido y Rol son obligatorios.";
   } else if (rol === "estudiante" && (!turno || !ciclo)) {
     errorMsg = "Turno y Ciclo son obligatorios para estudiantes.";
   } else if (
@@ -258,7 +266,7 @@ document.getElementById("form-agregar").onsubmit = async function (e) {
     return;
   }
 
-  const payload = { codigo, nombre, rol };
+  const payload = { codigo, nombre, apellido, rol };
   if (rol === "estudiante") {
     payload.turno = turno;
     payload.ciclo = ciclo;

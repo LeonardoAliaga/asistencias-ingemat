@@ -63,7 +63,8 @@ router.post("/", (req, res) => {
     return res.status(409).json({ mensaje: "El ciclo ya existe." });
   }
 
-  data.ciclos.push(nombre); // Guardar el original
+  const nombreEnMayusculas = nombre.trim().toUpperCase();
+  data.ciclos.push(nombreEnMayusculas); // Guardar en mayúsculas
   try {
     saveCiclos(data);
     console.log(`Ciclos Route: Ciclo '${nombre}' agregado.`);

@@ -22,7 +22,7 @@
 }
 #vista-whatsapp h5 {
   font-size: 1rem; /* Tamaño para formularios de agregar */
-  color: var(--blue2);
+  /* color: var(--blue2); */
 }
 
 .whatsapp-status-section {

@@ -14,6 +14,8 @@
       href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
     />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.1/qrcode.min.js"></script>
+    <!-- JsBarcode para generar códigos de barras (Code128) -->
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
   </head>
   <body>
     <nav class="navbar">
@@ -168,6 +170,7 @@
                 id="nuevo-ciclo-nombre"
                 placeholder="Nombre del nuevo ciclo"
                 required
+                oninput="this.value = this.value.toUpperCase()"
               />
               <button type="submit">
                 <i class="bi bi-plus-circle-fill"></i> AGREGAR CICLO
@@ -179,12 +182,22 @@
             <h2><i class="bi bi-person-plus-fill"></i> AGREGAR USUARIO</h2>
             <form id="form-agregar">
               <input type="text" id="codigo" placeholder="Código" required />
-              <input
-                type="text"
-                id="nombre"
-                placeholder="Nombre Completo"
-                required
-              />
+              <div style="display: flex; gap: 8px; flex-wrap: wrap">
+                <input
+                  type="text"
+                  id="nombre"
+                  placeholder="Nombre (ej: Juan Carlos)"
+                  required
+                  style="flex: 1"
+                />
+                <input
+                  type="text"
+                  id="apellido"
+                  placeholder="Apellido (ej: Pérez)"
+                  required
+                  style="flex: 1"
+                />
+              </div>
               <select id="rol" required>
                 <option value="">Selecciona rol</option>
                 <option value="estudiante">Estudiante</option>
@@ -626,6 +639,60 @@
         <h3 id="preview-filename" style="margin-bottom: 15px"></h3>
         <div id="preview-tabs" class="preview-tab-container"></div>
         <div id="preview-content" class="preview-content-area"></div>
+      </div>
+    </div>
+    <!-- Modal para mostrar código de barras -->
+    <div id="barcode-modal" class="modal">
+      <div class="modal-content">
+        <span class="close-btn" id="close-barcode">&times;</span>
+        <h2 id="carnet-title">Carnet de Usuario</h2>
+        <p id="barcode-text" style="font-weight: 600; margin-bottom: 10px"></p>
+        <div style="text-align: center; margin-bottom: 10px">
+          <canvas
+            id="barcode-canvas"
+            width="320"
+            height="480"
+            style="
+              border: 1px solid #eee;
+              border-radius: 8px;
+              background: #fff;
+              width: 320px;
+              height: 480px;
+            "
+          ></canvas>
+        </div>
+        <div style="text-align: center">
+          <a id="download-barcode" class="btn btn-download">
+            <i class="bi bi-download"></i> Descargar PNG
+          </a>
+        </div>
+        <div style="margin-top: 12px; text-align: center">
+          <label
+            for="barcode-notes"
+            style="display: block; margin-bottom: 6px; font-weight: 600"
+            >Notas (tel. emergencia, salidas, etc.)</label
+          >
+          <textarea
+            id="barcode-notes"
+            placeholder="Agregar notas para este usuario..."
+            style="
+              width: 80%;
+              height: 80px;
+              padding: 8px;
+              border-radius: 6px;
+              border: 1px solid #ddd;
+            "
+          ></textarea>
+          <div style="margin-top: 8px">
+            <button id="save-barcode-notes" class="btn btn-primary">
+              <i class="bi bi-save"></i> Guardar notas
+            </button>
+            <span
+              id="barcode-notes-msg"
+              style="margin-left: 10px; color: #666"
+            ></span>
+          </div>
+        </div>
       </div>
     </div>
     <script type="module" src="../js/admin.js"></script>

@@ -5,16 +5,10 @@
   "automatedReportEnabled": true,
   "studentRules": [
     {
-      "ciclo": "semestral",
+      "ciclo": "SEMIANUAL",
       "turno": "tarde",
       "targetType": "group",
       "targetId": "120363402977562212@g.us"
-    },
-    {
-      "ciclo": "semestral",
-      "turno": "mañana",
-      "targetType": "group",
-      "targetId": "120363423056521733@g.us"
     }
   ],
   "teacherTargetType": "number",
@@ -22,13 +16,8 @@
   "automatedReport": {
     "targets": [
       {
-        "ciclo": "semestral",
+        "ciclo": "SEMIANUAL",
         "turno": "tarde",
-        "groupId": "120363402977562212@g.us"
-      },
-      {
-        "ciclo": "semestral",
-        "turno": "mañana",
         "groupId": "120363423056521733@g.us"
       }
     ]

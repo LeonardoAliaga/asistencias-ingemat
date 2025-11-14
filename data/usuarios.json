@@ -1,212 +1,11 @@
 [
   {
-    "codigo": "A002",
-    "nombre": "BERAUN YMBERTIS JO ANN",
-    "rol": "estudiante",
-    "turno": "mañana",
-    "ciclo": "semestral",
-    "dias_asistencia": [
-      "L",
-      "M",
-      "MI",
-      "J",
-      "V",
-      "S"
-    ]
-  },
-  {
-    "codigo": "A003",
-    "nombre": "CHUMPITAZ MORENO ADRIANO",
-    "rol": "estudiante",
-    "turno": "mañana",
-    "ciclo": "anual",
-    "dias_asistencia": [
-      "L",
-      "M",
-      "MI",
-      "J",
-      "V",
-      "S"
-    ]
-  },
-  {
-    "codigo": "A004",
-    "nombre": "CONOPUMA ARENAZA PAOLA",
-    "rol": "estudiante",
-    "turno": "mañana",
-    "ciclo": "anual",
-    "dias_asistencia": [
-      "L",
-      "M",
-      "MI",
-      "J",
-      "V",
-      "S"
-    ]
-  },
-  {
-    "codigo": "A005",
-    "nombre": "CUBA YARANGA JOSUE RICARCO",
-    "rol": "estudiante",
-    "turno": "mañana",
-    "ciclo": "sabatino",
-    "dias_asistencia": [
-      "L",
-      "M",
-      "MI",
-      "J",
-      "V",
-      "S"
-    ]
-  },
-  {
-    "codigo": "A006",
-    "nombre": "CURO GONZALES DENNIS",
-    "rol": "estudiante",
-    "turno": "mañana",
-    "ciclo": "sabatino",
-    "dias_asistencia": [
-      "L",
-      "M",
-      "MI",
-      "J",
-      "V",
-      "S"
-    ]
-  },
-  {
-    "codigo": "A009",
-    "nombre": "GONZALES NAVARRO DANIELA",
-    "rol": "estudiante",
-    "turno": "tarde",
-    "ciclo": "anual",
-    "dias_asistencia": [
-      "L",
-      "M",
-      "MI",
-      "J",
-      "V",
-      "S"
-    ]
-  },
-  {
-    "codigo": "A010",
-    "nombre": "LOPE CONDORI JEREMY SEBASTIAN",
-    "rol": "estudiante",
-    "turno": "tarde",
-    "ciclo": "sabatino",
-    "dias_asistencia": [
-      "L",
-      "M",
-      "MI",
-      "J",
-      "V",
-      "S"
-    ]
-  },
-  {
-    "codigo": "A012",
-    "nombre": "QUIROZ HOYOS MATHIAS",
-    "rol": "estudiante",
-    "turno": "tarde",
-    "ciclo": "anual",
-    "dias_asistencia": [
-      "L",
-      "M",
-      "MI",
-      "J",
-      "V",
-      "S"
-    ]
-  },
-  {
-    "codigo": "A013",
-    "nombre": "RODRIGUEZ QUISPE SERGIO",
-    "rol": "estudiante",
-    "turno": "tarde",
-    "ciclo": "anual",
-    "dias_asistencia": [
-      "L",
-      "M",
-      "MI",
-      "J",
-      "V",
-      "S"
-    ]
-  },
-  {
-    "codigo": "A014",
-    "nombre": "ROJAS SANTIAGO DAFNE",
-    "rol": "estudiante",
-    "turno": "tarde",
-    "ciclo": "sabatino",
-    "dias_asistencia": [
-      "L",
-      "M",
-      "MI",
-      "J",
-      "V",
-      "S"
-    ]
-  },
-  {
-    "codigo": "P001",
-    "nombre": "MARIA LOPEZ",
-    "rol": "docente",
-    "dias_asistencia": [
-      "L",
-      "M",
-      "MI",
-      "J",
-      "V",
-      "S"
-    ]
-  },
-  {
-    "codigo": "P002",
-    "nombre": "PEDRO VILLALOBOS",
-    "rol": "docente",
-    "dias_asistencia": [
-      "L",
-      "M",
-      "MI",
-      "J",
-      "V",
-      "S"
-    ]
-  },
-  {
-    "codigo": "P004",
-    "nombre": "JAVIER RAMIREZ",
-    "rol": "docente",
-    "dias_asistencia": [
-      "L",
-      "M",
-      "MI",
-      "J",
-      "V",
-      "S"
-    ]
-  },
-  {
-    "codigo": "P005",
-    "nombre": "DANIELA CORDOVA",
-    "rol": "docente",
-    "dias_asistencia": [
-      "L",
-      "M",
-      "MI",
-      "J",
-      "V",
-      "S"
-    ]
-  },
-  {
     "codigo": "75516107",
-    "nombre": "ALIAGA URIONDO JHERSON LEONARDO",
+    "nombre": "JHERSON LEONARDO",
+    "apellido": "ALIAGA URIONDO",
     "rol": "estudiante",
     "turno": "tarde",
-    "ciclo": "semestral",
+    "ciclo": "SEMIANUAL",
     "dias_asistencia": [
       "L",
       "M",
@@ -214,26 +13,13 @@
       "J",
       "V",
       "S"
-    ]
+    ],
+    "nombre_completo": "JHERSON LEONARDO ALIAGA URIONDO"
   },
   {
-    "codigo": "40489414",
-    "nombre": "ALIAGA PEREZ ALAN OSCAR",
-    "rol": "estudiante",
-    "turno": "tarde",
-    "ciclo": "semestral",
-    "dias_asistencia": [
-      "L",
-      "M",
-      "MI",
-      "J",
-      "V",
-      "S"
-    ]
-  },
-  {
-    "codigo": "10668586",
-    "nombre": "URIONDO MANINI CARLA DAYDAMIA",
+    "codigo": "A001",
+    "nombre": "ALAN OSCAR",
+    "apellido": "ALIAGA PEREZ",
     "rol": "docente",
     "dias_asistencia": [
       "L",
@@ -244,6 +30,24 @@
       "S"
     ],
     "turno": "",
-    "ciclo": ""
+    "ciclo": "",
+    "nombre_completo": "ALAN OSCAR ALIAGA PEREZ"
+  },
+  {
+    "codigo": "10668586",
+    "nombre": "CARLA DAYDAMIA",
+    "apellido": "URIONDO MANINI",
+    "rol": "estudiante",
+    "turno": "mañana",
+    "ciclo": "SEMIANUAL",
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ],
+    "nombre_completo": "CARLA DAYDAMIA URIONDO MANINI"
   }
 ]

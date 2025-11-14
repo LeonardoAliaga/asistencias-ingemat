@@ -1,7 +1,6 @@
 {
   "ciclos": [
-    "semestral",
-    "anual",
-    "sabatino"
+    "ANUAL",
+    "SEMIANUAL"
   ]
 }

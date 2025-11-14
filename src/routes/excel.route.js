@@ -4,7 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const ExcelJS = require("exceljs");
 // --- IMPORTACIONES CORREGIDAS ---
-const { normalizarTexto } = require("../utils/helpers.js");
+const { normalizarTexto, getFullName } = require("../utils/helpers.js");
 const {
   estiloJustificado,
   estilosEstadoEstudiante, // Importar para el map de preview
@@ -326,7 +326,7 @@ router.post("/justificar", async (req, res) => {
 
       if (
         normalizarTexto(celdaNombre?.toString() || "") ===
-        normalizarTexto(usuario.nombre)
+        normalizarTexto(getFullName(usuario))
       ) {
         filaEncontrada = row;
         return false; // Detener bucle
@@ -336,7 +336,9 @@ router.post("/justificar", async (req, res) => {
     if (!filaEncontrada) {
       return res.status(404).json({
         exito: false,
-        mensaje: `Usuario ${usuario.nombre} no encontrado en la hoja ${sheetName}.`,
+        mensaje: `Usuario ${getFullName(
+          usuario
+        )} no encontrado en la hoja ${sheetName}.`,
       });
     }
 

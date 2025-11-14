@@ -3,6 +3,7 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 
+const { normalizarTexto, getCiclosData } = require("../utils/helpers");
 const router = express.Router();
 const usuariosPath = path.join(__dirname, "../../data/usuarios.json");
 
@@ -14,7 +15,28 @@ function readUsuarios() {
       console.log("Usuarios Route: Archivo usuarios.json creado vacío.");
       return [];
     }
-    return JSON.parse(fs.readFileSync(usuariosPath, "utf8"));
+    const raw = JSON.parse(fs.readFileSync(usuariosPath, "utf8"));
+    // Migrar entradas antiguas: asegurar campos nombre, apellido y nombre_completo
+    const migrated = raw.map((u) => {
+      if (!u) return u;
+      // Si ya tiene nombre_completo, dejar
+      if (u.nombre_completo) return u;
+      // Si sólo tenía 'nombre' como string con nombre completo
+      if (u.nombre && u.apellido === undefined) {
+        return { ...u, apellido: "", nombre_completo: String(u.nombre).trim() };
+      }
+      // Si tiene nombre y apellido
+      if (u.nombre && u.apellido !== undefined) {
+        return {
+          ...u,
+          nombre_completo: `${String(u.nombre).trim()} ${String(
+            u.apellido
+          ).trim()}`.trim(),
+        };
+      }
+      return u;
+    });
+    return migrated;
   } catch (err) {
     console.error("Usuarios Route: Error al leer/crear usuarios.json:", err);
     throw new Error("Error interno al acceder a los datos de usuarios."); // Lanzar error para capturar en ruta
@@ -50,11 +72,12 @@ router.post("/", (req, res) => {
     return res.status(500).json({ exito: false, mensaje: readErr.message });
   }
 
-  const nuevoUsuario = req.body;
+  const nuevoUsuario = req.body || {};
   if (
     !nuevoUsuario ||
     !nuevoUsuario.codigo ||
     !nuevoUsuario.nombre ||
+    nuevoUsuario.nombre === undefined ||
     !nuevoUsuario.rol
   ) {
     console.log(
@@ -66,7 +89,8 @@ router.post("/", (req, res) => {
       mensaje: "Faltan datos obligatorios del usuario.",
     });
   }
-  if (usuarios.some((u) => u.codigo === nuevoUsuario.codigo)) {
+  const codigoNuevo = String(nuevoUsuario.codigo).trim();
+  if (usuarios.some((u) => String(u.codigo).trim() === codigoNuevo)) {
     console.log(
       `Usuarios Route: Intento de agregar usuario con código duplicado: ${nuevoUsuario.codigo}`
     );
@@ -87,6 +111,21 @@ router.post("/", (req, res) => {
         exito: false,
         mensaje: "Turno y ciclo son obligatorios para estudiantes.",
       });
+    }
+    // Validar que el ciclo exista en la lista de ciclos configurados
+    try {
+      const ciclosData = getCiclosData();
+      const existe = (ciclosData.ciclos || []).some(
+        (c) => normalizarTexto(c) === normalizarTexto(nuevoUsuario.ciclo)
+      );
+      if (!existe) {
+        return res.status(400).json({
+          exito: false,
+          mensaje: `Ciclo '${nuevoUsuario.ciclo}' no existe.`,
+        });
+      }
+    } catch (e) {
+      console.warn("Usuarios Route: no se pudo validar ciclo:", e);
     }
     if (
       !Array.isArray(nuevoUsuario.dias_asistencia) ||
@@ -117,12 +156,31 @@ router.post("/", (req, res) => {
       .status(400)
       .json({ exito: false, mensaje: "Rol de usuario no válido." });
   }
+  // Normalizar campos de nombre/apellido antes de guardar
+  const nombre = nuevoUsuario.nombre
+    ? String(nuevoUsuario.nombre).trim().toUpperCase()
+    : "";
+  const apellido = nuevoUsuario.apellido
+    ? String(nuevoUsuario.apellido).trim().toUpperCase()
+    : "";
 
-  usuarios.push(nuevoUsuario);
+  // Construir objeto final a guardar
+  const usuarioToSave = {
+    ...nuevoUsuario,
+    codigo: codigoNuevo,
+    nombre: nombre,
+    apellido: apellido,
+    // Formato canónico: 'APELLIDO NOMBRE'
+    nombre_completo: `${apellido}${
+      apellido && nombre ? " " : ""
+    }${nombre}`.trim(),
+  };
+
+  usuarios.push(usuarioToSave);
   try {
     saveUsuarios(usuarios);
     console.log(
-      `Usuarios Route: Usuario '${nuevoUsuario.nombre}' (${nuevoUsuario.rol}) agregado.`
+      `Usuarios Route: Usuario '${usuarioToSave.nombre_completo}' (${usuarioToSave.rol}) agregado.`
     );
     res
       .status(201)

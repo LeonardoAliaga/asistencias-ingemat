@@ -107,6 +107,35 @@ button[type="submit"]:hover {
   display: block;
 }
 
+/* Botón para generar código de barras junto al eliminar */
+.btn-barcode {
+  font-size: 1.1rem;
+  color: #0b5;
+}
+.btn-barcode:hover {
+  color: #0a8;
+}
+
+/* Tabs de turno dentro del acordeón */
+.turno-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.turno-tab {
+  background: transparent;
+  border: 1px solid var(--white2);
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  text-transform: capitalize;
+}
+.turno-tab.active {
+  background: var(--red);
+  color: var(--white1);
+  border-color: var(--red2);
+}
+
 /* Estilo para el resumen de horarios */
 .schedule-summary {
   margin: 20px 0;
@@ -190,11 +219,6 @@ button[type="submit"]:hover {
   font-size: 1.2rem;
   font-weight: bold;
   color: var(--black);
-}
-
-/* --- NUEVO ESTILO PARA INPUT NOMBRE --- */
-#nombre {
-  text-transform: uppercase;
 }
 
 /* --- NUEVOS ESTILOS: Componente Autocomplete --- */

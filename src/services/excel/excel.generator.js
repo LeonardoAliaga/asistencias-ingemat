@@ -1,7 +1,7 @@
 // src/services/excel/excel.generator.js
 const fs = require("fs");
 const path = require("path");
-const { getDayAbbreviation } = require("../../utils/helpers.js"); // <-- IMPORTACIÓN CORREGIDA
+const { getDayAbbreviation, getFullName } = require("../../utils/helpers.js"); // <-- IMPORTACIÓN CORREGIDA
 const {
   estiloFalta,
   estiloNoAsiste,
@@ -41,9 +41,11 @@ function generateStudentSheetStructure(
   for (const ciclo of ciclos) {
     const grupo = estudiantes
       .filter((e) => e.ciclo === ciclo && e.turno === turnoActual)
-      .sort((a, b) =>
-        a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" })
-      );
+      .sort((a, b) => {
+        const ka = (a.apellido || getFullName(a)).toString().toUpperCase();
+        const kb = (b.apellido || getFullName(b)).toString().toUpperCase();
+        return ka.localeCompare(kb, "es", { sensitivity: "base" });
+      });
 
     if (grupo.length === 0) continue;
 
@@ -82,9 +84,12 @@ function generateStudentSheetStructure(
         ? est.dias_asistencia.join(", ")
         : "";
 
+      const alumnoDisplay = est.apellido
+        ? `${est.apellido} ${est.nombre}`
+        : getFullName(est);
       const row = hoja.addRow([
         i + 1,
-        est.nombre,
+        alumnoDisplay,
         est.turno.toUpperCase(),
         diasAsistenciaStr,
         initialStatus,
@@ -118,9 +123,11 @@ function generateTeacherSheetStructure(hoja, nombreColumnaFecha, diaAbbr) {
   let fila = 1;
   const docentes = JSON.parse(fs.readFileSync(usuariosPath, "utf8"))
     .filter((u) => u.rol === "docente")
-    .sort((a, b) =>
-      a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" })
-    );
+    .sort((a, b) => {
+      const ka = (a.apellido || getFullName(a)).toString().toUpperCase();
+      const kb = (b.apellido || getFullName(b)).toString().toUpperCase();
+      return ka.localeCompare(kb, "es", { sensitivity: "base" });
+    });
 
   // Título
   hoja.getCell(`A${fila}`).value = "REGISTRO DE ASISTENCIA - DOCENTES";
@@ -155,9 +162,12 @@ function generateTeacherSheetStructure(hoja, nombreColumnaFecha, diaAbbr) {
       ? doc.dias_asistencia.join(", ")
       : "";
 
+    const docenteDisplay = doc.apellido
+      ? `${doc.apellido} ${doc.nombre}`
+      : getFullName(doc);
     const row = hoja.addRow([
       i + 1,
-      doc.nombre,
+      docenteDisplay,
       "",
       diasAsistenciaStr,
       initialStatus,

@@ -10,7 +10,7 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware Globales
-app.use(express.json());
+app.use(express.json({ limit: "5mb" })); // aumentar límite para payloads de imágenes en base64 (subida de fotos)
 app.use(express.static(path.join(__dirname, "Public")));
 
 app.use(

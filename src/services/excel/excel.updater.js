@@ -16,6 +16,7 @@ const {
   normalizarTexto, // Importar normalizarTexto
   convertTo12Hour, // Importar convertTo12Hour
   estadoAsistencia, // Importar estadoAsistencia
+  getFullName,
 } = require("../../utils/helpers");
 const { applyBaseDataRowStyles } = require("./excel.helpers.js"); // Importar helper de estilo
 
@@ -42,9 +43,11 @@ function updateAttendanceRecord(hoja, usuario, horaStr) {
       nombreCelda = nombreCelda.text;
     }
 
-    if (
-      normalizarTexto(String(nombreCelda)) === normalizarTexto(usuario.nombre)
-    ) {
+    // comparar usando la forma canónica retornada por getFullName(usuario)
+    const cellNorm = normalizarTexto(String(nombreCelda));
+    const preferredNorm = normalizarTexto(getFullName(usuario));
+
+    if (cellNorm === preferredNorm) {
       filaEncontrada = row;
       numFila = rowNumber;
       return false;
@@ -52,7 +55,9 @@ function updateAttendanceRecord(hoja, usuario, horaStr) {
   });
 
   if (!filaEncontrada) {
-    console.log(`❌ No se encontró a ${usuario.nombre} en la hoja actual.`);
+    console.log(
+      `❌ No se encontró a ${getFullName(usuario)} en la hoja actual.`
+    );
     return false;
   }
 
@@ -66,7 +71,7 @@ function updateAttendanceRecord(hoja, usuario, horaStr) {
     valorCelda !== "JUSTIFICADO" // Permitir sobrescribir justificado
   ) {
     console.log(
-      `⚠️ ${usuario.nombre} ya tiene registro: ${valorCelda}. Rechazado.`
+      `⚠️ ${getFullName(usuario)} ya tiene registro: ${valorCelda}. Rechazado.`
     );
     return false;
   }
@@ -114,7 +119,9 @@ function updateAttendanceRecord(hoja, usuario, horaStr) {
   };
   // --- FIN CORRECCIÓN ---
 
-  console.log(`✅ Registro actualizado para ${usuario.nombre} a ${hora12h}.`);
+  console.log(
+    `✅ Registro actualizado para ${getFullName(usuario)} a ${hora12h}.`
+  );
   return true;
 }
 

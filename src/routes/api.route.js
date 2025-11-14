@@ -3,6 +3,7 @@ const express = require("express");
 const registrarRouter = require("./registrar.route");
 const usuariosRouter = require("./usuarios.route");
 const ciclosRouter = require("./ciclos.route");
+const notesRouter = require("./notes.route");
 const excelRouter = require("./excel.route");
 const horariosRouter = require("./horarios.route");
 
@@ -12,6 +13,7 @@ const router = express.Router();
 router.use("/registrar", registrarRouter);
 router.use("/usuarios", usuariosRouter);
 router.use("/ciclos", ciclosRouter);
+router.use("/notes", notesRouter);
 router.use("/excel", excelRouter);
 router.use("/horarios", horariosRouter);
 
