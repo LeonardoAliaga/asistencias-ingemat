@@ -358,3 +358,90 @@ h3 {
 .btn.btn-download:hover {
   background-color: var(--red2);
 }
+
+/* ======================================================= */
+/* Estilos adicionales - Hero, botones pill, y ajuste sección Excel */
+/* Añadidos para mejorar la estética del dashboard Inicio */
+.hero-header {
+  background: linear-gradient(180deg, #e9e9e9, #f3f3f3);
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 18px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.hero-header h1 {
+  margin: 0;
+  font-size: 1.8rem;
+  color: var(--color-secundario);
+  letter-spacing: 2px;
+}
+.hero-sub {
+  color: #666;
+  font-size: 0.95rem;
+  margin-left: auto;
+}
+
+.nav-button {
+  background: transparent;
+  color: var(--black);
+  border: none;
+  padding: 0.6rem 1rem;
+  cursor: pointer;
+  transition: all 0.22s ease;
+  font-family: var(--font-body);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-radius: 999px; /* pill */
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nav-button.active {
+  background: linear-gradient(90deg, var(--red), var(--red2));
+  color: var(--white1);
+  box-shadow: 0 6px 18px rgba(183, 33, 7, 0.18);
+  border-radius: 999px;
+}
+
+.btn-pill {
+  padding: 10px 16px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  cursor: pointer;
+}
+.btn-primary {
+  background: linear-gradient(90deg, var(--red), var(--red2));
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(183, 33, 7, 0.12);
+}
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--white2);
+  color: var(--black);
+}
+
+/* Forzar que la sección de archivos mantenga su header fijo y el listado haga scroll */
+#archivos-excel-section {
+  display: flex;
+  flex-direction: column;
+}
+
+#archivos-excel-section h2 {
+  margin-bottom: 10px;
+}
+
+/* Card improvement for sections */
+section {
+  background: linear-gradient(180deg, #e9e9e9, #f3f3f3);
+  padding: 22px;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.03);
+}

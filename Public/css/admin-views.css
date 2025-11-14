@@ -124,11 +124,20 @@ li:hover {
 }
 
 /* ======================================================= */
+/* Estilos de configurar horaios */
+/* ======================================================= */
+
+#form-horarios div {
+  margin: 15px 0;
+}
+
+/* ======================================================= */
 /* Estilos de Descargas Excel y Scroll */
 /* ======================================================= */
 
 #archivos-excel {
-  max-height: 390px;
+  /* altura máxima para evitar romper el layout; scroll interno si excede */
+  max-height: 58rem;
   overflow-y: auto;
   padding-right: 10px;
   scrollbar-width: thin;
@@ -155,23 +164,21 @@ li:hover {
   align-items: center;
   margin: 8px 0;
   gap: 10px;
-  transition: 0.3s;
-  background-color: var(--black);
-  color: var(--white1);
-  padding: 5px;
-  border-radius: 5px;
-}
-.excel-item:hover {
-  background-color: #008000;
-  transform: translateX(5px);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, transition 0.5s;
+  background-color: var(--white1);
+  color: var(--black);
+  padding: 10px 12px;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
 }
 
 #archivos-excel a {
   display: block;
-  letter-spacing: 1px;
-  color: var(--white1);
+  letter-spacing: 0.4px;
+  color: var(--black);
   padding: 5px 10px;
-  transition: 0.3s;
+  opacity: 80%;
+  transition: color 0.15s ease;
   text-decoration: none;
   font-family: var(--font-body);
   flex-grow: 1;
@@ -180,25 +187,37 @@ li:hover {
   text-overflow: ellipsis;
 }
 
-#archivos-excel a:hover {
+.excel-item:hover {
+  transform: translateX(4px);
+  /* box-shadow: 0 10px 22px rgba(0, 0, 0, 0.08); */
+  background: linear-gradient(90deg, #007109, #009d05);
+}
+.excel-item:hover a {
   background-color: transparent;
+  color: #fff !important;
+  opacity: 100% !important;
 }
 
 .btn-preview {
   background-color: transparent;
-  color: var(--white1);
+  color: var(--black1);
+  opacity: 80%;
   border: none;
   padding: 8px 10px;
   cursor: pointer;
-  border-radius: 5px;
-  transition: background-color 0.3s;
-  font-size: 0.9rem;
+  border-radius: 6px;
+  transition: background-color 0.18s ease, transform 0.18s ease,
+    transition 0.5s ease;
+  font-size: 0.95rem;
   text-transform: none;
   flex-shrink: 0;
 }
 
+.excel-item:hover .btn-preview {
+  color: #fff;
+}
 .btn-preview:hover {
-  background-color: #006800;
+  opacity: 100%;
 }
 
 /* ======================================================= */
