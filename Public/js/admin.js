@@ -84,6 +84,14 @@ document.getElementById("btn-vista-whatsapp").onclick = () => {
   mostrarVista("vista-whatsapp", "btn-vista-whatsapp");
 };
 
+// Botón INFO: mostrar la vista específica de INFO (vista-info)
+const btnInfo = document.getElementById("btn-vista-info");
+if (btnInfo) {
+  btnInfo.onclick = () => {
+    mostrarVista("vista-info", "btn-vista-info");
+  };
+}
+
 // --- *** NUEVO HELPER (para submit de horarios) *** ---
 function get24hFromPicker(hrId, minId, ampmId) {
   try {

@@ -445,3 +445,333 @@ section {
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.04);
   border: 1px solid rgba(0, 0, 0, 0.03);
 }
+
+/* ======================================================= */
+/* ESTILOS DEL FORMULARIO MEJORADO PARA CICLOS */
+/* ======================================================= */
+
+.ciclo-modal {
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ciclo-form-header {
+  color: var(--red);
+  font-size: 1.6rem;
+  margin-bottom: 20px !important;
+  padding-bottom: 12px;
+  border-bottom: 3px solid var(--red);
+}
+
+.ciclo-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-weight: 600;
+  color: var(--color-secundario);
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form-group input,
+.form-group textarea {
+  padding: 12px 14px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  color: var(--color-secundario);
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--red);
+  box-shadow: 0 0 0 3px rgba(183, 33, 7, 0.1);
+  background-color: #fafafa;
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.form-checkbox {
+  flex-direction: row;
+  align-items: center;
+}
+
+.form-checkbox label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-transform: none;
+  letter-spacing: 0;
+  margin: 0;
+}
+
+.form-checkbox input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: var(--red);
+}
+
+.form-checkbox span {
+  font-size: 0.95rem;
+  color: var(--color-secundario);
+  font-weight: 500;
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.btn-form-submit,
+.btn-form-cancel {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-form-submit {
+  background: linear-gradient(90deg, var(--red), var(--red2));
+  color: #fff;
+  flex: 1;
+  box-shadow: 0 6px 18px rgba(183, 33, 7, 0.12);
+}
+
+.btn-form-submit:hover {
+  background: linear-gradient(90deg, var(--red2), var(--red));
+  box-shadow: 0 8px 24px rgba(183, 33, 7, 0.18);
+  transform: translateY(-2px);
+}
+
+.btn-form-submit:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(183, 33, 7, 0.1);
+}
+
+.btn-form-cancel {
+  background: #f0f0f0;
+  color: var(--color-secundario);
+  border: 1px solid #ddd;
+  flex: 0.5;
+}
+
+.btn-form-cancel:hover {
+  background: #e5e5e5;
+  border-color: var(--color-secundario);
+}
+
+/* ======================================================= */
+/* ESTILOS DE LA LISTA ADMIN DE CICLOS */
+/* ======================================================= */
+
+.ciclo-admin-item {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 14px;
+  transition: all 0.2s ease;
+}
+
+.ciclo-admin-item:hover {
+  border-color: var(--red);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+}
+
+.ciclo-admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.ciclo-admin-title h4 {
+  margin: 0 0 4px 0;
+  font-size: 1.1rem;
+  color: var(--color-secundario);
+}
+
+.ciclo-slug {
+  display: inline-block;
+  background: #f0f0f0;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: #666;
+  font-family: monospace;
+}
+
+.ciclo-admin-status {
+  display: flex;
+  gap: 8px;
+}
+
+.badge-published,
+.badge-draft {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.badge-published {
+  background: #d4edda;
+  color: #155724;
+}
+
+.badge-draft {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.ciclo-admin-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.ciclo-desc {
+  margin: 0;
+  color: #555;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.ciclo-benefits-preview {
+  font-size: 0.85rem;
+  color: var(--red);
+  font-weight: 600;
+}
+
+.ciclo-price-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  color: var(--color-secundario);
+}
+
+.price-history {
+  color: #999;
+  font-size: 0.85rem;
+}
+
+.ciclo-admin-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-admin-edit,
+.btn-admin-delete {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-admin-edit {
+  background: linear-gradient(90deg, var(--blue1), var(--blue2));
+  color: #fff;
+}
+
+.btn-admin-edit:hover {
+  box-shadow: 0 4px 12px rgba(0, 42, 184, 0.2);
+  transform: translateY(-1px);
+}
+
+.btn-admin-delete {
+  background: #ffe5e5;
+  color: var(--red);
+  border: 1px solid var(--red);
+}
+
+.btn-admin-delete:hover {
+  background: var(--red);
+  color: #fff;
+}
+
+/* ======================================================= */
+/* GRID RESPONSIVE PARA LA PESTAÑA INFO                       */
+/* Muestra las tarjetas una al lado de la otra y responde */
+/* ======================================================= */
+#info-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+  align-items: start;
+}
+
+.ciclo-admin-item {
+  /* permitir que las tarjetas tengan la misma altura en cada fila */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.ciclo-admin-body {
+  /* que el cuerpo ocupe el espacio disponible para empujar acciones al final */
+  flex: 1 1 auto;
+}
+
+.ciclo-admin-actions {
+  margin-top: 12px;
+}
+
+@media (max-width: 480px) {
+  #info-list {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}

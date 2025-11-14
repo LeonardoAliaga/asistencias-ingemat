@@ -366,7 +366,7 @@ header {
 /* ... contenido existente ... */
 /* SOBRE NOSOTROS */
 #sobre-nosotros {
-  background-color: var(--white1);
+  background-color: #fff;
   max-width: 100vw;
   min-height: 100vh;
   padding: 6rem;
@@ -517,4 +517,172 @@ header {
   color: var(--white2);
   padding: 10px 0;
   font-size: 0.9em;
+}
+
+/* ======================================================= */
+/* ESTILOS PARA LA SECCIÓN DE CICLOS (#ciclos) */
+/* ======================================================= */
+
+#ciclos {
+  background-color: var(--white1);
+  max-width: 100vw;
+  min-height: auto;
+  padding: 4rem 3rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#ciclos h2 {
+  font-size: 2.5rem;
+  color: var(--black);
+  text-align: center;
+  margin-bottom: 2rem;
+  font-family: "Rabbid Highway", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+/* Grid de Cards */
+.ciclos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
+  width: 100%;
+  max-width: 1200px;
+  margin-top: 2rem;
+}
+
+/* Card Individual */
+.ciclo-card {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s ease;
+}
+
+.ciclo-card:hover {
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+  transform: translateY(-4px);
+}
+
+/* Header de Card */
+.ciclo-card .card-header {
+  padding: 28px 16px 9px;
+  border-bottom: 2px solid var(--red);
+}
+
+.ciclo-card .card-title {
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--black);
+  font-weight: 700;
+  font-family: "Rabbid Highway", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Body de Card */
+.ciclo-card .card-body {
+  padding: 9px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 1;
+}
+
+.ciclo-card .card-description {
+  margin: 0;
+  color: #555;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  font-family: "Gatha", sans-serif;
+}
+
+/* Sección de Beneficios */
+.ciclo-card .card-benefits {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ciclo-card .benefits-label {
+  font-size: 0.9rem;
+  color: var(--black);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-family: "Coolvetica", sans-serif;
+  font-weight: 600;
+}
+
+.ciclo-card .benefits-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ciclo-card .benefits-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: #444;
+  font-size: 0.93rem;
+  font-family: "Gatha", sans-serif;
+}
+
+.ciclo-card .benefits-list i {
+  color: var(--red);
+  margin-top: 2px;
+  font-size: 1rem;
+}
+
+/* Footer de Card */
+.ciclo-card .card-footer {
+  padding: 16px 18px;
+  border-top: 1px solid #f0f0f0;
+  background: #fafafa;
+}
+
+.ciclo-card .card-price {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ciclo-card .old-price {
+  text-decoration: line-through;
+  color: #999;
+  font-size: 0.9rem;
+  font-family: "Gatha", sans-serif;
+}
+
+.ciclo-card .price-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ciclo-card .current-price {
+  color: var(--red);
+  font-weight: 700;
+  font-size: 1.4rem;
+  font-family: "Coolvetica", sans-serif;
+}
+
+.ciclo-card .badge-offer {
+  background: linear-gradient(90deg, #ffe8e6, #ffd4cf);
+  color: var(--red);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 1px solid var(--red);
+  font-family: "Coolvetica", sans-serif;
 }
