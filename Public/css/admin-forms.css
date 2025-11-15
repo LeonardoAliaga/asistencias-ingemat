@@ -67,7 +67,9 @@ select:focus {
 #form-agregar select,
 #login-form input,
 #form-justificar-falta input, /* <-- AÑADIDO */
-#form-justificar-falta select {
+#form-justificar-falta select,
+#form-editar input, /* <-- AÑADIDO */
+#form-editar select {
   /* <-- AÑADIDO */
   margin: 0 0 10px;
 }
@@ -107,14 +109,25 @@ button[type="submit"]:hover {
   display: block;
 }
 
+/* --- INICIO ESTILOS BOTONES DE ACCIÓN USUARIO --- */
+/* Botón para editar usuario */
+.btn-edit-usuario {
+  font-size: 1.1rem;
+  color: #007bff; /* Azul */
+}
+.btn-edit-usuario:hover {
+  color: #0056b3;
+}
+
 /* Botón para generar código de barras junto al eliminar */
 .btn-barcode {
   font-size: 1.1rem;
-  color: #0b5;
+  color: #0b5; /* Verde */
 }
 .btn-barcode:hover {
   color: #0a8;
 }
+/* --- FIN ESTILOS BOTONES DE ACCIÓN USUARIO --- */
 
 /* Tabs de turno dentro del acordeón */
 .turno-tabs {
@@ -150,7 +163,9 @@ button[type="submit"]:hover {
 }
 
 /* Estilos para el selector de días */
-#dias-asistencia-selector {
+#dias-asistencia-selector,
+#edit-dias-asistencia-selector {
+  /* <-- AÑADIDO */
   margin-bottom: 20px;
 }
 .day-buttons-container {

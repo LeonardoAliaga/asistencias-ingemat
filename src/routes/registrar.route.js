@@ -59,7 +59,24 @@ const readWhatsappConfig = () => {
 };
 
 router.post("/", async (req, res) => {
-  const { codigo } = req.body;
+  // --- INICIO LÓGICA DE JUSTIFICACIÓN (J) ---
+  let codigo = req.body.codigo;
+  let isJustified = false;
+
+  if (
+    codigo &&
+    typeof codigo === "string" &&
+    codigo.toUpperCase().endsWith("J") &&
+    codigo.length > 1
+  ) {
+    isJustified = true;
+    codigo = codigo.substring(0, codigo.length - 1); // Quitar la 'J' para buscar
+    console.log(
+      `Registrar Route: Detectada tardanza justificada para ${codigo}`
+    );
+  }
+  // --- FIN LÓGICA DE JUSTIFICACIÓN (J) ---
+
   let usuarios = [];
   try {
     if (!fs.existsSync(usuariosPath)) {
@@ -101,7 +118,7 @@ router.post("/", async (req, res) => {
     minute: "2-digit",
     hour12: false,
   });
-  const hora12h = convertTo12Hour(horaStr);
+  let hora12h = convertTo12Hour(horaStr); // <--- Cambiado a let
 
   console.log(
     `\nRegistrar Route: Procesando ${getFullName(usuario)} (${
@@ -113,7 +130,13 @@ router.post("/", async (req, res) => {
     usuario.rol !== "estudiante" ||
     (usuario.dias_asistencia && usuario.dias_asistencia.includes(diaAbbr));
 
-  const guardado = await guardarRegistro(usuario, fechaStr, horaStr);
+  // Pasar el flag 'isJustified' a guardarRegistro
+  const guardado = await guardarRegistro(
+    usuario,
+    fechaStr,
+    horaStr,
+    isJustified
+  );
 
   if (!guardado) {
     console.log(
@@ -153,9 +176,18 @@ router.post("/", async (req, res) => {
       else if (estado === "tolerancia") estadoEmoji = "⚠️";
       else if (estado === "tarde") estadoEmoji = "❌";
 
+      // --- Añadir (J) al mensaje de WhatsApp si está justificado ---
+      let justificadoStr = "";
+      if (isJustified && (estado === "tarde" || estado === "tolerancia")) {
+        estadoEmoji = "🟠"; // Naranja para justificado
+        justificadoStr = " (J)";
+      }
+
       mensajeWhatsapp = `*${getFullName(usuario)}* (${usuario.ciclo} - ${
         usuario.turno
-      })\nIngreso: *${hora12h}* ${estadoEmoji}`;
+      })\nIngreso: *${hora12h}${justificadoStr}* ${estadoEmoji}`;
+      // --- Fin modificación WhatsApp ---
+
       if (!isScheduledToday) {
         mensajeWhatsapp += `\n_(Registro fuera de día programado)_`;
       }
@@ -195,10 +227,26 @@ router.post("/", async (req, res) => {
   }
   // --- Fin Lógica WhatsApp ---
 
+  // --- Lógica de Estado de Respuesta (MODIFICADA) ---
   let estadoRespuesta = "";
   if (usuario.rol === "estudiante") {
     estadoRespuesta = estadoAsistencia(usuario.turno, horaStr);
+    if (
+      isJustified &&
+      (estadoRespuesta === "tarde" || estadoRespuesta === "tolerancia")
+    ) {
+      estadoRespuesta = "justificada"; // Nuevo estado para el frontend
+    }
   }
+
+  // --- Añadir (J) a la hora de respuesta ---
+  if (
+    isJustified &&
+    (estadoRespuesta === "justificada" || usuario.rol === "docente")
+  ) {
+    hora12h = `${hora12h} (J)`;
+  }
+  // --- Fin modificación hora ---
 
   const responseData = {
     exito: true,

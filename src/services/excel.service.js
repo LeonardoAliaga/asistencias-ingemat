@@ -19,9 +19,16 @@ const { updateAttendanceRecord } = require("./excel/excel.updater.js");
  * @param {object} usuario - Objeto del usuario (con rol, turno, nombre, etc.).
  * @param {string} fechaStr - Fecha en formato 'DD/MM/YYYY'.
  * @param {string} horaStr - Hora en formato 'HH:MM' (24h).
+ * @param {boolean} isJustified - Flag para tardanza justificada (NUEVO)
  * @returns {Promise<boolean>} True si se guardó/actualizó, False en caso contrario.
  */
-async function guardarRegistro(usuario, fechaStr, horaStr) {
+async function guardarRegistro(
+  usuario,
+  fechaStr,
+  horaStr,
+  isJustified = false
+) {
+  // <-- Parámetro añadido
   const excelInfo = determineExcelInfo(fechaStr, usuario);
   if (!excelInfo) {
     return false; // Error en el rol/turno, ya logueado en el helper
@@ -117,7 +124,12 @@ async function guardarRegistro(usuario, fechaStr, horaStr) {
     }
 
     // Actualizar el registro del usuario en la hoja correcta
-    const actualizado = updateAttendanceRecord(hoja, usuario, horaStr);
+    const actualizado = updateAttendanceRecord(
+      hoja,
+      usuario,
+      horaStr,
+      isJustified
+    ); // <-- Parámetro añadido
 
     if (actualizado) {
       // Guardar el workbook completo si hubo una actualización exitosa

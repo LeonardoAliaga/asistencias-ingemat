@@ -27,9 +27,9 @@ function crearListaUsuarios(usuarios, esDocente = false) {
         : "";
 
       // Mostrar código y nombre; omitimos mostrar el turno al lado del nombre
-      // Añadimos dos botones: eliminar y generar barcode
+      // Añadimos TRES botones: eliminar, carnet y editar
       return `
-            <li style="position:relative;padding-right:86px;">
+            <li style="position:relative;padding-right:110px;">
               <div style="display:flex;flex-direction:column;">
                 <span><strong>${u.codigo}</strong> - ${getFullNameClient(
         u
@@ -37,6 +37,9 @@ function crearListaUsuarios(usuarios, esDocente = false) {
                 <small style="color:#666">${diasAsistencia}</small>
               </div>
               <div style="position:absolute;right:5px;top:8px;display:flex;gap:8px;">
+                <span class="btn-edit-usuario" title="Editar usuario" style="display:none;cursor:pointer;color:#007bff;">
+                  <i class="bi bi-pencil-fill"></i>
+                </span>
                 <span class="btn-barcode" title="Generar carnet" style="display:none;cursor:pointer;color:#0b5;">
                   <i class="bi bi-person-badge"></i>
                 </span>
@@ -60,12 +63,16 @@ function agregarEventosEliminar() {
     if (li) {
       li.onmouseenter = () => {
         const bc = li.querySelector(".btn-barcode");
+        const ed = li.querySelector(".btn-edit-usuario"); // <-- Mostrar botón editar
         if (bc) bc.style.display = "inline";
+        if (ed) ed.style.display = "inline"; // <-- Mostrar botón editar
         btn.style.display = "inline";
       };
       li.onmouseleave = () => {
         const bc = li.querySelector(".btn-barcode");
+        const ed = li.querySelector(".btn-edit-usuario"); // <-- Ocultar botón editar
         if (bc) bc.style.display = "none";
+        if (ed) ed.style.display = "none"; // <-- Ocultar botón editar
         btn.style.display = "none";
       };
     }
@@ -84,6 +91,25 @@ function agregarEventosEliminar() {
         cargarUsuarios(true); // Recargar ambas vistas
       }
     };
+  });
+}
+
+// --- NUEVA FUNCIÓN PARA EVENTOS DE EDITAR ---
+/**
+ * Asigna eventos de edición (abrir modal) a los botones de la lista.
+ */
+function agregarEventosEditar() {
+  document.querySelectorAll(".btn-edit-usuario").forEach((btn) => {
+    const li = btn.closest("li");
+    if (li) {
+      btn.onclick = function (e) {
+        e.stopPropagation();
+        const codigo = li.querySelector("strong")
+          ? li.querySelector("strong").textContent.trim()
+          : li.textContent.split(" - ")[0].trim();
+        abrirModalEditar(codigo);
+      };
+    }
   });
 }
 
@@ -365,6 +391,64 @@ function mostrarBarcodeModal(codigo) {
   }
 }
 
+// --- NUEVA FUNCIÓN PARA ABRIR Y POBLAR EL MODAL DE EDICIÓN ---
+function abrirModalEditar(codigo) {
+  const modal = document.getElementById("edit-user-modal");
+  if (!modal) return;
+
+  const user = allUserOptions.find((u) => u.codigo === codigo);
+  if (!user) {
+    alert("Error: No se pudieron encontrar los datos del usuario.");
+    return;
+  }
+
+  // Poblar el formulario
+  document.getElementById("edit-original-codigo").value = user.codigo || "";
+  document.getElementById("edit-codigo").value = user.codigo || "";
+  document.getElementById("edit-nombre").value = user.nombre || "";
+  document.getElementById("edit-apellido").value = user.apellido || "";
+  document.getElementById("edit-rol").value = user.rol || "estudiante";
+  document.getElementById("edit-turno").value = user.turno || "";
+  document.getElementById("edit-ciclo").value = user.ciclo || "";
+
+  // Poblar select de ciclos (si aún no está poblado)
+  const cicloSelect = document.getElementById("edit-ciclo");
+  if (cicloSelect.options.length <= 1) {
+    const addCicloSelect = document.getElementById("ciclo");
+    if (addCicloSelect) {
+      cicloSelect.innerHTML = addCicloSelect.innerHTML;
+      cicloSelect.value = user.ciclo || ""; // Re-seleccionar
+    }
+  }
+
+  // Configurar campos condicionales (rol, turno, ciclo)
+  const esEstudiante = user.rol === "estudiante";
+  const esDocente = user.rol === "docente";
+  document.getElementById("edit-turno").disabled = !esEstudiante;
+  document.getElementById("edit-ciclo").disabled = !esEstudiante;
+  document.getElementById("edit-dias-asistencia-selector").style.display =
+    esEstudiante || esDocente ? "block" : "none";
+
+  // Marcar días de asistencia
+  const diasContainer = document.getElementById(
+    "edit-dias-asistencia-selector"
+  );
+  diasContainer.querySelectorAll(".day-btn").forEach((btn) => {
+    const day = btn.getAttribute("data-day");
+    if (user.dias_asistencia && user.dias_asistencia.includes(day)) {
+      btn.classList.add("active");
+    } else {
+      btn.classList.remove("active");
+    }
+  });
+
+  // Limpiar mensaje de estado previo
+  document.getElementById("msg-editar-usuario").style.display = "none";
+
+  // Mostrar modal
+  modal.style.display = "block";
+}
+
 // --- INICIO LÓGICA DE AUTOCOMPLETADO ---
 
 /**
@@ -567,7 +651,7 @@ export async function cargarUsuarios(forceReload = false) {
         a.apellido ? String(a.apellido).trim() : getFullNameClient(a)
       ).toUpperCase();
       const kb = (
-        b.apellido ? String(b.apellido).trim() : getFullNameClient(b)
+        b.apellido ? String(b.apellido).trim() : getFullNameClient(a)
       ).toUpperCase();
       return ka.localeCompare(kb, "es");
     });
@@ -598,7 +682,7 @@ export async function cargarUsuarios(forceReload = false) {
           a.apellido ? String(a.apellido).trim() : getFullNameClient(a)
         ).toUpperCase();
         const kb = (
-          b.apellido ? String(b.apellido).trim() : getFullNameClient(b)
+          b.apellido ? String(b.apellido).trim() : getFullNameClient(a)
         ).toUpperCase();
         return ka.localeCompare(kb, "es");
       });
@@ -646,6 +730,7 @@ export async function cargarUsuarios(forceReload = false) {
 
   agregarEventosEliminar();
   agregarEventosBarcode();
+  agregarEventosEditar(); // <-- AÑADIDO
   initTurnoTabs();
 }
 
@@ -751,14 +836,16 @@ export async function cargarHorarios() {
 }
 
 export function initUserFormEvents() {
-  // 1. Botones de Día
-  document.querySelectorAll(".day-btn").forEach((button) => {
-    button.addEventListener("click", function () {
-      this.classList.toggle("active");
+  // 1. Botones de Día (Formulario Agregar)
+  document
+    .querySelectorAll("#dias-asistencia-selector .day-btn")
+    .forEach((button) => {
+      button.addEventListener("click", function () {
+        this.classList.toggle("active");
+      });
     });
-  });
 
-  // 2. Formulario Agregar Usuario (FIX: Campos condicionales)
+  // 2. Formulario Agregar Usuario (Campos condicionales)
   const rolSelect = document.getElementById("rol");
   if (rolSelect) {
     const toggleUserFields = function () {
@@ -784,10 +871,7 @@ export function initUserFormEvents() {
     toggleUserFields();
   }
 
-  // 3. Formulario Agregar Submit
-  // (Este listener se movió a admin.js para centralizar)
-
-  // 4. Forzar mayúsculas en el input de nombre
+  // 3. Forzar mayúsculas en el input de nombre (Agregar)
   const nombreInput = document.getElementById("nombre");
   if (nombreInput) {
     nombreInput.addEventListener("input", function () {
@@ -801,10 +885,73 @@ export function initUserFormEvents() {
     });
   }
 
-  // 5. Inicializar el autocompletado
+  // 4. Inicializar el autocompletado (Justificar)
   initAutocomplete();
-  // 6. Inicializar tabs de turno si ya existen
+  // 5. Inicializar tabs de turno si ya existen
   if (typeof initTurnoTabs === "function") initTurnoTabs();
+
+  // --- NUEVO: Lógica para el Modal de Edición ---
+  const modal = document.getElementById("edit-user-modal");
+  if (modal) {
+    // 6. Botones de Día (Formulario Editar)
+    document
+      .querySelectorAll("#edit-dias-asistencia-selector .day-btn")
+      .forEach((button) => {
+        button.addEventListener("click", function () {
+          this.classList.toggle("active");
+        });
+      });
+
+    // 7. Formulario Editar (Campos condicionales)
+    const editRolSelect = document.getElementById("edit-rol");
+    if (editRolSelect) {
+      const toggleEditFields = function () {
+        const esEstudiante = editRolSelect.value === "estudiante";
+        const esDocente = editRolSelect.value === "docente";
+
+        const turno = document.getElementById("edit-turno");
+        const ciclo = document.getElementById("edit-ciclo");
+        const diasSelector = document.getElementById(
+          "edit-dias-asistencia-selector"
+        );
+
+        if (turno) turno.disabled = !esEstudiante;
+        if (ciclo) ciclo.disabled = !esEstudiante;
+        if (diasSelector)
+          diasSelector.style.display =
+            esEstudiante || esDocente ? "block" : "none";
+
+        if (!esEstudiante) {
+          if (turno) turno.value = "";
+          if (ciclo) ciclo.value = "";
+        }
+      };
+      editRolSelect.onchange = toggleEditFields;
+    }
+
+    // 8. Forzar mayúsculas (Editar)
+    const editNombreInput = document.getElementById("edit-nombre");
+    if (editNombreInput) {
+      editNombreInput.addEventListener("input", function () {
+        this.value = this.value.toUpperCase();
+      });
+    }
+    const editApellidoInput = document.getElementById("edit-apellido");
+    if (editApellidoInput) {
+      editApellidoInput.addEventListener("input", function () {
+        this.value = this.value.toUpperCase();
+      });
+    }
+
+    // 9. Botones de cerrar modal
+    const closeBtn = document.getElementById("close-edit-modal");
+    if (closeBtn) closeBtn.onclick = () => (modal.style.display = "none");
+    window.addEventListener("click", function (event) {
+      if (event.target == modal) {
+        modal.style.display = "none";
+      }
+    });
+  }
 }
 
 /**

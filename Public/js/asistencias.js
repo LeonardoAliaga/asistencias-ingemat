@@ -47,6 +47,10 @@ document
             else if (data.estado === "tolerancia")
               estadoTexto = "🟠 Tolerancia";
             else if (data.estado === "tarde") estadoTexto = "🔴 Tarde";
+            // --- NUEVO ESTADO JUSTIFICADO ---
+            else if (data.estado === "justificada")
+              estadoTexto = "🟠 Tarde (J)"; // Color Naranja
+
             resultadoDiv.innerHTML = `
             <span><b>Ciclo:</b> ${data.ciclo} | <b>Turno:</b> ${
               data.turno

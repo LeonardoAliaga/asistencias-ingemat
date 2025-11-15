@@ -14,7 +14,7 @@
       "V",
       "S"
     ],
-    "nombre_completo": "JHERSON LEONARDO ALIAGA URIONDO"
+    "nombre_completo": "ALIAGA URIONDO JHERSON LEONARDO"
   },
   {
     "codigo": "A001",
@@ -31,14 +31,14 @@
     ],
     "turno": "",
     "ciclo": "",
-    "nombre_completo": "ALAN OSCAR ALIAGA PEREZ"
+    "nombre_completo": "ALIAGA PEREZ ALAN OSCAR"
   },
   {
     "codigo": "10668586",
     "nombre": "CARLA DAYDAMIA",
     "apellido": "URIONDO MANINI",
     "rol": "estudiante",
-    "turno": "mañana",
+    "turno": "tarde",
     "ciclo": "SEMIANUAL",
     "dias_asistencia": [
       "L",
@@ -48,6 +48,6 @@
       "V",
       "S"
     ],
-    "nombre_completo": "CARLA DAYDAMIA URIONDO MANINI"
+    "nombre_completo": "URIONDO MANINI CARLA DAYDAMIA"
   }
 ]

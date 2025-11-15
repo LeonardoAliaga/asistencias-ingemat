@@ -319,6 +319,96 @@ document.getElementById("form-agregar").onsubmit = async function (e) {
   }
 };
 
+// --- NUEVO: FORMULARIO EDITAR USUARIO ---
+document.getElementById("form-editar").onsubmit = async function (e) {
+  e.preventDefault();
+  const botonSubmit = this.querySelector('button[type="submit"]');
+  botonSubmit.disabled = true;
+
+  const originalCodigo = document
+    .getElementById("edit-original-codigo")
+    .value.trim();
+  const codigo = document.getElementById("edit-codigo").value.trim();
+  const nombre = document.getElementById("edit-nombre").value.trim();
+  const apellido = document.getElementById("edit-apellido").value.trim();
+  const rol = document.getElementById("edit-rol").value;
+  const turno = document.getElementById("edit-turno").value;
+  const ciclo = document.getElementById("edit-ciclo").value;
+
+  const getSelectedDays = () => {
+    const selected = [];
+    document
+      .querySelectorAll("#edit-dias-asistencia-selector .day-btn.active")
+      .forEach((btn) => {
+        selected.push(btn.getAttribute("data-day"));
+      });
+    return selected;
+  };
+  const diasAsistencia = getSelectedDays();
+
+  let errorMsg = null;
+  if (!codigo || !nombre || !apellido || !rol || !originalCodigo) {
+    errorMsg = "Código, Nombre, Apellido y Rol son obligatorios.";
+  } else if (rol === "estudiante" && (!turno || !ciclo)) {
+    errorMsg = "Turno y Ciclo son obligatorios para estudiantes.";
+  } else if (
+    (rol === "estudiante" || rol === "docente") &&
+    diasAsistencia.length === 0
+  ) {
+    errorMsg = "Selecciona al menos un día de asistencia.";
+  }
+
+  if (errorMsg) {
+    showGlobalMessage("msg-editar-usuario", errorMsg, true);
+    botonSubmit.disabled = false;
+    return;
+  }
+
+  const payload = { codigo, nombre, apellido, rol };
+  if (rol === "estudiante") {
+    payload.turno = turno;
+    payload.ciclo = ciclo;
+    payload.dias_asistencia = diasAsistencia;
+  } else if (rol === "docente") {
+    payload.dias_asistencia = diasAsistencia;
+    payload.turno = "";
+    payload.ciclo = "";
+  }
+
+  try {
+    const res = await fetch(`/api/usuarios/${originalCodigo}`, {
+      method: "PUT", // Usar PUT para actualizar
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.mensaje || `Error ${res.status}`);
+
+    showGlobalMessage(
+      "msg-editar-usuario",
+      data.mensaje || "Usuario actualizado."
+    );
+    // Ocultar modal
+    document.getElementById("edit-user-modal").style.display = "none";
+    // Recargar la lista de usuarios en la vista activa
+    const vistaActiva = document.querySelector(
+      ".vista-content[style*='block']"
+    );
+    if (vistaActiva) {
+      if (vistaActiva.id === "vista-usuarios-completa") {
+        await cargarUsuarios(true);
+      } else if (vistaActiva.id === "vista-principal") {
+        await cargarUsuarios(); // Recargar solo la vista principal
+      }
+    }
+  } catch (error) {
+    showGlobalMessage("msg-editar-usuario", `Error: ${error.message}`, true);
+  } finally {
+    botonSubmit.disabled = false;
+  }
+};
+// --- FIN FORMULARIO EDITAR USUARIO ---
+
 // --- FORMULARIO JUSTIFICAR FALTA (ACTUALIZADO) ---
 document.getElementById("form-justificar-falta").onsubmit = async function (e) {
   e.preventDefault();

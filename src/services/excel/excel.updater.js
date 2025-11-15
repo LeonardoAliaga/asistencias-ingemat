@@ -20,7 +20,8 @@ const {
 } = require("../../utils/helpers");
 const { applyBaseDataRowStyles } = require("./excel.helpers.js"); // Importar helper de estilo
 
-function updateAttendanceRecord(hoja, usuario, horaStr) {
+function updateAttendanceRecord(hoja, usuario, horaStr, isJustified = false) {
+  // <-- Parámetro añadido
   let filaEncontrada = null;
   let numFila = -1;
 
@@ -64,11 +65,13 @@ function updateAttendanceRecord(hoja, usuario, horaStr) {
   const celdaHora = filaEncontrada.getCell(5);
   const valorCelda = (celdaHora.value || "").toString().trim().toUpperCase();
 
+  // Modificado: Permitir sobrescribir "FALTA", "NO ASISTE", "JUSTIFICADO" o vacío
   if (
     valorCelda !== "" &&
     valorCelda !== "FALTA" &&
     valorCelda !== "NO ASISTE" &&
-    valorCelda !== "JUSTIFICADO" // Permitir sobrescribir justificado
+    valorCelda !== "JUSTIFICADO" &&
+    !valorCelda.endsWith("(J)") // No sobrescribir si ya está justificado
   ) {
     console.log(
       `⚠️ ${getFullName(usuario)} ya tiene registro: ${valorCelda}. Rechazado.`
@@ -78,14 +81,30 @@ function updateAttendanceRecord(hoja, usuario, horaStr) {
 
   const hora12h = convertTo12Hour(horaStr);
 
+  // --- INICIO LÓGICA DE JUSTIFICACIÓN (J) ---
+  let valorHoraParaExcel = hora12h;
   let estiloCeldaHora;
+
   if (usuario.rol === "estudiante") {
     const estado = estadoAsistencia(usuario.turno, horaStr);
-    estiloCeldaHora =
-      estilosEstadoEstudiante[estado] || estilosEstadoEstudiante.tarde;
+
+    if (isJustified && (estado === "tarde" || estado === "tolerancia")) {
+      // Es tardanza justificada
+      valorHoraParaExcel = `${hora12h} (J)`;
+      estiloCeldaHora = estilosEstadoEstudiante.tolerancia; // Usar estilo naranja
+    } else {
+      // Registro normal
+      estiloCeldaHora =
+        estilosEstadoEstudiante[estado] || estilosEstadoEstudiante.tarde;
+    }
   } else {
+    // Docente
+    if (isJustified) {
+      valorHoraParaExcel = `${hora12h} (J)`;
+    }
     estiloCeldaHora = estiloDocenteRegistrado;
   }
+  // --- FIN LÓGICA DE JUSTIFICACIÓN (J) ---
 
   const numOriginal = filaEncontrada.getCell(1).value;
   const nombreOriginal = filaEncontrada.getCell(2).value;
@@ -96,7 +115,7 @@ function updateAttendanceRecord(hoja, usuario, horaStr) {
     nombreOriginal,
     turnoOriginal,
     diasOriginal,
-    hora12h,
+    valorHoraParaExcel, // Usar el valor modificado (con o sin J)
   ];
 
   hoja.spliceRows(numFila, 1, nuevaFilaValores);
@@ -120,7 +139,9 @@ function updateAttendanceRecord(hoja, usuario, horaStr) {
   // --- FIN CORRECCIÓN ---
 
   console.log(
-    `✅ Registro actualizado para ${getFullName(usuario)} a ${hora12h}.`
+    `✅ Registro actualizado para ${getFullName(
+      usuario
+    )} a ${valorHoraParaExcel}.`
   );
   return true;
 }

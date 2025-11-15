@@ -14,7 +14,6 @@
       href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
     />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.1/qrcode.min.js"></script>
-    <!-- JsBarcode para generar códigos de barras (Code128) -->
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
   </head>
   <body>
@@ -649,7 +648,6 @@
         <div id="preview-content" class="preview-content-area"></div>
       </div>
     </div>
-    <!-- Modal para mostrar código de barras -->
     <div id="barcode-modal" class="modal">
       <div class="modal-content">
         <span class="close-btn" id="close-barcode">&times;</span>
@@ -701,6 +699,62 @@
             ></span>
           </div>
         </div>
+      </div>
+    </div>
+
+    <div id="edit-user-modal" class="modal">
+      <div class="modal-content" style="max-width: 700px">
+        <span class="close-btn" id="close-edit-modal">&times;</span>
+        <h2><i class="bi bi-pencil-square"></i> EDITAR USUARIO</h2>
+        <form id="form-editar">
+          <input type="hidden" id="edit-original-codigo" />
+
+          <input type="text" id="edit-codigo" placeholder="Código" required />
+          <div style="display: flex; gap: 8px; flex-wrap: wrap">
+            <input
+              type="text"
+              id="edit-nombre"
+              placeholder="Nombre"
+              required
+              style="flex: 1"
+            />
+            <input
+              type="text"
+              id="edit-apellido"
+              placeholder="Apellido"
+              required
+              style="flex: 1"
+            />
+          </div>
+          <select id="edit-rol" required>
+            <option value="">Selecciona rol</option>
+            <option value="estudiante">Estudiante</option>
+            <option value="docente">Docente</option>
+          </select>
+          <select id="edit-turno" required>
+            <option value="">Selecciona turno</option>
+            <option value="mañana">Mañana</option>
+            <option value="tarde">Tarde</option>
+          </select>
+          <select id="edit-ciclo" required></select>
+
+          <div id="edit-dias-asistencia-selector">
+            <label>Días de Asistencia:</label>
+            <div class="day-buttons-container">
+              <button type="button" class="day-btn" data-day="L">L</button>
+              <button type="button" class="day-btn" data-day="M">M</button>
+              <button type="button" class="day-btn" data-day="MI">Mi</button>
+              <button type="button" class="day-btn" data-day="J">J</button>
+              <button type="button" class="day-btn" data-day="V">V</button>
+              <button type="button" class="day-btn" data-day="S">S</button>
+              <button type="button" class="day-btn" data-day="D">D</button>
+            </div>
+          </div>
+          <button type="submit">
+            <i class="bi bi-save-fill"></i> GUARDAR CAMBIOS
+          </button>
+          <div id="msg-editar-usuario" class="form-message"></div>
+        </form>
       </div>
     </div>
     <div id="vista-info" class="vista-content" style="display: none">

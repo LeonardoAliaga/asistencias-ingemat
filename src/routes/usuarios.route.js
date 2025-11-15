@@ -3,7 +3,11 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 
-const { normalizarTexto, getCiclosData } = require("../utils/helpers");
+const {
+  normalizarTexto,
+  getCiclosData,
+  getFullName,
+} = require("../utils/helpers"); // <-- Añadido getFullName
 const router = express.Router();
 const usuariosPath = path.join(__dirname, "../../data/usuarios.json");
 
@@ -19,22 +23,22 @@ function readUsuarios() {
     // Migrar entradas antiguas: asegurar campos nombre, apellido y nombre_completo
     const migrated = raw.map((u) => {
       if (!u) return u;
-      // Si ya tiene nombre_completo, dejar
-      if (u.nombre_completo) return u;
-      // Si sólo tenía 'nombre' como string con nombre completo
-      if (u.nombre && u.apellido === undefined) {
-        return { ...u, apellido: "", nombre_completo: String(u.nombre).trim() };
-      }
-      // Si tiene nombre y apellido
-      if (u.nombre && u.apellido !== undefined) {
-        return {
-          ...u,
-          nombre_completo: `${String(u.nombre).trim()} ${String(
-            u.apellido
-          ).trim()}`.trim(),
-        };
-      }
-      return u;
+      // Si ya tiene nombre_completo, usar getFullName para regenerarlo
+      const nombre = u.nombre ? String(u.nombre).trim().toUpperCase() : "";
+      const apellido = u.apellido
+        ? String(u.apellido).trim().toUpperCase()
+        : "";
+      const nombre_completo = `${apellido}${
+        apellido && nombre ? " " : ""
+      }${nombre}`.trim();
+
+      // Retornar objeto actualizado para asegurar consistencia
+      return {
+        ...u,
+        nombre: nombre,
+        apellido: apellido,
+        nombre_completo: nombre_completo,
+      };
     });
     return migrated;
   } catch (err) {
@@ -189,6 +193,86 @@ router.post("/", (req, res) => {
     res.status(500).json({ exito: false, mensaje: writeErr.message });
   }
 });
+
+// --- NUEVA RUTA: PUT /api/usuarios/:codigo - Actualizar usuario ---
+router.put("/:codigo", (req, res) => {
+  let usuarios;
+  const originalCodigo = req.params.codigo;
+  try {
+    usuarios = readUsuarios();
+  } catch (readErr) {
+    return res.status(500).json({ exito: false, mensaje: readErr.message });
+  }
+
+  const updatedUsuario = req.body || {};
+  const nuevoCodigo = String(updatedUsuario.codigo).trim();
+
+  // 1. Validar datos
+  if (!updatedUsuario.codigo || !updatedUsuario.nombre || !updatedUsuario.rol) {
+    return res
+      .status(400)
+      .json({ exito: false, mensaje: "Faltan datos obligatorios." });
+  }
+
+  // 2. Encontrar el índice del usuario original
+  const userIndex = usuarios.findIndex((u) => u.codigo === originalCodigo);
+  if (userIndex === -1) {
+    return res
+      .status(404)
+      .json({ exito: false, mensaje: "Usuario original no encontrado." });
+  }
+
+  // 3. Verificar si el nuevo código ya existe (y no es el usuario actual)
+  if (
+    originalCodigo !== nuevoCodigo &&
+    usuarios.some((u) => u.codigo === nuevoCodigo)
+  ) {
+    return res.status(409).json({
+      exito: false,
+      mensaje: `El nuevo código '${nuevoCodigo}' ya está en uso.`,
+    });
+  }
+
+  // 4. Normalizar y construir el objeto actualizado
+  const nombre = updatedUsuario.nombre
+    ? String(updatedUsuario.nombre).trim().toUpperCase()
+    : "";
+  const apellido = updatedUsuario.apellido
+    ? String(updatedUsuario.apellido).trim().toUpperCase()
+    : "";
+
+  const usuarioToSave = {
+    ...usuarios[userIndex], // Preservar campos no enviados (como 'notes' si existiera)
+    ...updatedUsuario, // Sobrescribir con los nuevos datos
+    codigo: nuevoCodigo,
+    nombre: nombre,
+    apellido: apellido,
+    nombre_completo: `${apellido}${
+      apellido && nombre ? " " : ""
+    }${nombre}`.trim(),
+  };
+
+  // 5. Limpiar campos de estudiante si el rol cambia a docente
+  if (usuarioToSave.rol === "docente") {
+    usuarioToSave.turno = "";
+    usuarioToSave.ciclo = "";
+  }
+
+  // 6. Reemplazar el usuario en el array
+  usuarios[userIndex] = usuarioToSave;
+
+  // 7. Guardar
+  try {
+    saveUsuarios(usuarios);
+    console.log(
+      `Usuarios Route: Usuario '${originalCodigo}' actualizado a '${nuevoCodigo}'.`
+    );
+    res.json({ exito: true, mensaje: "Usuario actualizado correctamente." });
+  } catch (writeErr) {
+    res.status(500).json({ exito: false, mensaje: writeErr.message });
+  }
+});
+// --- FIN NUEVA RUTA ---
 
 // DELETE /api/usuarios/:codigo - Eliminar usuario
 router.delete("/:codigo", (req, res) => {
