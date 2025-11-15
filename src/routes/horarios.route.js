@@ -2,7 +2,7 @@
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
-const { obtenerHorarios } = require("../utils/helpers"); // Importar solo lo necesario
+const { obtenerHorarios } = require("../utils/helpers"); // Importar para leer
 
 const router = express.Router();
 const horariosPath = path.join(__dirname, "../../data/horarios.json");
@@ -14,15 +14,16 @@ router.get("/", (req, res) => {
   res.json(horarios);
 });
 
-// POST /api/horarios - Guardar horarios
+// POST /api/horarios - Guardar horarios (MODIFICADO)
 router.post("/", (req, res) => {
-  const horarios = req.body;
+  const { ciclo, horarios } = req.body; // Nueva estructura: { ciclo: "ANUAL"|"default", horarios: { mañana: {...}, tarde: {...} } }
   const timeRegex = /^[0-2][0-9]:[0-5][0-9]$/; // Regex para HH:MM
 
-  // Validación robusta
+  // 1. Validar el payload
   if (
+    !ciclo ||
     !horarios ||
-    typeof horarios !== "object" || // Verificar que sea objeto
+    typeof horarios !== "object" ||
     !horarios.mañana ||
     typeof horarios.mañana !== "object" ||
     !horarios.tarde ||
@@ -38,20 +39,35 @@ router.post("/", (req, res) => {
   ) {
     console.log(
       "Horarios Route: Intento de guardar horarios con formato inválido.",
-      horarios
+      req.body
     );
     return res.status(400).json({ mensaje: "Formato de horarios inválido." });
   }
 
   try {
-    // Asegurar que la carpeta data exista
-    const dataDir = path.dirname(horariosPath);
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true });
+    // 2. Leer la configuración COMPLETA
+    const configCompleta = obtenerHorarios();
+
+    // 3. Modificar la sección correspondiente
+    if (ciclo === "default") {
+      configCompleta.default = horarios;
+      console.log("Horarios Route: Actualizando horarios 'default'.");
+    } else {
+      // Asegurarse de que el contenedor de ciclos exista
+      if (!configCompleta.ciclos) {
+        configCompleta.ciclos = {};
+      }
+      configCompleta.ciclos[ciclo] = horarios;
+      console.log(
+        `Horarios Route: Actualizando horarios para ciclo '${ciclo}'.`
+      );
     }
-    fs.writeFileSync(horariosPath, JSON.stringify(horarios, null, 2));
-    console.log("Horarios Route: Horarios actualizados.", horarios);
-    res.json({ mensaje: "Horarios actualizados correctamente" });
+
+    // 4. Guardar la configuración COMPLETA
+    fs.writeFileSync(horariosPath, JSON.stringify(configCompleta, null, 2));
+    res.json({
+      mensaje: `Horarios para '${ciclo}' actualizados correctamente`,
+    });
   } catch (err) {
     console.error("Horarios Route: Error al guardar horarios:", err);
     res.status(500).json({ mensaje: "Error interno al guardar horarios." });

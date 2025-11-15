@@ -5,6 +5,7 @@ const {
   estiloNoAsiste,
   estiloDocenteRegistrado,
   estilosEstadoEstudiante,
+  estiloTardanzaJustificada, // <-- AÑADIDO
   borderStyle,
   // --- IMPORTACIONES PARA HELPERS ---
   estiloDatosBase,
@@ -21,7 +22,6 @@ const {
 const { applyBaseDataRowStyles } = require("./excel.helpers.js"); // Importar helper de estilo
 
 function updateAttendanceRecord(hoja, usuario, horaStr, isJustified = false) {
-  // <-- Parámetro añadido
   let filaEncontrada = null;
   let numFila = -1;
 
@@ -65,12 +65,12 @@ function updateAttendanceRecord(hoja, usuario, horaStr, isJustified = false) {
   const celdaHora = filaEncontrada.getCell(5);
   const valorCelda = (celdaHora.value || "").toString().trim().toUpperCase();
 
-  // Modificado: Permitir sobrescribir "FALTA", "NO ASISTE", "JUSTIFICADO" o vacío
+  // Modificado: Permitir sobrescribir "FALTA", "NO ASISTE", "F. JUSTIFICADA" o vacío
   if (
     valorCelda !== "" &&
     valorCelda !== "FALTA" &&
     valorCelda !== "NO ASISTE" &&
-    valorCelda !== "JUSTIFICADO" &&
+    valorCelda !== "F. JUSTIFICADA" && // <-- MODIFICADO
     !valorCelda.endsWith("(J)") // No sobrescribir si ya está justificado
   ) {
     console.log(
@@ -86,12 +86,12 @@ function updateAttendanceRecord(hoja, usuario, horaStr, isJustified = false) {
   let estiloCeldaHora;
 
   if (usuario.rol === "estudiante") {
-    const estado = estadoAsistencia(usuario.turno, horaStr);
+    const estado = estadoAsistencia(usuario.ciclo, usuario.turno, horaStr);
 
     if (isJustified && (estado === "tarde" || estado === "tolerancia")) {
       // Es tardanza justificada
       valorHoraParaExcel = `${hora12h} (J)`;
-      estiloCeldaHora = estilosEstadoEstudiante.tolerancia; // Usar estilo naranja
+      estiloCeldaHora = estiloTardanzaJustificada;
     } else {
       // Registro normal
       estiloCeldaHora =
@@ -99,9 +99,13 @@ function updateAttendanceRecord(hoja, usuario, horaStr, isJustified = false) {
     }
   } else {
     // Docente
+    // --- INICIO DE LA CORRECCIÓN ---
     if (isJustified) {
+      // ¡AQUÍ ESTABA EL ERROR!
+      // No necesitamos 'estado', solo saber si es justificado.
       valorHoraParaExcel = `${hora12h} (J)`;
     }
+    // --- FIN DE LA CORRECCIÓN ---
     estiloCeldaHora = estiloDocenteRegistrado;
   }
   // --- FIN LÓGICA DE JUSTIFICACIÓN (J) ---

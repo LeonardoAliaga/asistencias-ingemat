@@ -6,11 +6,12 @@ const ExcelJS = require("exceljs");
 // --- IMPORTACIONES CORREGIDAS ---
 const { normalizarTexto, getFullName } = require("../utils/helpers.js");
 const {
-  estiloJustificado,
-  estilosEstadoEstudiante, // Importar para el map de preview
+  estiloFaltaJustificada, // <-- MODIFICADO
+  estilosEstadoEstudiante,
   estiloFalta,
   estiloNoAsiste,
   estiloDocenteRegistrado,
+  estiloTardanzaJustificada, // <-- AÑADIDO
 } = require("../services/excel/excel.constants.js");
 const usuariosPath = path.join(__dirname, "../../data/usuarios.json");
 // --- FIN IMPORTACIONES ---
@@ -117,7 +118,10 @@ router.get("/preview/:archivo", async (req, res) => {
       [estiloFalta.fill.fgColor.argb.substring(2)]: "falta",
       [estiloNoAsiste.fill.fgColor.argb.substring(2)]: "no_asiste",
       [estiloDocenteRegistrado.fill.fgColor.argb.substring(2)]: "docente",
-      [estiloJustificado.fill.fgColor.argb.substring(2)]: "justificado",
+      [estiloFaltaJustificada.fill.fgColor.argb.substring(2)]:
+        "falta_justificada", // <-- MODIFICADO
+      [estiloTardanzaJustificada.fill.fgColor.argb.substring(2)]:
+        "tardanza_justificada", // <-- AÑADIDO
     };
     // --- FIN ACTUALIZACIÓN ---
 
@@ -207,8 +211,8 @@ router.get("/preview/:archivo", async (req, res) => {
                 attendanceStatus = "falta";
               } else if (upperVal === "NO ASISTE") {
                 attendanceStatus = "no_asiste";
-              } else if (upperVal === "JUSTIFICADO") {
-                attendanceStatus = "justificado";
+              } else if (upperVal === "F. JUSTIFICADA") {
+                attendanceStatus = "falta_justificada";
               } else if (finalValue) {
                 // 2. Si es un valor (hora), usar el COLOR para el estado
                 const fillColor = cell.fill;
@@ -224,6 +228,10 @@ router.get("/preview/:archivo", async (req, res) => {
                     .substring(2);
                   // Usar colorMap, default a 'registrado' (para horas)
                   attendanceStatus = colorMap[bgColor] || "registrado";
+                  // Sobrescribir si es tardanza justificada (J)
+                  if (upperVal.endsWith("(J)")) {
+                    attendanceStatus = "tardanza_justificada";
+                  }
                 } else {
                   attendanceStatus = "registrado"; // Default para horas sin color
                 }
@@ -347,21 +355,22 @@ router.post("/justificar", async (req, res) => {
     const valorActual = celdaEstado.value?.toString().toUpperCase();
 
     if (valorActual === "FALTA") {
-      celdaEstado.value = "JUSTIFICADO";
+      celdaEstado.value = "F. JUSTIFICADA"; // <-- MODIFICADO
 
       // --- CORRECCIÓN DEFINITIVA ---
       // Asignar un clon profundo del objeto de estilo a la celda
       celdaEstado.style = {
-        fill: { ...estiloJustificado.fill },
-        font: { ...estiloJustificado.font },
-        alignment: { ...estiloJustificado.alignment },
-        border: { ...estiloJustificado.border },
+        fill: { ...estiloFaltaJustificada.fill }, // <-- MODIFICADO
+        font: { ...estiloFaltaJustificada.font }, // <-- MODIFICADO
+        alignment: { ...estiloFaltaJustificada.alignment }, // <-- MODIFICADO
+        border: { ...estiloFaltaJustificada.border }, // <-- MODIFICADO
       };
       // --- FIN CORRECCIÓN ---
 
       await workbook.xlsx.writeFile(rutaExcel);
       res.json({ exito: true, mensaje: "Falta justificada correctamente." });
-    } else if (valorActual === "JUSTIFICADO") {
+    } else if (valorActual === "F. JUSTIFICADA") {
+      // <-- MODIFICADO
       res
         .status(400)
         .json({ exito: false, mensaje: "Esta falta ya estaba justificada." });

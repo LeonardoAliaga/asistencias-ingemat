@@ -1,12 +1,16 @@
 // Proyecto/Public/js/carousel.js
 
-document.addEventListener("DOMContentLoaded", () => {
+// --- MODIFICADO: Envolver todo en una función ---
+function initCarousel() {
   const slidesContainer = document.querySelector(".carousel-slides");
   const slides = document.querySelectorAll(".carousel-slide");
   const prevBtn = document.querySelector(".prev-btn");
   const nextBtn = document.querySelector(".next-btn");
 
-  if (!slidesContainer || slides.length === 0) return;
+  if (!slidesContainer || slides.length === 0 || !prevBtn || !nextBtn) {
+    console.warn("Elementos del carrusel no encontrados. No se iniciará.");
+    return;
+  }
 
   let currentIndex = 0;
 
@@ -33,6 +37,15 @@ document.addEventListener("DOMContentLoaded", () => {
   nextBtn.addEventListener("click", nextSlide);
   prevBtn.addEventListener("click", prevSlide);
 
-  // 🔥 NUEVO: Auto-play, cambia de diapositiva cada 3000ms (3 segundos)
+  // Auto-play, cambia de diapositiva
   setInterval(nextSlide, 5000);
+
+  // Asegurarse que el primer slide esté activo
+  updateCarousel();
+}
+
+// --- MODIFICADO: Esperar al evento personalizado ---
+document.addEventListener("carouselReady", () => {
+  console.log("Carousel Ready: Inicializando carrusel...");
+  initCarousel();
 });

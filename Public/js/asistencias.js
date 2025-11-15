@@ -18,6 +18,10 @@ document
     const registrarBtn = document.getElementById("registrar-btn");
     const resultadoDiv = document.getElementById("resultado");
 
+    // --- AÑADIDO: Forzar mayúsculas en el input de registro ---
+    codigoInput.style.textTransform = "uppercase";
+    // --- FIN AÑADIDO ---
+
     // --- NUEVO: Función para manejar el registro ---
     const registrarAsistencia = async () => {
       const codigo = codigoInput.value.trim(); // Leer valor actual del input
@@ -47,9 +51,9 @@ document
             else if (data.estado === "tolerancia")
               estadoTexto = "🟠 Tolerancia";
             else if (data.estado === "tarde") estadoTexto = "🔴 Tarde";
-            // --- NUEVO ESTADO JUSTIFICADO ---
+            // --- MODIFICADO: Texto para tardanza justificada ---
             else if (data.estado === "justificada")
-              estadoTexto = "🟠 Tarde (J)"; // Color Naranja
+              estadoTexto = "🟠 Tard. Justif."; // Color Naranja
 
             resultadoDiv.innerHTML = `
             <span><b>Ciclo:</b> ${data.ciclo} | <b>Turno:</b> ${

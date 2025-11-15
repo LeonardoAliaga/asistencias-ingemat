@@ -5,14 +5,17 @@ const path = require("path");
 const horariosPath = path.join(__dirname, "../../data/horarios.json");
 const ciclosPath = path.join(__dirname, "../../data/ciclos.json"); // Añadido path
 
-// Si el archivo no existe, usa valores por defecto
+// Si el archivo no existe, usa valores por defecto (NUEVA ESTRUCTURA)
 function obtenerHorarios() {
   try {
     // Asegurar que exista el archivo
     if (!fs.existsSync(horariosPath)) {
       const defaultHorarios = {
-        mañana: { entrada: "08:30", tolerancia: "08:35" },
-        tarde: { entrada: "15:00", tolerancia: "15:15" },
+        default: {
+          mañana: { entrada: "08:30", tolerancia: "08:35" },
+          tarde: { entrada: "15:00", tolerancia: "15:15" },
+        },
+        ciclos: {}, // Inicialmente vacío
       };
       fs.writeFileSync(horariosPath, JSON.stringify(defaultHorarios, null, 2));
       console.log(
@@ -20,13 +23,32 @@ function obtenerHorarios() {
       );
       return defaultHorarios;
     }
-    return JSON.parse(fs.readFileSync(horariosPath, "utf8"));
+    const data = JSON.parse(fs.readFileSync(horariosPath, "utf8"));
+    // Asegurar que la estructura mínima exista
+    if (!data.default || !data.ciclos) {
+      const mergedData = {
+        default: data.default || {
+          mañana: data.mañana || { entrada: "08:30", tolerancia: "08:35" },
+          tarde: data.tarde || { entrada: "15:00", tolerancia: "15:15" },
+        },
+        ciclos: data.ciclos || {},
+      };
+      delete mergedData.mañana; // Limpiar estructura antigua
+      delete mergedData.tarde; // Limpiar estructura antigua
+      fs.writeFileSync(horariosPath, JSON.stringify(mergedData, null, 2));
+      console.log("Utils: Migrando horarios.json a nueva estructura.");
+      return mergedData;
+    }
+    return data;
   } catch (error) {
     console.error("Utils: Error al leer/crear horarios.json:", error);
     // Devolver default en caso de error grave
     return {
-      mañana: { entrada: "08:30", tolerancia: "08:35" },
-      tarde: { entrada: "15:00", tolerancia: "15:15" },
+      default: {
+        mañana: { entrada: "08:30", tolerancia: "08:35" },
+        tarde: { entrada: "15:00", tolerancia: "15:15" },
+      },
+      ciclos: {},
     };
   }
 }
@@ -88,32 +110,47 @@ function convertirAHoras(horaStr) {
   return h + m / 60;
 }
 
-// Lógica de Asistencia usando horarios configurables
-function estadoAsistencia(turno, horaStr) {
-  const horarios = obtenerHorarios();
-  const horaNum = convertirAHoras(horaStr); // Necesitamos convertirAHoras
-  // Verificar si la conversión falló
+// Lógica de Asistencia (MODIFICADA para usar horarios por ciclo)
+function estadoAsistencia(cicloUsuario, turno, horaStr) {
+  const horariosConfig = obtenerHorarios();
+  const horaNum = convertirAHoras(horaStr);
   if (horaNum === -1) {
     console.warn(
       `Utils: Hora inválida '${horaStr}' recibida en estadoAsistencia.`
     );
-    return "tarde"; // O un estado por defecto/error
+    return "tarde";
   }
 
-  // Usar un turno por defecto si no se encuentra (ej. mañana)
-  const { entrada, tolerancia } = horarios[turno] ||
-    horarios["mañana"] || { entrada: "08:30", tolerancia: "08:35" };
+  let horariosTurno;
+  // 1. Intentar obtener el horario específico del ciclo
+  if (
+    cicloUsuario &&
+    horariosConfig.ciclos[cicloUsuario] &&
+    horariosConfig.ciclos[cicloUsuario][turno]
+  ) {
+    horariosTurno = horariosConfig.ciclos[cicloUsuario][turno];
+    console.log(`Utils: Usando horario de CICLO ${cicloUsuario} - ${turno}.`);
+  } else {
+    // 2. Usar el horario "default"
+    horariosTurno = horariosConfig.default[turno];
+    console.log(`Utils: Usando horario DEFAULT - ${turno}.`);
+  }
+
+  // 3. Fallback final si todo falla
+  const { entrada, tolerancia } = horariosTurno || {
+    entrada: "08:30",
+    tolerancia: "08:35",
+  };
   const hEntrada = convertirAHoras(entrada);
   const hTol = convertirAHoras(tolerancia);
 
-  // Verificar si las conversiones de horarios fallaron
   if (hEntrada === -1 || hTol === -1) {
     console.error(
-      `Utils: Formato de horario inválido en horarios.json para turno '${
-        turno || "default"
-      }'. Entrada: ${entrada}, Tolerancia: ${tolerancia}`
+      `Utils: Formato de horario inválido en horarios.json para ${
+        cicloUsuario || "default"
+      } - ${turno}. E:${entrada}, T:${tolerancia}`
     );
-    return "tarde"; // Estado por defecto en caso de error de configuración
+    return "tarde";
   }
 
   if (horaNum < hEntrada) return "puntual";
@@ -144,8 +181,6 @@ function getFullName(usuario = {}) {
   return "";
 }
 
-// FUNCIÓN AUXILIAR APLICAR ESTILO (ELIMINADA)
-
 // Obtener lista de ciclos (Movido de api.route.js)
 function getCiclosData() {
   try {
@@ -172,7 +207,6 @@ module.exports = {
   convertirAHoras, // Necesario para estadoAsistencia
   estadoAsistencia,
   normalizarTexto,
-  // aplicarEstiloCelda, <-- ELIMINADO
   obtenerHorarios,
   getDayAbbreviation,
   convertTo12Hour, // Exportar para usar en otros módulos

@@ -4,6 +4,7 @@ import { initAccordion } from "./accordion.js";
 
 let allUserOptions = []; // Caché de usuarios para justificar
 let currentAutocompleteFocus = -1; // Para navegación por teclado
+let fullHorariosConfig = {}; // <-- NUEVO: Caché para la config de horarios
 
 // Helper cliente: obtener nombre completo desde objetos usuario
 // Devuelve preferentemente "APELLIDO NOMBRE" (sin coma). Usa heurística para registros legacy.
@@ -760,14 +761,19 @@ function populateTimeSelects(hrSelect, minSelect) {
 function setPickerFrom24h(time24h, hrSelect, minSelect, ampmSelect) {
   if (!time24h || !hrSelect || !minSelect || !ampmSelect) return;
 
-  const [hours, minutes] = time24h.split(":").map(Number);
-  const ampm = hours >= 12 ? "PM" : "AM";
-  let hr12 = hours % 12;
-  if (hr12 === 0) hr12 = 12;
+  try {
+    const [hours, minutes] = time24h.split(":").map(Number);
+    const ampm = hours >= 12 ? "PM" : "AM";
+    let hr12 = hours % 12;
+    if (hr12 === 0) hr12 = 12;
 
-  hrSelect.value = hr12.toString().padStart(2, "0");
-  minSelect.value = minutes.toString().padStart(2, "0");
-  ampmSelect.value = ampm;
+    hrSelect.value = hr12.toString().padStart(2, "0");
+    minSelect.value = minutes.toString().padStart(2, "0");
+    ampmSelect.value = ampm;
+  } catch (e) {
+    console.error(`Error al setear picker desde 24h: ${time24h}`, e);
+    // No hacer nada, dejar los valores por defecto
+  }
 }
 
 function convert24hTo12h(time24h) {
@@ -786,10 +792,9 @@ function convert24hTo12h(time24h) {
   }
 }
 
+// --- FUNCIÓN cargarHorarios (MODIFICADA) ---
 export async function cargarHorarios() {
-  const res = await fetch("/api/horarios");
-  const horarios = await res.json();
-
+  // 1. Referencias a todos los elementos del picker
   const em_hr = document.getElementById("entrada-manana-hr");
   const em_min = document.getElementById("entrada-manana-min");
   const em_ampm = document.getElementById("entrada-manana-ampm");
@@ -802,10 +807,14 @@ export async function cargarHorarios() {
   const tt_hr = document.getElementById("tolerancia-tarde-hr");
   const tt_min = document.getElementById("tolerancia-tarde-min");
   const tt_ampm = document.getElementById("tolerancia-tarde-ampm");
-
   const summaryManana = document.getElementById("summary-manana");
+  const summaryTarde = document.getElementById("summary-tarde");
+  const cicloSelect = document.getElementById("horarios-ciclo-select");
 
-  if (em_hr && em_hr.options.length === 0) {
+  if (!cicloSelect || !em_hr) return; // Salir si los elementos no están
+
+  // 2. Rellenar los pickers (HH, MM) solo una vez
+  if (em_hr.options.length === 0) {
     console.log("Rellenando selectores de hora por primera vez.");
     populateTimeSelects(em_hr, em_min);
     populateTimeSelects(tm_hr, tm_min);
@@ -813,25 +822,71 @@ export async function cargarHorarios() {
     populateTimeSelects(tt_hr, tt_min);
   }
 
-  if (em_hr) {
-    setPickerFrom24h(horarios.mañana.entrada, em_hr, em_min, em_ampm);
-    setPickerFrom24h(horarios.mañana.tolerancia, tm_hr, tm_min, tm_ampm);
-    setPickerFrom24h(horarios.tarde.entrada, et_hr, et_min, et_ampm);
-    setPickerFrom24h(horarios.tarde.tolerancia, tt_hr, tt_min, tt_ampm);
-  }
+  try {
+    // 3. Obtener la lista de ciclos (de /api/ciclos)
+    const resCiclos = await fetch("/api/ciclos");
+    const ciclosData = await resCiclos.json();
+    const ciclos = ciclosData.ciclos || [];
 
-  if (summaryManana) {
-    const h12_em = convert24hTo12h(horarios.mañana.entrada);
-    const h12_tm = convert24hTo12h(horarios.mañana.tolerancia);
-    const h12_et = convert24hTo12h(horarios.tarde.entrada);
-    const h12_tt = convert24hTo12h(horarios.tarde.tolerancia);
+    // 4. Obtener la configuración completa de horarios
+    const resHorarios = await fetch("/api/horarios");
+    fullHorariosConfig = await resHorarios.json(); // Guardar en caché global
 
-    document.getElementById(
-      "summary-manana"
-    ).textContent = `Entrada: ${h12_em} | Tolerancia: ${h12_tm}`;
-    document.getElementById(
-      "summary-tarde"
-    ).textContent = `Entrada: ${h12_et} | Tolerancia: ${h12_tt}`;
+    // 5. Poblar el select de ciclos
+    cicloSelect.innerHTML =
+      '<option value="default">Horario Default (General)</option>';
+    ciclos.forEach((ciclo) => {
+      const option = document.createElement("option");
+      option.value = ciclo;
+      option.textContent = `Ciclo: ${ciclo}`;
+      cicloSelect.appendChild(option);
+    });
+
+    // 6. Función para actualizar los pickers
+    const actualizarPickers = (cicloKey) => {
+      let config = fullHorariosConfig.default; // Empezar con default
+
+      if (
+        cicloKey !== "default" &&
+        fullHorariosConfig.ciclos &&
+        fullHorariosConfig.ciclos[cicloKey]
+      ) {
+        // Si existe config para este ciclo, usarla
+        config = fullHorariosConfig.ciclos[cicloKey];
+      } else if (cicloKey !== "default") {
+        // Si no existe, usar default (y mostrarlo)
+        config = fullHorariosConfig.default;
+        console.log(`No hay horario para ${cicloKey}, mostrando 'default'.`);
+      }
+
+      // Poblar los 8 selects y 2 resúmenes
+      setPickerFrom24h(config.mañana.entrada, em_hr, em_min, em_ampm);
+      setPickerFrom24h(config.mañana.tolerancia, tm_hr, tm_min, tm_ampm);
+      setPickerFrom24h(config.tarde.entrada, et_hr, et_min, et_ampm);
+      setPickerFrom24h(config.tarde.tolerancia, tt_hr, tt_min, tt_ampm);
+
+      const h12_em = convert24hTo12h(config.mañana.entrada);
+      const h12_tm = convert24hTo12h(config.mañana.tolerancia);
+      const h12_et = convert24hTo12h(config.tarde.entrada);
+      const h12_tt = convert24hTo12h(config.tarde.tolerancia);
+
+      if (summaryManana)
+        summaryManana.textContent = `Entrada: ${h12_em} | Tolerancia: ${h12_tm}`;
+      if (summaryTarde)
+        summaryTarde.textContent = `Entrada: ${h12_et} | Tolerancia: ${h12_tt}`;
+    };
+
+    // 7. Añadir el listener al select
+    cicloSelect.onchange = () => {
+      actualizarPickers(cicloSelect.value);
+    };
+
+    // 8. Cargar los valores 'default' al inicio
+    cicloSelect.value = "default";
+    actualizarPickers("default");
+  } catch (error) {
+    console.error("Error al cargar horarios o ciclos:", error);
+    cicloSelect.innerHTML = '<option value="">Error al cargar ciclos</option>';
   }
 }
 

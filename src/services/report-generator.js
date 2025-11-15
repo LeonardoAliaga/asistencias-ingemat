@@ -8,7 +8,8 @@ const {
   estiloFalta,
   estiloNoAsiste,
   estiloDocenteRegistrado,
-  estiloJustificado, // <-- AÑADIDO
+  estiloFaltaJustificada, // <-- MODIFICADO (estiloJustificado -> estiloFaltaJustificada)
+  estiloTardanzaJustificada, // <-- AÑADIDO
   estiloDatosBase,
   estiloEncabezadoBase,
   fillEncabezadoDocente,
@@ -62,10 +63,15 @@ const styles = {
     bg: "#" + estiloNoAsiste.fill.fgColor.argb.substring(2),
     text: "#" + estiloNoAsiste.font.color.argb.substring(2),
   },
-  justificado: {
-    // <-- AÑADIDO
-    bg: "#" + estiloJustificado.fill.fgColor.argb.substring(2),
-    text: "#" + estiloJustificado.font.color.argb.substring(2),
+  falta_justificada: {
+    // <-- MODIFICADO (justificado -> falta_justificada)
+    bg: "#" + estiloFaltaJustificada.fill.fgColor.argb.substring(2),
+    text: "#" + estiloFaltaJustificada.font.color.argb.substring(2),
+  },
+  // --- NUEVO ESTILO AÑADIDO ---
+  tardanza_justificada: {
+    bg: "#" + estiloTardanzaJustificada.fill.fgColor.argb.substring(2),
+    text: "#" + estiloTardanzaJustificada.font.color.argb.substring(2),
   },
   registrado: { bg: "#E7E6E6", text: "#000000" },
   header: {
@@ -97,7 +103,8 @@ const colorMap = {
   [estiloFalta.fill.fgColor.argb]: "falta",
   [estiloNoAsiste.fill.fgColor.argb]: "no_asiste",
   [estiloDocenteRegistrado.fill.fgColor.argb]: "docente",
-  [estiloJustificado.fill.fgColor.argb]: "justificado", // <-- AÑADIDO
+  [estiloFaltaJustificada.fill.fgColor.argb]: "falta_justificada", // <-- MODIFICADO
+  [estiloTardanzaJustificada.fill.fgColor.argb]: "tardanza_justificada", // <-- AÑADIDO
 };
 // --- FIN CONFIGURACIÓN ---
 
@@ -184,7 +191,12 @@ async function getExcelData(fileName) {
           // Fallback por texto si el color no está mapeado
           if (upperVal === "FALTA") status = "falta";
           else if (upperVal === "NO ASISTE") status = "no_asiste";
-          else if (upperVal === "JUSTIFICADO") status = "justificado"; // <-- AÑADIDO
+          else if (upperVal === "F. JUSTIFICADA") status = "falta_justificada"; // <-- MODIFICADO
+        }
+
+        // Check para tardanza justificada (J)
+        if (upperVal.endsWith("(J)") && status !== "puntual") {
+          status = "tardanza_justificada";
         }
         // --- FIN LÓGICA DE ESTADO ---
 

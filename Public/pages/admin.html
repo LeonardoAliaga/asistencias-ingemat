@@ -55,6 +55,30 @@
           <section id="horarios-section">
             <h2><i class="bi bi-clock-fill"></i> CONFIGURAR HORARIOS</h2>
             <form id="form-horarios">
+              <div
+                class="form-group"
+                style="margin-bottom: 15px; flex-wrap: wrap"
+              >
+                <label
+                  for="horarios-ciclo-select"
+                  style="font-weight: bold; font-size: 1rem"
+                  >Configurar horarios para:</label
+                >
+                <select id="horarios-ciclo-select" required>
+                  <option value="">Cargando ciclos...</option>
+                </select>
+                <small
+                  style="
+                    color: #555;
+                    font-size: 0.85rem;
+                    width: 100%;
+                    margin-top: 5px;
+                  "
+                  >El horario 'Default' se usa si un ciclo no tiene horario
+                  propio.</small
+                >
+              </div>
+
               <div>
                 <div class="time-picker-group">
                   <label for="entrada-manana-hr">Mañana - Entrada:</label>
@@ -165,7 +189,6 @@
             </form>
             <div id="msg-horarios"></div>
           </section>
-
           <section id="gestion-ciclos-section">
             <h2><i class="bi bi-calendar-range"></i> GESTIÓN DE CICLOS</h2>
             <div id="ciclos-list-container">
@@ -188,7 +211,13 @@
           <section id="agregar-usuario-section">
             <h2><i class="bi bi-person-plus-fill"></i> AGREGAR USUARIO</h2>
             <form id="form-agregar">
-              <input type="text" id="codigo" placeholder="Código" required />
+              <input
+                type="text"
+                id="codigo"
+                placeholder="Código"
+                required
+                style="text-transform: uppercase"
+              />
               <div style="display: flex; gap: 8px; flex-wrap: wrap">
                 <input
                   type="text"
@@ -759,7 +788,7 @@
     </div>
     <div id="vista-info" class="vista-content" style="display: none">
       <h2 class="sub-header">
-        <i class="bi bi-info-square-fill"></i> INFO - Ciclos
+        <i class="bi bi-info-square-fill"></i> INFO - Ciclos y Carrusel
       </h2>
       <section id="info-section">
         <div
@@ -846,6 +875,78 @@
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      </section>
+      <section id="carousel-manager-section">
+        <h2
+          class="sub-header"
+          style="text-align: left; margin-top: 1rem; font-size: 1.5rem"
+        >
+          <i class="bi bi-images"></i> Gestor de Carrusel (Ingresantes)
+        </h2>
+        <div class="carousel-grid">
+          <div class="carousel-upload-col">
+            <h4>Subir Nueva Imagen</h4>
+            <p class="carousel-instructions">
+              <br />
+              Te recomendamos usar esta plantilla de Canva:
+              <a
+                href="https://www.canva.com/design/DAG10VmjnX8/I9YdaWBl2Fdh9KU-OQg0-Q/edit?utm_content=DAG10VmjnX8&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton"
+                target="_blank"
+                >Abrir Plantilla de Canva</a
+              >
+            </p>
+            <label
+              for="carousel-upload-name"
+              style="
+                font-weight: 600;
+                font-size: 0.9rem;
+                margin-bottom: 5px;
+                display: block;
+              "
+              >Nombre para el archivo:</label
+            >
+            <input
+              type="text"
+              id="carousel-upload-name"
+              placeholder="Ej: ingresante-juan-perez"
+              style="margin-bottom: 15px"
+            />
+            <label
+              for="carousel-upload-input"
+              style="
+                font-weight: 600;
+                font-size: 0.9rem;
+                margin-bottom: 5px;
+                display: block;
+              "
+              >Seleccionar Archivo (1080x1080):</label
+            >
+            <input
+              type="file"
+              id="carousel-upload-input"
+              accept="image/png, image/jpeg"
+            />
+            <div id="carousel-preview-container" style="display: none">
+              <img id="carousel-preview" alt="Vista previa" />
+              <span id="carousel-preview-dims"></span>
+            </div>
+            <button id="btn-upload-carousel" class="btn-form-submit" disabled>
+              <i class="bi bi-upload"></i> Subir Imagen
+            </button>
+            <div
+              id="msg-carousel-upload"
+              class="form-message"
+              style="margin-top: 10px"
+            ></div>
+          </div>
+
+          <div class="carousel-list-col">
+            <h4>Imágenes Actuales</h4>
+            <div id="carousel-list-container">
+              <p>Cargando imágenes...</p>
+            </div>
           </div>
         </div>
       </section>

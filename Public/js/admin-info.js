@@ -1,5 +1,6 @@
 // Public/js/admin-info.js
 document.addEventListener("DOMContentLoaded", () => {
+  // --- Selectores GESTOR DE CICLOS ---
   const btn = document.getElementById("btn-vista-info");
   const infoView = document.getElementById("info-section");
   const btnAdd = document.getElementById("btn-add-ciclo");
@@ -10,8 +11,19 @@ document.addEventListener("DOMContentLoaded", () => {
   const cancelBtn = document.getElementById("ciclo-cancel");
   const slugInput = document.getElementById("ciclo-slug");
 
-  // Nota: la navegación entre vistas la maneja `admin.js`.
-  // Aquí solo nos aseguramos de que el elemento exista.
+  // --- Selectores GESTOR DE CARRUSEL (NUEVOS) ---
+  const fileInput = document.getElementById("carousel-upload-input");
+  const uploadNameInput = document.getElementById("carousel-upload-name"); // <-- AÑADIDO
+  const previewContainer = document.getElementById(
+    "carousel-preview-container"
+  );
+  const previewImage = document.getElementById("carousel-preview");
+  const previewDims = document.getElementById("carousel-preview-dims");
+  const uploadBtn = document.getElementById("btn-upload-carousel");
+  const imageListContainer = document.getElementById("carousel-list-container");
+  const uploadMsg = document.getElementById("msg-carousel-upload");
+
+  // --- Lógica GESTOR DE CICLOS ---
   if (btn && infoView) {
     // Nada adicional: `admin.js` mostrará la vista principal y activará el botón.
   }
@@ -23,7 +35,6 @@ document.addEventListener("DOMContentLoaded", () => {
   closeBtn && closeBtn.addEventListener("click", closeForm);
   cancelBtn && cancelBtn.addEventListener("click", closeForm);
 
-  // Validaciones de slug en tiempo real
   if (slugInput) {
     slugInput.addEventListener("input", (e) => {
       e.target.value = sanitizeSlug(e.target.value);
@@ -32,14 +43,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let editingSlug = null;
 
-  // Función para sanitizar slug
   function sanitizeSlug(text) {
     return text
-      .toLowerCase() // Minúsculas
-      .trim() // Quitar espacios al inicio/fin
-      .replace(/\s+/g, "-") // Espacios → guiones
-      .replace(/[^a-z0-9\-]/g, "") // Solo letras, números y guiones
-      .replace(/-+/g, "-"); // Guiones múltiples → un guión
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9\-]/g, "")
+      .replace(/-+/g, "-");
   }
 
   function openForm(ciclo) {
@@ -72,15 +82,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
-
     const slug = document.getElementById("ciclo-slug").value.trim();
-
-    // Validar slug
     if (!slug || !/^[a-z0-9\-]+$/.test(slug)) {
       alert("Slug inválido. Solo minúsculas, números y guiones permitidos.");
       return;
     }
-
     const payload = {
       titulo: document.getElementById("ciclo-titulo").value.trim(),
       slug: slug,
@@ -95,8 +101,6 @@ document.addEventListener("DOMContentLoaded", () => {
         : undefined,
       published: document.getElementById("ciclo-published").checked,
     };
-
-    // Validaciones básicas
     if (!payload.titulo || !payload.slug) {
       alert("Título y Slug son obligatorios.");
       return;
@@ -159,6 +163,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const current = (c.priceHistory || []).find((p) => p.to === null) || {};
       const prev = (c.priceHistory || []).slice().reverse()[1] || null;
 
+      // --- INICIO CORRECCIÓN 1: HTML COMPLETO DE LA TARJETA DE CICLO ---
       div.innerHTML = `
         <div class="ciclo-admin-header">
           <div class="ciclo-admin-title">
@@ -208,8 +213,10 @@ document.addEventListener("DOMContentLoaded", () => {
           }"><i class="bi bi-trash"></i> Eliminar</button>
         </div>
       `;
+      // --- FIN CORRECCIÓN 1 ---
       list.appendChild(div);
     });
+
     // bind events
     list.querySelectorAll("[data-edit]").forEach((b) =>
       b.addEventListener("click", (ev) => {
@@ -238,5 +245,176 @@ document.addEventListener("DOMContentLoaded", () => {
     );
   }
 
+  // --- Lógica GESTOR DE CARRUSEL (NUEVA) ---
+
+  let currentBase64Image = null;
+  const targetWidth = 1080;
+  const targetHeight = 1080;
+  let isResolutionValid = false; // <-- AÑADIDO
+
+  function showCarouselMessage(message, isError = false) {
+    uploadMsg.textContent = message;
+    uploadMsg.className = isError
+      ? "form-message error"
+      : "form-message success";
+    uploadMsg.style.display = "block";
+  }
+
+  // --- FUNCIÓN MODIFICADA ---
+  function validateUploadButton() {
+    const name = uploadNameInput.value.trim();
+    if (isResolutionValid && name) {
+      uploadBtn.disabled = false;
+      showCarouselMessage("Resolución correcta y nombre listo.", false);
+    } else if (!isResolutionValid) {
+      uploadBtn.disabled = true;
+      showCarouselMessage(
+        `Resolución incorrecta. Se requiere ${targetWidth}x${targetHeight}.`,
+        true
+      );
+    } else if (!name) {
+      uploadBtn.disabled = true;
+      showCarouselMessage(
+        "Por favor, introduce un nombre para el archivo.",
+        true
+      );
+    }
+  }
+
+  if (fileInput) {
+    fileInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) {
+        previewContainer.style.display = "none";
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = function (event) {
+        const img = new Image();
+        img.onload = function () {
+          const w = this.width;
+          const h = this.height;
+          previewDims.textContent = `${w}x${h} píxeles`;
+          previewImage.src = event.target.result;
+          previewContainer.style.display = "block";
+          currentBase64Image = event.target.result;
+
+          if (w === targetWidth && h === targetHeight) {
+            previewDims.style.color = "green";
+            isResolutionValid = true; // <-- MODIFICADO
+          } else {
+            previewDims.style.color = "red";
+            isResolutionValid = false; // <-- MODIFICADO
+          }
+          validateUploadButton(); // <-- MODIFICADO
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // --- LISTENER AÑADIDO ---
+  if (uploadNameInput) {
+    uploadNameInput.addEventListener("input", validateUploadButton);
+  }
+
+  if (uploadBtn) {
+    uploadBtn.addEventListener("click", async () => {
+      if (!currentBase64Image || uploadBtn.disabled) return;
+      uploadBtn.disabled = true;
+      showCarouselMessage("Subiendo imagen...", false);
+
+      try {
+        const res = await fetch("/api/carousel", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            imageData: currentBase64Image,
+            imageName: imageName, // <-- ENVIAR EL NOMBRE
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.mensaje || "Error del servidor.");
+
+        showCarouselMessage("Imagen subida con éxito.", false);
+        fileInput.value = "";
+        uploadNameInput.value = ""; // <-- LIMPIAR NOMBRE
+        previewContainer.style.display = "none";
+        currentBase64Image = null;
+        isResolutionValid = false;
+        loadCarouselImages(); // Recargar la lista
+      } catch (err) {
+        showCarouselMessage(`Error: ${err.message}`, true);
+      } finally {
+        uploadBtn.disabled = false;
+      }
+    });
+  }
+
+  async function loadCarouselImages() {
+    if (!imageListContainer) return;
+    imageListContainer.innerHTML = "<p>Cargando imágenes...</p>";
+    try {
+      const res = await fetch("/api/carousel");
+      const data = await res.json();
+      if (!data.exito || !data.images)
+        throw new Error("No se pudo cargar la lista.");
+
+      if (data.images.length === 0) {
+        imageListContainer.innerHTML = "<p>No hay imágenes en el carrusel.</p>";
+        return;
+      }
+
+      imageListContainer.innerHTML = "";
+      data.images.forEach((imgName) => {
+        const item = document.createElement("div");
+        item.className = "carousel-item";
+
+        // --- INICIO CORRECCIÓN 2: AÑADIR ÍCONO AL BOTÓN ---
+        item.innerHTML = `
+          <img src="../img/ingresantes/${imgName}" alt="${imgName}" class="carousel-item-preview" />
+          <span class="carousel-item-name">${imgName}</span>
+          <button class="btn-delete-carousel" data-filename="${imgName}" title="Eliminar">
+            <i class="bi bi-trash-fill"></i>
+          </button>
+        `;
+        // --- FIN CORRECCIÓN 2 ---
+
+        item
+          .querySelector(".btn-delete-carousel")
+          .addEventListener("click", handleDeleteCarouselImage);
+        imageListContainer.appendChild(item);
+      });
+    } catch (err) {
+      imageListContainer.innerHTML = `<p style="color:red;">${err.message}</p>`;
+    }
+  }
+
+  async function handleDeleteCarouselImage(e) {
+    const btn = e.currentTarget;
+    const filename = btn.getAttribute("data-filename");
+
+    if (!confirm(`¿Seguro que deseas eliminar la imagen ${filename}?`)) {
+      return;
+    }
+
+    btn.disabled = true;
+    try {
+      const res = await fetch(`/api/carousel/${filename}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.mensaje);
+
+      loadCarouselImages(); // Recargar lista
+    } catch (err) {
+      alert(`Error al eliminar: ${err.message}`);
+      btn.disabled = false;
+    }
+  }
+
+  // --- Carga inicial de ambas listas ---
   loadList();
+  loadCarouselImages();
 });

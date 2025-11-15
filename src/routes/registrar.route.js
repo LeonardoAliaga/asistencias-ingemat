@@ -170,7 +170,8 @@ router.post("/", async (req, res) => {
       usuario.rol === "estudiante" &&
       whatsappConfig.studentNotificationsEnabled
     ) {
-      const estado = estadoAsistencia(usuario.turno, horaStr);
+      // --- MODIFICADO: Pasar 'usuario.ciclo' a estadoAsistencia ---
+      const estado = estadoAsistencia(usuario.ciclo, usuario.turno, horaStr);
       let estadoEmoji = "";
       if (estado === "puntual") estadoEmoji = "✅";
       else if (estado === "tolerancia") estadoEmoji = "⚠️";
@@ -230,7 +231,8 @@ router.post("/", async (req, res) => {
   // --- Lógica de Estado de Respuesta (MODIFICADA) ---
   let estadoRespuesta = "";
   if (usuario.rol === "estudiante") {
-    estadoRespuesta = estadoAsistencia(usuario.turno, horaStr);
+    // --- MODIFICADO: Pasar 'usuario.ciclo' a estadoAsistencia ---
+    estadoRespuesta = estadoAsistencia(usuario.ciclo, usuario.turno, horaStr);
     if (
       isJustified &&
       (estadoRespuesta === "tarde" || estadoRespuesta === "tolerancia")

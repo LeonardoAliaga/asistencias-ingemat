@@ -7,6 +7,7 @@ const ciclosVisualRouter = require("./ciclos_visual.route");
 const notesRouter = require("./notes.route");
 const excelRouter = require("./excel.route");
 const horariosRouter = require("./horarios.route");
+const carouselRouter = require("./carousel.route"); // <-- AÑADIDO
 
 const router = express.Router();
 
@@ -18,5 +19,6 @@ router.use("/ciclos-visual", ciclosVisualRouter);
 router.use("/notes", notesRouter);
 router.use("/excel", excelRouter);
 router.use("/horarios", horariosRouter);
+router.use("/carousel", carouselRouter); // <-- AÑADIDO
 
 module.exports = router;

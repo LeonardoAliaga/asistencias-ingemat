@@ -48,7 +48,7 @@ async function mostrarVista(vistaId, buttonId) {
     // Esperar a que los usuarios carguen es crucial para el buscador
     await cargarUsuarios();
     await cargarArchivosExcel();
-    await cargarHorarios();
+    await cargarHorarios(); // <-- cargarHorarios ahora es async
     await cargarCiclos();
     // *** CORRECCIÓN: Eliminar llamada duplicada a initUserFormEvents() ***
     // (Ya se llama en window.onload después de la carga inicial)
@@ -112,13 +112,24 @@ function get24hFromPicker(hrId, minId, ampmId) {
   }
 }
 
-// Formulario Horarios
+// Formulario Horarios (MODIFICADO)
 document.getElementById("form-horarios").onsubmit = async function (e) {
   e.preventDefault();
   const botonSubmit = this.querySelector('button[type="submit"]');
   botonSubmit.disabled = true;
 
-  const payload = {
+  // 1. Obtener el ciclo seleccionado
+  const cicloSeleccionado = document.getElementById(
+    "horarios-ciclo-select"
+  ).value;
+  if (!cicloSeleccionado) {
+    showGlobalMessage("msg-horarios", `Error: No se seleccionó ciclo.`, true);
+    botonSubmit.disabled = false;
+    return;
+  }
+
+  // 2. Obtener los horarios de los pickers
+  const payloadHorarios = {
     mañana: {
       entrada: get24hFromPicker(
         "entrada-manana-hr",
@@ -145,6 +156,12 @@ document.getElementById("form-horarios").onsubmit = async function (e) {
     },
   };
 
+  // 3. Crear el payload final
+  const payload = {
+    ciclo: cicloSeleccionado,
+    horarios: payloadHorarios,
+  };
+
   try {
     const res = await fetch("/api/horarios", {
       method: "POST",
@@ -154,7 +171,10 @@ document.getElementById("form-horarios").onsubmit = async function (e) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.mensaje || `Error ${res.status}`);
     showGlobalMessage("msg-horarios", data.mensaje || "Horarios guardados.");
-    cargarHorarios();
+
+    // Recargar la configuración de horarios en el frontend
+    // (cargarHorarios() recargará todo el select y la config)
+    await cargarHorarios();
   } catch (error) {
     showGlobalMessage("msg-horarios", `Error: ${error.message}`, true);
   } finally {
@@ -221,6 +241,7 @@ document.getElementById("form-agregar-ciclo").onsubmit = async function (e) {
     nombreInput.value = "";
     showGlobalMessage("msg-ciclos", data.mensaje || "Ciclo agregado.");
     await cargarCiclos();
+    await cargarHorarios(); // <-- Recargar horarios para que aparezca el nuevo ciclo
     window.dispatchEvent(new CustomEvent("cyclesUpdated"));
   } catch (error) {
     showGlobalMessage("msg-ciclos", `Error: ${error.message}`, true);
@@ -483,7 +504,7 @@ window.onload = async function () {
   // *** CORRECCIÓN: Esperar (await) a que los datos carguen ***
   await cargarUsuarios();
   await cargarArchivosExcel();
-  await cargarHorarios();
+  await cargarHorarios(); // <-- MODIFICADO
   await cargarCiclos();
 
   // *** CORRECCIÓN: Llamar a initUserFormEvents DESPUÉS de que cargarUsuarios haya terminado ***
@@ -493,6 +514,7 @@ window.onload = async function () {
 
   window.addEventListener("cyclesUpdated", async () => {
     await cargarCiclos();
+    await cargarHorarios(); // <-- Recargar horarios si los ciclos cambian
   });
 
   // --- AÑADIDO: Poner fecha de hoy por defecto ---

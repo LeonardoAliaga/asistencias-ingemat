@@ -4,7 +4,7 @@
     "nombre": "JHERSON LEONARDO",
     "apellido": "ALIAGA URIONDO",
     "rol": "estudiante",
-    "turno": "tarde",
+    "turno": "mañana",
     "ciclo": "SEMIANUAL",
     "dias_asistencia": [
       "L",
@@ -20,7 +20,7 @@
     "codigo": "A001",
     "nombre": "ALAN OSCAR",
     "apellido": "ALIAGA PEREZ",
-    "rol": "docente",
+    "rol": "estudiante",
     "dias_asistencia": [
       "L",
       "M",
@@ -29,8 +29,8 @@
       "V",
       "S"
     ],
-    "turno": "",
-    "ciclo": "",
+    "turno": "mañana",
+    "ciclo": "SEMIANUAL",
     "nombre_completo": "ALIAGA PEREZ ALAN OSCAR"
   },
   {
@@ -48,6 +48,23 @@
       "V",
       "S"
     ],
+    "nombre_completo": "URIONDO MANINI CARLA DAYDAMIA"
+  },
+  {
+    "codigo": "C1066",
+    "nombre": "CARLA DAYDAMIA",
+    "apellido": "URIONDO MANINI",
+    "rol": "docente",
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ],
+    "turno": "",
+    "ciclo": "",
     "nombre_completo": "URIONDO MANINI CARLA DAYDAMIA"
   }
 ]

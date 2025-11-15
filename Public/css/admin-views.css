@@ -124,14 +124,6 @@ li:hover {
 }
 
 /* ======================================================= */
-/* Estilos de configurar horaios */
-/* ======================================================= */
-
-#form-horarios div {
-  margin: 15px 0;
-}
-
-/* ======================================================= */
 /* Estilos de Descargas Excel y Scroll */
 /* ======================================================= */
 
@@ -364,13 +356,18 @@ li:hover {
   color: #000000;
   font-weight: bold;
 }
-/* --- ESTILO AÑADIDO --- */
-.table-data td.status-justificado {
-  background-color: #ddeeff;
-  color: #003366;
+/* --- ESTILOS AÑADIDOS/MODIFICADOS --- */
+.table-data td.status-falta_justificada {
+  background-color: #ffc000; /* Naranja Oscuro */
+  color: #292929;
   font-weight: bold;
 }
-/* --- FIN ESTILO AÑADIDO --- */
+.table-data td.status-tardanza_justificada {
+  background-color: #ffc000; /* Naranja Oscuro */
+  color: #292929;
+  font-weight: bold;
+}
+/* --- FIN ESTILOS AÑADIDOS --- */
 
 /* ======================================================= */
 /* == PESTAÑAS EN VISTA PREVIA == */

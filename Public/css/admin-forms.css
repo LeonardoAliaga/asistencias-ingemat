@@ -151,7 +151,7 @@ button[type="submit"]:hover {
 
 /* Estilo para el resumen de horarios */
 .schedule-summary {
-  margin: 10px 0;
+  margin-bottom: 10px;
   font-size: 0.9rem;
   color: var(--blue2);
   font-family: var(--font-body);
