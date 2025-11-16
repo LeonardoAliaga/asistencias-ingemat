@@ -4,21 +4,20 @@ const session = require("express-session");
 const fs = require("fs");
 const apiRouter = require("./src/routes/api.route");
 const whatsappRouter = require("./src/routes/whatsapp.route.js");
-// const reportScheduler = require("./src/services/report-scheduler.js"); // <-- ELIMINADO
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware Globales
-app.use(express.json({ limit: "5mb" })); // aumentar límite para payloads de imágenes en base64 (subida de fotos)
+app.use(express.json({ limit: "5mb" }));
 app.use(express.static(path.join(__dirname, "Public")));
 
 app.use(
   session({
-    secret: "1234", // Cambia esto por algo aleatorio y seguro
+    secret: "1234",
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: false }, // Poner a true si usas HTTPS
+    cookie: { secure: false },
   })
 );
 
@@ -149,6 +148,3 @@ if (!fs.existsSync(dataDir)) {
 app.listen(PORT, () =>
   console.log(`Servidor iniciado en http://localhost:${PORT}`)
 );
-
-// Iniciar el programador de reportes
-// reportScheduler.init(); // <-- ELIMINADO

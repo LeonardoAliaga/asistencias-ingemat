@@ -12,12 +12,12 @@
   "ciclos": {
     "ANUAL": {
       "mañana": {
-        "entrada": "13:00",
-        "tolerancia": "13:25"
+        "entrada": "08:00",
+        "tolerancia": "08:05"
       },
       "tarde": {
         "entrada": "21:40",
-        "tolerancia": "21:40"
+        "tolerancia": "21:45"
       }
     },
     "SEMIANUAL": {
@@ -27,7 +27,7 @@
       },
       "tarde": {
         "entrada": "21:40",
-        "tolerancia": "21:40"
+        "tolerancia": "21:45"
       }
     }
   }

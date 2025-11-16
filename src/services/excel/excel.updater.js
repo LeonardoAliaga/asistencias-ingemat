@@ -5,7 +5,7 @@ const {
   estiloNoAsiste,
   estiloDocenteRegistrado,
   estilosEstadoEstudiante,
-  estiloTardanzaJustificada, // <-- AÑADIDO
+  estiloTardanzaJustificada,
   borderStyle,
   // --- IMPORTACIONES PARA HELPERS ---
   estiloDatosBase,
@@ -65,12 +65,12 @@ function updateAttendanceRecord(hoja, usuario, horaStr, isJustified = false) {
   const celdaHora = filaEncontrada.getCell(5);
   const valorCelda = (celdaHora.value || "").toString().trim().toUpperCase();
 
-  // Modificado: Permitir sobrescribir "FALTA", "NO ASISTE", "F. JUSTIFICADA" o vacío
+  //Permitir sobrescribir "FALTA", "NO ASISTE", "F. JUSTIFICADA" o vacío
   if (
     valorCelda !== "" &&
     valorCelda !== "FALTA" &&
     valorCelda !== "NO ASISTE" &&
-    valorCelda !== "F. JUSTIFICADA" && // <-- MODIFICADO
+    valorCelda !== "F. JUSTIFICADA" &&
     !valorCelda.endsWith("(J)") // No sobrescribir si ya está justificado
   ) {
     console.log(
@@ -99,13 +99,9 @@ function updateAttendanceRecord(hoja, usuario, horaStr, isJustified = false) {
     }
   } else {
     // Docente
-    // --- INICIO DE LA CORRECCIÓN ---
     if (isJustified) {
-      // ¡AQUÍ ESTABA EL ERROR!
-      // No necesitamos 'estado', solo saber si es justificado.
       valorHoraParaExcel = `${hora12h} (J)`;
     }
-    // --- FIN DE LA CORRECCIÓN ---
     estiloCeldaHora = estiloDocenteRegistrado;
   }
   // --- FIN LÓGICA DE JUSTIFICACIÓN (J) ---
@@ -132,15 +128,12 @@ function updateAttendanceRecord(hoja, usuario, horaStr, isJustified = false) {
     leftAlignment
   );
 
-  // --- CORRECCIÓN DEFINITIVA ---
-  // Asignar un clon profundo del objeto de estilo a la celda
   filaActualizada.getCell(5).style = {
     fill: { ...estiloCeldaHora.fill },
     font: { ...estiloCeldaHora.font },
     alignment: { ...estiloCeldaHora.alignment },
     border: { ...estiloCeldaHora.border },
   };
-  // --- FIN CORRECCIÓN ---
 
   console.log(
     `✅ Registro actualizado para ${getFullName(

@@ -356,18 +356,18 @@ li:hover {
   color: #000000;
   font-weight: bold;
 }
-/* --- ESTILOS AÑADIDOS/MODIFICADOS --- */
+/* --- ESTILOS MODIFICADOS --- */
 .table-data td.status-falta_justificada {
-  background-color: #ffc000; /* Naranja Oscuro */
-  color: #292929;
+  background-color: #ffeb9c; /* Color Tolerancia */
+  color: #9c6500; /* Color Tolerancia */
   font-weight: bold;
 }
 .table-data td.status-tardanza_justificada {
-  background-color: #ffc000; /* Naranja Oscuro */
-  color: #292929;
+  background-color: #ffeb9c; /* Color Tolerancia */
+  color: #9c6500; /* Color Tolerancia */
   font-weight: bold;
 }
-/* --- FIN ESTILOS AÑADIDOS --- */
+/* --- FIN ESTILOS MODIFICADOS --- */
 
 /* ======================================================= */
 /* == PESTAÑAS EN VISTA PREVIA == */

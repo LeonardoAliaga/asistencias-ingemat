@@ -25,19 +25,16 @@ const estiloNoAsiste = {
   border: borderStyle,
 };
 
-// --- ESTILO MODIFICADO Y RENOMBRADO ---
 const estiloFaltaJustificada = {
-  fill: { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFC000" } }, // Naranja Oscuro
-  font: { bold: true, color: { argb: "FF8C0000" } }, // Texto oscuro
+  fill: { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFEB9C" } }, // Naranja (Tolerancia)
+  font: { bold: true, color: { argb: "FF9C6500" } }, // Naranja (Tolerancia)
   alignment: centerAlignment,
   border: borderStyle,
 };
-// --- FIN NUEVO ESTILO ---
 
-// --- NUEVO ESTILO AÑADIDO (PARA TARDANZA J) ---
 const estiloTardanzaJustificada = {
-  fill: { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFC000" } }, // Naranja Oscuro
-  font: { bold: true, color: { argb: "FF8C0000" } }, // Texto oscuro
+  fill: { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFEB9C" } }, // Naranja (Tolerancia)
+  font: { bold: true, color: { argb: "FF9C6500" } }, // Naranja (Tolerancia)
   alignment: centerAlignment,
   border: borderStyle,
 };
@@ -46,51 +43,51 @@ const estiloDatosBase = {
   font: { bold: false, color: { argb: "FF000000" } },
   border: borderStyle,
 };
-
 const estiloEncabezadoBase = {
   font: { bold: true, color: { argb: "FFFFFFFF" } },
   alignment: centerAlignment,
   border: borderStyle,
 };
+const fillEncabezadoEstudiante = {
+  type: "pattern",
+  pattern: "solid",
+  fgColor: { argb: "FF0A2240" },
+};
+const fillEncabezadoDocente = {
+  type: "pattern",
+  pattern: "solid",
+  fgColor: { argb: "FF008080" }, // Un color verde azulado para docentes
+};
 
+// Estilo de celda para hora registrada (docente)
+const estiloDocenteRegistrado = {
+  fill: { type: "pattern", pattern: "solid", fgColor: { argb: "FFD6EAF8" } }, // Azul claro
+  font: { bold: true, color: { argb: "FF1B4F72" } },
+  alignment: centerAlignment,
+  border: borderStyle,
+};
+
+// Estilos de celda para estados de estudiante (puntual, tolerancia, tarde)
 const estilosEstadoEstudiante = {
   puntual: {
-    fill: { type: "pattern", pattern: "solid", fgColor: { argb: "FFC6EFCE" } }, // Verde
+    fill: { type: "pattern", pattern: "solid", fgColor: { argb: "FFC6EFCE" } },
     font: { bold: true, color: { argb: "FF006100" } },
     alignment: centerAlignment,
     border: borderStyle,
   },
   tolerancia: {
-    fill: { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFE699" } }, // Naranja
+    fill: { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFEB9C" } },
     font: { bold: true, color: { argb: "FF9C6500" } },
     alignment: centerAlignment,
     border: borderStyle,
   },
   tarde: {
-    fill: { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFC7CE" } }, // Rojo
+    fill: { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFC7CE" } },
     font: { bold: true, color: { argb: "FF9C0006" } },
     alignment: centerAlignment,
     border: borderStyle,
   },
 };
-
-const estiloDocenteRegistrado = {
-  fill: { type: "pattern", pattern: "solid", fgColor: { argb: "FFBDD7EE" } }, // Azul claro
-  font: { bold: true, color: { argb: "FF000000" } }, // Texto negro por defecto
-  alignment: centerAlignment,
-  border: borderStyle,
-};
-
-const fillEncabezadoEstudiante = {
-  type: "pattern",
-  pattern: "solid",
-  fgColor: { argb: "FF404040" },
-}; // Gris oscuro
-const fillEncabezadoDocente = {
-  type: "pattern",
-  pattern: "solid",
-  fgColor: { argb: "FF1F4E78" },
-}; // Azul oscuro
 
 module.exports = {
   borderStyle,
@@ -98,12 +95,12 @@ module.exports = {
   leftAlignment,
   estiloFalta,
   estiloNoAsiste,
-  estiloFaltaJustificada, // <-- MODIFICADO
-  estiloTardanzaJustificada, // <-- AÑADIDO
+  estiloFaltaJustificada,
+  estiloTardanzaJustificada,
   estiloDatosBase,
   estiloEncabezadoBase,
-  estilosEstadoEstudiante,
-  estiloDocenteRegistrado,
   fillEncabezadoEstudiante,
   fillEncabezadoDocente,
+  estiloDocenteRegistrado,
+  estilosEstadoEstudiante,
 };

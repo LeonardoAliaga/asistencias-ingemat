@@ -1,7 +1,7 @@
 // src/services/excel/excel.generator.js
 const fs = require("fs");
 const path = require("path");
-const { getDayAbbreviation, getFullName } = require("../../utils/helpers.js"); // <-- IMPORTACIÓN CORREGIDA
+const { getDayAbbreviation, getFullName } = require("../../utils/helpers.js");
 const {
   estiloFalta,
   estiloNoAsiste,
@@ -67,7 +67,6 @@ function generateStudentSheetStructure(
       nombreColumnaFecha,
     ];
     hoja.getRow(fila).eachCell((cell) => {
-      // --- CORRECCIÓN: Asignar .style directamente ---
       cell.style = {
         ...estiloEncabezadoBase,
         fill: { ...fillEncabezadoEstudiante }, // Clonar fill
@@ -102,7 +101,6 @@ function generateStudentSheetStructure(
         leftAlignment
       );
 
-      // --- CORRECCIÓN DEFINITIVA ---
       // Asignar un clon profundo del objeto de estilo a la celda
       const styleToApply = isScheduled ? estiloFalta : estiloNoAsiste;
       row.getCell(5).style = {
@@ -111,7 +109,6 @@ function generateStudentSheetStructure(
         alignment: { ...styleToApply.alignment },
         border: { ...styleToApply.border },
       };
-      // --- FIN CORRECCIÓN ---
 
       fila++;
     });
@@ -145,7 +142,6 @@ function generateTeacherSheetStructure(hoja, nombreColumnaFecha, diaAbbr) {
     nombreColumnaFecha,
   ];
   hoja.getRow(fila).eachCell((cell) => {
-    // --- CORRECCIÓN: Asignar .style directamente ---
     cell.style = {
       ...estiloEncabezadoBase,
       fill: { ...fillEncabezadoDocente }, // Clonar fill
@@ -180,7 +176,6 @@ function generateTeacherSheetStructure(hoja, nombreColumnaFecha, diaAbbr) {
       leftAlignment
     );
 
-    // --- CORRECCIÓN DEFINITIVA ---
     // Asignar un clon profundo del objeto de estilo a la celda
     const styleToApply = isScheduled ? estiloFalta : estiloNoAsiste;
     row.getCell(5).style = {
@@ -189,7 +184,6 @@ function generateTeacherSheetStructure(hoja, nombreColumnaFecha, diaAbbr) {
       alignment: { ...styleToApply.alignment },
       border: { ...styleToApply.border },
     };
-    // --- FIN CORRECCIÓN ---
   });
 }
 

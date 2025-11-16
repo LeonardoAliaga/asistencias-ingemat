@@ -5,7 +5,7 @@ const path = require("path");
 const horariosPath = path.join(__dirname, "../../data/horarios.json");
 const ciclosPath = path.join(__dirname, "../../data/ciclos.json"); // Añadido path
 
-// Si el archivo no existe, usa valores por defecto (NUEVA ESTRUCTURA)
+// Si el archivo no existe, usa valores por defecto
 function obtenerHorarios() {
   try {
     // Asegurar que exista el archivo

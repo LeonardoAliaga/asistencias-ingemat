@@ -37,12 +37,10 @@ const readWhatsappConfig = () => {
       const data = fs.readFileSync(whatsappConfigPath, "utf8");
       let config = JSON.parse(data);
 
-      // --- Lógica de Migración ---
       if (config.enabled !== undefined) {
         config.studentNotificationsEnabled = config.enabled;
         delete config.enabled;
       }
-      // --- Fin Migración ---
 
       return { ...defaultConfig, ...config };
     }
@@ -62,12 +60,10 @@ router.post("/", async (req, res) => {
   // --- INICIO LÓGICA DE JUSTIFICACIÓN (J) ---
   let codigo = req.body.codigo;
 
-  // --- INICIO DE LA CORRECCIÓN (ERROR 1) ---
   // Forzar que el código siempre sea mayúsculas al recibirlo
   if (codigo && typeof codigo === "string") {
     codigo = codigo.toUpperCase();
   }
-  // --- FIN DE LA CORRECCIÓN ---
 
   let isJustified = false;
 
@@ -79,7 +75,9 @@ router.post("/", async (req, res) => {
   ) {
     isJustified = true;
     codigo = codigo.substring(0, codigo.length - 1); // Quitar la 'J' para buscar
-    console.log(`Registrar Route: Detectada tardanza justificada para ${codigo}`);
+    console.log(
+      `Registrar Route: Detectada tardanza justificada para ${codigo}`
+    );
   }
   // --- FIN LÓGICA DE JUSTIFICACIÓN (J) ---
 

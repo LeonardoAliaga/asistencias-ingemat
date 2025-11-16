@@ -3,7 +3,11 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 
-const { normalizarTexto, getCiclosData, getFullName } = require("../utils/helpers"); // <-- Añadido getFullName
+const {
+  normalizarTexto,
+  getCiclosData,
+  getFullName,
+} = require("../utils/helpers");
 const router = express.Router();
 const usuariosPath = path.join(__dirname, "../../data/usuarios.json");
 
@@ -16,17 +20,15 @@ function readUsuarios() {
       return [];
     }
     const raw = JSON.parse(fs.readFileSync(usuariosPath, "utf8"));
-    // Migrar entradas antiguas: asegurar campos nombre, apellido y nombre_completo
     const migrated = raw.map((u) => {
       if (!u) return u;
-      // Si ya tiene nombre_completo, usar getFullName para regenerarlo
       const nombre = u.nombre ? String(u.nombre).trim().toUpperCase() : "";
-      const apellido = u.apellido ? String(u.apellido).trim().toUpperCase() : "";
+      const apellido = u.apellido
+        ? String(u.apellido).trim().toUpperCase()
+        : "";
       const nombre_completo = `${apellido}${
         apellido && nombre ? " " : ""
       }${nombre}`.trim();
-
-      // Retornar objeto actualizado para asegurar consistencia
       return {
         ...u,
         nombre: nombre,
@@ -47,7 +49,7 @@ function saveUsuarios(usuarios) {
     fs.writeFileSync(usuariosPath, JSON.stringify(usuarios, null, 2));
   } catch (writeErr) {
     console.error("Usuarios Route: Error al guardar usuarios.json:", writeErr);
-    throw new Error("Error interno al guardar los datos de usuarios."); // Lanzar error
+    throw new Error("Error interno al guardar los datos de usuarios.");
   }
 }
 
@@ -87,7 +89,7 @@ router.post("/", (req, res) => {
       mensaje: "Faltan datos obligatorios del usuario.",
     });
   }
-  const codigoNuevo = String(nuevoUsuario.codigo).trim().toUpperCase(); // <-- FORZAR MAYÚSCULAS
+  const codigoNuevo = String(nuevoUsuario.codigo).trim().toUpperCase();
   if (usuarios.some((u) => String(u.codigo).trim() === codigoNuevo)) {
     console.log(
       `Usuarios Route: Intento de agregar usuario con código duplicado: ${nuevoUsuario.codigo}`
@@ -199,18 +201,13 @@ router.put("/:codigo", (req, res) => {
   }
 
   const updatedUsuario = req.body || {};
-  
+
   // --- INICIO CORRECCIÓN 1 ---
   const nuevoCodigo = String(updatedUsuario.codigo).trim().toUpperCase();
   // --- FIN CORRECCIÓN 1 ---
 
-
   // 1. Validar datos
-  if (
-    !updatedUsuario.codigo ||
-    !updatedUsuario.nombre ||
-    !updatedUsuario.rol
-  ) {
+  if (!updatedUsuario.codigo || !updatedUsuario.nombre || !updatedUsuario.rol) {
     return res
       .status(400)
       .json({ exito: false, mensaje: "Faltan datos obligatorios." });

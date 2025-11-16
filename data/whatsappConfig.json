@@ -1,7 +1,7 @@
 {
   "enabledGeneral": true,
   "studentNotificationsEnabled": true,
-  "teacherNotificationsEnabled": true,
+  "teacherNotificationsEnabled": false,
   "automatedReportEnabled": true,
   "studentRules": [
     {

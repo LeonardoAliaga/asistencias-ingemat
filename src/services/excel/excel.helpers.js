@@ -1,6 +1,5 @@
 // src/services/excel/excel.helpers.js
 const path = require("path");
-// const { aplicarEstiloCelda } = require("../../utils/helpers.js"); // <-- ELIMINADO
 
 const registrosPath = path.join(__dirname, "../../../Registros");
 
@@ -52,17 +51,6 @@ function setColumnWidths(worksheet) {
     else if (index === 4) defaultWidth = 15; // HORA REGISTRO
 
     col.width = defaultWidth;
-    // Ajuste dinámico opcional
-    /*
-         col.eachCell({ includeEmpty: true }, (cell) => {
-             if (!cell.isMerged && cell.value) {
-                 const len = cell.value.toString().length;
-                 if (len + 2 > col.width) {
-                     col.width = Math.min(len + 2, 50);
-                 }
-             }
-         });
-         */
   });
 }
 
@@ -74,17 +62,14 @@ function setColumnWidths(worksheet) {
  * @param {object} leftAlign - El estilo de alineación izquierda importado de constants.
  */
 function applyBaseDataRowStyles(row, estiloBase, centerAlign, leftAlign) {
-  // --- CORRECCIÓN DEFINITIVA ---
-  // Reemplazar aplicarEstiloCelda por asignación de .style
   row.getCell(1).style = { ...estiloBase, alignment: centerAlign }; // N°
   row.getCell(2).style = { ...estiloBase, alignment: leftAlign }; // Nombre
   row.getCell(3).style = { ...estiloBase, alignment: centerAlign }; // Turno
   row.getCell(4).style = { ...estiloBase, alignment: centerAlign }; // Días
-  // --- FIN CORRECCIÓN ---
 }
 
 module.exports = {
-  determineExcelInfo, // Cambiado el nombre de la función
+  determineExcelInfo,
   setColumnWidths,
   applyBaseDataRowStyles,
 };

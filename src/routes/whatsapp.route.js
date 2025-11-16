@@ -9,7 +9,8 @@ const {
   forceRestart,
   sendMessage,
   MessageMedia,
-} = require("../../Whatsapp/WhatsappClient"); // Importar funciones necesarias
+} = require("../../Whatsapp/WhatsappClient");
+necesarias;
 const { generateReportImage } = require("../services/report-generator"); // Importar generador
 
 const router = express.Router();
@@ -37,7 +38,6 @@ const readConfig = () => {
       const data = fs.readFileSync(configPath, "utf8");
       let config = JSON.parse(data);
 
-      // --- Lógica de Migración (si vienes de versiones anteriores) ---
       if (config.enabled !== undefined) {
         config.studentNotificationsEnabled = config.enabled;
         delete config.enabled;
@@ -56,9 +56,7 @@ const readConfig = () => {
         config.automatedReport.sendTimeMañana = config.automatedReport.sendTime;
         delete config.automatedReport.sendTime;
       }
-      // --- Fin Migración ---
 
-      // Fusionar con el default para asegurar que todas las claves existan
       let finalConfig = { ...defaultConfig, ...config };
       finalConfig.automatedReport = {
         ...defaultConfig.automatedReport,
@@ -186,12 +184,10 @@ router.post("/send-report-manual", async (req, res) => {
       .json({ exito: false, mensaje: "WhatsApp no está conectado." });
   }
   if (!ciclo || !turno || !groupId) {
-    return res
-      .status(400)
-      .json({
-        exito: false,
-        mensaje: "Faltan datos (ciclo, turno o groupId).",
-      });
+    return res.status(400).json({
+      exito: false,
+      mensaje: "Faltan datos (ciclo, turno o groupId).",
+    });
   }
 
   try {

@@ -3,7 +3,7 @@
 const fs = require("fs");
 const path = require("path");
 const ExcelJS = require("exceljs");
-const { getDayAbbreviation } = require("../utils/helpers.js"); // Solo necesitamos getDayAbbreviation aquí
+const { getDayAbbreviation } = require("../utils/helpers.js");
 const {
   determineExcelInfo,
   setColumnWidths,
@@ -28,7 +28,6 @@ async function guardarRegistro(
   horaStr,
   isJustified = false
 ) {
-  // <-- Parámetro añadido
   const excelInfo = determineExcelInfo(fechaStr, usuario);
   if (!excelInfo) {
     return false; // Error en el rol/turno, ya logueado en el helper
@@ -65,8 +64,6 @@ async function guardarRegistro(
         console.log(`📄 Usando hoja existente "${sheetName}".`);
         // --- VERIFICACIÓN/ACTUALIZACIÓN DE COLUMNA DE FECHA (Importante si el archivo existe) ---
         let headerRowIndex = 2; // Asumimos que la fila 2 es el encabezado por defecto
-        // Podríamos buscar la fila del encabezado si no siempre es la 2
-        // ... (lógica de búsqueda de encabezado si es necesario) ...
 
         const headerRow = hoja.getRow(headerRowIndex);
         let columnIndex = -1;
@@ -87,9 +84,6 @@ async function guardarRegistro(
               filePath
             )}. Registro fallido.`
           );
-          // Podrías intentar añadir la columna aquí, pero es complejo asegurar la consistencia
-          // de los datos ("FALTA"/"NO ASISTE") para todas las filas existentes.
-          // Es más seguro fallar si la columna no está donde se espera.
           return false;
         }
         // --- FIN VERIFICACIÓN COLUMNA ---
@@ -129,7 +123,7 @@ async function guardarRegistro(
       usuario,
       horaStr,
       isJustified
-    ); // <-- Parámetro añadido
+    );
 
     if (actualizado) {
       // Guardar el workbook completo si hubo una actualización exitosa

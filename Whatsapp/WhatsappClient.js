@@ -160,7 +160,6 @@ const initializeWhatsappClient = () => {
 };
 
 const sendMessage = async (to, message) => {
-  // ... (sin cambios)
   if (!isWhatsappReady || !whatsappClient) {
     console.warn(
       `${color.yellow("Whatsapp")} no está listo. Mensaje no enviado a ${to}.`
@@ -179,11 +178,9 @@ const sendMessage = async (to, message) => {
       );
       return false;
     }
-    // Modificación para enviar MessageMedia (imágenes) o texto
     if (typeof message === "string") {
       await whatsappClient.sendMessage(chatId, `${message}\n\n_Ingemat_`);
     } else {
-      // Asumimos que es un objeto MessageMedia
       await whatsappClient.sendMessage(chatId, message);
     }
 
@@ -204,7 +201,6 @@ const sendMessage = async (to, message) => {
 };
 
 const getGroupChats = async () => {
-  // ... (sin cambios)
   if (!isWhatsappReady || !whatsappClient) {
     console.warn(
       `${color.yellow("Whatsapp")} no está listo para obtener chats.`
@@ -239,5 +235,5 @@ module.exports = {
   isWhatsappReady: () => isWhatsappReady,
   getQR: () => currentQR,
   forceRestart: deleteLocalAuthAndRestart,
-  MessageMedia, // <--- AÑADIDO
+  MessageMedia,
 };

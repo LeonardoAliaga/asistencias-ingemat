@@ -8,8 +8,8 @@ const {
   estiloFalta,
   estiloNoAsiste,
   estiloDocenteRegistrado,
-  estiloFaltaJustificada, // <-- MODIFICADO (estiloJustificado -> estiloFaltaJustificada)
-  estiloTardanzaJustificada, // <-- AÑADIDO
+  estiloFaltaJustificada,
+  estiloTardanzaJustificada,
   estiloDatosBase,
   estiloEncabezadoBase,
   fillEncabezadoDocente,
@@ -104,8 +104,8 @@ const colorMap = {
   [estiloFalta.fill.fgColor.argb]: "falta",
   [estiloNoAsiste.fill.fgColor.argb]: "no_asiste",
   [estiloDocenteRegistrado.fill.fgColor.argb]: "docente",
-  [estiloFaltaJustificada.fill.fgColor.argb]: "falta_justificada", // <-- MODIFICADO
-  [estiloTardanzaJustificada.fill.fgColor.argb]: "tardanza_justificada", // <-- AÑADIDO
+  [estiloFaltaJustificada.fill.fgColor.argb]: "falta_justificada",
+  [estiloTardanzaJustificada.fill.fgColor.argb]: "tardanza_justificada",
 };
 // --- FIN CONFIGURACIÓN ---
 
@@ -134,7 +134,6 @@ async function getExcelData(fileName) {
           .split(" - ")
           .map((p) => p.trim().toLowerCase());
 
-        // --- INICIO CORRECCIÓN ---
         const isDocentes =
           parts.some((p) => p === "docentes") ||
           worksheet.name.toLowerCase() === "docentes";
@@ -147,7 +146,6 @@ async function getExcelData(fileName) {
           headers: [],
           rows: [],
         };
-        // --- FIN CORRECCIÓN ---
         allSheetsData.push(currentSection);
       } else if (cellAValue.toUpperCase().includes("N°") && currentSection) {
         currentSection.headers = [
@@ -196,8 +194,7 @@ async function getExcelData(fileName) {
           // Fallback por texto si el color no está mapeado
           if (upperVal === "FALTA") status = "falta";
           else if (upperVal === "NO ASISTE") status = "no_asiste";
-          else if (upperVal === "F. JUSTIFICADA")
-            status = "falta_justificada"; // <-- MODIFICADO
+          else if (upperVal === "F. JUSTIFICADA") status = "falta_justificada"; // <-- MODIFICADO
         }
 
         // Check para tardanza justificada (J)
@@ -222,11 +219,9 @@ async function getExcelData(fileName) {
 
 function findSection(data, ciclo, turno) {
   if (!data || !Array.isArray(data)) return null;
-  // --- INICIO CORRECCIÓN ---
   // El turno para docentes siempre será 'docentes'
   const searchTurno = ciclo === "docentes" ? "docentes" : turno;
   return data.find((s) => s.ciclo === ciclo && s.turno === searchTurno);
-  // --- FIN CORRECCIÓN ---
 }
 
 async function generateReportImage(ciclo, turno) {
@@ -244,15 +239,15 @@ async function generateReportImage(ciclo, turno) {
   try {
     const allData = await getExcelData(fileName);
 
-    // --- INICIO DE LA CORRECCIÓN (ERROR 2) ---
-    // No usar normalizarTexto() aquí, ya que los datos del Excel (allData)
-    // no están normalizados (solo están en minúsculas).
     // EXCEPCIÓN: si el ciclo es DOCENTES, buscar 'docentes'
     const cicloNorm =
-      ciclo.toUpperCase() === "DOCENTES" ? "docentes" : ciclo.trim().toLowerCase();
+      ciclo.toUpperCase() === "DOCENTES"
+        ? "docentes"
+        : ciclo.trim().toLowerCase();
     const turnoNorm =
-      ciclo.toUpperCase() === "DOCENTES" ? "docentes" : turno.trim().toLowerCase();
-    // --- FIN DE LA CORRECCIÓN ---
+      ciclo.toUpperCase() === "DOCENTES"
+        ? "docentes"
+        : turno.trim().toLowerCase();
 
     sectionData = findSection(allData, cicloNorm, turnoNorm);
 
