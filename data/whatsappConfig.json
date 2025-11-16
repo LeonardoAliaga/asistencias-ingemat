@@ -9,6 +9,18 @@
       "turno": "tarde",
       "targetType": "group",
       "targetId": "120363402977562212@g.us"
+    },
+    {
+      "ciclo": "SEMIANUAL",
+      "turno": "mañana",
+      "targetType": "group",
+      "targetId": "120363402977562212@g.us"
+    },
+    {
+      "ciclo": "ANUAL",
+      "turno": "mañana",
+      "targetType": "group",
+      "targetId": "120363402977562212@g.us"
     }
   ],
   "teacherTargetType": "number",
@@ -19,6 +31,16 @@
         "ciclo": "SEMIANUAL",
         "turno": "tarde",
         "groupId": "120363423056521733@g.us"
+      },
+      {
+        "ciclo": "ANUAL",
+        "turno": "mañana",
+        "groupId": "120363402977562212@g.us"
+      },
+      {
+        "ciclo": "DOCENTES",
+        "turno": "docentes",
+        "groupId": "120363402977562212@g.us"
       }
     ]
   }

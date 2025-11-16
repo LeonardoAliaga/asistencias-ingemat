@@ -27,6 +27,17 @@ export async function loadCiclosForRuleSelect() {
     selectsToPopulate.forEach((selectEl) => {
       if (selectEl) {
         selectEl.innerHTML = '<option value="">Selecciona Ciclo</option>';
+
+        // --- INICIO DE CORRECCIÓN ---
+        // Añadir la opción DOCENTES solo al selector de reportes
+        if (selectEl.id === "report-rule-ciclo") {
+          const optionDocentes = document.createElement("option");
+          optionDocentes.value = "DOCENTES";
+          optionDocentes.textContent = "Reporte Docentes";
+          selectEl.appendChild(optionDocentes);
+        }
+        // --- FIN DE CORRECCIÓN ---
+
         if (data && data.ciclos) {
           data.ciclos.forEach((ciclo) => {
             const option = document.createElement("option");

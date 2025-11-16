@@ -3,11 +3,7 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 
-const {
-  normalizarTexto,
-  getCiclosData,
-  getFullName,
-} = require("../utils/helpers"); // <-- Añadido getFullName
+const { normalizarTexto, getCiclosData, getFullName } = require("../utils/helpers"); // <-- Añadido getFullName
 const router = express.Router();
 const usuariosPath = path.join(__dirname, "../../data/usuarios.json");
 
@@ -25,9 +21,7 @@ function readUsuarios() {
       if (!u) return u;
       // Si ya tiene nombre_completo, usar getFullName para regenerarlo
       const nombre = u.nombre ? String(u.nombre).trim().toUpperCase() : "";
-      const apellido = u.apellido
-        ? String(u.apellido).trim().toUpperCase()
-        : "";
+      const apellido = u.apellido ? String(u.apellido).trim().toUpperCase() : "";
       const nombre_completo = `${apellido}${
         apellido && nombre ? " " : ""
       }${nombre}`.trim();
@@ -93,7 +87,7 @@ router.post("/", (req, res) => {
       mensaje: "Faltan datos obligatorios del usuario.",
     });
   }
-  const codigoNuevo = String(nuevoUsuario.codigo).trim();
+  const codigoNuevo = String(nuevoUsuario.codigo).trim().toUpperCase(); // <-- FORZAR MAYÚSCULAS
   if (usuarios.some((u) => String(u.codigo).trim() === codigoNuevo)) {
     console.log(
       `Usuarios Route: Intento de agregar usuario con código duplicado: ${nuevoUsuario.codigo}`
@@ -194,7 +188,7 @@ router.post("/", (req, res) => {
   }
 });
 
-// --- NUEVA RUTA: PUT /api/usuarios/:codigo - Actualizar usuario ---
+// --- RUTA PUT (MODIFICADA) ---
 router.put("/:codigo", (req, res) => {
   let usuarios;
   const originalCodigo = req.params.codigo;
@@ -205,10 +199,18 @@ router.put("/:codigo", (req, res) => {
   }
 
   const updatedUsuario = req.body || {};
-  const nuevoCodigo = String(updatedUsuario.codigo).trim();
+  
+  // --- INICIO CORRECCIÓN 1 ---
+  const nuevoCodigo = String(updatedUsuario.codigo).trim().toUpperCase();
+  // --- FIN CORRECCIÓN 1 ---
+
 
   // 1. Validar datos
-  if (!updatedUsuario.codigo || !updatedUsuario.nombre || !updatedUsuario.rol) {
+  if (
+    !updatedUsuario.codigo ||
+    !updatedUsuario.nombre ||
+    !updatedUsuario.rol
+  ) {
     return res
       .status(400)
       .json({ exito: false, mensaje: "Faltan datos obligatorios." });
@@ -272,7 +274,7 @@ router.put("/:codigo", (req, res) => {
     res.status(500).json({ exito: false, mensaje: writeErr.message });
   }
 });
-// --- FIN NUEVA RUTA ---
+// --- FIN RUTA PUT ---
 
 // DELETE /api/usuarios/:codigo - Eliminar usuario
 router.delete("/:codigo", (req, res) => {

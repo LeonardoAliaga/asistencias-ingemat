@@ -12,8 +12,8 @@
   "ciclos": {
     "ANUAL": {
       "mañana": {
-        "entrada": "08:30",
-        "tolerancia": "08:35"
+        "entrada": "13:00",
+        "tolerancia": "13:25"
       },
       "tarde": {
         "entrada": "21:40",

@@ -61,19 +61,25 @@ const readWhatsappConfig = () => {
 router.post("/", async (req, res) => {
   // --- INICIO LÓGICA DE JUSTIFICACIÓN (J) ---
   let codigo = req.body.codigo;
+
+  // --- INICIO DE LA CORRECCIÓN (ERROR 1) ---
+  // Forzar que el código siempre sea mayúsculas al recibirlo
+  if (codigo && typeof codigo === "string") {
+    codigo = codigo.toUpperCase();
+  }
+  // --- FIN DE LA CORRECCIÓN ---
+
   let isJustified = false;
 
   if (
     codigo &&
     typeof codigo === "string" &&
-    codigo.toUpperCase().endsWith("J") &&
+    codigo.endsWith("J") && // 'codigo' ya está en mayúsculas
     codigo.length > 1
   ) {
     isJustified = true;
     codigo = codigo.substring(0, codigo.length - 1); // Quitar la 'J' para buscar
-    console.log(
-      `Registrar Route: Detectada tardanza justificada para ${codigo}`
-    );
+    console.log(`Registrar Route: Detectada tardanza justificada para ${codigo}`);
   }
   // --- FIN LÓGICA DE JUSTIFICACIÓN (J) ---
 

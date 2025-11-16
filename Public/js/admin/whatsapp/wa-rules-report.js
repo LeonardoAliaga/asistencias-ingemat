@@ -121,7 +121,9 @@ async function handleManualSend(event) {
 
   if (
     !confirm(
-      `¿Seguro que deseas enviar el reporte de ${ciclo} - ${turno} al grupo ahora?`
+      `¿Seguro que deseas enviar el reporte de ${
+        ciclo === "DOCENTES" ? "Docentes" : `${ciclo} - ${turno}`
+      } al grupo ahora?`
     )
   ) {
     return;
@@ -131,7 +133,9 @@ async function handleManualSend(event) {
   // Usar el msgAddReportRule para feedback de envío
   showMessage(
     dom.msgAddReportRule,
-    `Enviando reporte ${ciclo} - ${turno}...`,
+    `Enviando reporte ${
+      ciclo === "DOCENTES" ? "Docentes" : `${ciclo} - ${turno}`
+    }...`,
     false
   );
 
@@ -180,21 +184,30 @@ export function renderReportRules() {
       ? group.name
       : `${rule.groupId || "N/A"} (No encontrado)`;
 
-    const cicloDisplay = rule.ciclo
-      ? rule.ciclo.charAt(0).toUpperCase() + rule.ciclo.slice(1)
-      : "N/A";
-    const turnoDisplay = rule.turno
-      ? rule.turno.charAt(0).toUpperCase() + rule.turno.slice(1)
-      : "N/A";
+    let ruleDisplay = "";
+    let dataTurno = rule.turno; // Por defecto
+
+    if (rule.ciclo === "DOCENTES") {
+      ruleDisplay = `<b>Reporte Docentes</b>`;
+      dataTurno = "docentes"; // Asegurar que el turno sea 'docentes'
+    } else {
+      const cicloDisplay = rule.ciclo
+        ? rule.ciclo.charAt(0).toUpperCase() + rule.ciclo.slice(1)
+        : "N/A";
+      const turnoDisplay = rule.turno
+        ? rule.turno.charAt(0).toUpperCase() + rule.turno.slice(1)
+        : "N/A";
+      ruleDisplay = `<b>${cicloDisplay} - ${turnoDisplay}</b>`;
+    }
 
     li.innerHTML = `
-      <span><b>${cicloDisplay} - ${turnoDisplay}</b> &rarr; <i>${targetDisplay}</i></span>
+      <span>${ruleDisplay} &rarr; <i>${targetDisplay}</i></span>
       <div class="rule-actions">
         <button 
           class="btn-rule-action btn-send-manual" 
           title="Enviar reporte ahora"
           data-ciclo="${rule.ciclo}"
-          data-turno="${rule.turno}"
+          data-turno="${dataTurno}"
           data-group-id="${rule.groupId}"
         >
           <i class="bi bi-send-fill"></i>
@@ -240,18 +253,25 @@ export function handleAddReportRule() {
   const ciclo = dom.reportRuleCicloSelect
     ? dom.reportRuleCicloSelect.value
     : "";
-  const turno = dom.reportRuleTurnoSelect
-    ? dom.reportRuleTurnoSelect.value
-    : "";
+  let turno = dom.reportRuleTurnoSelect ? dom.reportRuleTurnoSelect.value : ""; // <-- Cambiado a let
   const groupId = dom.reportRuleGroupHidden
     ? dom.reportRuleGroupHidden.value
     : "";
 
   let validationError = null;
-  if (!ciclo || !turno) {
-    validationError = "Debes seleccionar un ciclo y un turno.";
-  } else if (!groupId) {
-    validationError = "Debes seleccionar un grupo de WhatsApp de la lista.";
+
+  if (ciclo === "DOCENTES") {
+    turno = "docentes"; // Forzar turno para docentes
+    if (!groupId) {
+      validationError = "Debes seleccionar un grupo de WhatsApp de la lista.";
+    }
+  } else {
+    // Es un ciclo de estudiante
+    if (!ciclo || !turno) {
+      validationError = "Debes seleccionar un ciclo y un turno.";
+    } else if (!groupId) {
+      validationError = "Debes seleccionar un grupo de WhatsApp de la lista.";
+    }
   }
 
   if (!state.currentWhatsappConfig.automatedReport) {
@@ -261,13 +281,6 @@ export function handleAddReportRule() {
   }
 
   const rules = state.currentWhatsappConfig.automatedReport.targets;
-
-  if (
-    !validationError &&
-    rules.some((rule) => rule.ciclo === ciclo && rule.turno === turno)
-  ) {
-    validationError = `Ya existe un destino para ${ciclo} - ${turno}. Elimina el anterior primero.`;
-  }
 
   if (validationError) {
     showMessage(dom.msgAddReportRule, validationError, true);
@@ -281,6 +294,11 @@ export function handleAddReportRule() {
   if (dom.reportRuleTurnoSelect) dom.reportRuleTurnoSelect.value = "";
   if (dom.reportRuleGroupHidden) dom.reportRuleGroupHidden.value = "";
   if (dom.reportRuleGroupFiltro) dom.reportRuleGroupFiltro.value = "";
+
+  // Disparar el evento change para que la UI se resetee (oculte el turno)
+  if (dom.reportRuleCicloSelect) {
+    dom.reportRuleCicloSelect.dispatchEvent(new Event("change"));
+  }
 
   showMessage(dom.msgAddReportRule, "Destino agregado temporalmente.");
   markUnsavedChanges();
@@ -303,6 +321,25 @@ export function initReportRuleListeners() {
   if (dom.btnAddReportRule) {
     dom.btnAddReportRule.addEventListener("click", handleAddReportRule);
   }
+
+  // --- INICIO CORRECCIÓN ---
+  // Listener para ocultar turno si se selecciona "Docentes"
+  if (dom.reportRuleCicloSelect) {
+    dom.reportRuleCicloSelect.addEventListener("change", () => {
+      const turnoContainer = document.getElementById(
+        "report-rule-turno-container"
+      );
+      if (turnoContainer) {
+        if (dom.reportRuleCicloSelect.value === "DOCENTES") {
+          turnoContainer.style.display = "none";
+        } else {
+          turnoContainer.style.display = "block";
+        }
+      }
+      markUnsavedChanges();
+    });
+  }
+  // --- FIN CORRECCIÓN ---
 
   [dom.reportRuleCicloSelect, dom.reportRuleTurnoSelect].forEach((el) => {
     if (el) el.addEventListener("change", markUnsavedChanges);

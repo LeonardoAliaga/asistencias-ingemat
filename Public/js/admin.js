@@ -256,7 +256,7 @@ document.getElementById("form-agregar").onsubmit = async function (e) {
   const botonSubmit = this.querySelector('button[type="submit"]');
   botonSubmit.disabled = true;
 
-  const codigo = document.getElementById("codigo").value.trim();
+  const codigo = document.getElementById("codigo").value.trim().toUpperCase(); // <-- FORZAR MAYÚSCULAS
   const nombre = document.getElementById("nombre").value.trim();
   const apellido =
     (document.getElementById("apellido") &&
@@ -340,7 +340,7 @@ document.getElementById("form-agregar").onsubmit = async function (e) {
   }
 };
 
-// --- NUEVO: FORMULARIO EDITAR USUARIO ---
+// --- FORMULARIO EDITAR USUARIO (MODIFICADO) ---
 document.getElementById("form-editar").onsubmit = async function (e) {
   e.preventDefault();
   const botonSubmit = this.querySelector('button[type="submit"]');
@@ -349,7 +349,11 @@ document.getElementById("form-editar").onsubmit = async function (e) {
   const originalCodigo = document
     .getElementById("edit-original-codigo")
     .value.trim();
-  const codigo = document.getElementById("edit-codigo").value.trim();
+  
+  // --- INICIO CORRECCIÓN 1 ---
+  const codigo = document.getElementById("edit-codigo").value.trim().toUpperCase();
+  // --- FIN CORRECCIÓN 1 ---
+
   const nombre = document.getElementById("edit-nombre").value.trim();
   const apellido = document.getElementById("edit-apellido").value.trim();
   const rol = document.getElementById("edit-rol").value;
@@ -412,9 +416,7 @@ document.getElementById("form-editar").onsubmit = async function (e) {
     // Ocultar modal
     document.getElementById("edit-user-modal").style.display = "none";
     // Recargar la lista de usuarios en la vista activa
-    const vistaActiva = document.querySelector(
-      ".vista-content[style*='block']"
-    );
+    const vistaActiva = document.querySelector(".vista-content[style*='block']");
     if (vistaActiva) {
       if (vistaActiva.id === "vista-usuarios-completa") {
         await cargarUsuarios(true);

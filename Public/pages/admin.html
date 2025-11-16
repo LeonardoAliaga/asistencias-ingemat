@@ -625,12 +625,17 @@
                 <select id="report-rule-ciclo" required>
                   <option value="">Selecciona Ciclo</option>
                 </select>
-                <select id="report-rule-turno" required>
-                  <option value="">Selecciona Turno</option>
-                  <option value="mañana">Mañana</option>
-                  <option value="tarde">Tarde</option>
-                </select>
 
+                <div id="report-rule-turno-container">
+                  <label for="report-rule-turno" class="sr-only"
+                    >Selecciona Turno</label
+                  >
+                  <select id="report-rule-turno" required>
+                    <option value="">Selecciona Turno</option>
+                    <option value="mañana">Mañana</option>
+                    <option value="tarde">Tarde</option>
+                  </select>
+                </div>
                 <div
                   id="report-rule-group-field"
                   class="autocomplete-container"
@@ -738,7 +743,13 @@
         <form id="form-editar">
           <input type="hidden" id="edit-original-codigo" />
 
-          <input type="text" id="edit-codigo" placeholder="Código" required />
+          <input
+            type="text"
+            id="edit-codigo"
+            placeholder="Código"
+            required
+            style="text-transform: uppercase"
+          />
           <div style="display: flex; gap: 8px; flex-wrap: wrap">
             <input
               type="text"
@@ -765,7 +776,8 @@
             <option value="mañana">Mañana</option>
             <option value="tarde">Tarde</option>
           </select>
-          <select id="edit-ciclo" required></select>
+          <select id="edit-ciclo" required>
+            </select>
 
           <div id="edit-dias-asistencia-selector">
             <label>Días de Asistencia:</label>
@@ -790,6 +802,7 @@
       <h2 class="sub-header">
         <i class="bi bi-info-square-fill"></i> INFO - Ciclos y Carrusel
       </h2>
+
       <section id="info-section">
         <div
           id="info-controls"
@@ -889,6 +902,7 @@
           <div class="carousel-upload-col">
             <h4>Subir Nueva Imagen</h4>
             <p class="carousel-instructions">
+              Sube imágenes de <strong>1080x1080 píxeles</strong>.
               <br />
               Te recomendamos usar esta plantilla de Canva:
               <a
@@ -897,6 +911,7 @@
                 >Abrir Plantilla de Canva</a
               >
             </p>
+
             <label
               for="carousel-upload-name"
               style="
@@ -946,11 +961,11 @@
             <h4>Imágenes Actuales</h4>
             <div id="carousel-list-container">
               <p>Cargando imágenes...</p>
-            </div>
+              </div>
           </div>
         </div>
       </section>
-    </div>
+      </div>
 
     <script type="module" src="../js/admin.js"></script>
     <script src="../js/admin-info.js"></script>

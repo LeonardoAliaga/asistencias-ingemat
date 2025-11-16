@@ -4,7 +4,7 @@
     "nombre": "JHERSON LEONARDO",
     "apellido": "ALIAGA URIONDO",
     "rol": "estudiante",
-    "turno": "mañana",
+    "turno": "tarde",
     "ciclo": "SEMIANUAL",
     "dias_asistencia": [
       "L",
@@ -20,40 +20,6 @@
     "codigo": "A001",
     "nombre": "ALAN OSCAR",
     "apellido": "ALIAGA PEREZ",
-    "rol": "estudiante",
-    "dias_asistencia": [
-      "L",
-      "M",
-      "MI",
-      "J",
-      "V",
-      "S"
-    ],
-    "turno": "mañana",
-    "ciclo": "SEMIANUAL",
-    "nombre_completo": "ALIAGA PEREZ ALAN OSCAR"
-  },
-  {
-    "codigo": "10668586",
-    "nombre": "CARLA DAYDAMIA",
-    "apellido": "URIONDO MANINI",
-    "rol": "estudiante",
-    "turno": "tarde",
-    "ciclo": "SEMIANUAL",
-    "dias_asistencia": [
-      "L",
-      "M",
-      "MI",
-      "J",
-      "V",
-      "S"
-    ],
-    "nombre_completo": "URIONDO MANINI CARLA DAYDAMIA"
-  },
-  {
-    "codigo": "C1066",
-    "nombre": "CARLA DAYDAMIA",
-    "apellido": "URIONDO MANINI",
     "rol": "docente",
     "dias_asistencia": [
       "L",
@@ -65,6 +31,352 @@
     ],
     "turno": "",
     "ciclo": "",
+    "nombre_completo": "ALIAGA PEREZ ALAN OSCAR"
+  },
+  {
+    "codigo": "10668586",
+    "nombre": "CARLA DAYDAMIA",
+    "apellido": "URIONDO MANINI",
+    "rol": "estudiante",
+    "turno": "mañana",
+    "ciclo": "SEMIANUAL",
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ],
     "nombre_completo": "URIONDO MANINI CARLA DAYDAMIA"
+  },
+  {
+    "codigo": "D001",
+    "nombre": "MARIA ELENA",
+    "apellido": "GARCIA LOPEZ",
+    "rol": "docente",
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V"
+    ],
+    "turno": "",
+    "ciclo": "",
+    "nombre_completo": "GARCIA LOPEZ MARIA ELENA"
+  },
+  {
+    "codigo": "D002",
+    "nombre": "CARLOS ALBERTO",
+    "apellido": "SANCHEZ SOLANO",
+    "rol": "docente",
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ],
+    "turno": "",
+    "ciclo": "",
+    "nombre_completo": "SANCHEZ SOLANO CARLOS ALBERTO"
+  },
+  {
+    "codigo": "D003",
+    "nombre": "ISABEL CRISTINA",
+    "apellido": "TORRES MENDOZA",
+    "rol": "docente",
+    "dias_asistencia": [
+      "L",
+      "MI",
+      "V"
+    ],
+    "turno": "",
+    "ciclo": "",
+    "nombre_completo": "TORRES MENDOZA ISABEL CRISTINA"
+  },
+  {
+    "codigo": "A100",
+    "nombre": "JUAN GABRIEL",
+    "apellido": "PEREZ GOMEZ",
+    "rol": "estudiante",
+    "turno": "mañana",
+    "ciclo": "ANUAL",
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ],
+    "nombre_completo": "PEREZ GOMEZ JUAN GABRIEL"
+  },
+  {
+    "codigo": "A101",
+    "nombre": "ANA SOFIA",
+    "apellido": "RODRIGUEZ DIAZ",
+    "rol": "estudiante",
+    "turno": "mañana",
+    "ciclo": "ANUAL",
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V"
+    ],
+    "nombre_completo": "RODRIGUEZ DIAZ ANA SOFIA"
+  },
+  {
+    "codigo": "A102",
+    "nombre": "LUIS FERNANDO",
+    "apellido": "MARTINEZ CHAVEZ",
+    "rol": "estudiante",
+    "turno": "mañana",
+    "ciclo": "ANUAL",
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ],
+    "nombre_completo": "MARTINEZ CHAVEZ LUIS FERNANDO"
+  },
+  {
+    "codigo": "A103",
+    "nombre": "SOFIA VALENTINA",
+    "apellido": "HERNANDEZ MORA",
+    "rol": "estudiante",
+    "turno": "mañana",
+    "ciclo": "ANUAL",
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J"
+    ],
+    "nombre_completo": "HERNANDEZ MORA SOFIA VALENTINA"
+  },
+  {
+    "codigo": "A104",
+    "nombre": "MIGUEL ANGEL",
+    "apellido": "DE LA CRUZ PEÑA",
+    "rol": "estudiante",
+    "turno": "mañana",
+    "ciclo": "ANUAL",
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ],
+    "nombre_completo": "DE LA CRUZ PEÑA MIGUEL ANGEL"
+  },
+  {
+    "codigo": "A200",
+    "nombre": "CAMILA ANDREA",
+    "apellido": "LOPEZ CASTILLO",
+    "rol": "estudiante",
+    "turno": "tarde",
+    "ciclo": "ANUAL",
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ],
+    "nombre_completo": "LOPEZ CASTILLO CAMILA ANDREA"
+  },
+  {
+    "codigo": "A201",
+    "nombre": "MATEO",
+    "apellido": "GONZALES RUIZ",
+    "rol": "estudiante",
+    "turno": "tarde",
+    "ciclo": "ANUAL",
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ],
+    "nombre_completo": "GONZALES RUIZ MATEO"
+  },
+  {
+    "codigo": "A202",
+    "nombre": "VALERIA",
+    "apellido": "SILVA FLORES",
+    "rol": "estudiante",
+    "turno": "tarde",
+    "ciclo": "ANUAL",
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V"
+    ],
+    "nombre_completo": "SILVA FLORES VALERIA"
+  },
+  {
+    "codigo": "A203",
+    "nombre": "DANIEL ALEJANDRO",
+    "apellido": "ROMERO VARGAS",
+    "rol": "estudiante",
+    "turno": "tarde",
+    "ciclo": "ANUAL",
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ],
+    "nombre_completo": "ROMERO VARGAS DANIEL ALEJANDRO"
+  },
+  {
+    "codigo": "A204",
+    "nombre": "LUCIA",
+    "apellido": "PAREDES RAMOS",
+    "rol": "estudiante",
+    "turno": "tarde",
+    "ciclo": "ANUAL",
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ],
+    "nombre_completo": "PAREDES RAMOS LUCIA"
+  },
+  {
+    "codigo": "S101",
+    "nombre": "DIEGO ALONSO",
+    "apellido": "QUISPE MAMANI",
+    "rol": "estudiante",
+    "turno": "mañana",
+    "ciclo": "SEMIANUAL",
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ],
+    "nombre_completo": "QUISPE MAMANI DIEGO ALONSO"
+  },
+  {
+    "codigo": "S102",
+    "nombre": "MARIANA",
+    "apellido": "FLORES MENDOZA",
+    "rol": "estudiante",
+    "turno": "mañana",
+    "ciclo": "SEMIANUAL",
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ],
+    "nombre_completo": "FLORES MENDOZA MARIANA"
+  },
+  {
+    "codigo": "S103",
+    "nombre": "JAVIER EDUARDO",
+    "apellido": "CASTRO LEIVA",
+    "rol": "estudiante",
+    "turno": "mañana",
+    "ciclo": "SEMIANUAL",
+    "dias_asistencia": [
+      "MI",
+      "J",
+      "V",
+      "S"
+    ],
+    "nombre_completo": "CASTRO LEIVA JAVIER EDUARDO"
+  },
+  {
+    "codigo": "S104",
+    "nombre": "GABRIELA",
+    "apellido": "VASQUEZ ORTIZ",
+    "rol": "estudiante",
+    "turno": "mañana",
+    "ciclo": "SEMIANUAL",
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ],
+    "nombre_completo": "VASQUEZ ORTIZ GABRIELA"
+  },
+  {
+    "codigo": "S201",
+    "nombre": "RICARDO MANUEL",
+    "apellido": "BENITES GUERRA",
+    "rol": "estudiante",
+    "turno": "tarde",
+    "ciclo": "SEMIANUAL",
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ],
+    "nombre_completo": "BENITES GUERRA RICARDO MANUEL"
+  },
+  {
+    "codigo": "S202",
+    "nombre": "ALEJANDRA PAOLA",
+    "apellido": "ESPINOZA REYES",
+    "rol": "estudiante",
+    "turno": "tarde",
+    "ciclo": "SEMIANUAL",
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V",
+      "S"
+    ],
+    "nombre_completo": "ESPINOZA REYES ALEJANDRA PAOLA"
+  },
+  {
+    "codigo": "S203",
+    "nombre": "SEBASTIAN",
+    "apellido": "SALAZAR TORRES",
+    "rol": "estudiante",
+    "turno": "tarde",
+    "ciclo": "SEMIANUAL",
+    "dias_asistencia": [
+      "L",
+      "M",
+      "MI",
+      "J",
+      "V"
+    ],
+    "nombre_completo": "SALAZAR TORRES SEBASTIAN"
   }
 ]

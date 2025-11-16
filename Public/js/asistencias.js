@@ -24,7 +24,9 @@ document
 
     // --- NUEVO: Función para manejar el registro ---
     const registrarAsistencia = async () => {
-      const codigo = codigoInput.value.trim(); // Leer valor actual del input
+      // --- INICIO CORRECCIÓN (ERROR 1) ---
+      const codigo = codigoInput.value.trim().toUpperCase(); // <-- Añadir .toUpperCase()
+      // --- FIN CORRECCIÓN ---
 
       // Limpiar mensaje anterior mientras se procesa
       resultadoDiv.innerHTML = "<i>Procesando...</i>";
