@@ -33,7 +33,7 @@ const registrarCodigo = async (codigo, resultadoDiv, inputToRefocus = null) => {
           estadoTexto = "🟠 Tard. Justif.";
 
         resultadoDiv.innerHTML = `
-          <div style="background: rgba(0,0,0,0.6); padding: 10px; border-radius: 8px; width: 100%;">
+          <div style="padding: 10px; letter-spacing: 1px; border-radius: 8px; width: 100%;">
             <span><b>Ciclo:</b> ${data.ciclo} | <b>Turno:</b> ${
           data.turno
         }</span>
@@ -50,7 +50,7 @@ const registrarCodigo = async (codigo, resultadoDiv, inputToRefocus = null) => {
         `;
       } else {
         resultadoDiv.innerHTML = `
-          <div style="background: rgba(0,0,0,0.6); padding: 10px; border-radius: 8px; width: 100%;">
+          <div style="letter-spacing: 1px; padding: 10px; border-radius: 8px; width: 100%;">
             <span><b>Docente</b></span>
             <br>
             <span>✅ <b>${data.nombre}</b> registrado</span>
@@ -148,7 +148,7 @@ document
     // --- CAMBIO ESTÉTICO: Estructura más flexible ---
     // Quitamos alturas fijas y usamos porcentajes/flex para que no se desborde
     box.innerHTML = `
-    <div style="display: flex; flex-direction: column; align-items: center; width: 100%; height: 100%; justify-content: flex-start; padding-top: 60px;">
+    <div style="display: flex; flex-direction: column; align-items: center; width: 100%; height: 100%; justify-content: flex-start; padding-top: 10rem;">
         <h2 style="color: white; margin-bottom: 10px; z-index: 10;">Escanea tu Carnet</h2>
         
         <div id="reader" style="width: 90%; max-width: 400px; border-radius: 15px; overflow: hidden; border: 2px solid white; background: #000;"></div>
