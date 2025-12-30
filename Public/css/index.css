@@ -686,3 +686,8 @@ header {
   border: 1px solid var(--red);
   font-family: "Coolvetica", sans-serif;
 }
+
+/* ESTILO NUEVO PARA OCULTAR ELEMENTOS SOLO MOVILES EN ESCRITORIO */
+.navbar ul li.mobile-only {
+  display: none;
+}

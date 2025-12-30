@@ -84,6 +84,11 @@
     display: inline-block;
   }
 
+  /* NUEVO: MOSTRAR BOTÓN DE ESCANEO EN MOVIL */
+  .navbar ul li.mobile-only {
+    display: block;
+  }
+
   .ingresantes {
     display: none;
   }
@@ -112,6 +117,13 @@
   .box-header .text-header span,
   #resultado span {
     color: var(--white2);
+  }
+
+  .ciclos-grid {
+    display: flex !important;
+    gap: 18px !important;
+    margin-top: 12px !important;
+    flex-direction: column !important;
   }
 
   #spam {
