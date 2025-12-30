@@ -10,7 +10,6 @@ const {
   sendMessage,
   MessageMedia,
 } = require("../../Whatsapp/WhatsappClient");
-necesarias;
 const { generateReportImage } = require("../services/report-generator"); // Importar generador
 
 const router = express.Router();

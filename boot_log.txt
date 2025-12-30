@@ -1,0 +1,121 @@
+Inicio automatico ejecutado el dom. 30/11/2025 a las 15:17:40.49 
+[PM2] Spawning PM2 daemon with pm2_home=C:\Users\PCHOUSE\.pm2
+[PM2] PM2 Successfully daemonized
+[PM2][WARN] No process found
+[PM2] [v] All Applications Stopped
+[PM2] [v] PM2 Daemon Stopped
+Inicio automatico ejecutado el lun. 01/12/2025 a las  8:04:11.34 
+[PM2] Spawning PM2 daemon with pm2_home=C:\Users\PCHOUSE\.pm2
+[PM2] PM2 Successfully daemonized
+[PM2][WARN] No process found
+[PM2] [v] All Applications Stopped
+[PM2] [v] PM2 Daemon Stopped
+Inicio automatico ejecutado el mi�. 03/12/2025 a las  8:35:02.58 
+[PM2] Spawning PM2 daemon with pm2_home=C:\Users\PCHOUSE\.pm2
+[PM2] PM2 Successfully daemonized
+[PM2][WARN] No process found
+[PM2] [v] All Applications Stopped
+[PM2] [v] PM2 Daemon Stopped
+Inicio automatico ejecutado el vie. 05/12/2025 a las 16:26:34.78 
+[PM2] Spawning PM2 daemon with pm2_home=C:\Users\PCHOUSE\.pm2
+[PM2] PM2 Successfully daemonized
+[PM2][WARN] No process found
+[PM2] [v] All Applications Stopped
+[PM2] [v] PM2 Daemon Stopped
+[PM2] Spawning PM2 daemon with pm2_home=C:\Users\PCHOUSE\.pm2
+[PM2] PM2 Successfully daemonized
+[PM2][WARN] No process found
+[PM2] Starting C:\Users\PCHOUSE\Desktop\Ingemat\Web\Asistencias\app.js in fork_mode (1 instance)
+[PM2] Done.
+┌────┬───────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name      │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼───────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0  │ mi-app    │ default     │ 1.0.0   │ fork    │ 16860    │ 2s     │ 0    │ online    │ 0%       │ 35.9mb   │ PCHOUSE  │ disabled │
+└────┴───────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+[PM2] Saving current process list...
+[PM2] Successfully saved in C:\Users\PCHOUSE\.pm2\dump.pm2
+ 
+Inicio automatico ejecutado el s�b. 06/12/2025 a las  8:27:45.44 
+[PM2] Spawning PM2 daemon with pm2_home=C:\Users\PCHOUSE\.pm2
+[PM2] PM2 Successfully daemonized
+[PM2][WARN] No process found
+[PM2] [v] All Applications Stopped
+[PM2] [v] PM2 Daemon Stopped
+[PM2] Spawning PM2 daemon with pm2_home=C:\Users\PCHOUSE\.pm2
+[PM2] PM2 Successfully daemonized
+[PM2][WARN] No process found
+[PM2] Starting C:\Users\PCHOUSE\Desktop\Ingemat\Web\Asistencias\app.js in fork_mode (1 instance)
+[PM2] Done.
+┌────┬───────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name      │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼───────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0  │ mi-app    │ default     │ 1.0.0   │ fork    │ 6120     │ 5s     │ 0    │ online    │ 0%       │ 35.8mb   │ PCHOUSE  │ disabled │
+└────┴───────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+[PM2] Saving current process list...
+[PM2] Successfully saved in C:\Users\PCHOUSE\.pm2\dump.pm2
+ 
+Inicio automatico ejecutado el jue. 11/12/2025 a las 16:08:43.88 
+[PM2] Spawning PM2 daemon with pm2_home=C:\Users\PCHOUSE\.pm2
+[PM2] PM2 Successfully daemonized
+[PM2][WARN] No process found
+[PM2] [v] All Applications Stopped
+[PM2] [v] PM2 Daemon Stopped
+[PM2] Spawning PM2 daemon with pm2_home=C:\Users\PCHOUSE\.pm2
+[PM2] PM2 Successfully daemonized
+[PM2][WARN] No process found
+[PM2] Starting C:\Users\PCHOUSE\Desktop\Ingemat\Web\Asistencias\app.js in fork_mode (1 instance)
+[PM2] Done.
+┌────┬───────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name      │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼───────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0  │ mi-app    │ default     │ 1.0.0   │ fork    │ 11220    │ 79s    │ 0    │ online    │ 0%       │ 27.2mb   │ PCHOUSE  │ disabled │
+└────┴───────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+[PM2] Saving current process list...
+[PM2] Successfully saved in C:\Users\PCHOUSE\.pm2\dump.pm2
+ 
+Inicio automatico ejecutado el vie. 12/12/2025 a las 14:44:53.43 
+[PM2][Initialization] Environment variable HOME (Linux) or HOMEPATH (Windows) are not set!
+[PM2][Initialization] Defaulting to /etc/.pm2
+[PM2] Spawning PM2 daemon with pm2_home=C:\etc\.pm2
+[PM2] PM2 Successfully daemonized
+[PM2][WARN] No process found
+[PM2] [v] All Applications Stopped
+[PM2] [v] PM2 Daemon Stopped
+[PM2][Initialization] Environment variable HOME (Linux) or HOMEPATH (Windows) are not set!
+[PM2][Initialization] Defaulting to /etc/.pm2
+[PM2] Spawning PM2 daemon with pm2_home=C:\etc\.pm2
+[PM2] PM2 Successfully daemonized
+[PM2][WARN] No process found
+[PM2][Initialization] Environment variable HOME (Linux) or HOMEPATH (Windows) are not set!
+[PM2][Initialization] Defaulting to /etc/.pm2
+[PM2] Starting C:\Users\PCHOUSE\Desktop\Ingemat\Web\Asistencias\app.js in fork_mode (1 instance)
+[PM2] Done.
+┌────┬───────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name      │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼───────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0  │ mi-app    │ default     │ 1.0.0   │ fork    │ 12404    │ 5s     │ 0    │ online    │ 3.1%     │ 33.6mb   │ PCHOUSE  │ disabled │
+└────┴───────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+[PM2][Initialization] Environment variable HOME (Linux) or HOMEPATH (Windows) are not set!
+[PM2][Initialization] Defaulting to /etc/.pm2
+[PM2] Saving current process list...
+[PM2] Successfully saved in C:\etc\.pm2\dump.pm2
+ 
+Inicio automatico ejecutado el vie. 26/12/2025 a las 15:55:12.97 
+[PM2] Spawning PM2 daemon with pm2_home=C:\Users\PCHOUSE\.pm2
+[PM2] PM2 Successfully daemonized
+[PM2][WARN] No process found
+[PM2] [v] All Applications Stopped
+[PM2] [v] PM2 Daemon Stopped
+[PM2] Spawning PM2 daemon with pm2_home=C:\Users\PCHOUSE\.pm2
+[PM2] PM2 Successfully daemonized
+[PM2][WARN] No process found
+[PM2] Starting C:\Users\PCHOUSE\Desktop\Ingemat\Web\Asistencias\app.js in fork_mode (1 instance)
+[PM2] Done.
+┌────┬───────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name      │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼───────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0  │ mi-app    │ default     │ 1.0.0   │ fork    │ 1412     │ 6s     │ 0    │ online    │ 0%       │ 35.9mb   │ PCHOUSE  │ disabled │
+└────┴───────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+[PM2] Saving current process list...
+[PM2] Successfully saved in C:\Users\PCHOUSE\.pm2\dump.pm2
+ 
