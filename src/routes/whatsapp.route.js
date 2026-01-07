@@ -222,4 +222,56 @@ router.post("/send-report-manual", async (req, res) => {
   }
 });
 
+// --- NUEVA RUTA: ENVÍO MANUAL DE CARNET ---
+router.post("/send-carnet", async (req, res) => {
+  const { number, imageBase64, nombre } = req.body;
+
+  if (!isWhatsappReady()) {
+    return res.status(503).json({ exito: false, mensaje: "WhatsApp no está conectado." });
+  }
+  if (!number || !imageBase64) {
+    return res.status(400).json({ exito: false, mensaje: "Faltan datos (número o imagen)." });
+  }
+
+  try {
+    // 1. Formatear número (añadir sufijo @c.us si no es un grupo)
+    // Si el usuario pone 51999..., lo convertimos. Si pone un ID de grupo, lo dejamos.
+    let chatId = number;
+    if (!number.includes('@')) {
+        chatId = `${number}@c.us`;
+    }
+
+    // 2. Preparar la imagen (Media)
+    // Quitamos el prefijo data:image/... si viene
+    const base64Data = imageBase64.replace(/^data:image\/png;base64,/, "");
+    const media = new MessageMedia('image/png', base64Data, 'carnet.png');
+
+    // 3. Enviar mensaje
+    // Usamos tu función importada 'sendMessage' que ya maneja la lógica interna
+    const caption = `Hola ${nombre || 'Estudiante'}, aquí tienes tu carnet digital de INGEMAT.`;
+    const sent = await sendMessage(chatId, media);
+    
+    // NOTA: sendMessage actualmente devuelve true/false, pero si envías media
+    // quizás quieras enviar el caption por separado o modificar sendMessage en WhatsappClient.js
+    // Para no complicar, enviamos la imagen y luego el texto si lo deseas, 
+    // o asumimos que la imagen habla por sí sola.
+    // Si tu sendMessage soporta caption en el objeto media (whatsapp-web.js nativo lo hace, pero tu wrapper no parece recibirlo explícitamente).
+    // Por ahora, enviamos solo la imagen.
+    
+    if (sent) {
+        // Opcional: Enviar saludo textual después
+        await sendMessage(chatId, caption); 
+        res.json({ exito: true, mensaje: "Carnet enviado correctamente." });
+    } else {
+        res.status(500).json({ exito: false, mensaje: "No se pudo enviar el mensaje (ver logs)." });
+    }
+
+  } catch (error) {
+    console.error("Error en /send-carnet:", error);
+    res.status(500).json({ exito: false, mensaje: `Error interno: ${error.message}` });
+  }
+});
+
+module.exports = router;
+
 module.exports = router;

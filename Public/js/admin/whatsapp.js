@@ -19,7 +19,7 @@ import {
 import { initStudentRuleListeners } from "./whatsapp/wa-rules-student.js";
 import { initTeacherRuleListeners } from "./whatsapp/wa-rules-teacher.js";
 import { initReportRuleListeners } from "./whatsapp/wa-rules-report.js";
-
+import { initManualSend } from "./whatsapp/wa-manual.js";
 /**
  * Inicializa toda la lógica de la pestaña de WhatsApp.
  */
@@ -74,6 +74,7 @@ export function initWhatsappAdmin() {
   initStudentRuleListeners();
   initTeacherRuleListeners();
   initReportRuleListeners();
+  initManualSend();
 
   // -- Listeners de Toggles (Petición 1) --
   if (dom.enabledGeneralToggle) {

@@ -15,6 +15,8 @@
     />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.1/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   </head>
   <body>
     <nav class="navbar">
@@ -345,6 +347,59 @@
           <i class="bi bi-card-list"></i> LISTADO COMPLETO DE USUARIOS
         </h2>
         <div id="vista-usuarios-list" class="accordion-container"></div>
+        <div class="export-section-container">
+  <div class="export-card">
+    <div class="export-header">
+      <h3><i class="bi bi-printer-fill"></i> Exportación Masiva de Carnets</h3>
+      <p>Genera archivos listos para imprimir o imágenes individuales.</p>
+    </div>
+
+    <div class="export-body">
+      <div class="export-filters">
+        <div class="filter-group">
+          <label for="export-select-grupo">Grupo de Usuarios</label>
+          <select id="export-select-grupo">
+            <option value="">-- Selecciona un grupo --</option>
+            <option value="docentes">DOCENTES</option>
+            </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="export-select-turno">Turno</label>
+          <select id="export-select-turno" disabled>
+            <option value="">-- Selecciona Turno --</option>
+            <option value="mañana">Mañana</option>
+            <option value="tarde">Tarde</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="export-actions">
+        <button id="btn-descargar-pdf" class="btn-export btn-pdf" disabled>
+          <i class="bi bi-file-earmark-pdf-fill"></i>
+          <span>Descargar PDF</span>
+          <small id="pdf-count-label">(0 usuarios)</small>
+        </button>
+
+        <button id="btn-descargar-zip" class="btn-export btn-zip" disabled>
+          <i class="bi bi-images"></i>
+          <span>Descargar ZIP</span>
+          <small id="zip-count-label">Imágenes sueltas</small>
+        </button>
+      </div>
+    </div>
+
+    <div id="export-progress-area" class="export-progress-area" style="display: none;">
+      <div class="progress-info">
+        <span id="export-status-msg">Procesando...</span>
+        <span id="export-percent">0%</span>
+      </div>
+      <div class="progress-track">
+        <div id="export-progress-bar" class="progress-fill" style="width: 0%;"></div>
+      </div>
+    </div>
+  </div>
+</div>
       </div>
 
       <div id="vista-whatsapp" class="vista-content" style="display: none">
@@ -662,6 +717,31 @@
               <div id="msg-add-report-rule" class="form-message"></div>
             </div>
           </section>
+          <section class="whatsapp-config-section manual-send-section" style="border-top: 1px solid #eee; margin-top: 30px; padding-top: 20px;">
+    <h3><i class="bi bi-person-vcard-fill"></i> Envío Manual de Carnet</h3>
+    <p style="font-size: 0.9rem; color: #555; margin-bottom: 15px;">
+        Busca un usuario y envía su carnet digital directamente a un número de WhatsApp.
+    </p>
+
+    <div class="form-grid-whatsapp" style="grid-template-columns: 2fr 1fr auto; align-items: end; gap: 15px;">
+        <div class="autocomplete-container" style="position: relative;">
+            <label for="manual-carnet-search">Buscar Usuario:</label>
+            <input type="text" id="manual-carnet-search" placeholder="Escribe nombre o código..." autocomplete="off">
+            <input type="hidden" id="manual-carnet-codigo-hidden">
+            <div class="autocomplete-items" id="manual-carnet-results"></div>
+        </div>
+
+        <div>
+            <label for="manual-carnet-phone">Número WhatsApp:</label>
+            <input type="tel" id="manual-carnet-phone" placeholder="Ej: 519XXXXXXXX" maxlength="15">
+        </div>
+
+        <button id="btn-manual-send-carnet" class="btn-primary" style="height: 42px; margin-bottom: 2px;">
+            <i class="bi bi-send-fill"></i> Enviar
+        </button>
+    </div>
+    <div id="msg-manual-send" class="form-message" style="margin-top:10px;"></div>
+</section>
 
           <div class="whatsapp-save-section" id="whatsapp-save-section">
             <button id="btn-save-whatsapp-config">
