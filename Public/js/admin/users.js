@@ -1034,7 +1034,6 @@ function initTurnoTabs() {
     });
   });
 }
-
 // --- LÓGICA DE EXPORTACIÓN (UI) ---
 
 function initExportUI() {
@@ -1048,7 +1047,6 @@ function initExportUI() {
     if (!selectGrupo || !selectTurno) return;
 
     // 1. Llenar el select de grupos con los ciclos disponibles
-    // Limpiamos opciones anteriores (dejando la default y docentes)
     while (selectGrupo.options.length > 2) {
         selectGrupo.remove(2);
     }
@@ -1070,11 +1068,11 @@ function initExportUI() {
     selectGrupo.onchange = () => {
         const grupo = selectGrupo.value;
         
-        // Resetear turno
+        // Resetear turno a la opción por defecto (valor "")
         selectTurno.value = "";
         
         if (grupo === 'docentes') {
-            selectTurno.disabled = true; // Docentes no tienen turno
+            selectTurno.disabled = true; 
             actualizarBotonesExportacion('docentes', null);
         } else if (grupo === "") {
             selectTurno.disabled = true;
@@ -1082,7 +1080,8 @@ function initExportUI() {
         } else {
             // Es un ciclo, habilitar turno
             selectTurno.disabled = false;
-            disableExportButtons(); // Esperar a que elija turno
+            // CAMBIO: Ahora pasamos "" como turno para indicar "todos los del ciclo"
+            actualizarBotonesExportacion(grupo, ""); 
         }
     };
 
@@ -1090,7 +1089,9 @@ function initExportUI() {
     selectTurno.onchange = () => {
         const grupo = selectGrupo.value;
         const turno = selectTurno.value;
-        if (grupo && turno) {
+        
+        if (grupo) {
+            // Si turno es "" (opción por defecto), la función traerá a todos
             actualizarBotonesExportacion(grupo, turno);
         } else {
             disableExportButtons();
@@ -1105,11 +1106,12 @@ function initExportUI() {
             filtrados = allUserOptions.filter(u => u.rol === 'docente');
         } else {
             // Es alumno
-            filtrados = allUserOptions.filter(u => 
-                u.rol === 'estudiante' && 
-                u.ciclo === grupo && 
-                u.turno === turno
-            );
+            filtrados = allUserOptions.filter(u => {
+                const esDelCiclo = u.rol === 'estudiante' && u.ciclo === grupo;
+                // Si turno tiene valor, filtramos por él. Si es "" o null, aceptamos cualquiera.
+                const coincideTurno = turno ? u.turno === turno : true;
+                return esDelCiclo && coincideTurno;
+            });
         }
 
         const count = filtrados.length;
@@ -1117,13 +1119,19 @@ function initExportUI() {
         if (count > 0) {
             btnPdf.disabled = false;
             btnZip.disabled = false;
-            lblPdf.textContent = `(${count} usuarios)`;
+            
+            // Texto dinámico para el usuario
+            let extraInfo = "";
+            if (grupo !== 'docentes') {
+                extraInfo = turno ? ` (${turno})` : " (Todos)";
+            }
+            
+            lblPdf.textContent = `(${count} usuarios)${extraInfo}`;
             lblZip.textContent = `(${count} imágenes)`;
             
-            // Guardamos los datos filtrados en el botón para usarlos al hacer clic
-            // (Esto lo usaremos en la siguiente fase)
+            // Guardamos los datos para usarlos al hacer clic
             btnPdf.dataset.filtroGrupo = grupo;
-            btnPdf.dataset.filtroTurno = turno || "";
+            btnPdf.dataset.filtroTurno = turno || ""; // Guardamos vacío si es todos
             btnZip.dataset.filtroGrupo = grupo;
             btnZip.dataset.filtroTurno = turno || "";
         } else {
@@ -1139,6 +1147,7 @@ function initExportUI() {
         lblPdf.textContent = "(Selecciona filtros)";
         lblZip.textContent = "(Selecciona filtros)";
     }
+
     // 4. Listeners de los botones
     btnPdf.onclick = function() {
         procesarDescarga('pdf');
@@ -1153,10 +1162,8 @@ function initExportUI() {
 // FASE 2: LÓGICA DE EXPORTACIÓN MASIVA
 // ==========================================
 
-
 /**
  * Función principal que orquesta la descarga.
- * Se llama desde los botones de exportación.
  */
 async function procesarDescarga(tipo) {
   const btn = tipo === 'pdf' ? document.getElementById('btn-descargar-pdf') : document.getElementById('btn-descargar-zip');
@@ -1164,17 +1171,26 @@ async function procesarDescarga(tipo) {
 
   // 1. Obtener filtros del botón
   const grupo = btn.dataset.filtroGrupo;
-  const turno = btn.dataset.filtroTurno;
+  const turno = btn.dataset.filtroTurno; // Puede ser "" (todos)
 
-  // 2. Filtrar usuarios
+  // 2. Filtrar usuarios (Lógica actualizada)
   let usuariosAProcesar = [];
   if (grupo === 'docentes') {
     usuariosAProcesar = allUserOptions.filter(u => u.rol === 'docente');
   } else {
-    usuariosAProcesar = allUserOptions.filter(u => 
-      u.rol === 'estudiante' && u.ciclo === grupo && u.turno === turno
-    );
+    usuariosAProcesar = allUserOptions.filter(u => {
+        const esDelCiclo = u.rol === 'estudiante' && u.ciclo === grupo;
+        const coincideTurno = turno ? u.turno === turno : true;
+        return esDelCiclo && coincideTurno;
+    });
   }
+
+  // Ordenar alfabéticamente para que el PDF salga ordenado
+  usuariosAProcesar.sort((a, b) => {
+      const nameA = `${a.apellido} ${a.nombre}`;
+      const nameB = `${b.apellido} ${b.nombre}`;
+      return nameA.localeCompare(nameB);
+  });
 
   if (usuariosAProcesar.length === 0) {
     alert("No hay usuarios para exportar.");
@@ -1190,7 +1206,7 @@ async function procesarDescarga(tipo) {
     actualizarProgreso(0, "Cargando recursos...");
     const logoImg = await cargarImagenPromesa("../img/Logo 1x4 b&w.svg");
 
-    // 5. Inicializar contenedores (ZIP o PDF)
+    // 5. Inicializar contenedores
     let zip = null;
     let pdfDoc = null;
     
@@ -1203,17 +1219,16 @@ async function procesarDescarga(tipo) {
       pdfDoc = new jsPDF({ unit: "mm", format: "a4" });
     }
 
-    // Configuración para Grid en PDF (A4: 210x297mm)
-    // Carnet aprox 5.4cm x 8.6cm (Vertical)
+    // Configuración PDF
     const cardW_mm = 54; 
     const cardH_mm = 85.6;
-    const marginX = 18; // Margen izquierdo
-    const marginY = 15; // Margen superior
-    const gapX = 10;    // Espacio horizontal entre carnets
-    const gapY = 10;    // Espacio vertical
+    const marginX = 18; 
+    const marginY = 15; 
+    const gapX = 10;    
+    const gapY = 10;    
     let col = 0, row = 0;
 
-    // Canvas temporal en memoria
+    // Canvas temporal
     const canvasTemp = document.createElement('canvas');
     canvasTemp.width = 320;
     canvasTemp.height = 480;
@@ -1225,39 +1240,34 @@ async function procesarDescarga(tipo) {
     for (let i = 0; i < total; i++) {
       const usuario = usuariosAProcesar[i];
       
-      // Actualizar barra cada 5 usuarios para no bloquear el UI
+      // Actualizar UI
       if (i % 5 === 0) {
-        actualizarProgreso(Math.round((i / total) * 100), `Generando carnet de: ${usuario.nombre} (${i+1}/${total})`);
-        await new Promise(r => setTimeout(r, 0)); // Ceder control al UI
+        actualizarProgreso(Math.round((i / total) * 100), `Procesando: ${usuario.nombre} (${i+1}/${total})`);
+        await new Promise(r => setTimeout(r, 0)); 
       }
 
-      // Dibujar en el canvas oculto
+      // Dibujar
       dibujarCarnetEnContexto(ctx, usuario, logoImg, 320, 480);
-
-      // Obtener imagen
       const imgData = canvasTemp.toDataURL("image/png");
 
       if (tipo === 'zip') {
-        // Agregar al ZIP: "codigo - Apellido Nombre.png"
         const cleanName = getFullNameClient(usuario).replace(/[^a-z0-9 ]/gi, '_');
-        const fileName = `${usuario.codigo} - ${cleanName}.png`;
-        // Remove header data:image/png;base64,
+        // Incluimos el turno en el nombre del archivo si se descargan todos
+        const sufijo = (!turno && usuario.turno) ? `_${usuario.turno}` : "";
+        const fileName = `${usuario.codigo} - ${cleanName}${sufijo}.png`;
         zip.file(fileName, imgData.split(',')[1], {base64: true});
       
       } else {
-        // Agregar al PDF
-        // Calcular posición
         const xPos = marginX + (col * (cardW_mm + gapX));
         const yPos = marginY + (row * (cardH_mm + gapY));
 
         pdfDoc.addImage(imgData, 'PNG', xPos, yPos, cardW_mm, cardH_mm);
 
         col++;
-        if (col >= 3) { // 3 columnas máximo
+        if (col >= 3) { 
           col = 0;
           row++;
-          if (row >= 3) { // 3 filas máximo (9 carnets por hoja)
-            // Si quedan más usuarios, nueva página
+          if (row >= 3) { 
             if (i < total - 1) {
               pdfDoc.addPage();
               col = 0;
@@ -1268,11 +1278,14 @@ async function procesarDescarga(tipo) {
       }
     }
 
-    // 7. Finalizar y Descargar
-    actualizarProgreso(95, "Comprimiendo archivo final...");
+    // 7. Finalizar
+    actualizarProgreso(95, "Generando archivo final...");
     
     const timestamp = new Date().toISOString().slice(0,10);
-    const nombreArchivoBase = `Carnets_${grupo}_${turno || 'Docentes'}_${timestamp}`;
+    // Ajuste de nombre para reflejar si son todos
+    const nombreTurno = turno ? turno : 'Todos';
+    const nombreGrupo = grupo === 'docentes' ? 'Docentes' : `Ciclo_${grupo}_${nombreTurno}`;
+    const nombreArchivoBase = `Carnets_${nombreGrupo}_${timestamp}`;
 
     if (tipo === 'zip') {
       const content = await zip.generateAsync({type:"blob"});
@@ -1281,7 +1294,7 @@ async function procesarDescarga(tipo) {
       pdfDoc.save(`${nombreArchivoBase}.pdf`);
     }
 
-    actualizarProgreso(100, "¡Descarga completada!");
+    actualizarProgreso(100, "¡Listo!");
     setTimeout(() => {
       document.getElementById('export-progress-area').style.display = 'none';
       bloquearBotonesExport(false);
@@ -1289,7 +1302,7 @@ async function procesarDescarga(tipo) {
 
   } catch (err) {
     console.error(err);
-    alert("Error al generar los archivos: " + err.message);
+    alert("Error: " + err.message);
     bloquearBotonesExport(false);
     document.getElementById('export-progress-area').style.display = 'none';
   }
@@ -1300,8 +1313,6 @@ async function procesarDescarga(tipo) {
 function bloquearBotonesExport(estado) {
   document.getElementById('btn-descargar-pdf').disabled = estado;
   document.getElementById('btn-descargar-zip').disabled = estado;
-  // No deshabilitamos los selects para permitir cambiar de opinión, 
-  // pero el usuario debería esperar.
 }
 
 function actualizarProgreso(porcentaje, texto) {
@@ -1316,9 +1327,9 @@ function actualizarProgreso(porcentaje, texto) {
 function cargarImagenPromesa(src) {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.crossOrigin = "Anonymous"; // Importante para evitar Tainted Canvas
+    img.crossOrigin = "Anonymous"; 
     img.onload = () => resolve(img);
-    img.onerror = (e) => reject(new Error(`No se pudo cargar la imagen: ${src}`));
+    img.onerror = (e) => reject(new Error(`Error imagen: ${src}`));
     img.src = src;
   });
 }
@@ -1335,20 +1346,17 @@ function downloadBlob(blob, filename) {
 }
 
 /**
- * Lógica pura de dibujo (extraída de tu función original).
- * Dibuja un carnet en el contexto 2D proporcionado.
+ * Lógica pura de dibujo
  */
 function dibujarCarnetEnContexto(ctx, user, logoImg, W, H) {
   const primary = "#0A2240"; 
-  // const accent = "#F2B705"; // no usado en el diseño actual pero disponible
   const bg = "#FFFFFF";
 
-  // Limpiar
   ctx.clearRect(0, 0, W, H);
 
   // Fondo
   ctx.fillStyle = bg;
-  roundRect(ctx, 6, 6, W - 12, H - 12, 12, true, true); // Usamos tu función existente roundRect
+  roundRect(ctx, 6, 6, W - 12, H - 12, 12, true, true);
   ctx.fillStyle = "#f8f9fb";
   ctx.fillRect(8, 8, W - 16, H - 16);
 
@@ -1387,7 +1395,6 @@ function dibujarCarnetEnContexto(ctx, user, logoImg, W, H) {
     y += 18;
     ctx.fillStyle = isRole ? "#333" : primary;
     ctx.font = isRole ? "bold 13px Arial" : "bold 18px Arial";
-    // Cortar texto si es muy largo
     let valStr = value ? value.toUpperCase() : "-";
     if (valStr.length > 22) valStr = valStr.substring(0,22) + "...";
     ctx.fillText(valStr, 28, y);
@@ -1396,12 +1403,10 @@ function dibujarCarnetEnContexto(ctx, user, logoImg, W, H) {
 
   drawField("NOMBRE:", user.nombre);
   
-  // Apellido (ajustando espaciado manual como en original)
   y += 6; 
   drawField("APELLIDO:", user.apellido);
   y += 6;
 
-  // Ciclo/Turno o Cargo
   if (user.rol === "docente") {
     drawField("CARGO:", "DOCENTE", true);
   } else {
@@ -1430,7 +1435,6 @@ function dibujarCarnetEnContexto(ctx, user, logoImg, W, H) {
   y += 28;
 
   // Barcode
-  // Truco: Usamos un canvas temporal para JsBarcode y lo dibujamos en el principal
   const barcodeCanvas = document.createElement("canvas");
   try {
     JsBarcode(barcodeCanvas, user.codigo || "0000", {
@@ -1439,9 +1443,8 @@ function dibujarCarnetEnContexto(ctx, user, logoImg, W, H) {
       fontSize: 18,
       height: 90,
       margin: 6,
-      background: "#f8f9fb" // Que coincida con el fondo
+      background: "#f8f9fb" 
     });
-    // Centrar
     const barcodeX = Math.round((W - barcodeCanvas.width) / 2);
     ctx.drawImage(barcodeCanvas, barcodeX, y);
     y += barcodeCanvas.height + 8;
@@ -1450,7 +1453,7 @@ function dibujarCarnetEnContexto(ctx, user, logoImg, W, H) {
   }
 
   // Footer
-  ctx.textAlign = "start"; // Reset
+  ctx.textAlign = "start";
   ctx.fillStyle = "#999";
   ctx.font = "10px Arial";
   ctx.textAlign = "center";
@@ -1459,19 +1462,8 @@ function dibujarCarnetEnContexto(ctx, user, logoImg, W, H) {
 
 // --- UTILIDADES EXPORTADAS PARA GENERACIÓN DE CARNETS ---
 
-function cargarImagenPromesa(src) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = "Anonymous";
-    img.onload = () => resolve(img);
-    img.onerror = (e) => reject(new Error(`Error cargando imagen: ${src}`));
-    img.src = src;
-  });
-}
-
 /**
  * Genera el Base64 del carnet de un usuario específico.
- * Reutiliza la lógica visual de tu carnet actual.
  */
 export async function generarCarnetBase64(usuario) {
   // 1. Cargar logo
@@ -1482,7 +1474,6 @@ export async function generarCarnetBase64(usuario) {
     console.warn("Logo no cargó, generando sin logo.");
   }
 
-  // 2. Crear canvas en memoria
   const canvas = document.createElement('canvas');
   const W = 320; 
   const H = 480;
@@ -1490,128 +1481,8 @@ export async function generarCarnetBase64(usuario) {
   canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  // 3. Variables de estilo (idénticas a tu mostrarBarcodeModal)
-  const primary = "#0A2240";
-  const bg = "#FFFFFF";
+  // Reutilizamos la función de dibujo interna
+  dibujarCarnetEnContexto(ctx, usuario, logoImg, W, H);
 
-  // --- DIBUJADO (Copiado y adaptado de tu función drawCard) ---
-  ctx.clearRect(0, 0, W, H);
-
-  // Fondo
-  ctx.fillStyle = bg;
-  // Usamos tu función roundRect que ya existe en este archivo
-  roundRect(ctx, 6, 6, W - 12, H - 12, 12, true, true);
-  ctx.fillStyle = "#f8f9fb";
-  ctx.fillRect(8, 8, W - 16, H - 16);
-
-  let y = 24;
-
-  // Logo
-  const logoMaxW = 180;
-  const logoMaxH = 90;
-  if (logoImg) {
-    const ratio = logoImg.naturalWidth / logoImg.naturalHeight;
-    let logoW = logoMaxW;
-    let logoH = Math.round(logoW / ratio);
-    if (logoH > logoMaxH) {
-      logoH = logoMaxH;
-      logoW = Math.round(logoH * ratio);
-    }
-    ctx.drawImage(logoImg, W / 2 - logoW / 2, y, logoW, logoH);
-    y += logoH + 14;
-  }
-
-  // Título
-  ctx.fillStyle = primary;
-  ctx.fillRect(20, y - 6, W - 40, 28);
-  ctx.fillStyle = "#fff";
-  ctx.font = "bold 12px Arial";
-  ctx.textAlign = "center";
-  ctx.fillText("CARNET - ACADEMIA INGEMAT", W / 2, y + 14);
-  y += 36;
-
-  // Helpers de texto
-  const drawLabel = (text) => {
-    ctx.fillStyle = "#666";
-    ctx.font = "bold 11px Arial";
-    ctx.textAlign = "left";
-    ctx.fillText(text, 28, y);
-    y += 18;
-  };
-  const drawValue = (text, size = "18px", color = primary) => {
-    ctx.fillStyle = color;
-    ctx.font = `bold ${size} Arial`;
-    // Cortar texto largo
-    let val = text ? text.toUpperCase() : "-";
-    if (val.length > 22) val = val.substring(0, 22) + "...";
-    ctx.fillText(val, 28, y);
-    y += (size === "13px" ? 34 : 28); // Ajuste de espaciado según tamaño
-  };
-
-  // Nombre
-  drawLabel("NOMBRE:");
-  drawValue(usuario.nombre);
-  y += 6; // Ajuste manual original
-
-  // Apellido
-  drawLabel("APELLIDO:");
-  drawValue(usuario.apellido);
-  y += 6;
-
-  // Rol / Ciclo
-  if (usuario.rol === "docente") {
-    drawLabel("CARGO:");
-    drawValue("DOCENTE", "13px");
-  } else {
-    drawLabel("CICLO Y TURNO:");
-    const info = `${(usuario.ciclo || "").toString().toUpperCase()} - ${usuario.turno || ""}`;
-    drawValue(info, "13px", "#333");
-  }
-
-  // Divisor
-  ctx.strokeStyle = "#e6e9ee";
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(24, y);
-  ctx.lineTo(W - 24, y);
-  ctx.stroke();
-  y += 18;
-
-  // Código Texto
-  ctx.fillStyle = "#666";
-  ctx.font = "bold 11px Arial";
-  ctx.textAlign = "left";
-  ctx.fillText("CÓDIGO:", 28, y);
-  y += 16;
-  ctx.fillStyle = "#000";
-  ctx.font = "bold 20px monospace";
-  ctx.textAlign = "center";
-  ctx.fillText(usuario.codigo || "-", W / 2, y);
-  y += 28;
-
-  // Código de Barras (JsBarcode)
-  const tmpC = document.createElement("canvas");
-  // JsBarcode necesita un elemento canvas real, aunque sea en memoria
-  try {
-    JsBarcode(tmpC, usuario.codigo || "0000", {
-        format: "CODE128",
-        displayValue: true,
-        fontSize: 18,
-        height: 90,
-        margin: 6,
-        background: "#f8f9fb"
-    });
-    const barcodeX = Math.round((W - tmpC.width) / 2);
-    ctx.drawImage(tmpC, barcodeX, y);
-  } catch(e) { console.error("Error JsBarcode", e); }
-
-  // Footer
-  ctx.textAlign = "start"; // Reset safety
-  ctx.fillStyle = "#999";
-  ctx.font = "10px Arial";
-  ctx.textAlign = "center";
-  ctx.fillText("Academia INGEMAT", W / 2, H - 18);
-
-  // 4. Retornar DataURL
   return canvas.toDataURL("image/png");
 }
