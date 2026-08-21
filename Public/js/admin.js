@@ -12,11 +12,12 @@ import {
   initCicloFormEvents,
 } from "./admin/excel-preview.js";
 import { initWhatsappAdmin } from "./admin/whatsapp.js";
+import { initBibliotecaAdmin } from "./admin/biblioteca-admin.js";
 
 // --- Lógica para el manejo de vistas ---
 async function mostrarVista(vistaId, buttonId) {
   // <-- Convertida a async
-  document.querySelectorAll(".vista-content").forEach((el) => {
+  document.querySelectorAll(".vista-content, .vista-admin").forEach((el) => {
     el.style.display = "none";
   });
   const vistaActiva = document.getElementById(vistaId);
@@ -43,6 +44,8 @@ async function mostrarVista(vistaId, buttonId) {
     await cargarUsuarios(true); // Esperar a que cargue
   } else if (vistaId === "vista-whatsapp") {
     initWhatsappAdmin();
+  } else if (vistaId === "vista-biblioteca") {
+    initBibliotecaAdmin();
   } else if (vistaId === "vista-principal") {
     // Recargar datos dinámicos de la vista principal al volver a ella
     // Esperar a que los usuarios carguen es crucial para el buscador
@@ -83,6 +86,13 @@ document.getElementById("btn-vista-usuarios").onclick = () => {
 document.getElementById("btn-vista-whatsapp").onclick = () => {
   mostrarVista("vista-whatsapp", "btn-vista-whatsapp");
 };
+
+const btnBiblioteca = document.getElementById("btn-vista-biblioteca");
+if (btnBiblioteca) {
+  btnBiblioteca.onclick = () => {
+    mostrarVista("vista-biblioteca", "btn-vista-biblioteca");
+  };
+}
 
 // Botón INFO: mostrar la vista específica de INFO (vista-info)
 const btnInfo = document.getElementById("btn-vista-info");

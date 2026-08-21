@@ -10,6 +10,7 @@ const notesRouter = require("./notes.route");
 const excelRouter = require("./excel.route");
 const horariosRouter = require("./horarios.route");
 const carouselRouter = require("./carousel.route");
+const bibliotecaRouter = require("./biblioteca.route");
 
 const router = express.Router();
 
@@ -19,6 +20,7 @@ router.use("/ciclos-visual", ciclosVisualRouter);
 router.use("/ciclos", ciclosRouter);
 router.use("/horarios", horariosRouter);
 router.use("/carousel", carouselRouter);
+router.use("/biblioteca", bibliotecaRouter);
 
 // Rutas Protegidas (Solo Administración)
 router.use("/usuarios", requireAdmin, usuariosRouter);
@@ -26,4 +28,3 @@ router.use("/excel", requireAdmin, excelRouter);
 router.use("/notes", requireAdmin, notesRouter);
 
 module.exports = router;
-

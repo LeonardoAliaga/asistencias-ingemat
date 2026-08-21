@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="../css/admin.css" />
     <link rel="stylesheet" href="../css/admin-forms.css" />
     <link rel="stylesheet" href="../css/admin-views.css" />
+    <link rel="stylesheet" href="../css/admin-biblioteca.css" />
     <link rel="stylesheet" href="../css/admin-whatsapp.css" />
     <link rel="stylesheet" href="../css/admin-whatsapp-rules.css" />
     <link rel="stylesheet" href="../css/admin-responsive.css" />
@@ -41,6 +42,9 @@
         </button>
         <button class="nav-button" id="btn-vista-whatsapp">
           <i class="bi bi-whatsapp"></i> WHATSAPP
+        </button>
+        <button class="nav-button" id="btn-vista-biblioteca">
+          <i class="bi bi-book-half"></i> BIBLIOTECA
         </button>
         <button class="nav-button" id="btn-vista-info">
           <i class="bi bi-info-circle-fill"></i> INFO
@@ -1092,6 +1096,140 @@
           </div>
         </div>
       </section>
+      </div>
+
+      <!-- ======================================================= -->
+      <!-- VISTA DE BIBLIOTECA Y CONTROL DE PRÉSTAMOS -->
+      <!-- ======================================================= -->
+      <div id="vista-biblioteca" class="vista-content" style="display: none;">
+        <h2 class="sub-header">
+          <i class="bi bi-book-half"></i> ADMINISTRACIÓN DE BIBLIOTECA Y PRÉSTAMOS
+        </h2>
+
+        <section id="biblioteca-admin-section">
+          <!-- Sub-Navegación Interna de Biblioteca -->
+          <div class="biblioteca-subtabs">
+            <button class="bib-subtab active" id="subtab-bib-estantes"><i class="bi bi-grid-3x3-gap"></i> Estantería Visual</button>
+            <button class="bib-subtab" id="subtab-bib-gestion"><i class="bi bi-journal-plus"></i> Gestionar Libros y Secciones</button>
+            <button class="bib-subtab" id="subtab-bib-prestamos"><i class="bi bi-clock-history"></i> Control de Préstamos / Devoluciones</button>
+          </div>
+
+          <!-- SUB-VISTA 1: Estantería Visual -->
+          <div id="bib-panel-estantes" class="bib-subpanel">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+              <h3 style="margin:0; font-family: var(--font-heading); color: var(--black);"><i class="bi bi-bookshelf"></i> Estante Dinámico por Secciones</h3>
+              <input type="text" id="admin-book-search" placeholder="🔍 Buscar libro o código en estante..." style="padding: 8px 14px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.9rem;" />
+            </div>
+            <div id="admin-bookshelf-container" class="bookshelf-container">
+              <p><i>Cargando estantes de librería...</i></p>
+            </div>
+          </div>
+
+          <!-- SUB-VISTA 2: Gestión de Libros y Secciones -->
+          <div id="bib-panel-gestion" class="bib-subpanel" style="display: none;">
+            <div class="bib-grid">
+              <!-- Columna Izquierda: Formularios -->
+              <div style="display: flex; flex-direction: column; gap: 20px;">
+                <!-- Formulario de Secciones -->
+                <div class="bib-card-box">
+                  <h4 style="margin-bottom: 12px; color: var(--red); font-family: var(--font-heading);"><i class="bi bi-folder-plus"></i> Agregar Nueva Sección / Estante</h4>
+                  <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <input type="text" id="nueva-seccion-input" placeholder="Nombre (ej. HISTORIA)" style="flex:1; min-width: 130px; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; text-transform: uppercase;" />
+                    <button id="btn-agregar-seccion" class="btn-form-submit" style="padding: 8px 14px; flex-shrink: 0;"><i class="bi bi-plus-lg"></i> Agregar</button>
+                  </div>
+                  <div id="msg-seccion" style="margin-top: 8px; font-size: 0.85rem;"></div>
+                </div>
+
+                <!-- Formulario de Libros -->
+                <div class="bib-card-box">
+                  <h4 style="margin-bottom: 12px; color: var(--red); font-family: var(--font-heading);"><i class="bi bi-book"></i> Agregar Nuevo Libro</h4>
+                  <form id="form-agregar-libro" style="display: flex; flex-direction: column; gap: 10px;">
+                    <div>
+                      <label style="font-size: 0.85rem; font-weight: 600;">1. Nombre / Título del Libro:</label>
+                      <input type="text" id="libro-titulo-input" required placeholder="ej. Álgebra Avanzada" style="width:100%; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; margin-top: 2px;" />
+                    </div>
+                    <div>
+                      <label style="font-size: 0.85rem; font-weight: 600;">2. Código del Libro (Único):</label>
+                      <input type="text" id="libro-codigo-input" required placeholder="ej. MAT-01" style="width:100%; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; text-transform: uppercase; margin-top: 2px;" />
+                    </div>
+                    <div>
+                      <label style="font-size: 0.85rem; font-weight: 600;">3. Sección / Categoría:</label>
+                      <select id="libro-seccion-select" required style="width:100%; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; margin-top: 2px;">
+                        <option value="">Cargando secciones...</option>
+                      </select>
+                    </div>
+                    <button type="submit" class="btn-form-submit" style="margin-top: 6px; width: 100%;"><i class="bi bi-journal-plus"></i> Guardar Libro en Catálogo</button>
+                  </form>
+                  <div id="msg-libro" style="margin-top: 8px; font-size: 0.85rem;"></div>
+                </div>
+              </div>
+
+              <!-- Columna Derecha: Catálogo de Libros Registrados -->
+              <div class="bib-card-box">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+                  <h4 style="margin:0; color: var(--black); font-family: var(--font-heading);"><i class="bi bi-list-columns-reverse"></i> Catálogo Completo de Libros</h4>
+                  <input type="text" id="search-catalogo-libros" placeholder="🔍 Buscar libro o código..." style="padding: 7px 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.85rem; width: 210px;" />
+                </div>
+                <div style="max-height: 500px; overflow-y: auto; overflow-x: auto; width: 100%;">
+                  <table class="three-col-table" style="width: 100%;">
+                    <thead>
+                      <tr>
+                        <th style="width: 90px;">Código</th>
+                        <th>Título</th>
+                        <th style="width: 120px;">Sección</th>
+                        <th style="width: 100px;">Estado</th>
+                        <th style="width: 60px;">Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody id="tabla-catalogo-libros-body">
+                      <tr><td colspan="5" class="text-center"><i>Cargando catálogo...</i></td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUB-VISTA 3: Control de Préstamos y Devoluciones -->
+          <div id="bib-panel-prestamos" class="bib-subpanel" style="display: none;">
+            <div class="bib-card-box">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 12px;">
+                <div>
+                  <h3 style="margin: 0; color: var(--black); font-family: var(--font-heading);"><i class="bi bi-clock-history"></i> Historial y Control de Devolución de Préstamos</h3>
+                  <span style="font-size: 0.85rem; color: #64748b;">Registre devoluciones para liberar los libros prestados en el sistema.</span>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                  <select id="filter-prestamos-estado" style="padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.9rem;">
+                    <option value="todos">Todos los Estados</option>
+                    <option value="prestado" selected>Prestados (Activos)</option>
+                    <option value="devuelto">Devueltos</option>
+                  </select>
+                  <input type="text" id="search-prestamos" placeholder="🔍 Buscar alumno, libro o código..." style="padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.9rem; width: 220px;" />
+                </div>
+              </div>
+
+              <div style="max-height: 550px; overflow-y: auto;">
+                <table class="three-col-table" style="width: 100%;">
+                  <thead>
+                    <tr>
+                      <th style="width: 90px;">Cód. Libro</th>
+                      <th>Título del Libro</th>
+                      <th>Estudiante</th>
+                      <th style="width: 110px;">Ciclo / Turno</th>
+                      <th style="width: 130px;">Fecha Préstamo</th>
+                      <th style="width: 130px;">Fecha Devolución</th>
+                      <th style="width: 100px;">Estado</th>
+                      <th style="width: 130px;">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tabla-prestamos-body">
+                    <tr><td colspan="8" class="text-center"><i>Cargando préstamos...</i></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
 
     <script type="module" src="../js/admin.js"></script>
