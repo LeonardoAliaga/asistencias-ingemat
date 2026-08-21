@@ -207,12 +207,17 @@ router.post("/:id/respuesta", (req, res) => {
 
       // Re-calcular posiciones del ranking
       const respRows = db
-        .prepare("SELECT id FROM respuestas_evaluacion WHERE evaluacion_id = ? ORDER BY puntajeTotal DESC")
+        .prepare("SELECT id, codigoEstudiante FROM respuestas_evaluacion WHERE evaluacion_id = ? ORDER BY puntajeTotal DESC")
         .all(id);
 
       const updatePos = db.prepare("UPDATE respuestas_evaluacion SET posicion = ? WHERE id = ?");
+      let miPosicion = 1;
       respRows.forEach((r, idx) => {
-        updatePos.run(idx + 1, r.id);
+        const pos = idx + 1;
+        updatePos.run(pos, r.id);
+        if (r.codigoEstudiante === codeUpper) {
+          miPosicion = pos;
+        }
       });
     })();
 
@@ -225,6 +230,7 @@ router.post("/:id/respuesta", (req, res) => {
       incorrectas,
       enBlanco,
       puntajeTotal,
+      posicion: miPosicion,
     };
 
     res.json({

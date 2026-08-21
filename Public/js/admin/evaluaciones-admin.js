@@ -548,17 +548,30 @@ function setupFormRegistrarRespuesta() {
         const data = await res.json();
         if (data.exito) {
           const resObj = data.resultado;
+          const puestoText = resObj.posicion !== undefined && resObj.posicion !== null ? `(Puesto #${resObj.posicion})` : "";
           msg.innerHTML = `
-            <div style="background:#f0fdf4; border:1px solid #86efac; padding:12px; border-radius:8px; margin-top:10px;">
+            <div id="eval-success-alert" style="background:#f0fdf4; border:1px solid #86efac; padding:12px 14px; border-radius:8px; margin-top:10px; transition: opacity 0.5s ease;">
               <b style="color:#166534;">✅ Respuestas registradas para ${resObj.nombreEstudiante}:</b><br/>
-              <span>✔ Correctas: <b>${resObj.correctas}</b> | ❌ Incorrectas: <b>${resObj.incorrectas}</b> | ⚪ En Blanco: <b>${resObj.enBlanco}</b></span><br/>
-              <span style="font-size:1.1rem; font-weight:800; color:#b72107;">Puntaje Total: ${resObj.puntajeTotal} pts</span> (Puesto #${resObj.posicion})
+              <span style="font-size:0.9rem; color:#334155;">✔ Correctas: <b style="color:#166534;">${resObj.correctas}</b> | ❌ Incorrectas: <b style="color:#dc2626;">${resObj.incorrectas}</b> | ⚪ En Blanco: <b>${resObj.enBlanco}</b></span><br/>
+              <span style="font-size:1.05rem; font-weight:800; color:#b72107;">Puntaje Total: ${resObj.puntajeTotal} pts</span> ${puestoText ? `<span style="font-weight:700; color:#1e293b;">${puestoText}</span>` : ""}
             </div>
           `;
           if (searchInput) searchInput.value = "";
           if (hiddenCodeInput) hiddenCodeInput.value = "";
           modalState.respuestas = {};
           await cargarDatosEvaluaciones();
+
+          // Ocultar mensaje automáticamente tras unos segundos con animación suave
+          if (window._evalSuccessMsgTimeout) clearTimeout(window._evalSuccessMsgTimeout);
+          window._evalSuccessMsgTimeout = setTimeout(() => {
+            const alertEl = document.getElementById("eval-success-alert");
+            if (alertEl) {
+              alertEl.style.opacity = "0";
+              setTimeout(() => {
+                if (msg) msg.innerHTML = "";
+              }, 500);
+            }
+          }, 4500);
         } else {
           msg.innerHTML = `<span style="color:red;">❌ ${data.mensaje}</span>`;
         }
