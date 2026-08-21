@@ -1,0 +1,131 @@
+{
+  "evaluaciones": [
+    {
+      "id": "EVAL-1787281653578",
+      "titulo": "prueba",
+      "ciclo": "ANUAL",
+      "fecha": "2026-08-21",
+      "tipo": "test",
+      "numPreguntas": 10,
+      "opcionesValidas": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E"
+      ],
+      "puntajeCorrecta": 20,
+      "puntajeIncorrecta": 1.125,
+      "puntajeEnBlanco": 0,
+      "claveRespuestas": {
+        "1": "A",
+        "2": "A",
+        "3": "A",
+        "4": "A",
+        "5": "A",
+        "6": "A",
+        "7": "A",
+        "8": "A",
+        "9": "A",
+        "10": "A"
+      },
+      "respuestasEstudiantes": [
+        {
+          "codigoEstudiante": "A102",
+          "nombreEstudiante": "MARTINEZ CHAVEZ LUIS FERNANDO",
+          "ciclo": "ANUAL",
+          "turno": "mañana",
+          "respuestas": {
+            "1": "A",
+            "2": "A",
+            "3": "A",
+            "4": "A",
+            "5": "A",
+            "6": "A",
+            "7": "A",
+            "8": "A",
+            "9": "A",
+            "10": "A"
+          },
+          "correctas": 10,
+          "incorrectas": 0,
+          "enBlanco": 0,
+          "puntajeTotal": 200,
+          "fechaRegistro": "2026-08-21T03:11:43.410Z",
+          "posicion": 1
+        },
+        {
+          "codigoEstudiante": "A203",
+          "nombreEstudiante": "ROMERO VARGAS DANIEL ALEJANDRO",
+          "ciclo": "ANUAL",
+          "turno": "tarde",
+          "respuestas": {
+            "1": "B",
+            "2": "A",
+            "3": "A",
+            "5": "B",
+            "6": "A",
+            "7": "B",
+            "8": "A",
+            "9": "A",
+            "10": "A"
+          },
+          "correctas": 6,
+          "incorrectas": 3,
+          "enBlanco": 1,
+          "puntajeTotal": 116.625,
+          "fechaRegistro": "2026-08-21T03:24:54.740Z",
+          "posicion": 2
+        },
+        {
+          "codigoEstudiante": "A100",
+          "nombreEstudiante": "PEREZ GOMEZ JUAN GABRIEL",
+          "ciclo": "ANUAL",
+          "turno": "mañana",
+          "respuestas": {
+            "1": "B",
+            "2": "A",
+            "3": "B",
+            "4": "A",
+            "5": "B",
+            "6": "A",
+            "7": "A",
+            "8": "A",
+            "9": "B",
+            "10": "B"
+          },
+          "correctas": 5,
+          "incorrectas": 5,
+          "enBlanco": 0,
+          "puntajeTotal": 94.375,
+          "fechaRegistro": "2026-08-21T03:11:11.154Z",
+          "posicion": 3
+        },
+        {
+          "codigoEstudiante": "A101",
+          "nombreEstudiante": "RODRIGUEZ DIAZ ANA SOFIA",
+          "ciclo": "ANUAL",
+          "turno": "mañana",
+          "respuestas": {
+            "1": "A",
+            "2": "B",
+            "3": "A",
+            "4": "B",
+            "5": "B",
+            "6": "B",
+            "7": "B",
+            "8": "B",
+            "9": "B",
+            "10": "B"
+          },
+          "correctas": 2,
+          "incorrectas": 8,
+          "enBlanco": 0,
+          "puntajeTotal": 31,
+          "fechaRegistro": "2026-08-21T03:12:13.242Z",
+          "posicion": 4
+        }
+      ]
+    }
+  ]
+}

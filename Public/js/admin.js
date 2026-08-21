@@ -13,6 +13,7 @@ import {
 } from "./admin/excel-preview.js";
 import { initWhatsappAdmin } from "./admin/whatsapp.js";
 import { initBibliotecaAdmin } from "./admin/biblioteca-admin.js";
+import { initEvaluacionesAdmin } from "./admin/evaluaciones-admin.js";
 
 // --- Lógica para el manejo de vistas ---
 async function mostrarVista(vistaId, buttonId) {
@@ -46,15 +47,14 @@ async function mostrarVista(vistaId, buttonId) {
     initWhatsappAdmin();
   } else if (vistaId === "vista-biblioteca") {
     initBibliotecaAdmin();
+  } else if (vistaId === "vista-evaluaciones") {
+    initEvaluacionesAdmin();
   } else if (vistaId === "vista-principal") {
     // Recargar datos dinámicos de la vista principal al volver a ella
-    // Esperar a que los usuarios carguen es crucial para el buscador
     await cargarUsuarios();
     await cargarArchivosExcel();
-    await cargarHorarios(); // <-- cargarHorarios ahora es async
+    await cargarHorarios();
     await cargarCiclos();
-    // *** CORRECCIÓN: Eliminar llamada duplicada a initUserFormEvents() ***
-    // (Ya se llama en window.onload después de la carga inicial)
   }
 }
 
@@ -72,34 +72,35 @@ function showGlobalMessage(elementId, message, isError = false) {
   }, 4000);
 }
 
-// --- Lógica de Eventos del Dashboard ---
+// Botones de Navegación con verificación de existencia segura
+const btnInicio = document.getElementById("btn-vista-inicio");
+if (btnInicio) {
+  btnInicio.onclick = () => mostrarVista("vista-principal", "btn-vista-inicio");
+}
 
-// Botones de Navegación
-document.getElementById("btn-vista-inicio").onclick = () => {
-  mostrarVista("vista-principal", "btn-vista-inicio");
-};
+const btnUsuarios = document.getElementById("btn-vista-usuarios");
+if (btnUsuarios) {
+  btnUsuarios.onclick = () => mostrarVista("vista-usuarios-completa", "btn-vista-usuarios");
+}
 
-document.getElementById("btn-vista-usuarios").onclick = () => {
-  mostrarVista("vista-usuarios-completa", "btn-vista-usuarios");
-};
-
-document.getElementById("btn-vista-whatsapp").onclick = () => {
-  mostrarVista("vista-whatsapp", "btn-vista-whatsapp");
-};
+const btnWhatsapp = document.getElementById("btn-vista-whatsapp");
+if (btnWhatsapp) {
+  btnWhatsapp.onclick = () => mostrarVista("vista-whatsapp", "btn-vista-whatsapp");
+}
 
 const btnBiblioteca = document.getElementById("btn-vista-biblioteca");
 if (btnBiblioteca) {
-  btnBiblioteca.onclick = () => {
-    mostrarVista("vista-biblioteca", "btn-vista-biblioteca");
-  };
+  btnBiblioteca.onclick = () => mostrarVista("vista-biblioteca", "btn-vista-biblioteca");
 }
 
-// Botón INFO: mostrar la vista específica de INFO (vista-info)
+const btnEvaluaciones = document.getElementById("btn-vista-evaluaciones");
+if (btnEvaluaciones) {
+  btnEvaluaciones.onclick = () => mostrarVista("vista-evaluaciones", "btn-vista-evaluaciones");
+}
+
 const btnInfo = document.getElementById("btn-vista-info");
 if (btnInfo) {
-  btnInfo.onclick = () => {
-    mostrarVista("vista-info", "btn-vista-info");
-  };
+  btnInfo.onclick = () => mostrarVista("vista-info", "btn-vista-info");
 }
 
 // --- *** NUEVO HELPER (para submit de horarios) *** ---
@@ -122,104 +123,84 @@ function get24hFromPicker(hrId, minId, ampmId) {
   }
 }
 
-// Formulario Horarios (MODIFICADO)
-document.getElementById("form-horarios").onsubmit = async function (e) {
-  e.preventDefault();
-  const botonSubmit = this.querySelector('button[type="submit"]');
-  botonSubmit.disabled = true;
+// Formulario Horarios
+const formHorarios = document.getElementById("form-horarios");
+if (formHorarios) {
+  formHorarios.onsubmit = async function (e) {
+    e.preventDefault();
+    const botonSubmit = this.querySelector('button[type="submit"]');
+    if (botonSubmit) botonSubmit.disabled = true;
 
-  // 1. Obtener el ciclo seleccionado
-  const cicloSeleccionado = document.getElementById(
-    "horarios-ciclo-select"
-  ).value;
-  if (!cicloSeleccionado) {
-    showGlobalMessage("msg-horarios", `Error: No se seleccionó ciclo.`, true);
-    botonSubmit.disabled = false;
-    return;
-  }
+    const cicloSelect = document.getElementById("horarios-ciclo-select");
+    const cicloSeleccionado = cicloSelect ? cicloSelect.value : "";
+    if (!cicloSeleccionado) {
+      showGlobalMessage("msg-horarios", `Error: No se seleccionó ciclo.`, true);
+      if (botonSubmit) botonSubmit.disabled = false;
+      return;
+    }
 
-  // 2. Obtener los horarios de los pickers
-  const payloadHorarios = {
-    mañana: {
-      entrada: get24hFromPicker(
-        "entrada-manana-hr",
-        "entrada-manana-min",
-        "entrada-manana-ampm"
-      ),
-      tolerancia: get24hFromPicker(
-        "tolerancia-manana-hr",
-        "tolerancia-manana-min",
-        "tolerancia-manana-ampm"
-      ),
-    },
-    tarde: {
-      entrada: get24hFromPicker(
-        "entrada-tarde-hr",
-        "entrada-tarde-min",
-        "entrada-tarde-ampm"
-      ),
-      tolerancia: get24hFromPicker(
-        "tolerancia-tarde-hr",
-        "tolerancia-tarde-min",
-        "tolerancia-tarde-ampm"
-      ),
-    },
+    const payloadHorarios = {
+      mañana: {
+        entrada: get24hFromPicker("entrada-manana-hr", "entrada-manana-min", "entrada-manana-ampm"),
+        tolerancia: get24hFromPicker("tolerancia-manana-hr", "tolerancia-manana-min", "tolerancia-manana-ampm"),
+      },
+      tarde: {
+        entrada: get24hFromPicker("entrada-tarde-hr", "entrada-tarde-min", "entrada-tarde-ampm"),
+        tolerancia: get24hFromPicker("tolerancia-tarde-hr", "tolerancia-tarde-min", "tolerancia-tarde-ampm"),
+      },
+    };
+
+    const payload = { ciclo: cicloSeleccionado, horarios: payloadHorarios };
+
+    try {
+      const res = await fetch("/api/horarios", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.mensaje || `Error ${res.status}`);
+      showGlobalMessage("msg-horarios", data.mensaje || "Horarios guardados.");
+      await cargarHorarios();
+    } catch (error) {
+      showGlobalMessage("msg-horarios", `Error: ${error.message}`, true);
+    } finally {
+      if (botonSubmit) botonSubmit.disabled = false;
+    }
   };
-
-  // 3. Crear el payload final
-  const payload = {
-    ciclo: cicloSeleccionado,
-    horarios: payloadHorarios,
-  };
-
-  try {
-    const res = await fetch("/api/horarios", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.mensaje || `Error ${res.status}`);
-    showGlobalMessage("msg-horarios", data.mensaje || "Horarios guardados.");
-
-    // Recargar la configuración de horarios en el frontend
-    // (cargarHorarios() recargará todo el select y la config)
-    await cargarHorarios();
-  } catch (error) {
-    showGlobalMessage("msg-horarios", `Error: ${error.message}`, true);
-  } finally {
-    botonSubmit.disabled = false;
-  }
-};
+}
 
 // Formulario Cambiar Contraseña
-document.getElementById("form-password").onsubmit = async function (e) {
-  e.preventDefault();
-  const botonSubmit = this.querySelector('button[type="submit"]');
-  botonSubmit.disabled = true;
-  const nueva = document.getElementById("nueva-password").value;
-  try {
-    const res = await fetch("/admin/password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nueva }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.mensaje || `Error ${res.status}`);
-    showGlobalMessage(
-      "msg-password",
-      data.mensaje || "Contraseña actualizada."
-    );
-    this.reset();
-  } catch (error) {
-    showGlobalMessage("msg-password", `Error: ${error.message}`, true);
-  } finally {
-    botonSubmit.disabled = false;
-  }
-};
+const formPassword = document.getElementById("form-password");
+if (formPassword) {
+  formPassword.onsubmit = async function (e) {
+    e.preventDefault();
+    const botonSubmit = this.querySelector('button[type="submit"]');
+    if (botonSubmit) botonSubmit.disabled = true;
+    const nuevaInput = document.getElementById("nueva-password");
+    const nueva = nuevaInput ? nuevaInput.value : "";
+    try {
+      const res = await fetch("/admin/password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nueva }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.mensaje || `Error ${res.status}`);
+      showGlobalMessage("msg-password", data.mensaje || "Contraseña actualizada.");
+      this.reset();
+    } catch (error) {
+      showGlobalMessage("msg-password", `Error: ${error.message}`, true);
+    } finally {
+      if (botonSubmit) botonSubmit.disabled = false;
+    }
+  };
+}
 
 // Formulario Agregar Ciclo
-document.getElementById("form-agregar-ciclo").onsubmit = async function (e) {
+const formAgregarCiclo = document.getElementById("form-agregar-ciclo");
+if (formAgregarCiclo) {
+  formAgregarCiclo.onsubmit = async function (e) {
   e.preventDefault();
   const botonSubmit = this.querySelector('button[type="submit"]');
   botonSubmit.disabled = true;
@@ -258,83 +239,74 @@ document.getElementById("form-agregar-ciclo").onsubmit = async function (e) {
   } finally {
     botonSubmit.disabled = false;
   }
-};
+ };
+}
 
 // Formulario Agregar Usuario
-document.getElementById("form-agregar").onsubmit = async function (e) {
-  e.preventDefault();
-  const botonSubmit = this.querySelector('button[type="submit"]');
-  botonSubmit.disabled = true;
+const formAgregar = document.getElementById("form-agregar");
+if (formAgregar) {
+  formAgregar.onsubmit = async function (e) {
+    e.preventDefault();
+    const botonSubmit = this.querySelector('button[type="submit"]');
+    if (botonSubmit) botonSubmit.disabled = true;
 
-  const codigo = document.getElementById("codigo").value.trim().toUpperCase(); // <-- FORZAR MAYÚSCULAS
-  const nombre = document.getElementById("nombre").value.trim();
-  const apellido =
-    (document.getElementById("apellido") &&
-      document.getElementById("apellido").value.trim()) ||
-    "";
-  const rol = document.getElementById("rol").value;
-  const turno = document.getElementById("turno").value;
-  const ciclo = document.getElementById("ciclo").value;
+    const codigoInput = document.getElementById("codigo");
+    const nombreInput = document.getElementById("nombre");
+    const codigo = codigoInput ? codigoInput.value.trim().toUpperCase() : "";
+    const nombre = nombreInput ? nombreInput.value.trim() : "";
+    const apellido = (document.getElementById("apellido") && document.getElementById("apellido").value.trim()) || "";
+    const rol = document.getElementById("rol") ? document.getElementById("rol").value : "";
+    const turno = document.getElementById("turno") ? document.getElementById("turno").value : "";
+    const ciclo = document.getElementById("ciclo") ? document.getElementById("ciclo").value : "";
 
-  const getSelectedDays = () => {
-    const selected = [];
-    document
-      .querySelectorAll("#dias-asistencia-selector .day-btn.active")
-      .forEach((btn) => {
+    const getSelectedDays = () => {
+      const selected = [];
+      document.querySelectorAll("#dias-asistencia-selector .day-btn.active").forEach((btn) => {
         selected.push(btn.getAttribute("data-day"));
       });
-    return selected;
-  };
-  const diasAsistencia = getSelectedDays();
+      return selected;
+    };
+    const diasAsistencia = getSelectedDays();
 
-  let errorMsg = null;
-  if (!codigo || !nombre || !apellido || !rol) {
-    errorMsg = "Código, Nombre, Apellido y Rol son obligatorios.";
-  } else if (rol === "estudiante" && (!turno || !ciclo)) {
-    errorMsg = "Turno y Ciclo son obligatorios para estudiantes.";
-  } else if (
-    (rol === "estudiante" || rol === "docente") &&
-    diasAsistencia.length === 0
-  ) {
-    errorMsg = "Selecciona al menos un día de asistencia.";
-  }
+    let errorMsg = null;
+    if (!codigo || !nombre || !apellido || !rol) {
+      errorMsg = "Código, Nombre, Apellido y Rol son obligatorios.";
+    } else if (rol === "estudiante" && (!turno || !ciclo)) {
+      errorMsg = "Turno y Ciclo son obligatorios para estudiantes.";
+    } else if ((rol === "estudiante" || rol === "docente") && diasAsistencia.length === 0) {
+      errorMsg = "Selecciona al menos un día de asistencia.";
+    }
 
-  if (errorMsg) {
-    showGlobalMessage("msg-agregar-usuario", errorMsg, true);
-    botonSubmit.disabled = false;
-    return;
-  }
+    if (errorMsg) {
+      showGlobalMessage("msg-agregar-usuario", errorMsg, true);
+      if (botonSubmit) botonSubmit.disabled = false;
+      return;
+    }
 
-  const payload = { codigo, nombre, apellido, rol };
-  if (rol === "estudiante") {
-    payload.turno = turno;
-    payload.ciclo = ciclo;
-    payload.dias_asistencia = diasAsistencia;
-  } else if (rol === "docente") {
-    payload.dias_asistencia = diasAsistencia;
-    payload.turno = "";
-    payload.ciclo = "";
-  }
+    const payload = { codigo, nombre, apellido, rol };
+    if (rol === "estudiante") {
+      payload.turno = turno;
+      payload.ciclo = ciclo;
+      payload.dias_asistencia = diasAsistencia;
+    } else if (rol === "docente") {
+      payload.dias_asistencia = diasAsistencia;
+      payload.turno = "";
+      payload.ciclo = "";
+    }
 
-  try {
-    const res = await fetch("/api/usuarios", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.mensaje || `Error ${res.status}`);
+    try {
+      const res = await fetch("/api/usuarios", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.mensaje || `Error ${res.status}`);
 
-    showGlobalMessage(
-      "msg-agregar-usuario",
-      data.mensaje || "Usuario agregado."
-    );
-    await cargarUsuarios(true);
-
-    this.reset();
-    document
-      .querySelectorAll("#dias-asistencia-selector .day-btn")
-      .forEach((button) => {
+      showGlobalMessage("msg-agregar-usuario", data.mensaje || "Usuario agregado.");
+      await cargarUsuarios(true);
+      this.reset();
+      document.querySelectorAll("#dias-asistencia-selector .day-btn").forEach((button) => {
         const day = button.getAttribute("data-day");
         if (day !== "D") {
           button.classList.add("active");
@@ -342,170 +314,154 @@ document.getElementById("form-agregar").onsubmit = async function (e) {
           button.classList.remove("active");
         }
       });
-    document.getElementById("rol").dispatchEvent(new Event("change"));
-  } catch (error) {
-    showGlobalMessage("msg-agregar-usuario", `Error: ${error.message}`, true);
-  } finally {
-    botonSubmit.disabled = false;
-  }
-};
+      const rolEl = document.getElementById("rol");
+      if (rolEl) rolEl.dispatchEvent(new Event("change"));
+    } catch (error) {
+      showGlobalMessage("msg-agregar-usuario", `Error: ${error.message}`, true);
+    } finally {
+      if (botonSubmit) botonSubmit.disabled = false;
+    }
+  };
+}
 
-// --- FORMULARIO EDITAR USUARIO (MODIFICADO) ---
-document.getElementById("form-editar").onsubmit = async function (e) {
-  e.preventDefault();
-  const botonSubmit = this.querySelector('button[type="submit"]');
-  botonSubmit.disabled = true;
+// FORMULARIO EDITAR USUARIO
+const formEditar = document.getElementById("form-editar");
+if (formEditar) {
+  formEditar.onsubmit = async function (e) {
+    e.preventDefault();
+    const botonSubmit = this.querySelector('button[type="submit"]');
+    if (botonSubmit) botonSubmit.disabled = true;
 
-  const originalCodigo = document
-    .getElementById("edit-original-codigo")
-    .value.trim();
+    const originalCodigoEl = document.getElementById("edit-original-codigo");
+    const originalCodigo = originalCodigoEl ? originalCodigoEl.value.trim() : "";
+    const codigoEl = document.getElementById("edit-codigo");
+    const codigo = codigoEl ? codigoEl.value.trim().toUpperCase() : "";
+    const nombre = document.getElementById("edit-nombre") ? document.getElementById("edit-nombre").value.trim() : "";
+    const apellido = document.getElementById("edit-apellido") ? document.getElementById("edit-apellido").value.trim() : "";
+    const rol = document.getElementById("edit-rol") ? document.getElementById("edit-rol").value : "";
+    const turno = document.getElementById("edit-turno") ? document.getElementById("edit-turno").value : "";
+    const ciclo = document.getElementById("edit-ciclo") ? document.getElementById("edit-ciclo").value : "";
 
-  // --- INICIO CORRECCIÓN 1 ---
-  const codigo = document
-    .getElementById("edit-codigo")
-    .value.trim()
-    .toUpperCase();
-  // --- FIN CORRECCIÓN 1 ---
-
-  const nombre = document.getElementById("edit-nombre").value.trim();
-  const apellido = document.getElementById("edit-apellido").value.trim();
-  const rol = document.getElementById("edit-rol").value;
-  const turno = document.getElementById("edit-turno").value;
-  const ciclo = document.getElementById("edit-ciclo").value;
-
-  const getSelectedDays = () => {
-    const selected = [];
-    document
-      .querySelectorAll("#edit-dias-asistencia-selector .day-btn.active")
-      .forEach((btn) => {
+    const getSelectedDays = () => {
+      const selected = [];
+      document.querySelectorAll("#edit-dias-asistencia-selector .day-btn.active").forEach((btn) => {
         selected.push(btn.getAttribute("data-day"));
       });
-    return selected;
-  };
-  const diasAsistencia = getSelectedDays();
+      return selected;
+    };
+    const diasAsistencia = getSelectedDays();
 
-  let errorMsg = null;
-  if (!codigo || !nombre || !apellido || !rol || !originalCodigo) {
-    errorMsg = "Código, Nombre, Apellido y Rol son obligatorios.";
-  } else if (rol === "estudiante" && (!turno || !ciclo)) {
-    errorMsg = "Turno y Ciclo son obligatorios para estudiantes.";
-  } else if (
-    (rol === "estudiante" || rol === "docente") &&
-    diasAsistencia.length === 0
-  ) {
-    errorMsg = "Selecciona al menos un día de asistencia.";
-  }
-
-  if (errorMsg) {
-    showGlobalMessage("msg-editar-usuario", errorMsg, true);
-    botonSubmit.disabled = false;
-    return;
-  }
-
-  const payload = { codigo, nombre, apellido, rol };
-  if (rol === "estudiante") {
-    payload.turno = turno;
-    payload.ciclo = ciclo;
-    payload.dias_asistencia = diasAsistencia;
-  } else if (rol === "docente") {
-    payload.dias_asistencia = diasAsistencia;
-    payload.turno = "";
-    payload.ciclo = "";
-  }
-
-  try {
-    const res = await fetch(`/api/usuarios/${originalCodigo}`, {
-      method: "PUT", // Usar PUT para actualizar
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.mensaje || `Error ${res.status}`);
-
-    showGlobalMessage(
-      "msg-editar-usuario",
-      data.mensaje || "Usuario actualizado."
-    );
-    // Ocultar modal
-    document.getElementById("edit-user-modal").style.display = "none";
-    // Recargar la lista de usuarios en la vista activa
-    const vistaActiva = document.querySelector(
-      ".vista-content[style*='block']"
-    );
-    if (vistaActiva) {
-      if (vistaActiva.id === "vista-usuarios-completa") {
-        await cargarUsuarios(true);
-      } else if (vistaActiva.id === "vista-principal") {
-        await cargarUsuarios(); // Recargar solo la vista principal
-      }
+    let errorMsg = null;
+    if (!codigo || !nombre || !apellido || !rol || !originalCodigo) {
+      errorMsg = "Código, Nombre, Apellido y Rol son obligatorios.";
+    } else if (rol === "estudiante" && (!turno || !ciclo)) {
+      errorMsg = "Turno y Ciclo son obligatorios para estudiantes.";
+    } else if ((rol === "estudiante" || rol === "docente") && diasAsistencia.length === 0) {
+      errorMsg = "Selecciona al menos un día de asistencia.";
     }
-  } catch (error) {
-    showGlobalMessage("msg-editar-usuario", `Error: ${error.message}`, true);
-  } finally {
-    botonSubmit.disabled = false;
-  }
-};
-// --- FIN FORMULARIO EDITAR USUARIO ---
 
-// --- FORMULARIO JUSTIFICAR FALTA (ACTUALIZADO) ---
-document.getElementById("form-justificar-falta").onsubmit = async function (e) {
-  e.preventDefault();
-  const botonSubmit = this.querySelector('button[type="submit"]');
-  botonSubmit.disabled = true;
+    if (errorMsg) {
+      showGlobalMessage("msg-editar-usuario", errorMsg, true);
+      if (botonSubmit) botonSubmit.disabled = false;
+      return;
+    }
 
-  // Leer del input oculto
-  const codigo = document.getElementById("justificar-alumno-hidden").value;
-  const fechaInput = document.getElementById("justificar-fecha").value; // "YYYY-MM-DD"
-  const filtroInput = document.getElementById("justificar-usuario-filtro");
+    const payload = { codigo, nombre, apellido, rol };
+    if (rol === "estudiante") {
+      payload.turno = turno;
+      payload.ciclo = ciclo;
+      payload.dias_asistencia = diasAsistencia;
+    } else if (rol === "docente") {
+      payload.dias_asistencia = diasAsistencia;
+      payload.turno = "";
+      payload.ciclo = "";
+    }
 
-  if (!codigo || !fechaInput) {
-    showGlobalMessage(
-      "msg-justificar-falta",
-      "Debes seleccionar fecha y un usuario válido de la lista.",
-      true
-    );
-    botonSubmit.disabled = false;
-    return;
-  }
+    try {
+      const res = await fetch(`/api/usuarios/${originalCodigo}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.mensaje || `Error ${res.status}`);
 
-  // Convertir fecha de YYYY-MM-DD a DD-MM-YYYY
-  const fechaParts = fechaInput.split("-");
-  const fechaFormateada = `${fechaParts[2]}-${fechaParts[1]}-${fechaParts[0]}`;
+      showGlobalMessage("msg-editar-usuario", data.mensaje || "Usuario actualizado.");
+      const modalEl = document.getElementById("edit-user-modal");
+      if (modalEl) modalEl.style.display = "none";
+      const vistaActiva = document.querySelector(".vista-content[style*='block']");
+      if (vistaActiva) {
+        if (vistaActiva.id === "vista-usuarios-completa") {
+          await cargarUsuarios(true);
+        } else if (vistaActiva.id === "vista-principal") {
+          await cargarUsuarios();
+        }
+      }
+    } catch (error) {
+      showGlobalMessage("msg-editar-usuario", `Error: ${error.message}`, true);
+    } finally {
+      if (botonSubmit) botonSubmit.disabled = false;
+    }
+  };
+}
 
-  try {
-    const res = await fetch("/api/excel/justificar", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ codigo: codigo, fecha: fechaFormateada }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.mensaje || `Error ${res.status}`);
+// FORMULARIO JUSTIFICAR FALTA
+const formJustificar = document.getElementById("form-justificar-falta");
+if (formJustificar) {
+  formJustificar.onsubmit = async function (e) {
+    e.preventDefault();
+    const botonSubmit = this.querySelector('button[type="submit"]');
+    if (botonSubmit) botonSubmit.disabled = true;
 
-    showGlobalMessage(
-      "msg-justificar-falta",
-      data.mensaje || "Falta justificada."
-    );
-    // Limpiar los campos
-    filtroInput.value = "";
-    document.getElementById("justificar-alumno-hidden").value = "";
-  } catch (error) {
-    showGlobalMessage("msg-justificar-falta", `Error: ${error.message}`, true);
-  } finally {
-    botonSubmit.disabled = false;
-  }
-};
-// --- FIN FORMULARIO JUSTIFICAR ---
+    const codigoEl = document.getElementById("justificar-alumno-hidden");
+    const fechaEl = document.getElementById("justificar-fecha");
+    const filtroInput = document.getElementById("justificar-usuario-filtro");
+
+    const codigo = codigoEl ? codigoEl.value : "";
+    const fechaInput = fechaEl ? fechaEl.value : "";
+
+    if (!codigo || !fechaInput) {
+      showGlobalMessage("msg-justificar-falta", "Debes seleccionar fecha y un usuario válido de la lista.", true);
+      if (botonSubmit) botonSubmit.disabled = false;
+      return;
+    }
+
+    const fechaParts = fechaInput.split("-");
+    const fechaFormateada = `${fechaParts[2]}-${fechaParts[1]}-${fechaParts[0]}`;
+
+    try {
+      const res = await fetch("/api/excel/justificar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ codigo: codigo, fecha: fechaFormateada }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.mensaje || `Error ${res.status}`);
+
+      showGlobalMessage("msg-justificar-falta", data.mensaje || "Falta justificada.");
+      if (filtroInput) filtroInput.value = "";
+      if (codigoEl) codigoEl.value = "";
+    } catch (error) {
+      showGlobalMessage("msg-justificar-falta", `Error: ${error.message}`, true);
+    } finally {
+      if (botonSubmit) botonSubmit.disabled = false;
+    }
+  };
+}
 
 // Botón Logout
-document.getElementById("btn-logout").onclick = async function () {
-  try {
-    await fetch("/admin/logout", { method: "POST" });
-    window.location.href = "/admin";
-  } catch (error) {
-    console.error("Error al cerrar sesión:", error);
-    window.location.href = "/admin";
-  }
-};
+const btnLogout = document.getElementById("btn-logout");
+if (btnLogout) {
+  btnLogout.onclick = async function () {
+    try {
+      await fetch("/admin/logout", { method: "POST" });
+      window.location.href = "/admin";
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error);
+      window.location.href = "/admin";
+    }
+  };
+}
 
 // ====================================================
 // Inicialización General

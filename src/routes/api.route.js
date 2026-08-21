@@ -11,6 +11,7 @@ const excelRouter = require("./excel.route");
 const horariosRouter = require("./horarios.route");
 const carouselRouter = require("./carousel.route");
 const bibliotecaRouter = require("./biblioteca.route");
+const evaluacionesRouter = require("./evaluaciones.route");
 
 const router = express.Router();
 
@@ -21,6 +22,7 @@ router.use("/ciclos", ciclosRouter);
 router.use("/horarios", horariosRouter);
 router.use("/carousel", carouselRouter);
 router.use("/biblioteca", bibliotecaRouter);
+router.use("/evaluaciones", evaluacionesRouter);
 
 // Rutas Protegidas (Solo Administración)
 router.use("/usuarios", requireAdmin, usuariosRouter);

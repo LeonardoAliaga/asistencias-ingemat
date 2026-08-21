@@ -1,0 +1,18 @@
+{
+  "tareas": [
+    {
+      "id": "TAR-1787279979909",
+      "curso": "ÁLGEBRA",
+      "ciclo": "ANUAL",
+      "fecha": "2026-08-21",
+      "tipoEvaluacion": "vigesimal",
+      "registros": [
+        {
+          "codigoEstudiante": "75516107",
+          "nota": 15,
+          "estado": "EVALUADO"
+        }
+      ]
+    }
+  ]
+}
