@@ -15,7 +15,9 @@ const { generateReportImage } = require("../services/report-generator"); // Impo
 const router = express.Router();
 const configPath = path.join(__dirname, "../../data/whatsappConfig.json");
 
-// Función para leer la configuración (MODIFICADA)
+// Función para leer la configuración desde SQLite
+const db = require("../database/db");
+
 const readConfig = () => {
   const defaultConfig = {
     enabledGeneral: false,
@@ -33,54 +35,28 @@ const readConfig = () => {
   };
 
   try {
-    if (fs.existsSync(configPath)) {
-      const data = fs.readFileSync(configPath, "utf8");
-      let config = JSON.parse(data);
-
-      if (config.enabled !== undefined) {
-        config.studentNotificationsEnabled = config.enabled;
-        delete config.enabled;
-      }
-      if (
-        config.automatedReport &&
-        config.automatedReport.enabled !== undefined
-      ) {
-        config.automatedReportEnabled = config.automatedReport.enabled;
-        delete config.automatedReport.enabled;
-      }
-      if (
-        config.automatedReport &&
-        config.automatedReport.sendTime !== undefined
-      ) {
-        config.automatedReport.sendTimeMañana = config.automatedReport.sendTime;
-        delete config.automatedReport.sendTime;
-      }
-
-      let finalConfig = { ...defaultConfig, ...config };
-      finalConfig.automatedReport = {
-        ...defaultConfig.automatedReport,
-        ...config.automatedReport,
-      };
-      return finalConfig;
+    const row = db.prepare("SELECT valor FROM config_general WHERE clave = 'whatsapp_config'").get();
+    if (row && row.valor) {
+      const config = JSON.parse(row.valor);
+      return { ...defaultConfig, ...config };
     }
   } catch (error) {
-    console.error("Error leyendo configuración de WhatsApp:", error);
+    console.error("Error leyendo configuración de WhatsApp en SQLite:", error);
   }
   return defaultConfig;
 };
 
-// Función para guardar la configuración
+// Función para guardar la configuración en SQLite
 const saveConfig = (config) => {
   try {
-    const dataDir = path.dirname(configPath);
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true });
-    }
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-    console.log("Configuración de WhatsApp guardada:", config);
+    db.prepare(`
+      INSERT OR REPLACE INTO config_general (clave, valor)
+      VALUES ('whatsapp_config', ?)
+    `).run(JSON.stringify(config, null, 2));
+    console.log("Configuración de WhatsApp guardada en SQLite.");
     return true;
   } catch (error) {
-    console.error("Error guardando configuración de WhatsApp:", error);
+    console.error("Error guardando configuración de WhatsApp en SQLite:", error);
     return false;
   }
 };

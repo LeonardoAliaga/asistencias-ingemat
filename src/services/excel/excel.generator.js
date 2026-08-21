@@ -1,6 +1,5 @@
 // src/services/excel/excel.generator.js
-const fs = require("fs");
-const path = require("path");
+const db = require("../../database/db.js");
 const { getDayAbbreviation, getFullName } = require("../../utils/helpers.js");
 const {
   estiloFalta,
@@ -8,21 +7,44 @@ const {
   estiloEncabezadoBase,
   fillEncabezadoEstudiante,
   fillEncabezadoDocente,
-  estiloDatosBase, // Importar para applyBaseDataRowStyles
-  centerAlignment, // Importar para applyBaseDataRowStyles
-  leftAlignment, // Importar para applyBaseDataRowStyles
+  estiloDatosBase,
+  centerAlignment,
+  leftAlignment,
 } = require("./excel.constants.js");
 const { applyBaseDataRowStyles } = require("./excel.helpers.js");
 
-const usuariosPath = path.join(__dirname, "../../../data/usuarios.json");
-const ciclosPath = path.join(__dirname, "../../../data/ciclos.json");
-
 function getCiclosList() {
   try {
-    const data = JSON.parse(fs.readFileSync(ciclosPath, "utf8"));
-    return data.ciclos;
+    const rows = db.prepare("SELECT nombre FROM ciclos ORDER BY id ASC").all();
+    if (rows.length > 0) return rows.map((r) => r.nombre);
+  } catch {}
+  return ["SEMESTRAL", "ANUAL", "SABATINO", "DOMINGOS"];
+}
+
+function getUsuariosList() {
+  try {
+    const rows = db.prepare("SELECT * FROM usuarios").all();
+    return rows.map((u) => {
+      let dias_asistencia = ["L", "M", "MI", "J", "V", "S"];
+      try {
+        dias_asistencia = JSON.parse(u.dias_asistencia || "[]");
+        if (!Array.isArray(dias_asistencia) || dias_asistencia.length === 0) {
+          dias_asistencia = ["L", "M", "MI", "J", "V", "S"];
+        }
+      } catch (e) {}
+
+      return {
+        codigo: String(u.codigo).toUpperCase(),
+        nombre: u.nombre,
+        apellido: u.apellido,
+        rol: u.rol,
+        turno: u.turno || "",
+        ciclo: u.ciclo || "",
+        dias_asistencia,
+      };
+    });
   } catch {
-    return ["semestral", "anual", "sabatino", "domingos"];
+    return [];
   }
 }
 
@@ -34,13 +56,12 @@ function generateStudentSheetStructure(
 ) {
   let fila = 1;
   const ciclos = getCiclosList();
-  const estudiantes = JSON.parse(fs.readFileSync(usuariosPath, "utf8")).filter(
-    (u) => u.rol === "estudiante"
-  );
+  const usuarios = getUsuariosList();
+  const estudiantes = usuarios.filter((u) => u.rol === "estudiante");
 
   for (const ciclo of ciclos) {
     const grupo = estudiantes
-      .filter((e) => e.ciclo === ciclo && e.turno === turnoActual)
+      .filter((e) => e.ciclo.toUpperCase() === ciclo.toUpperCase() && e.turno.toUpperCase() === turnoActual.toUpperCase())
       .sort((a, b) => {
         const ka = (a.apellido || getFullName(a)).toString().toUpperCase();
         const kb = (b.apellido || getFullName(b)).toString().toUpperCase();
@@ -61,38 +82,36 @@ function generateStudentSheetStructure(
     // Encabezado
     hoja.getRow(fila).values = [
       "N°",
-      "ALUMNO",
+      "ESTUDIANTE",
       "TURNO",
-      "DÍAS ASISTENCIA",
+      "CICLO",
       nombreColumnaFecha,
     ];
+
     hoja.getRow(fila).eachCell((cell) => {
-      cell.style = {
-        ...estiloEncabezadoBase,
-        fill: { ...fillEncabezadoEstudiante }, // Clonar fill
-      };
+      cell.style = estiloEncabezadoBase;
+      cell.fill = fillEncabezadoEstudiante;
     });
+
     fila++;
 
-    // Datos
-    grupo.forEach((est, i) => {
-      const isScheduled =
-        est.dias_asistencia && est.dias_asistencia.includes(diaAbbr);
-      const initialStatus = isScheduled ? "FALTA" : "NO ASISTE";
-      const diasAsistenciaStr = est.dias_asistencia
-        ? est.dias_asistencia.join(", ")
-        : "";
+    // Datos de Estudiantes
+    grupo.forEach((estudiante, idx) => {
+      const diasAsistenciaUpper = (
+        estudiante.dias_asistencia || ["L", "M", "MI", "J", "V", "S"]
+      ).map((d) => d.toUpperCase());
+      const isScheduled = diasAsistenciaUpper.includes(diaAbbr.toUpperCase());
 
-      const alumnoDisplay = est.apellido
-        ? `${est.apellido} ${est.nombre}`
-        : getFullName(est);
-      const row = hoja.addRow([
-        i + 1,
-        alumnoDisplay,
-        est.turno.toUpperCase(),
-        diasAsistenciaStr,
-        initialStatus,
-      ]);
+      const valorAsistenciaInicial = isScheduled ? "FALTA" : "NO ASISTE";
+
+      const row = hoja.getRow(fila);
+      row.values = [
+        idx + 1,
+        getFullName(estudiante),
+        estudiante.turno,
+        estudiante.ciclo,
+        valorAsistenciaInicial,
+      ];
 
       applyBaseDataRowStyles(
         row,
@@ -101,7 +120,6 @@ function generateStudentSheetStructure(
         leftAlignment
       );
 
-      // Asignar un clon profundo del objeto de estilo a la celda
       const styleToApply = isScheduled ? estiloFalta : estiloNoAsiste;
       row.getCell(5).style = {
         fill: { ...styleToApply.fill },
@@ -118,7 +136,8 @@ function generateStudentSheetStructure(
 
 function generateTeacherSheetStructure(hoja, nombreColumnaFecha, diaAbbr) {
   let fila = 1;
-  const docentes = JSON.parse(fs.readFileSync(usuariosPath, "utf8"))
+  const usuarios = getUsuariosList();
+  const docentes = usuarios
     .filter((u) => u.rol === "docente")
     .sort((a, b) => {
       const ka = (a.apellido || getFullName(a)).toString().toUpperCase();
@@ -138,45 +157,36 @@ function generateTeacherSheetStructure(hoja, nombreColumnaFecha, diaAbbr) {
     "N°",
     "DOCENTE",
     "TURNO",
-    "DÍAS ASISTENCIA",
+    "CICLO",
     nombreColumnaFecha,
   ];
+
   hoja.getRow(fila).eachCell((cell) => {
-    cell.style = {
-      ...estiloEncabezadoBase,
-      fill: { ...fillEncabezadoDocente }, // Clonar fill
-    };
+    cell.style = estiloEncabezadoBase;
+    cell.fill = fillEncabezadoDocente;
   });
+
   fila++;
 
   // Datos
-  docentes.forEach((doc, i) => {
-    const isScheduled =
-      doc.dias_asistencia && doc.dias_asistencia.includes(diaAbbr);
-    const initialStatus = isScheduled ? "FALTA" : "NO ASISTE";
-    const diasAsistenciaStr = doc.dias_asistencia
-      ? doc.dias_asistencia.join(", ")
-      : "";
+  docentes.forEach((docente, idx) => {
+    const diasAsistenciaUpper = (
+      docente.dias_asistencia || ["L", "M", "MI", "J", "V", "S"]
+    ).map((d) => d.toUpperCase());
+    const isScheduled = diasAsistenciaUpper.includes(diaAbbr.toUpperCase());
+    const valorAsistenciaInicial = isScheduled ? "FALTA" : "NO ASISTE";
 
-    const docenteDisplay = doc.apellido
-      ? `${doc.apellido} ${doc.nombre}`
-      : getFullName(doc);
-    const row = hoja.addRow([
-      i + 1,
-      docenteDisplay,
-      "",
-      diasAsistenciaStr,
-      initialStatus,
-    ]);
+    const row = hoja.getRow(fila);
+    row.values = [
+      idx + 1,
+      getFullName(docente),
+      "N/A",
+      "DOCENTE",
+      valorAsistenciaInicial,
+    ];
 
-    applyBaseDataRowStyles(
-      row,
-      estiloDatosBase,
-      centerAlignment,
-      leftAlignment
-    );
+    applyBaseDataRowStyles(row, estiloDatosBase, centerAlignment, leftAlignment);
 
-    // Asignar un clon profundo del objeto de estilo a la celda
     const styleToApply = isScheduled ? estiloFalta : estiloNoAsiste;
     row.getCell(5).style = {
       fill: { ...styleToApply.fill },
@@ -184,6 +194,8 @@ function generateTeacherSheetStructure(hoja, nombreColumnaFecha, diaAbbr) {
       alignment: { ...styleToApply.alignment },
       border: { ...styleToApply.border },
     };
+
+    fila++;
   });
 }
 

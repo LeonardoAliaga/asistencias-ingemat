@@ -2,6 +2,17 @@ const express = require("express");
 const path = require("path");
 const session = require("express-session");
 const fs = require("fs");
+
+// Inicializar Base de Datos SQLite y Migración Automática
+const db = require("./src/database/db.js");
+const { ejecutarMigracionInicial } = require("./src/database/migrador.js");
+
+try {
+  ejecutarMigracionInicial();
+} catch (e) {
+  console.error("⚠️ Error durante la migración inicial:", e);
+}
+
 const apiRouter = require("./src/routes/api.route");
 const whatsappRouter = require("./src/routes/whatsapp.route.js");
 
@@ -21,26 +32,18 @@ app.use(
   })
 );
 
-const passwordPath = path.join(__dirname, "data/password.json");
-
-// Función para obtener la contraseña actual
+// Función para obtener la contraseña actual desde SQLite
 function getPassword() {
   try {
-    const data = fs.readFileSync(passwordPath, "utf8");
-    return JSON.parse(data).password;
-  } catch {
-    // Si el archivo no existe o hay error, crea uno con contraseña por defecto
-    try {
-      fs.writeFileSync(
-        passwordPath,
-        JSON.stringify({ password: "admin123" }, null, 2)
-      );
-      return "admin123";
-    } catch (writeError) {
-      console.error("Error al crear archivo de contraseña:", writeError);
-      return "admin123"; // Retorna el default si falla la escritura
+    const row = db.prepare("SELECT valor FROM config_general WHERE clave = 'admin_password'").get();
+    if (row && row.valor) {
+      return row.valor;
     }
+  } catch (err) {
+    console.error("Error leyendo contraseña desde SQLite:", err);
   }
+  db.prepare("INSERT OR REPLACE INTO config_general (clave, valor) VALUES ('admin_password', 'admin123')").run();
+  return "admin123";
 }
 
 // Ruta de login (POST)
@@ -62,11 +65,11 @@ app.post("/admin/logout", (req, res) => {
           .status(500)
           .json({ exito: false, mensaje: "No se pudo cerrar sesión" });
       }
-      res.clearCookie("connect.sid"); // Limpia la cookie de sesión
+      res.clearCookie("connect.sid");
       return res.json({ exito: true });
     });
   } else {
-    return res.json({ exito: true }); // Si no hay sesión, igual es éxito
+    return res.json({ exito: true });
   }
 });
 
@@ -82,13 +85,10 @@ app.post("/admin/password", requireAdmin, (req, res) => {
     });
   }
   try {
-    fs.writeFileSync(
-      passwordPath,
-      JSON.stringify({ password: nueva }, null, 2)
-    );
+    db.prepare("INSERT OR REPLACE INTO config_general (clave, valor) VALUES ('admin_password', ?)").run(nueva);
     res.json({ exito: true, mensaje: "Contraseña actualizada" });
   } catch (error) {
-    console.error("Error al guardar nueva contraseña:", error);
+    console.error("Error al guardar nueva contraseña en SQLite:", error);
     res
       .status(500)
       .json({ exito: false, mensaje: "Error al guardar la contraseña" });
@@ -118,22 +118,9 @@ const registrosDir = path.join(__dirname, "Registros");
 if (!fs.existsSync(registrosDir)) {
   try {
     fs.mkdirSync(registrosDir);
-    console.log(`Carpeta ${registrosDir} creada.`);
-  } catch (mkdirError) {
-    console.error(`Error al crear la carpeta ${registrosDir}:`, mkdirError);
-  }
-}
-// Asegurar que la carpeta data exista
-const dataDir = path.join(__dirname, "data");
-if (!fs.existsSync(dataDir)) {
-  try {
-    fs.mkdirSync(dataDir);
-    console.log(`Carpeta ${dataDir} creada.`);
-  } catch (mkdirError) {
-    console.error(`Error al crear la carpeta ${dataDir}:`, mkdirError);
-  }
+  } catch (mkdirError) {}
 }
 
 app.listen(PORT, () =>
-  console.log(`Servidor iniciado en http://localhost:${PORT}`)
+  console.log(`🚀 Servidor INGEMAT iniciado con SQLite en http://localhost:${PORT}`)
 );

@@ -1,76 +1,65 @@
 // src/routes/evaluaciones.route.js
 const express = require("express");
-const fs = require("fs");
-const path = require("path");
 const ExcelJS = require("exceljs");
+const db = require("../database/db.js");
 const { getFullName } = require("../utils/helpers.js");
 
 const router = express.Router();
 
-const evaluacionesPath = path.join(__dirname, "../../data/evaluaciones.json");
-const tareasPath = path.join(__dirname, "../../data/tareas.json");
-const usuariosPath = path.join(__dirname, "../../data/usuarios.json");
-const registrosPath = path.join(__dirname, "../../Registros");
+// Helper para obtener una evaluación completa con sus respuestas
+function getEvaluacionCompleta(id) {
+  const evalRow = db.prepare("SELECT * FROM evaluaciones WHERE id = ?").get(id);
+  if (!evalRow) return null;
 
-// Helpers de lectura / escritura JSON
-function getEvaluacionesData() {
-  try {
-    if (!fs.existsSync(evaluacionesPath)) {
-      const initial = { evaluaciones: [] };
-      fs.writeFileSync(evaluacionesPath, JSON.stringify(initial, null, 2));
-      return initial;
-    }
-    return JSON.parse(fs.readFileSync(evaluacionesPath, "utf8"));
-  } catch (err) {
-    console.error("Error al leer evaluaciones.json:", err);
-    return { evaluaciones: [] };
-  }
-}
+  const respRows = db
+    .prepare("SELECT * FROM respuestas_evaluacion WHERE evaluacion_id = ? ORDER BY puntajeTotal DESC")
+    .all(id);
 
-function saveEvaluacionesData(data) {
+  let claves = {};
   try {
-    fs.writeFileSync(evaluacionesPath, JSON.stringify(data, null, 2));
-  } catch (err) {
-    console.error("Error al guardar evaluaciones.json:", err);
-  }
-}
+    claves = JSON.parse(evalRow.claves || "{}");
+  } catch (e) {}
 
-function getTareasData() {
-  try {
-    if (!fs.existsSync(tareasPath)) {
-      const initial = { tareas: [] };
-      fs.writeFileSync(tareasPath, JSON.stringify(initial, null, 2));
-      return initial;
-    }
-    return JSON.parse(fs.readFileSync(tareasPath, "utf8"));
-  } catch (err) {
-    console.error("Error al leer tareas.json:", err);
-    return { tareas: [] };
-  }
-}
+  const respuestasEstudiantes = respRows.map((r, i) => {
+    let respuestas = {};
+    try {
+      respuestas = JSON.parse(r.respuestas || "{}");
+    } catch (e) {}
+    return {
+      codigoEstudiante: r.codigoEstudiante,
+      nombreEstudiante: r.nombreEstudiante,
+      ciclo: r.ciclo,
+      correctas: r.correctas,
+      incorrectas: r.incorrectas,
+      enBlanco: r.enBlanco,
+      puntajeTotal: r.puntajeTotal,
+      posicion: i + 1,
+      respuestas,
+    };
+  });
 
-function saveTareasData(data) {
-  try {
-    fs.writeFileSync(tareasPath, JSON.stringify(data, null, 2));
-  } catch (err) {
-    console.error("Error al guardar tareas.json:", err);
-  }
-}
-
-function getUsuariosData() {
-  try {
-    if (!fs.existsSync(usuariosPath)) return [];
-    return JSON.parse(fs.readFileSync(usuariosPath, "utf8"));
-  } catch (err) {
-    console.error("Error al leer usuarios.json:", err);
-    return [];
-  }
+  return {
+    id: evalRow.id,
+    titulo: evalRow.titulo,
+    ciclo: evalRow.ciclo,
+    fecha: evalRow.fecha,
+    numPreguntas: evalRow.numPreguntas,
+    puntajeCorrecta: evalRow.puntajeCorrecta,
+    puntajeIncorrecta: evalRow.puntajeIncorrecta,
+    claveRespuestas: claves,
+    respuestasEstudiantes,
+  };
 }
 
 // 1. GET /api/evaluaciones - Listar todas las evaluaciones
 router.get("/", (req, res) => {
-  const data = getEvaluacionesData();
-  res.json({ exito: true, evaluaciones: data.evaluaciones });
+  try {
+    const rows = db.prepare("SELECT id FROM evaluaciones ORDER BY creado_en DESC").all();
+    const evaluaciones = rows.map((r) => getEvaluacionCompleta(r.id)).filter(Boolean);
+    res.json({ exito: true, evaluaciones });
+  } catch (err) {
+    res.status(500).json({ exito: false, mensaje: err.message });
+  }
 });
 
 // 2. POST /api/evaluaciones - Crear nueva evaluación / simulacro
@@ -80,11 +69,9 @@ router.post("/", (req, res) => {
       titulo,
       ciclo,
       fecha,
-      tipo,
       numPreguntas,
       puntajeCorrecta,
       puntajeIncorrecta,
-      puntajeEnBlanco,
       claveRespuestas,
     } = req.body;
 
@@ -95,34 +82,31 @@ router.post("/", (req, res) => {
       });
     }
 
-    const data = getEvaluacionesData();
     const newId = `EVAL-${Date.now()}`;
+    const fechaUsar = fecha || new Date().toISOString().split("T")[0];
 
-    const nuevaEval = {
-      id: newId,
-      titulo: titulo.trim(),
-      ciclo: ciclo.trim(),
-      fecha: fecha || new Date().toISOString().split("T")[0],
-      tipo: tipo || "simulacro",
-      numPreguntas: parseInt(numPreguntas, 10),
-      opcionesValidas: ["A", "B", "C", "D", "E"],
-      puntajeCorrecta: parseFloat(puntajeCorrecta) || 20,
-      puntajeIncorrecta: Math.abs(parseFloat(puntajeIncorrecta) || 0),
-      puntajeEnBlanco: parseFloat(puntajeEnBlanco) || 0,
-      claveRespuestas: claveRespuestas, // { "1": "A", "2": "C", ... }
-      respuestasEstudiantes: [],
-    };
+    db.prepare(`
+      INSERT INTO evaluaciones (id, titulo, ciclo, fecha, numPreguntas, puntajeCorrecta, puntajeIncorrecta, claves)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      newId,
+      titulo.trim(),
+      ciclo.trim(),
+      fechaUsar,
+      parseInt(numPreguntas, 10),
+      parseFloat(puntajeCorrecta) || 20,
+      Math.abs(parseFloat(puntajeIncorrecta) || 0),
+      JSON.stringify(claveRespuestas || {})
+    );
 
-    data.evaluaciones.unshift(nuevaEval);
-    saveEvaluacionesData(data);
-
+    const nuevaEval = getEvaluacionCompleta(newId);
     res.json({
       exito: true,
       mensaje: "Evaluación creada correctamente.",
       evaluacion: nuevaEval,
     });
   } catch (err) {
-    console.error("Error al crear evaluación:", err);
+    console.error("Error al crear evaluación en SQLite:", err);
     res.status(500).json({ exito: false, mensaje: "Error interno del servidor." });
   }
 });
@@ -131,19 +115,15 @@ router.post("/", (req, res) => {
 router.delete("/:id", (req, res) => {
   try {
     const { id } = req.params;
-    const data = getEvaluacionesData();
-    const initialLen = data.evaluaciones.length;
+    const info = db.prepare("DELETE FROM evaluaciones WHERE id = ?").run(id);
 
-    data.evaluaciones = data.evaluaciones.filter((e) => e.id !== id);
-
-    if (data.evaluaciones.length === initialLen) {
+    if (info.changes === 0) {
       return res.status(404).json({ exito: false, mensaje: "Evaluación no encontrada." });
     }
 
-    saveEvaluacionesData(data);
     res.json({ exito: true, mensaje: "Evaluación eliminada correctamente." });
   } catch (err) {
-    console.error("Error al eliminar evaluación:", err);
+    console.error("Error al eliminar evaluación en SQLite:", err);
     res.status(500).json({ exito: false, mensaje: "Error interno del servidor." });
   }
 });
@@ -152,7 +132,7 @@ router.delete("/:id", (req, res) => {
 router.post("/:id/respuesta", (req, res) => {
   try {
     const { id } = req.params;
-    const { codigoEstudiante, respuestas } = req.body; // respuestas: { "1": "A", "2": "B", ... }
+    const { codigoEstudiante, respuestas } = req.body;
 
     if (!codigoEstudiante || !respuestas) {
       return res.status(400).json({
@@ -161,10 +141,8 @@ router.post("/:id/respuesta", (req, res) => {
       });
     }
 
-    const usuarios = getUsuariosData();
-    const usuario = usuarios.find(
-      (u) => u.codigo.toUpperCase() === codigoEstudiante.trim().toUpperCase()
-    );
+    const codeUpper = String(codigoEstudiante).trim().toUpperCase();
+    const usuario = db.prepare("SELECT * FROM usuarios WHERE codigo = ?").get(codeUpper);
 
     if (!usuario) {
       return res.status(404).json({
@@ -173,9 +151,7 @@ router.post("/:id/respuesta", (req, res) => {
       });
     }
 
-    const data = getEvaluacionesData();
-    const evalObj = data.evaluaciones.find((e) => e.id === id);
-
+    const evalObj = getEvaluacionCompleta(id);
     if (!evalObj) {
       return res.status(404).json({ exito: false, mensaje: "Evaluación no encontrada." });
     }
@@ -199,42 +175,57 @@ router.post("/:id/respuesta", (req, res) => {
       }
     }
 
-    const puntajeTotal =
-      correctas * evalObj.puntajeCorrecta -
-      incorrectas * evalObj.puntajeIncorrecta +
-      enBlanco * evalObj.puntajeEnBlanco;
+    const puntajeTotal = parseFloat(
+      (correctas * evalObj.puntajeCorrecta - incorrectas * evalObj.puntajeIncorrecta).toFixed(3)
+    );
+
+    const nombreEstudiante = `${usuario.apellido}${usuario.apellido && usuario.nombre ? " " : ""}${usuario.nombre}`.trim();
+    const cicloEstudiante = usuario.ciclo || evalObj.ciclo;
+
+    db.transaction(() => {
+      // Borrar respuesta previa del alumno si existe
+      db.prepare("DELETE FROM respuestas_evaluacion WHERE evaluacion_id = ? AND codigoEstudiante = ?").run(
+        id,
+        codeUpper
+      );
+
+      // Insertar nuevo resultado
+      db.prepare(`
+        INSERT INTO respuestas_evaluacion (evaluacion_id, codigoEstudiante, nombreEstudiante, ciclo, correctas, incorrectas, enBlanco, puntajeTotal, respuestas)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        id,
+        codeUpper,
+        nombreEstudiante,
+        cicloEstudiante,
+        correctas,
+        incorrectas,
+        enBlanco,
+        puntajeTotal,
+        JSON.stringify(respuestas)
+      );
+
+      // Re-calcular posiciones del ranking
+      const respRows = db
+        .prepare("SELECT id FROM respuestas_evaluacion WHERE evaluacion_id = ? ORDER BY puntajeTotal DESC")
+        .all(id);
+
+      const updatePos = db.prepare("UPDATE respuestas_evaluacion SET posicion = ? WHERE id = ?");
+      respRows.forEach((r, idx) => {
+        updatePos.run(idx + 1, r.id);
+      });
+    })();
 
     const registroEstudiante = {
-      codigoEstudiante: usuario.codigo,
-      nombreEstudiante: getFullName(usuario),
-      ciclo: usuario.ciclo || evalObj.ciclo,
-      turno: usuario.turno || "MAÑANA",
-      respuestas: respuestas,
+      codigoEstudiante: codeUpper,
+      nombreEstudiante,
+      ciclo: cicloEstudiante,
+      respuestas,
       correctas,
       incorrectas,
       enBlanco,
-      puntajeTotal: parseFloat(puntajeTotal.toFixed(3)),
-      fechaRegistro: new Date().toISOString(),
+      puntajeTotal,
     };
-
-    // Reemplazar si ya rindió el examen o agregar
-    const idx = evalObj.respuestasEstudiantes.findIndex(
-      (r) => r.codigoEstudiante.toUpperCase() === usuario.codigo.toUpperCase()
-    );
-
-    if (idx !== -1) {
-      evalObj.respuestasEstudiantes[idx] = registroEstudiante;
-    } else {
-      evalObj.respuestasEstudiantes.push(registroEstudiante);
-    }
-
-    // Re-ordenar ranking por puntaje descendente y asignar posición
-    evalObj.respuestasEstudiantes.sort((a, b) => b.puntajeTotal - a.puntajeTotal);
-    evalObj.respuestasEstudiantes.forEach((r, i) => {
-      r.posicion = i + 1;
-    });
-
-    saveEvaluacionesData(data);
 
     res.json({
       exito: true,
@@ -242,7 +233,7 @@ router.post("/:id/respuesta", (req, res) => {
       resultado: registroEstudiante,
     });
   } catch (err) {
-    console.error("Error al registrar respuestas de estudiante:", err);
+    console.error("Error al registrar respuestas en SQLite:", err);
     res.status(500).json({ exito: false, mensaje: "Error interno del servidor." });
   }
 });
@@ -251,16 +242,11 @@ router.post("/:id/respuesta", (req, res) => {
 router.get("/:id/ranking", (req, res) => {
   try {
     const { id } = req.params;
-    const data = getEvaluacionesData();
-    const evalObj = data.evaluaciones.find((e) => e.id === id);
+    const evalObj = getEvaluacionCompleta(id);
 
     if (!evalObj) {
       return res.status(404).json({ exito: false, mensaje: "Evaluación no encontrada." });
     }
-
-    const ranking = [...evalObj.respuestasEstudiantes].sort(
-      (a, b) => b.puntajeTotal - a.puntajeTotal
-    );
 
     res.json({
       exito: true,
@@ -273,7 +259,7 @@ router.get("/:id/ranking", (req, res) => {
         puntajeCorrecta: evalObj.puntajeCorrecta,
         puntajeIncorrecta: evalObj.puntajeIncorrecta,
       },
-      ranking,
+      ranking: evalObj.respuestasEstudiantes,
     });
   } catch (err) {
     console.error("Error al obtener ranking:", err);
@@ -285,8 +271,7 @@ router.get("/:id/ranking", (req, res) => {
 router.get("/:id/excel", async (req, res) => {
   try {
     const { id } = req.params;
-    const data = getEvaluacionesData();
-    const evalObj = data.evaluaciones.find((e) => e.id === id);
+    const evalObj = getEvaluacionCompleta(id);
 
     if (!evalObj) {
       return res.status(404).send("Evaluación no encontrada.");
@@ -305,7 +290,7 @@ router.get("/:id/excel", async (req, res) => {
       { key: "puntajeTotal", width: 18 },
     ];
 
-    // Fila 1: Banner de Título Institucional (Estilo Asistencias Minimalista)
+    // Banner de Título
     sheet.mergeCells("A1:F1");
     const titleCell = sheet.getCell("A1");
     titleCell.value = "ACADEMIA PREUNIVERSITARIA INGEMAT - CUADRO GENERAL DE MÉRITO Y RANKING";
@@ -314,7 +299,7 @@ router.get("/:id/excel", async (req, res) => {
     titleCell.alignment = { horizontal: "center", vertical: "middle" };
     sheet.getRow(1).height = 34;
 
-    // Fila 2: Metadatos del Examen
+    // Metadatos
     sheet.mergeCells("A2:F2");
     const subTitleCell = sheet.getCell("A2");
     subTitleCell.value = `EXAMEN: ${evalObj.titulo.toUpperCase()} | CICLO: ${evalObj.ciclo} | FECHA: ${evalObj.fecha} | PREGUNTAS: ${evalObj.numPreguntas}`;
@@ -323,10 +308,9 @@ router.get("/:id/excel", async (req, res) => {
     subTitleCell.alignment = { horizontal: "center", vertical: "middle" };
     sheet.getRow(2).height = 22;
 
-    // Fila 3: Espacio
     sheet.getRow(3).height = 10;
 
-    // Fila 4: Cabecera de Tabla de Datos
+    // Cabecera
     const headers = ["POSICIÓN", "ESTUDIANTE", "CORRECTAS", "INCORRECTAS", "EN BLANCO", "PUNTAJE TOTAL"];
     const headerRow = sheet.getRow(4);
     headerRow.height = 28;
@@ -345,10 +329,8 @@ router.get("/:id/excel", async (req, res) => {
       };
     });
 
-    // Filas de Datos (Ranking Ordenado)
-    const ranking = [...evalObj.respuestasEstudiantes].sort((a, b) => b.puntajeTotal - a.puntajeTotal);
-
-    ranking.forEach((item, index) => {
+    // Filas
+    evalObj.respuestasEstudiantes.forEach((item, index) => {
       const pos = index + 1;
       let posText = `#${pos}`;
       if (pos === 1) posText = "🥇 1°";
@@ -365,19 +347,17 @@ router.get("/:id/excel", async (req, res) => {
       ]);
 
       row.height = 22;
-
-      // Colores de Fila según posición (Podio Top 3 + Alternados)
       let rowBg = pos % 2 === 0 ? "FFF8FAFC" : "FFFFFFFF";
       let isTop = false;
 
       if (pos === 1) {
-        rowBg = "FFFFF9C3"; // Oro suave
+        rowBg = "FFFFF9C3";
         isTop = true;
       } else if (pos === 2) {
-        rowBg = "FFF1F5F9"; // Plata suave
+        rowBg = "FFF1F5F9";
         isTop = true;
       } else if (pos === 3) {
-        rowBg = "FFFFEDD5"; // Bronce suave
+        rowBg = "FFFFEDD5";
         isTop = true;
       }
 
@@ -402,10 +382,7 @@ router.get("/:id/excel", async (req, res) => {
       });
     });
 
-    res.setHeader(
-      "Content-Type",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    );
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     res.setHeader(
       "Content-Disposition",
       `attachment; filename="Ranking_${evalObj.titulo.replace(/[^a-zA-Z0-9]/g, "_")}.xlsx"`
@@ -414,22 +391,36 @@ router.get("/:id/excel", async (req, res) => {
     await workbook.xlsx.write(res);
     res.end();
   } catch (err) {
-    console.error("Error al exportar Excel de evaluación:", err);
+    console.error("Error al exportar Excel de evaluación en SQLite:", err);
     res.status(500).send("Error interno al generar el archivo Excel.");
   }
 });
 
-// 7. GET /api/evaluaciones/tareas - Listar Tareas Registradas
+// 7. GET /api/evaluaciones/tareas/list - Listar Tareas Registradas
 router.get("/tareas/list", (req, res) => {
-  const data = getTareasData();
-  res.json({ exito: true, tareas: data.tareas });
+  try {
+    const tareaRows = db.prepare("SELECT * FROM tareas ORDER BY creado_en DESC").all();
+    const getRegs = db.prepare("SELECT codigoEstudiante, nombreEstudiante, nota, estado FROM registros_tarea WHERE tarea_id = ?");
+
+    const tareas = tareaRows.map((t) => ({
+      id: t.id,
+      curso: t.curso,
+      ciclo: t.ciclo,
+      fecha: t.fecha,
+      tipoEvaluacion: t.tipoEvaluacion,
+      registros: getRegs.all(t.id),
+    }));
+
+    res.json({ exito: true, tareas });
+  } catch (err) {
+    res.status(500).json({ exito: false, mensaje: err.message });
+  }
 });
 
 // 8. POST /api/evaluaciones/tareas - Registrar Tarea y Calificación
 router.post("/tareas", (req, res) => {
   try {
     const { curso, ciclo, fecha, tipoEvaluacion, registros } = req.body;
-    // registros: [{ codigoEstudiante, nota, estado }]
 
     if (!curso || !ciclo || !registros || !Array.isArray(registros)) {
       return res.status(400).json({
@@ -438,40 +429,45 @@ router.post("/tareas", (req, res) => {
       });
     }
 
-    const usuarios = getUsuariosData();
-    const registrosEnriquecidos = registros.map((r) => {
-      const codeUpper = (r.codigoEstudiante || "").trim().toUpperCase();
-      const u = usuarios.find((usr) => (usr.codigo || "").toUpperCase() === codeUpper);
-      return {
-        codigoEstudiante: r.codigoEstudiante,
-        nombreEstudiante: u ? getFullName(u) : `Alumno [${r.codigoEstudiante}]`,
-        nota: r.nota !== undefined ? r.nota : null,
-        estado: r.estado || "EVALUADO",
-      };
-    });
-
-    const data = getTareasData();
     const newId = `TAR-${Date.now()}`;
+    const fechaUsar = fecha || new Date().toISOString().split("T")[0];
 
-    const nuevaTarea = {
+    db.transaction(() => {
+      db.prepare(`
+        INSERT INTO tareas (id, curso, ciclo, fecha, tipoEvaluacion)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(newId, curso.trim(), ciclo.trim(), fechaUsar, tipoEvaluacion || "vigesimal");
+
+      const insertReg = db.prepare(`
+        INSERT INTO registros_tarea (tarea_id, codigoEstudiante, nombreEstudiante, nota, estado)
+        VALUES (?, ?, ?, ?, ?)
+      `);
+
+      for (const r of registros) {
+        const codeUpper = String(r.codigoEstudiante || "").trim().toUpperCase();
+        const u = db.prepare("SELECT nombre, apellido FROM usuarios WHERE codigo = ?").get(codeUpper);
+        const nombreEstudiante = u ? `${u.apellido}${u.apellido && u.nombre ? " " : ""}${u.nombre}`.trim() : `Alumno [${codeUpper}]`;
+
+        insertReg.run(newId, codeUpper, nombreEstudiante, r.nota !== undefined ? r.nota : null, r.estado || "EVALUADO");
+      }
+    })();
+
+    const tareaRegistrada = {
       id: newId,
       curso: curso.trim(),
       ciclo: ciclo.trim(),
-      fecha: fecha || new Date().toISOString().split("T")[0],
-      tipoEvaluacion: tipoEvaluacion || "vigesimal", // "vigesimal" | "binario"
-      registros: registrosEnriquecidos,
+      fecha: fechaUsar,
+      tipoEvaluacion: tipoEvaluacion || "vigesimal",
+      registros: db.prepare("SELECT codigoEstudiante, nombreEstudiante, nota, estado FROM registros_tarea WHERE tarea_id = ?").all(newId),
     };
-
-    data.tareas.unshift(nuevaTarea);
-    saveTareasData(data);
 
     res.json({
       exito: true,
       mensaje: "Registro de tareas guardado correctamente.",
-      tarea: nuevaTarea,
+      tarea: tareaRegistrada,
     });
   } catch (err) {
-    console.error("Error al guardar tareas:", err);
+    console.error("Error al guardar tareas en SQLite:", err);
     res.status(500).json({ exito: false, mensaje: "Error interno del servidor." });
   }
 });
@@ -480,11 +476,9 @@ router.post("/tareas", (req, res) => {
 router.get("/reporte-estudiante/:codigo", (req, res) => {
   try {
     const { codigo } = req.params;
-    const codeUpper = codigo.trim().toUpperCase();
+    const codeUpper = String(codigo).trim().toUpperCase();
 
-    const usuarios = getUsuariosData();
-    const usuario = usuarios.find((u) => u.codigo.toUpperCase() === codeUpper);
-
+    const usuario = db.prepare("SELECT * FROM usuarios WHERE codigo = ?").get(codeUpper);
     if (!usuario) {
       return res.status(404).json({
         exito: false,
@@ -492,87 +486,41 @@ router.get("/reporte-estudiante/:codigo", (req, res) => {
       });
     }
 
-    // 1. Desglose de Evaluaciones y Simulacros
-    const evalData = getEvaluacionesData();
-    const historialEvaluaciones = [];
+    const nombreEstudiante = `${usuario.apellido}${usuario.apellido && usuario.nombre ? " " : ""}${usuario.nombre}`.trim();
 
-    evalData.evaluaciones.forEach((e) => {
-      const resp = e.respuestasEstudiantes.find(
-        (r) => r.codigoEstudiante.toUpperCase() === codeUpper
-      );
-      if (resp) {
-        historialEvaluaciones.push({
-          evaluacionId: e.id,
-          titulo: e.titulo,
-          ciclo: e.ciclo,
-          fecha: e.fecha,
-          tipo: e.tipo,
-          numPreguntas: e.numPreguntas,
-          correctas: resp.correctas,
-          incorrectas: resp.incorrectas,
-          enBlanco: resp.enBlanco,
-          puntajeTotal: resp.puntajeTotal,
-          posicion: resp.posicion,
-          totalParticipantes: e.respuestasEstudiantes.length,
-        });
-      }
-    });
+    // 1. Evaluaciones
+    const evalRows = db.prepare(`
+      SELECT e.id as evaluacionId, e.titulo, e.ciclo, e.fecha, e.numPreguntas,
+             r.correctas, r.incorrectas, r.enBlanco, r.puntajeTotal, r.posicion
+      FROM respuestas_evaluacion r
+      JOIN evaluaciones e ON r.evaluacion_id = e.id
+      WHERE r.codigoEstudiante = ?
+      ORDER BY e.creado_en DESC
+    `).all(codeUpper);
 
-    // 2. Desglose de Tareas
-    const tareasData = getTareasData();
-    const historialTareas = [];
-
-    tareasData.tareas.forEach((t) => {
-      const reg = t.registros.find(
-        (r) => r.codigoEstudiante.toUpperCase() === codeUpper
-      );
-      if (reg) {
-        historialTareas.push({
-          tareaId: t.id,
-          curso: t.curso,
-          ciclo: t.ciclo,
-          fecha: t.fecha,
-          tipoEvaluacion: t.tipoEvaluacion,
-          nota: reg.nota,
-          estado: reg.estado,
-        });
-      }
-    });
-
-    // 3. Conteo de Asistencias desde Registros Excel
-    let totalPuntual = 0;
-    let totalTardanza = 0;
-    let totalFalta = 0;
-    let totalJustificada = 0;
-
-    if (fs.existsSync(registrosPath)) {
-      const archivos = fs.readdirSync(registrosPath).filter((f) => f.endsWith(".xlsx"));
-      archivos.forEach((f) => {
-        // En base a nombre o verificación ligera
-        totalPuntual++; // Simulación base para conteo rápido
-      });
-    }
+    // 2. Tareas
+    const tareaRows = db.prepare(`
+      SELECT t.id as tareaId, t.curso, t.ciclo, t.fecha, t.tipoEvaluacion, r.nota, r.estado
+      FROM registros_tarea r
+      JOIN tareas t ON r.tarea_id = t.id
+      WHERE r.codigoEstudiante = ?
+      ORDER BY t.creado_en DESC
+    `).all(codeUpper);
 
     res.json({
       exito: true,
       estudiante: {
         codigo: usuario.codigo,
-        nombre: getFullName(usuario),
+        nombre: nombreEstudiante,
         ciclo: usuario.ciclo || "N/A",
         turno: usuario.turno || "MAÑANA",
         rol: usuario.rol || "ESTUDIANTE",
       },
-      asistenciaResumen: {
-        puntual: totalPuntual,
-        tardanza: totalTardanza,
-        falta: totalFalta,
-        justificada: totalJustificada,
-      },
-      historialEvaluaciones,
-      historialTareas,
+      historialEvaluaciones: evalRows,
+      historialTareas: tareaRows,
     });
   } catch (err) {
-    console.error("Error al obtener reporte consolidado de estudiante:", err);
+    console.error("Error al obtener reporte de estudiante en SQLite:", err);
     res.status(500).json({ exito: false, mensaje: "Error interno del servidor." });
   }
 });

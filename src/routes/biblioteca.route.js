@@ -1,111 +1,36 @@
 // src/routes/biblioteca.route.js
 const express = require("express");
-const fs = require("fs");
-const path = require("path");
-const { normalizarTexto, getFullName } = require("../utils/helpers.js");
+const db = require("../database/db.js");
+const { getFullName } = require("../utils/helpers.js");
 
 const router = express.Router();
 
-const bibliotecaPath = path.join(__dirname, "../../data/biblioteca.json");
-const prestamosPath = path.join(__dirname, "../../data/prestamos.json");
-const usuariosPath = path.join(__dirname, "../../data/usuarios.json");
-
-// Helpers de lectura / escritura
-function getBibliotecaData() {
-  try {
-    if (!fs.existsSync(bibliotecaPath)) {
-      const initial = {
-        secciones: ["MATEMÁTICA", "FÍSICA", "QUÍMICA", "LETRAS", "BIOLOGÍA"],
-        libros: [],
-      };
-      fs.writeFileSync(bibliotecaPath, JSON.stringify(initial, null, 2));
-      return initial;
-    }
-    return JSON.parse(fs.readFileSync(bibliotecaPath, "utf8"));
-  } catch (err) {
-    console.error("Error al leer biblioteca.json:", err);
-    return { secciones: [], libros: [] };
-  }
-}
-
-function saveBibliotecaData(data) {
-  try {
-    fs.writeFileSync(bibliotecaPath, JSON.stringify(data, null, 2));
-  } catch (err) {
-    console.error("Error al guardar biblioteca.json:", err);
-  }
-}
-
-function getPrestamosData() {
-  try {
-    if (!fs.existsSync(prestamosPath)) {
-      const initial = { prestamos: [] };
-      fs.writeFileSync(prestamosPath, JSON.stringify(initial, null, 2));
-      return initial;
-    }
-    return JSON.parse(fs.readFileSync(prestamosPath, "utf8"));
-  } catch (err) {
-    console.error("Error al leer prestamos.json:", err);
-    return { prestamos: [] };
-  }
-}
-
-function savePrestamosData(data) {
-  try {
-    fs.writeFileSync(prestamosPath, JSON.stringify(data, null, 2));
-  } catch (err) {
-    console.error("Error al guardar prestamos.json:", err);
-  }
-}
-
-function getUsuariosData() {
-  try {
-    if (!fs.existsSync(usuariosPath)) return [];
-    return JSON.parse(fs.readFileSync(usuariosPath, "utf8"));
-  } catch (err) {
-    console.error("Error al leer usuarios.json:", err);
-    return [];
-  }
+// Helper para obtener secciones únicas del catálogo
+function getSecciones() {
+  const defaultSecciones = ["MATEMÁTICA", "FÍSICA", "QUÍMICA", "LETRAS", "BIOLOGÍA"];
+  const rows = db.prepare("SELECT DISTINCT categoria FROM libros WHERE categoria != ''").all();
+  const set = new Set([...defaultSecciones, ...rows.map((r) => r.categoria.toUpperCase())]);
+  return Array.from(set);
 }
 
 // GET /api/biblioteca - Obtener catálogo completo y secciones
 router.get("/", (req, res) => {
-  const data = getBibliotecaData();
-  res.json({ exito: true, secciones: data.secciones || [], libros: data.libros || [] });
-});
+  try {
+    const secciones = getSecciones();
+    const libros = db.prepare("SELECT * FROM libros ORDER BY titulo ASC").all().map((l) => ({
+      id: l.id,
+      codigo: l.codigo,
+      titulo: l.titulo,
+      seccion: l.categoria,
+      estado: l.prestados >= l.stock ? "prestado" : "disponible",
+      stock: l.stock,
+      prestados: l.prestados,
+    }));
 
-// POST /api/biblioteca/seccion - Agregar una sección / estante
-router.post("/seccion", (req, res) => {
-  const { nombre } = req.body;
-  if (!nombre || !nombre.trim()) {
-    return res.status(400).json({ exito: false, mensaje: "El nombre de la sección es obligatorio." });
+    res.json({ exito: true, secciones, libros });
+  } catch (err) {
+    res.status(500).json({ exito: false, mensaje: err.message });
   }
-
-  const nombreNorm = nombre.trim().toUpperCase();
-  const data = getBibliotecaData();
-
-  if (data.secciones.some((s) => s.toUpperCase() === nombreNorm)) {
-    return res.status(400).json({ exito: false, mensaje: `La sección "${nombreNorm}" ya existe.` });
-  }
-
-  data.secciones.push(nombreNorm);
-  saveBibliotecaData(data);
-  res.json({ exito: true, mensaje: `Sección "${nombreNorm}" agregada correctamente.`, secciones: data.secciones });
-});
-
-// DELETE /api/biblioteca/seccion/:nombre - Eliminar sección
-router.delete("/seccion/:nombre", (req, res) => {
-  const nombreNorm = decodeURIComponent(req.params.nombre).trim().toUpperCase();
-  const data = getBibliotecaData();
-
-  const idx = data.secciones.findIndex((s) => s.toUpperCase() === nombreNorm);
-  if (idx === -1) {
-    return res.status(404).json({ exito: false, mensaje: `Sección "${nombreNorm}" no encontrada.` });
-  }
-
-  data.secciones.splice(idx, 1);
-  saveBibliotecaData(data);
-  res.json({ exito: true, mensaje: `Sección "${nombreNorm}" eliminada.`, secciones: data.secciones });
 });
 
 // POST /api/biblioteca/libro - Registrar un nuevo libro
@@ -115,51 +40,80 @@ router.post("/libro", (req, res) => {
     return res.status(400).json({ exito: false, mensaje: "Código, título y sección son campos obligatorios." });
   }
 
-  const codigoNorm = codigo.trim().toUpperCase();
-  const tituloNorm = titulo.trim();
-  const seccionNorm = seccion.trim().toUpperCase();
+  const codigoNorm = String(codigo).trim().toUpperCase();
+  const tituloNorm = String(titulo).trim();
+  const seccionNorm = String(seccion).trim().toUpperCase();
 
-  const data = getBibliotecaData();
-
-  if (data.libros.some((l) => l.codigo.toUpperCase() === codigoNorm)) {
+  const dup = db.prepare("SELECT codigo FROM libros WHERE codigo = ?").get(codigoNorm);
+  if (dup) {
     return res.status(400).json({ exito: false, mensaje: `El código de libro "${codigoNorm}" ya está en uso.` });
   }
 
-  const nuevoLibro = {
-    id: `LIB-${Date.now().toString().slice(-6)}`,
-    codigo: codigoNorm,
-    titulo: tituloNorm,
-    seccion: seccionNorm,
-    estado: "disponible",
-    fechaRegistro: new Date().toLocaleDateString("es-PE"),
-  };
+  const newId = `LIB-${Date.now().toString().slice(-6)}`;
 
-  data.libros.push(nuevoLibro);
-  saveBibliotecaData(data);
+  try {
+    db.prepare(`
+      INSERT INTO libros (id, codigo, titulo, categoria, stock, prestados)
+      VALUES (?, ?, ?, ?, 1, 0)
+    `).run(newId, codigoNorm, tituloNorm, seccionNorm);
 
-  res.json({ exito: true, mensaje: `Libro "${tituloNorm}" registrado con éxito.`, libro: nuevoLibro });
+    const nuevoLibro = {
+      id: newId,
+      codigo: codigoNorm,
+      titulo: tituloNorm,
+      seccion: seccionNorm,
+      estado: "disponible",
+    };
+
+    res.json({ exito: true, mensaje: `Libro "${tituloNorm}" registrado con éxito.`, libro: nuevoLibro });
+  } catch (err) {
+    res.status(500).json({ exito: false, mensaje: err.message });
+  }
 });
 
 // DELETE /api/biblioteca/libro/:id - Eliminar libro
 router.delete("/libro/:id", (req, res) => {
   const id = req.params.id;
-  const data = getBibliotecaData();
+  const libro = db.prepare("SELECT * FROM libros WHERE id = ? OR codigo = ?").get(id, id.toUpperCase());
 
-  const idx = data.libros.findIndex((l) => l.id === id || l.codigo.toUpperCase() === id.toUpperCase());
-  if (idx === -1) {
+  if (!libro) {
     return res.status(404).json({ exito: false, mensaje: "Libro no encontrado." });
   }
 
-  const libroEliminado = data.libros.splice(idx, 1)[0];
-  saveBibliotecaData(data);
-
-  res.json({ exito: true, mensaje: `Libro "${libroEliminado.titulo}" eliminado.`, id: id });
+  try {
+    db.prepare("DELETE FROM libros WHERE id = ?").run(libro.id);
+    res.json({ exito: true, mensaje: `Libro "${libro.titulo}" eliminado.`, id: libro.id });
+  } catch (err) {
+    res.status(500).json({ exito: false, mensaje: err.message });
+  }
 });
 
 // GET /api/biblioteca/prestamos - Obtener historial y préstamos activos
 router.get("/prestamos", (req, res) => {
-  const data = getPrestamosData();
-  res.json({ exito: true, prestamos: data.prestamos || [] });
+  try {
+    const rows = db.prepare("SELECT * FROM prestamos ORDER BY id DESC").all();
+    const prestamos = rows.map((p) => {
+      const libro = db.prepare("SELECT titulo FROM libros WHERE codigo = ?").get(p.libroCodigo);
+      const usuario = db.prepare("SELECT ciclo, turno FROM usuarios WHERE codigo = ?").get(p.estudianteCodigo);
+
+      return {
+        id: p.id,
+        codigoLibro: p.libroCodigo,
+        tituloLibro: libro ? libro.titulo : `Libro [${p.libroCodigo}]`,
+        codigoUsuario: p.estudianteCodigo,
+        nombreUsuario: p.estudianteNombre,
+        ciclo: usuario ? usuario.ciclo : "-",
+        turno: usuario ? usuario.turno : "-",
+        fechaPrestamo: p.fechaPrestamo,
+        fechaDevolucion: p.fechaDevolucion || null,
+        estado: p.estado.toLowerCase(),
+      };
+    });
+
+    res.json({ exito: true, prestamos });
+  } catch (err) {
+    res.status(500).json({ exito: false, mensaje: err.message });
+  }
 });
 
 // POST /api/biblioteca/prestamo - Registrar un préstamo (Código Libro + Código Estudiante)
@@ -170,13 +124,10 @@ router.post("/prestamo", (req, res) => {
     return res.status(400).json({ exito: false, mensaje: "Se requiere el código del libro y del estudiante." });
   }
 
-  const codLibroNorm = codigoLibro.trim().toUpperCase();
-  const codUsuarioNorm = codigoUsuario.trim().toUpperCase();
+  const codLibroNorm = String(codigoLibro).trim().toUpperCase();
+  const codUsuarioNorm = String(codigoUsuario).trim().toUpperCase();
 
-  // 1. Verificar usuario en usuarios.json
-  const usuarios = getUsuariosData();
-  const usuario = usuarios.find((u) => u.codigo.toUpperCase() === codUsuarioNorm);
-
+  const usuario = db.prepare("SELECT * FROM usuarios WHERE codigo = ?").get(codUsuarioNorm);
   if (!usuario) {
     return res.status(404).json({
       exito: false,
@@ -184,10 +135,7 @@ router.post("/prestamo", (req, res) => {
     });
   }
 
-  // 2. Verificar libro en biblioteca.json
-  const bibData = getBibliotecaData();
-  const libro = bibData.libros.find((l) => l.codigo.toUpperCase() === codLibroNorm);
-
+  const libro = db.prepare("SELECT * FROM libros WHERE codigo = ?").get(codLibroNorm);
   if (!libro) {
     return res.status(404).json({
       exito: false,
@@ -195,51 +143,59 @@ router.post("/prestamo", (req, res) => {
     });
   }
 
-  if (libro.estado === "prestado") {
+  const prestamoActivo = db
+    .prepare("SELECT * FROM prestamos WHERE libroCodigo = ? AND estado = 'PRESTADO'")
+    .get(codLibroNorm);
+
+  if (prestamoActivo || libro.prestados >= libro.stock) {
     return res.status(400).json({
       exito: false,
       mensaje: `El libro "${libro.titulo}" (${libro.codigo}) figura como PRESTADO actualmente.`,
     });
   }
 
-  // 3. Crear el registro de préstamo
   const fechaActual = new Date();
   const timestampStr =
     fechaActual.toLocaleDateString("es-PE") +
     " " +
     fechaActual.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: true }).toUpperCase();
 
-  const nombreEstudiante = getFullName(usuario) || usuario.nombre || "Estudiante";
+  const nombreEstudiante = `${usuario.apellido}${usuario.apellido && usuario.nombre ? " " : ""}${usuario.nombre}`.trim();
+  const newId = `PREST-${Date.now().toString().slice(-6)}`;
 
-  const nuevoPrestamo = {
-    id: `PREST-${Date.now().toString().slice(-6)}`,
-    codigoLibro: libro.codigo,
-    tituloLibro: libro.titulo,
-    codigoUsuario: usuario.codigo,
-    nombreUsuario: nombreEstudiante,
-    ciclo: usuario.ciclo || usuario.rol || "-",
-    turno: usuario.turno || "-",
-    fechaPrestamo: timestampStr,
-    fechaDevolucion: null,
-    estado: "prestado",
-  };
+  try {
+    db.transaction(() => {
+      db.prepare(`
+        INSERT INTO prestamos (id, libroCodigo, estudianteCodigo, estudianteNombre, fechaPrestamo, estado)
+        VALUES (?, ?, ?, ?, ?, 'PRESTADO')
+      `).run(newId, libro.codigo, usuario.codigo, nombreEstudiante, timestampStr);
 
-  // 4. Actualizar estado del libro a 'prestado'
-  libro.estado = "prestado";
-  saveBibliotecaData(bibData);
+      db.prepare("UPDATE libros SET prestados = prestados + 1 WHERE id = ?").run(libro.id);
+    })();
 
-  // 5. Guardar el préstamo
-  const prestData = getPrestamosData();
-  prestData.prestamos.unshift(nuevoPrestamo); // Agregar al inicio
-  savePrestamosData(prestData);
+    const nuevoPrestamo = {
+      id: newId,
+      codigoLibro: libro.codigo,
+      tituloLibro: libro.titulo,
+      codigoUsuario: usuario.codigo,
+      nombreUsuario: nombreEstudiante,
+      ciclo: usuario.ciclo || "-",
+      turno: usuario.turno || "-",
+      fechaPrestamo: timestampStr,
+      fechaDevolucion: null,
+      estado: "prestado",
+    };
 
-  res.json({
-    exito: true,
-    mensaje: `📖 Libro "${libro.titulo}" prestado a ${nombreEstudiante} (${usuario.ciclo || ""})`,
-    prestamo: nuevoPrestamo,
-    usuario: { nombre: nombreEstudiante, ciclo: usuario.ciclo, turno: usuario.turno },
-    libro: { codigo: libro.codigo, titulo: libro.titulo },
-  });
+    res.json({
+      exito: true,
+      mensaje: `📖 Libro "${libro.titulo}" prestado a ${nombreEstudiante} (${usuario.ciclo || ""})`,
+      prestamo: nuevoPrestamo,
+      usuario: { nombre: nombreEstudiante, ciclo: usuario.ciclo, turno: usuario.turno },
+      libro: { codigo: libro.codigo, titulo: libro.titulo },
+    });
+  } catch (err) {
+    res.status(500).json({ exito: false, mensaje: err.message });
+  }
 });
 
 // POST /api/biblioteca/devolucion - Registrar la devolución de un libro prestado
@@ -250,46 +206,51 @@ router.post("/devolucion", (req, res) => {
     return res.status(400).json({ exito: false, mensaje: "Falta identificador de préstamo o libro." });
   }
 
-  const prestData = getPrestamosData();
-  const bibData = getBibliotecaData();
-
   let prestamo = null;
-
   if (idPrestamo) {
-    prestamo = prestData.prestamos.find((p) => p.id === idPrestamo && p.estado === "prestado");
+    prestamo = db.prepare("SELECT * FROM prestamos WHERE id = ? AND estado = 'PRESTADO'").get(idPrestamo);
   } else if (codigoLibro) {
-    const codNorm = codigoLibro.trim().toUpperCase();
-    prestamo = prestData.prestamos.find((p) => p.codigoLibro.toUpperCase() === codNorm && p.estado === "prestado");
+    prestamo = db
+      .prepare("SELECT * FROM prestamos WHERE libroCodigo = ? AND estado = 'PRESTADO'")
+      .get(String(codigoLibro).trim().toUpperCase());
   }
 
   if (!prestamo) {
     return res.status(404).json({ exito: false, mensaje: "No se encontró un préstamo activo para esta selección." });
   }
 
-  // 1. Actualizar préstamo a devuelto
   const fechaActual = new Date();
   const timestampStr =
     fechaActual.toLocaleDateString("es-PE") +
     " " +
     fechaActual.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: true }).toUpperCase();
 
-  prestamo.estado = "devuelto";
-  prestamo.fechaDevolucion = timestampStr;
+  try {
+    db.transaction(() => {
+      db.prepare("UPDATE prestamos SET estado = 'DEVUELTO', fechaDevolucion = ? WHERE id = ?").run(
+        timestampStr,
+        prestamo.id
+      );
 
-  // 2. Liberar libro a disponible en biblioteca.json
-  const libro = bibData.libros.find((l) => l.codigo.toUpperCase() === prestamo.codigoLibro.toUpperCase());
-  if (libro) {
-    libro.estado = "disponible";
-    saveBibliotecaData(bibData);
+      db.prepare("UPDATE libros SET prestados = MAX(0, prestados - 1) WHERE codigo = ?").run(prestamo.libroCodigo);
+    })();
+
+    const libro = db.prepare("SELECT titulo FROM libros WHERE codigo = ?").get(prestamo.libroCodigo);
+
+    res.json({
+      exito: true,
+      mensaje: `✅ Libro "${libro ? libro.titulo : prestamo.libroCodigo}" marcado como DEVUELTO por ${prestamo.estudianteNombre}.`,
+      prestamo: {
+        id: prestamo.id,
+        codigoLibro: prestamo.libroCodigo,
+        estudianteNombre: prestamo.estudianteNombre,
+        estado: "devuelto",
+        fechaDevolucion: timestampStr,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ exito: false, mensaje: err.message });
   }
-
-  savePrestamosData(prestData);
-
-  res.json({
-    exito: true,
-    mensaje: `✅ Libro "${prestamo.tituloLibro}" marcado como DEVUELTO por ${prestamo.nombreUsuario}.`,
-    prestamo,
-  });
 });
 
 module.exports = router;

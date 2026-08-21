@@ -81,32 +81,38 @@ router.post("/", async (req, res) => {
   }
   // --- FIN LÓGICA DE JUSTIFICACIÓN (J) ---
 
-  let usuarios = [];
-  try {
-    if (!fs.existsSync(usuariosPath)) {
-      console.error(
-        "Registrar Route: Error CRÍTICO - usuarios.json no existe."
-      );
-      return res.status(500).json({
-        exito: false,
-        mensaje: "Error interno: Falta archivo de usuarios.",
-      });
-    }
-    usuarios = JSON.parse(fs.readFileSync(usuariosPath, "utf8"));
-  } catch (err) {
-    console.error("Registrar Route: Error al leer usuarios.json:", err);
-    return res
-      .status(500)
-      .json({ exito: false, mensaje: "Error interno al buscar usuario." });
-  }
+  const db = require("../database/db");
+  let usuario = null;
 
-  const usuario = usuarios.find((u) => u.codigo === codigo);
+  try {
+    const row = db.prepare("SELECT * FROM usuarios WHERE codigo = ?").get(codigo);
+    if (row) {
+      let dias_asistencia = ["L", "M", "MI", "J", "V", "S"];
+      try {
+        dias_asistencia = JSON.parse(row.dias_asistencia || "[]");
+        if (!Array.isArray(dias_asistencia) || dias_asistencia.length === 0) {
+          dias_asistencia = ["L", "M", "MI", "J", "V", "S"];
+        }
+      } catch (e) {}
+
+      usuario = {
+        codigo: String(row.codigo).toUpperCase(),
+        nombre: row.nombre,
+        apellido: row.apellido,
+        rol: row.rol,
+        turno: row.turno || "",
+        ciclo: row.ciclo || "",
+        dias_asistencia,
+      };
+    }
+  } catch (err) {
+    console.error("Registrar Route: Error al consultar usuario en SQLite:", err);
+    return res.status(500).json({ exito: false, mensaje: "Error interno al buscar usuario." });
+  }
 
   if (!usuario) {
     console.log(`Registrar Route: Código no encontrado - ${codigo}`);
-    return res
-      .status(404)
-      .json({ exito: false, mensaje: "Código no encontrado" });
+    return res.status(404).json({ exito: false, mensaje: "Código no encontrado" });
   }
 
   const fecha = new Date();

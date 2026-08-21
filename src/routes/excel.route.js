@@ -321,9 +321,9 @@ router.post("/justificar", async (req, res) => {
   }
 
   try {
-    // 1. Encontrar al usuario y su hoja
-    const usuarios = JSON.parse(fs.readFileSync(usuariosPath, "utf8"));
-    const usuario = usuarios.find((u) => u.codigo === codigo);
+    // 1. Encontrar al usuario y su hoja desde SQLite
+    const db = require("../database/db");
+    const usuario = db.prepare("SELECT * FROM usuarios WHERE codigo = ?").get(codigo);
 
     if (!usuario) {
       return res
