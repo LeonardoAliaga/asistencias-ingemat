@@ -400,7 +400,7 @@ router.get("/:id/excel", async (req, res) => {
 router.get("/tareas/list", (req, res) => {
   try {
     const tareaRows = db.prepare("SELECT * FROM tareas ORDER BY creado_en DESC").all();
-    const getRegs = db.prepare("SELECT codigoEstudiante, nombreEstudiante, nota, estado FROM registros_tarea WHERE tarea_id = ?");
+    const getRegs = db.prepare("SELECT id, codigoEstudiante, nombreEstudiante, nota, estado FROM registros_tarea WHERE tarea_id = ?");
 
     const tareas = tareaRows.map((t) => ({
       id: t.id,
@@ -522,6 +522,247 @@ router.get("/reporte-estudiante/:codigo", (req, res) => {
   } catch (err) {
     console.error("Error al obtener reporte de estudiante en SQLite:", err);
     res.status(500).json({ exito: false, mensaje: "Error interno del servidor." });
+  }
+});
+
+// 10. DELETE /api/evaluaciones/tareas/registro/:id - Eliminar un Registro Individual de Tarea
+router.delete("/tareas/registro/:id", (req, res) => {
+  try {
+    const { id } = req.params;
+    const reg = db.prepare("SELECT tarea_id FROM registros_tarea WHERE id = ?").get(id);
+    if (!reg) {
+      return res.status(404).json({ exito: false, mensaje: "Registro de tarea no encontrado." });
+    }
+
+    const tareaId = reg.tarea_id;
+    db.prepare("DELETE FROM registros_tarea WHERE id = ?").run(id);
+
+    // Si ya no quedan registros para esta tarea, limpiar la tarea padre
+    const countRemaining = db.prepare("SELECT COUNT(*) as count FROM registros_tarea WHERE tarea_id = ?").get(tareaId);
+    if (countRemaining && countRemaining.count === 0) {
+      db.prepare("DELETE FROM tareas WHERE id = ?").run(tareaId);
+    }
+
+    res.json({ exito: true, mensaje: "Registro de tarea eliminado correctamente." });
+  } catch (err) {
+    console.error("Error al eliminar registro de tarea:", err);
+    res.status(500).json({ exito: false, mensaje: err.message });
+  }
+});
+
+// 11. DELETE /api/evaluaciones/tareas/:id - Eliminar Grupo de Tarea Completo
+router.delete("/tareas/:id", (req, res) => {
+  try {
+    const { id } = req.params;
+    db.prepare("DELETE FROM tareas WHERE id = ?").run(id);
+    res.json({ exito: true, mensaje: "Tarea y sus registros eliminados correctamente." });
+  } catch (err) {
+    console.error("Error al eliminar grupo de tarea:", err);
+    res.status(500).json({ exito: false, mensaje: err.message });
+  }
+});
+
+// 12. GET /api/evaluaciones/tareas/excel-salon - Exportar Consolidado de Tareas por Salón / Ciclo
+router.get("/tareas/excel-salon", async (req, res) => {
+  try {
+    const { ciclo } = req.query;
+    if (!ciclo || !ciclo.trim()) {
+      return res.status(400).send("Debe especificar un ciclo o salón para exportar.");
+    }
+    const cicloNorm = ciclo.trim();
+
+    // 1. Obtener todos los estudiantes del ciclo desde usuarios
+    const estudiantes = db.prepare(`
+      SELECT codigo, nombre, apellido, ciclo
+      FROM usuarios
+      WHERE UPPER(rol) = 'ESTUDIANTE' AND UPPER(ciclo) = UPPER(?)
+      ORDER BY apellido ASC, nombre ASC
+    `).all(cicloNorm);
+
+    // 2. Obtener tareas del ciclo que tengan al menos 1 registro (contar un curso si hay como mínimo un estudiante registrado)
+    const tareasRows = db.prepare(`
+      SELECT t.id, t.curso, t.fecha, t.tipoEvaluacion, COUNT(r.id) as totalRegistros
+      FROM tareas t
+      JOIN registros_tarea r ON t.id = r.tarea_id
+      WHERE UPPER(t.ciclo) = UPPER(?)
+      GROUP BY t.id
+      HAVING totalRegistros > 0
+      ORDER BY t.fecha ASC, t.curso ASC
+    `).all(cicloNorm);
+
+    // 3. Obtener todos los registros de tareas para este ciclo
+    const registrosRows = db.prepare(`
+      SELECT r.tarea_id, r.codigoEstudiante, r.nota, r.estado
+      FROM registros_tarea r
+      JOIN tareas t ON r.tarea_id = t.id
+      WHERE UPPER(t.ciclo) = UPPER(?)
+    `).all(cicloNorm);
+
+    // Mapa de registros: `tareaId_codigoEstudiante` -> { nota, estado }
+    const mapaRegistros = new Map();
+    registrosRows.forEach((reg) => {
+      const key = `${reg.tarea_id}_${String(reg.codigoEstudiante).toUpperCase()}`;
+      mapaRegistros.set(key, reg);
+    });
+
+    // Si algún alumno registrado en tareas no figura en la tabla usuarios con ese ciclo, incluirlo
+    const codigosEstudiantesSet = new Set(estudiantes.map((e) => e.codigo.toUpperCase()));
+    registrosRows.forEach((reg) => {
+      const cod = String(reg.codigoEstudiante).toUpperCase();
+      if (!codigosEstudiantesSet.has(cod)) {
+        const u = db.prepare("SELECT codigo, nombre, apellido, ciclo FROM usuarios WHERE codigo = ?").get(cod);
+        estudiantes.push({
+          codigo: cod,
+          nombre: u ? u.nombre : "",
+          apellido: u ? u.apellido : `Alumno [${cod}]`,
+          ciclo: cicloNorm,
+        });
+        codigosEstudiantesSet.add(cod);
+      }
+    });
+
+    if (estudiantes.length === 0 && tareasRows.length === 0) {
+      return res.status(404).send(`No se encontraron registros de tareas ni estudiantes para el ciclo "${cicloNorm}".`);
+    }
+
+    const ExcelJS = require("exceljs");
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet(`Tareas - ${cicloNorm.substring(0, 25)}`);
+
+    const totalCols = Math.max(3 + tareasRows.length + 2, 5);
+
+    // Fila 1: Título Institucional
+    sheet.mergeCells(1, 1, 1, totalCols);
+    const titleCell = sheet.getCell(1, 1);
+    titleCell.value = `ACADEMIA INGEMAT - CONSOLIDADO DE TAREAS: ${cicloNorm.toUpperCase()}`;
+    titleCell.font = { name: "Arial", size: 14, bold: true, color: { argb: "FFFFFFFF" } };
+    titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0F172A" } };
+    titleCell.alignment = { horizontal: "center", vertical: "middle" };
+    sheet.getRow(1).height = 32;
+
+    // Fila 2: Subtítulo Informativo
+    sheet.mergeCells(2, 1, 2, totalCols);
+    const subtitleCell = sheet.getCell(2, 1);
+    const todayStr = new Date().toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", year: "numeric" });
+    subtitleCell.value = `Ciclo / Salón: ${cicloNorm} | Total Estudiantes: ${estudiantes.length} | Tareas Evaluadas: ${tareasRows.length} | Fecha de Emisión: ${todayStr}`;
+    subtitleCell.font = { name: "Arial", size: 10, italic: true, color: { argb: "FF475569" } };
+    subtitleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF1F5F9" } };
+    subtitleCell.alignment = { horizontal: "center", vertical: "middle" };
+    sheet.getRow(2).height = 20;
+
+    sheet.addRow([]); // Fila 3 vacía
+
+    // Fila 4: Cabeceras
+    const headers = ["N°", "CÓDIGO", "ESTUDIANTE"];
+    tareasRows.forEach((t) => {
+      const fParts = (t.fecha || "").split("-");
+      const fFormatted = fParts.length === 3 ? `${fParts[2]}/${fParts[1]}` : t.fecha;
+      headers.push(`${t.curso}\n(${fFormatted})`);
+    });
+    headers.push("ENTREGADAS", "NO PRESENTÓ (NP)");
+
+    const headerRow = sheet.addRow(headers);
+    headerRow.height = 30;
+    headerRow.eachCell((cell) => {
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1E293B" } };
+      cell.font = { name: "Arial", size: 10, bold: true, color: { argb: "FFFFFFFF" } };
+      cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+      cell.border = {
+        top: { style: "thin", color: { argb: "FF94A3B8" } },
+        bottom: { style: "medium", color: { argb: "FF64748B" } },
+        left: { style: "thin", color: { argb: "FF94A3B8" } },
+        right: { style: "thin", color: { argb: "FF94A3B8" } },
+      };
+    });
+
+    // Filas de Alumnos
+    estudiantes.forEach((est, idx) => {
+      const nombreCompleto = `${est.apellido || ""}${est.apellido && est.nombre ? " " : ""}${est.nombre || ""}`.trim() || `Alumno [${est.codigo}]`;
+      const rowData = [
+        idx + 1,
+        est.codigo,
+        nombreCompleto,
+      ];
+
+      let countEntregadas = 0;
+      let countNP = 0;
+
+      tareasRows.forEach((t) => {
+        const key = `${t.id}_${est.codigo.toUpperCase()}`;
+        const reg = mapaRegistros.get(key);
+
+        if (reg) {
+          if (reg.nota !== null && reg.nota !== undefined) {
+            rowData.push(Number(reg.nota));
+            countEntregadas++;
+          } else if (reg.estado === "NO PRESENTÓ") {
+            rowData.push("NP");
+            countNP++;
+          } else {
+            rowData.push(reg.estado || "PRESENTÓ");
+            countEntregadas++;
+          }
+        } else {
+          // A los que no hubo registro, mostrar NP (no presentó)
+          rowData.push("NP");
+          countNP++;
+        }
+      });
+
+      rowData.push(countEntregadas, countNP);
+
+      const studentRow = sheet.addRow(rowData);
+      studentRow.height = 22;
+      const isEven = idx % 2 === 0;
+      const bg = isEven ? "FFFFFFFF" : "FFF8FAFC";
+
+      studentRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+        const isNP = cell.value === "NP";
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: isNP ? "FFFEE2E2" : bg },
+        };
+        cell.font = {
+          name: "Arial",
+          size: 9.5,
+          bold: colNumber <= 2 || isNP || colNumber > (3 + tareasRows.length),
+          color: { argb: isNP ? "FF991B1B" : (colNumber === 3 ? "FF0F172A" : "FF334155") },
+        };
+        cell.alignment = {
+          horizontal: colNumber === 3 ? "left" : "center",
+          vertical: "middle",
+        };
+        cell.border = {
+          top: { style: "thin", color: { argb: "FFE2E8F0" } },
+          bottom: { style: "thin", color: { argb: "FFE2E8F0" } },
+          left: { style: "thin", color: { argb: "FFE2E8F0" } },
+          right: { style: "thin", color: { argb: "FFE2E8F0" } },
+        };
+      });
+    });
+
+    // Ajuste de anchos de columna
+    sheet.getColumn(1).width = 6;   // N°
+    sheet.getColumn(2).width = 14;  // CÓDIGO
+    sheet.getColumn(3).width = 34;  // ESTUDIANTE
+    tareasRows.forEach((t, i) => {
+      sheet.getColumn(4 + i).width = Math.max(t.curso.length + 4, 15);
+    });
+    sheet.getColumn(4 + tareasRows.length).width = 16;     // ENTREGADAS
+    sheet.getColumn(5 + tareasRows.length).width = 18;     // NO PRESENTÓ (NP)
+
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="Tareas_Salon_${cicloNorm.replace(/[^a-zA-Z0-9]/g, "_")}.xlsx"`
+    );
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (err) {
+    console.error("Error al exportar Excel de tareas de salón en SQLite:", err);
+    res.status(500).send("Error interno al generar el archivo Excel de tareas.");
   }
 });
 

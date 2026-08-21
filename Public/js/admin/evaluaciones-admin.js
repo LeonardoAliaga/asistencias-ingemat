@@ -22,6 +22,7 @@ export function initEvaluacionesAdmin() {
   setupFormTareas();
   setupBuscadorReporteAlumno();
   setupOMRModule();
+  setupRankingSearch();
 
   // Autocompletados de Estudiantes con Filtrado Dinámico por Ciclo del Examen
   setupStudentAutocomplete(
@@ -311,7 +312,7 @@ export async function cargarDatosEvaluaciones() {
 }
 
 function populateSelectsCiclos(ciclos) {
-  const selects = ["eval-ciclo-select", "tarea-ciclo-select"];
+  const selects = ["eval-ciclo-select", "tarea-ciclo-select", "excel-tareas-ciclo-select"];
 
   selects.forEach((id) => {
     const sel = document.getElementById(id);
@@ -615,23 +616,118 @@ function renderListaEvaluaciones(evals) {
   });
 }
 
-// 7. Ranking y Podio Top 3
-const evalSelectRanking = document.getElementById("eval-select-ranking");
-if (evalSelectRanking) {
-  evalSelectRanking.addEventListener("change", async () => {
-    const evalId = evalSelectRanking.value;
-    if (!evalId) return;
+// 7. Ranking y Podio Top 3 con Buscador Inteligente
+function setupRankingSearch() {
+  const inputSearch = document.getElementById("eval-ranking-search-input");
+  const resultsContainer = document.getElementById("eval-ranking-search-results");
+  const evalSelect = document.getElementById("eval-select-ranking");
+  const btnClear = document.getElementById("btn-clear-ranking-selection");
+  const noSelectionBox = document.getElementById("eval-ranking-no-selection");
+  const contentBox = document.getElementById("eval-ranking-content");
+  const actionsBox = document.getElementById("eval-ranking-actions");
+
+  async function cargarExamenSeleccionado(evalId) {
+    if (!evalId) {
+      limpiarSeleccionRanking();
+      return;
+    }
 
     try {
       const res = await fetch(`/api/evaluaciones/${evalId}/ranking`);
       const data = await res.json();
       if (data.exito) {
+        if (noSelectionBox) noSelectionBox.style.display = "none";
+        if (contentBox) contentBox.style.display = "block";
+        if (actionsBox) actionsBox.style.display = "flex";
         renderRankingView(data.evaluacion, data.ranking);
       }
     } catch (err) {
       console.error("Error al cargar ranking:", err);
     }
-  });
+  }
+
+  function limpiarSeleccionRanking() {
+    if (inputSearch) inputSearch.value = "";
+    if (evalSelect) evalSelect.value = "";
+    if (resultsContainer) resultsContainer.style.display = "none";
+    if (noSelectionBox) noSelectionBox.style.display = "block";
+    if (contentBox) contentBox.style.display = "none";
+    if (actionsBox) actionsBox.style.display = "none";
+  }
+
+  if (evalSelect) {
+    evalSelect.addEventListener("change", () => {
+      const evalId = evalSelect.value;
+      if (evalId) {
+        const found = globalEvaluaciones.find((e) => String(e.id) === String(evalId));
+        if (found && inputSearch) {
+          inputSearch.value = `${found.titulo} (${found.ciclo}) - ${found.fecha}`;
+        }
+        cargarExamenSeleccionado(evalId);
+      } else {
+        limpiarSeleccionRanking();
+      }
+    });
+  }
+
+  if (btnClear) {
+    btnClear.addEventListener("click", () => {
+      limpiarSeleccionRanking();
+    });
+  }
+
+  if (inputSearch && resultsContainer) {
+    inputSearch.addEventListener("input", () => {
+      const query = inputSearch.value.trim().toLowerCase();
+      if (!query || globalEvaluaciones.length === 0) {
+        resultsContainer.style.display = "none";
+        return;
+      }
+
+      const matches = globalEvaluaciones.filter((e) => {
+        const tit = (e.titulo || "").toLowerCase();
+        const cic = (e.ciclo || "").toLowerCase();
+        const fec = (e.fecha || "").toLowerCase();
+        return tit.includes(query) || cic.includes(query) || fec.includes(query);
+      });
+
+      if (matches.length === 0) {
+        resultsContainer.innerHTML = '<div style="padding:10px 12px; color:#64748b; font-size:0.85rem;"><i>No se encontraron exámenes con ese criterio</i></div>';
+        resultsContainer.style.display = "block";
+        return;
+      }
+
+      resultsContainer.innerHTML = matches.map((e) => `
+        <div class="student-autocomplete-item" data-id="${e.id}" style="padding:8px 12px; cursor:pointer; border-bottom:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <b style="color:#0f172a; font-size:0.88rem;">${e.titulo}</b>
+            <span style="font-size:0.78rem; color:#64748b; display:block;">Ciclo: ${e.ciclo} | Fecha: ${e.fecha}</span>
+          </div>
+          <span style="background:#e0f2fe; color:#0369a1; padding:2px 7px; border-radius:4px; font-size:0.75rem; font-weight:700;">${e.numPreguntas} preg.</span>
+        </div>
+      `).join("");
+      resultsContainer.style.display = "block";
+
+      resultsContainer.querySelectorAll(".student-autocomplete-item").forEach((item) => {
+        item.addEventListener("click", () => {
+          const evalId = item.getAttribute("data-id");
+          const found = globalEvaluaciones.find((e) => String(e.id) === String(evalId));
+          if (found) {
+            inputSearch.value = `${found.titulo} (${found.ciclo}) - ${found.fecha}`;
+            if (evalSelect) evalSelect.value = evalId;
+            resultsContainer.style.display = "none";
+            cargarExamenSeleccionado(evalId);
+          }
+        });
+      });
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!inputSearch.contains(e.target) && !resultsContainer.contains(e.target)) {
+        resultsContainer.style.display = "none";
+      }
+    });
+  }
 }
 
 function renderRankingView(evalObj, ranking) {
@@ -1044,6 +1140,22 @@ function setupFormTareas() {
       }
     });
   }
+
+  // Listener para Exportar Consolidado de Tareas por Salón a Excel
+  const btnExportTareasSalon = document.getElementById("btn-export-tareas-salon-excel");
+  const selectTareasSalonCiclo = document.getElementById("excel-tareas-ciclo-select");
+  if (btnExportTareasSalon && !btnExportTareasSalon.dataset.listener) {
+    btnExportTareasSalon.dataset.listener = "true";
+    btnExportTareasSalon.addEventListener("click", () => {
+      const ciclo = selectTareasSalonCiclo ? selectTareasSalonCiclo.value.trim() : "";
+      if (!ciclo) {
+        alert("Por favor, selecciona un salón / ciclo para exportar su consolidado de tareas.");
+        return;
+      }
+      window.location.href = `/api/evaluaciones/tareas/excel-salon?ciclo=${encodeURIComponent(ciclo)}`;
+    });
+  }
+
   cargarHistorialTareas();
 }
 
@@ -1112,6 +1224,7 @@ async function cargarHistorialTareas() {
               (u ? `${u.nombre || ""} ${u.apellido || ""}`.trim() : `Alumno [${cod || "---"}]`);
 
             todasLasTareas.push({
+              registroId: reg.id,
               tareaId: grupo.id,
               curso: grupo.curso,
               ciclo: grupo.ciclo,
@@ -1130,8 +1243,8 @@ async function cargarHistorialTareas() {
         return;
       }
 
-      // Límite de Historial Reciente: Máximo 15 registros más recientes
-      const tareasLimitadas = todasLasTareas.slice(0, 15);
+      // Límite de Historial Reciente: Máximo 25 registros más recientes
+      const tareasLimitadas = todasLasTareas.slice(0, 25);
 
       // Agrupar por Semana -> Día de registro
       const tareasPorSemana = {};
@@ -1164,7 +1277,7 @@ async function cargarHistorialTareas() {
           <div class="semana-card-block" style="background:#ffffff; border:1px solid #cbd5e1; border-radius:10px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.03);">
             <div style="background:#0f172a; color:#ffffff; padding:10px 16px; font-weight:800; font-size:0.92rem; display:flex; justify-content:space-between; align-items:center;">
               <span>${semanaLabel}</span>
-              <span style="font-size:0.78rem; background:rgba(255,255,255,0.15); padding:3px 10px; border-radius:12px;">${totalSemanaRegistros} registros recientes</span>
+              <span style="font-size:0.78rem; background:rgba(255,255,255,0.15); padding:3px 10px; border-radius:12px;">${totalSemanaRegistros} registros</span>
             </div>
             <div style="padding:14px; display:flex; flex-direction:column; gap:14px;">
         `;
@@ -1188,6 +1301,7 @@ async function cargarHistorialTareas() {
                       <th style="text-align:left;">Curso / Asignatura</th>
                       <th style="width:130px; text-align:center;">Ciclo / Salón</th>
                       <th style="width:110px; text-align:center;">Calificación</th>
+                      <th style="width:70px; text-align:center;">Acción</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1206,6 +1320,11 @@ async function cargarHistorialTareas() {
                 <td style="text-align:left; font-weight:600; color:#0f172a;">${t.curso}</td>
                 <td style="text-align:center;"><span style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-size:0.75rem;">${t.ciclo}</span></td>
                 <td style="text-align:center;">${calif}</td>
+                <td style="text-align:center;">
+                  <button class="btn-delete-registro-tarea" data-id="${t.registroId || ""}" data-nombre="${t.nombreEstudiante}" data-curso="${t.curso}" style="background:#fef2f2; border:1px solid #fca5a5; color:#dc2626; border-radius:4px; padding:3px 7px; cursor:pointer;" title="Eliminar este registro de tarea">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </td>
               </tr>
             `;
           });
@@ -1226,6 +1345,31 @@ async function cargarHistorialTareas() {
 
       html += `</div>`;
       container.innerHTML = html;
+
+      // Event listeners para eliminar registros de tareas
+      container.querySelectorAll(".btn-delete-registro-tarea").forEach((btn) => {
+        btn.addEventListener("click", async (e) => {
+          const regId = e.currentTarget.getAttribute("data-id");
+          const nombre = e.currentTarget.getAttribute("data-nombre");
+          const curso = e.currentTarget.getAttribute("data-curso");
+
+          if (!regId) return;
+
+          if (confirm(`¿Seguro que deseas eliminar el registro de tarea de "${nombre}" en "${curso}"?`)) {
+            try {
+              const res = await fetch(`/api/evaluaciones/tareas/registro/${regId}`, { method: "DELETE" });
+              const resData = await res.json();
+              if (resData.exito) {
+                await cargarHistorialTareas();
+              } else {
+                alert(`Error al eliminar: ${resData.mensaje}`);
+              }
+            } catch (err) {
+              alert(`Error de red: ${err.message}`);
+            }
+          }
+        });
+      });
     }
   } catch (err) {
     console.error("Error al cargar historial de tareas:", err);

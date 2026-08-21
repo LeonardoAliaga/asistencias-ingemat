@@ -1402,50 +1402,85 @@
           <!-- SUB-PANEL 2: Ranking y Resultados -->
           <div id="eval-panel-ranking" class="eval-subpanel" style="display: none;">
             <div class="eval-card-box">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
-                <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 280px;">
-                  <label style="font-weight: 700; white-space: nowrap;">Seleccionar Examen:</label>
-                  <select id="eval-select-ranking" style="padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; flex: 1;">
-                    <option value="">Cargando exámenes...</option>
-                  </select>
-                </div>
-                <div style="display: flex; gap: 10px;">
-                  <button id="btn-export-eval-excel" class="btn-form-submit" style="background:#166534; padding:8px 14px;"><i class="bi bi-file-earmark-excel"></i> Exportar a Excel</button>
-                  <button id="btn-copy-eval-canvas" class="btn-form-submit" style="background:#0284c7; padding:8px 14px;"><i class="bi bi-clipboard-check"></i> Copiar Imagen al Portapapeles</button>
+              <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 14px 18px; margin-bottom: 18px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                  <div style="flex: 1; min-width: 280px; position: relative;">
+                    <label style="font-weight: 700; font-size: 0.88rem; color: #1e293b; display: block; margin-bottom: 4px;"><i class="bi bi-search"></i> Buscador Inteligente de Evaluaciones:</label>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                      <div style="position: relative; flex: 1; min-width: 240px;">
+                        <input type="text" id="eval-ranking-search-input" placeholder="🔍 Escribe título, ciclo o fecha (ej: Álgebra, UNI, 2026)..." autocomplete="off" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.92rem;" />
+                        <div id="eval-ranking-search-results" class="student-autocomplete-dropdown" style="display: none; max-height: 250px; overflow-y: auto;"></div>
+                      </div>
+                      <select id="eval-select-ranking" style="padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; max-width: 260px; font-size: 0.88rem;">
+                        <option value="">-- O elige de la lista --</option>
+                      </select>
+                      <button type="button" id="btn-clear-ranking-selection" class="btn-form-submit" style="background: #64748b; padding: 8px 12px; font-size: 0.85rem;" title="Limpiar selección"><i class="bi bi-x-circle"></i> Limpiar</button>
+                    </div>
+                  </div>
+                  <div id="eval-ranking-actions" style="display: none; gap: 10px; align-self: flex-end;">
+                    <button id="btn-export-eval-excel" class="btn-form-submit" style="background:#166534; padding:8px 14px;"><i class="bi bi-file-earmark-excel"></i> Exportar a Excel</button>
+                    <button id="btn-copy-eval-canvas" class="btn-form-submit" style="background:#0284c7; padding:8px 14px;"><i class="bi bi-clipboard-check"></i> Copiar Imagen al Portapapeles</button>
+                  </div>
                 </div>
               </div>
 
-              <!-- Header Informativo del Examen Seleccionado -->
-              <div id="eval-ranking-summary-header" style="margin-bottom: 14px;"></div>
-
-              <!-- Podio Top 3 (Cuadritos de Mérito) -->
-              <div id="eval-top-podium" class="top-podium-container" style="margin-bottom: 16px;">
-                <p class="text-center" style="grid-column: 1/-1;"><i>Selecciona un examen arriba para cargar el podio de honor.</i></p>
+              <!-- Estado Inicial: Sin Selección (No mostrar ninguna tabla por defecto) -->
+              <div id="eval-ranking-no-selection" style="text-align: center; padding: 45px 20px; background: #f8fafc; border-radius: 8px; border: 2px dashed #cbd5e1; color: #64748b;">
+                <i class="bi bi-trophy" style="font-size: 2.6rem; color: #94a3b8; display: block; margin-bottom: 10px;"></i>
+                <h4 style="margin: 0 0 6px 0; color: #1e293b; font-weight: 700;">No hay ninguna evaluación seleccionada</h4>
+                <p style="margin: 0; font-size: 0.9rem;">Escribe o selecciona una evaluación en el buscador superior para visualizar su podio y el cuadro general de méritos.</p>
               </div>
 
-              <!-- Tabla de Ranking General Completo -->
-              <div style="max-height: 520px; overflow-y: auto; overflow-x: auto; width: 100%; border-radius: 8px; border: 1px solid #cbd5e1;">
-                <table class="three-col-table" style="width: 100%; margin: 0;">
-                  <thead>
-                    <tr style="background:#0f172a; color:#ffffff;">
-                      <th style="width: 90px; text-align:center; color:#ffffff;">Puesto</th>
-                      <th style="text-align:left; color:#ffffff;">Estudiante</th>
-                      <th style="width: 100px; text-align:center; color:#ffffff;">Correctas</th>
-                      <th style="width: 100px; text-align:center; color:#ffffff;">Incorrectas</th>
-                      <th style="width: 100px; text-align:center; color:#ffffff;">En Blanco</th>
-                      <th style="width: 130px; text-align:center; color:#ffffff;">Puntaje Total</th>
-                    </tr>
-                  </thead>
-                  <tbody id="tabla-ranking-body">
-                    <tr><td colspan="6" class="text-center"><i>Selecciona un examen arriba para cargar la tabla general de ranking.</i></td></tr>
-                  </tbody>
-                </table>
+              <!-- Contenedor Principal de Resultados (Oculto por defecto hasta seleccionar) -->
+              <div id="eval-ranking-content" style="display: none;">
+                <!-- Header Informativo del Examen Seleccionado -->
+                <div id="eval-ranking-summary-header" style="margin-bottom: 14px;"></div>
+
+                <!-- Podio Top 3 (Cuadritos de Mérito) -->
+                <div id="eval-top-podium" class="top-podium-container" style="margin-bottom: 16px;">
+                  <p class="text-center" style="grid-column: 1/-1;"><i>Cargando podio de honor...</i></p>
+                </div>
+
+                <!-- Tabla de Ranking General Completo -->
+                <div style="max-height: 520px; overflow-y: auto; overflow-x: auto; width: 100%; border-radius: 8px; border: 1px solid #cbd5e1;">
+                  <table class="three-col-table" style="width: 100%; margin: 0;">
+                    <thead>
+                      <tr style="background:#0f172a; color:#ffffff;">
+                        <th style="width: 90px; text-align:center; color:#ffffff;">Puesto</th>
+                        <th style="text-align:left; color:#ffffff;">Estudiante</th>
+                        <th style="width: 100px; text-align:center; color:#ffffff;">Correctas</th>
+                        <th style="width: 100px; text-align:center; color:#ffffff;">Incorrectas</th>
+                        <th style="width: 100px; text-align:center; color:#ffffff;">En Blanco</th>
+                        <th style="width: 130px; text-align:center; color:#ffffff;">Puntaje Total</th>
+                      </tr>
+                    </thead>
+                    <tbody id="tabla-ranking-body">
+                      <tr><td colspan="6" class="text-center"><i>Cargando tabla general...</i></td></tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>
 
           <!-- SUB-PANEL 3: Registro de Tareas -->
           <div id="eval-panel-tareas" class="eval-subpanel" style="display: none;">
+            <!-- Exportar Consolidado de Tareas por Salón -->
+            <div class="eval-card-box" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 18px 22px; margin-bottom: 16px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+                <div>
+                  <h4 style="margin: 0 0 4px 0; color: #166534; font-family: var(--font-heading);"><i class="bi bi-file-earmark-spreadsheet-fill"></i> Consolidado de Tareas por Salón (Excel)</h4>
+                  <p style="margin: 0; font-size: 0.85rem; color: #64748b;">Genera una matriz en Excel con todos los alumnos del salón, cursos evaluados y notas o "NP" (No Presentó) para quienes no registraron tarea.</p>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                  <select id="excel-tareas-ciclo-select" style="padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-weight: 600;">
+                    <option value="">Cargando ciclos...</option>
+                  </select>
+                  <button type="button" id="btn-export-tareas-salon-excel" class="btn-form-submit" style="background: #166534; padding: 8px 16px;"><i class="bi bi-file-earmark-excel"></i> Descargar Excel del Salón</button>
+                </div>
+              </div>
+            </div>
+
             <div class="eval-grid">
               <!-- Formulario de Registro de Tareas -->
               <div class="eval-card-box">
@@ -1462,6 +1497,7 @@
                         <option value="CÍVICA">CÍVICA</option>
                         <option value="ECONOMÍA">ECONOMÍA</option>
                         <option value="FILOSOFÍA">FILOSOFÍA</option>
+                        <option value="GEOGRAFÍA">GEOGRAFÍA</option>
                         <option value="GEOMETRÍA">GEOMETRÍA</option>
                         <option value="HABILIDAD VERBAL">HABILIDAD VERBAL</option>
                         <option value="HISTORIA">HISTORIA</option>
