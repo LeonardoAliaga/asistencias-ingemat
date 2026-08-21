@@ -1469,14 +1469,17 @@
             <div class="eval-card-box" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 18px 22px; margin-bottom: 16px;">
               <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
                 <div>
-                  <h4 style="margin: 0 0 4px 0; color: #166534; font-family: var(--font-heading);"><i class="bi bi-file-earmark-spreadsheet-fill"></i> Consolidado de Tareas por Salón (Excel)</h4>
-                  <p style="margin: 0; font-size: 0.85rem; color: #64748b;">Genera una matriz en Excel con todos los alumnos del salón, cursos evaluados y notas o "NP" (No Presentó) para quienes no registraron tarea.</p>
+                  <h4 style="margin: 0 0 4px 0; color: #166534; font-family: var(--font-heading);"><i class="bi bi-file-earmark-spreadsheet-fill"></i> Consolidado Semanal de Tareas (Excel)</h4>
+                  <p style="margin: 0; font-size: 0.85rem; color: #64748b;">Genera una matriz en Excel por salón y semana (ciclo Sábado a Viernes), con notas por curso y "NP" (No Presentó) para quienes no registraron tarea.</p>
                 </div>
                 <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                   <select id="excel-tareas-ciclo-select" style="padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-weight: 600;">
                     <option value="">Cargando ciclos...</option>
                   </select>
-                  <button type="button" id="btn-export-tareas-salon-excel" class="btn-form-submit" style="background: #166534; padding: 8px 16px;"><i class="bi bi-file-earmark-excel"></i> Descargar Excel del Salón</button>
+                  <select id="excel-tareas-semana-select" style="padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.88rem; min-width: 250px;">
+                    <option value="">-- Seleccionar Semana --</option>
+                  </select>
+                  <button type="button" id="btn-export-tareas-salon-excel" class="btn-form-submit" style="background: #166534; padding: 8px 16px;"><i class="bi bi-file-earmark-excel"></i> Descargar Excel Semanal</button>
                 </div>
               </div>
             </div>
@@ -1487,7 +1490,7 @@
                 <h4 style="margin-bottom: 14px; color: var(--red); font-family: var(--font-heading);"><i class="bi bi-file-earmark-check"></i> Registrar Calificación de Tareas por Curso</h4>
                 <form id="form-registrar-tareas">
                   <div class="form-flex-row">
-                    <div style="flex: 1.5; min-width: 200px;">
+                    <div style="flex: 1.3; min-width: 180px;">
                       <label style="font-size: 0.88rem; font-weight: 600;">1. Curso / Asignatura:</label>
                       <select id="tarea-curso-select" required style="margin-top:2px;">
                         <option value="">-- Seleccionar Curso Predeterminado --</option>
@@ -1511,16 +1514,18 @@
                       </select>
                     </div>
 
-                    <div style="flex: 1; min-width: 140px;">
+                    <div style="flex: 1; min-width: 130px;">
                       <label style="font-size: 0.88rem; font-weight: 600;">2. Ciclo / Salón:</label>
                       <select id="tarea-ciclo-select" required style="margin-top:2px;">
                         <option value="">Cargando ciclos...</option>
                       </select>
                     </div>
 
-                    <div style="flex: 1; min-width: 140px;">
-                      <label style="font-size: 0.88rem; font-weight: 600;">3. Fecha:</label>
-                      <input type="date" id="tarea-fecha-input" required style="margin-top:2px;" />
+                    <div style="flex: 1.4; min-width: 210px;">
+                      <label style="font-size: 0.88rem; font-weight: 600;">3. Semana (Sáb a Vie):</label>
+                      <select id="tarea-semana-select" required style="margin-top:2px; font-size:0.88rem;">
+                        <option value="">Cargando semanas...</option>
+                      </select>
                     </div>
                   </div>
 

@@ -577,6 +577,94 @@ router.delete("/tareas/registro/:id", (req, res) => {
 });
 
 // 11. DELETE /api/evaluaciones/tareas/:id - Eliminar Grupo de Tarea Completo
+// Helper: Determinar Rango de Semana Sábado a Viernes
+function getRangoSemanaSabadoVie(fechaStr) {
+  let date;
+  if (!fechaStr) {
+    date = new Date();
+  } else if (fechaStr.includes("_")) {
+    const parts = fechaStr.split("_");
+    return {
+      start: parts[0],
+      end: parts[1],
+      key: fechaStr,
+    };
+  } else {
+    const p = fechaStr.split("-");
+    if (p.length === 3) {
+      date = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+    } else {
+      date = new Date();
+    }
+  }
+
+  const day = date.getDay(); // 0: Dom, 1: Lun, ..., 6: Sab
+  const diffToSabado = day === 6 ? 0 : (day + 1);
+
+  const sabado = new Date(date.getFullYear(), date.getMonth(), date.getDate() - diffToSabado);
+  const viernes = new Date(sabado.getFullYear(), sabado.getMonth(), sabado.getDate() + 6);
+
+  const pad = (n) => String(n).padStart(2, "0");
+  const formatISO = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+  const start = formatISO(sabado);
+  const end = formatISO(viernes);
+
+  return {
+    start,
+    end,
+    key: `${start}_${end}`,
+  };
+}
+
+function formatSemanaLabel(startISO, endISO) {
+  const p1 = (startISO || "").split("-");
+  const p2 = (endISO || "").split("-");
+  if (p1.length !== 3 || p2.length !== 3) return "Semana Sáb a Vie";
+  return `Sáb ${p1[2]}/${p1[1]} al Vie ${p2[2]}/${p2[1]}/${p2[0]}`;
+}
+
+// Migración automática: Normalizar cualquier fecha diaria previa en la tabla tareas a rango semanal
+try {
+  const legacyTareas = db.prepare("SELECT id, fecha FROM tareas WHERE INSTR(fecha, '_') = 0").all();
+  if (legacyTareas && legacyTareas.length > 0) {
+    const updateFecha = db.prepare("UPDATE tareas SET fecha = ? WHERE id = ?");
+    legacyTareas.forEach((t) => {
+      const rango = getRangoSemanaSabadoVie(t.fecha);
+      updateFecha.run(rango.key, t.id);
+    });
+    console.log(`🔄 Se normalizaron ${legacyTareas.length} registros de tareas previas al formato semanal.`);
+  }
+} catch (e) {
+  // Ignorar si la tabla aún no existe
+}
+
+// 10. DELETE /api/evaluaciones/tareas/registro/:id - Eliminar un Registro Individual de Tarea
+router.delete("/tareas/registro/:id", (req, res) => {
+  try {
+    const { id } = req.params;
+    const reg = db.prepare("SELECT tarea_id FROM registros_tarea WHERE id = ?").get(id);
+    if (!reg) {
+      return res.status(404).json({ exito: false, mensaje: "Registro de tarea no encontrado." });
+    }
+
+    const tareaId = reg.tarea_id;
+    db.prepare("DELETE FROM registros_tarea WHERE id = ?").run(id);
+
+    // Si ya no quedan registros para esta tarea, limpiar la tarea padre
+    const countRemaining = db.prepare("SELECT COUNT(*) as count FROM registros_tarea WHERE tarea_id = ?").get(tareaId);
+    if (countRemaining && countRemaining.count === 0) {
+      db.prepare("DELETE FROM tareas WHERE id = ?").run(tareaId);
+    }
+
+    res.json({ exito: true, mensaje: "Registro de tarea eliminado correctamente." });
+  } catch (err) {
+    console.error("Error al eliminar registro de tarea:", err);
+    res.status(500).json({ exito: false, mensaje: err.message });
+  }
+});
+
+// 11. DELETE /api/evaluaciones/tareas/:id - Eliminar Grupo de Tarea Completo
 router.delete("/tareas/:id", (req, res) => {
   try {
     const { id } = req.params;
@@ -588,14 +676,59 @@ router.delete("/tareas/:id", (req, res) => {
   }
 });
 
-// 12. GET /api/evaluaciones/tareas/excel-salon - Exportar Consolidado de Tareas por Salón / Ciclo
-router.get("/tareas/excel-salon", async (req, res) => {
+// 12. GET /api/evaluaciones/tareas/semanas - Listar Semanas Registradas por Ciclo
+router.get("/tareas/semanas", (req, res) => {
   try {
     const { ciclo } = req.query;
+    let query = "SELECT DISTINCT fecha FROM tareas";
+    const params = [];
+    if (ciclo && ciclo.trim()) {
+      query += " WHERE UPPER(ciclo) = UPPER(?)";
+      params.push(ciclo.trim());
+    }
+    query += " ORDER BY fecha DESC";
+
+    const rows = db.prepare(query).all(...params);
+    const semanasMap = new Map();
+
+    rows.forEach((r) => {
+      if (!r.fecha) return;
+      const rango = getRangoSemanaSabadoVie(r.fecha);
+      if (!semanasMap.has(rango.key)) {
+        semanasMap.set(rango.key, {
+          key: rango.key,
+          start: rango.start,
+          end: rango.end,
+          label: `Semana: ${formatSemanaLabel(rango.start, rango.end)}`,
+        });
+      }
+    });
+
+    const semanas = Array.from(semanasMap.values());
+    res.json({ exito: true, semanas });
+  } catch (err) {
+    console.error("Error al obtener semanas de tareas:", err);
+    res.status(500).json({ exito: false, mensaje: err.message });
+  }
+});
+
+// 13. GET /api/evaluaciones/tareas/excel-salon - Exportar Consolidado Semanal de Tareas por Salón
+router.get("/tareas/excel-salon", async (req, res) => {
+  try {
+    const { ciclo, semana } = req.query;
     if (!ciclo || !ciclo.trim()) {
       return res.status(400).send("Debe especificar un ciclo o salón para exportar.");
     }
     const cicloNorm = ciclo.trim();
+
+    // Determinar rango de la semana a exportar (ciclo Sábado a Viernes)
+    let semanaObj;
+    if (semana && semana.trim()) {
+      semanaObj = getRangoSemanaSabadoVie(semana.trim());
+    } else {
+      const ultimaTarea = db.prepare("SELECT fecha FROM tareas WHERE UPPER(ciclo) = UPPER(?) ORDER BY fecha DESC LIMIT 1").get(cicloNorm);
+      semanaObj = ultimaTarea ? getRangoSemanaSabadoVie(ultimaTarea.fecha) : getRangoSemanaSabadoVie();
+    }
 
     // 1. Obtener todos los estudiantes del ciclo desde usuarios
     const estudiantes = db.prepare(`
@@ -605,34 +738,35 @@ router.get("/tareas/excel-salon", async (req, res) => {
       ORDER BY apellido ASC, nombre ASC
     `).all(cicloNorm);
 
-    // 2. Obtener cursos evaluados agrupados por Curso y Fecha (1 sola columna por curso en ese día)
-    const columnasTareas = db.prepare(`
+    // 2. Obtener cursos evaluados en esa semana para ese salón
+    const columnasCursos = db.prepare(`
       SELECT 
         UPPER(t.curso) as cursoUpper,
         t.curso,
-        t.fecha,
         COUNT(r.id) as totalRegistros
       FROM tareas t
       JOIN registros_tarea r ON t.id = r.tarea_id
-      WHERE UPPER(t.ciclo) = UPPER(?)
-      GROUP BY UPPER(t.curso), t.fecha
+      WHERE UPPER(t.ciclo) = UPPER(?) 
+        AND (t.fecha = ? OR t.fecha BETWEEN ? AND ?)
+      GROUP BY UPPER(t.curso)
       HAVING totalRegistros > 0
-      ORDER BY t.fecha ASC, t.curso ASC
-    `).all(cicloNorm);
+      ORDER BY t.curso ASC
+    `).all(cicloNorm, semanaObj.key, semanaObj.start, semanaObj.end);
 
-    // 3. Obtener todos los registros de tareas para este ciclo asociando a cursoUpper y fecha
+    // 3. Obtener todos los registros de tareas para este ciclo y semana
     const registrosRows = db.prepare(`
-      SELECT UPPER(t.curso) as cursoUpper, t.fecha, r.codigoEstudiante, r.nota, r.estado
+      SELECT UPPER(t.curso) as cursoUpper, r.codigoEstudiante, r.nota, r.estado
       FROM registros_tarea r
       JOIN tareas t ON r.tarea_id = t.id
       WHERE UPPER(t.ciclo) = UPPER(?)
+        AND (t.fecha = ? OR t.fecha BETWEEN ? AND ?)
       ORDER BY r.id DESC
-    `).all(cicloNorm);
+    `).all(cicloNorm, semanaObj.key, semanaObj.start, semanaObj.end);
 
-    // Mapa de registros: `${cursoUpper}_${fecha}_${codigoEstudiante}` -> { nota, estado }
+    // Mapa de registros: `${cursoUpper}_${codigoEstudiante}` -> { nota, estado }
     const mapaRegistros = new Map();
     registrosRows.forEach((reg) => {
-      const key = `${reg.cursoUpper}_${reg.fecha}_${String(reg.codigoEstudiante).toUpperCase()}`;
+      const key = `${reg.cursoUpper}_${String(reg.codigoEstudiante).toUpperCase()}`;
       if (!mapaRegistros.has(key)) {
         mapaRegistros.set(key, reg);
       }
@@ -654,20 +788,21 @@ router.get("/tareas/excel-salon", async (req, res) => {
       }
     });
 
-    if (estudiantes.length === 0 && columnasTareas.length === 0) {
-      return res.status(404).send(`No se encontraron registros de tareas ni estudiantes para el ciclo "${cicloNorm}".`);
+    if (estudiantes.length === 0 && columnasCursos.length === 0) {
+      return res.status(404).send(`No se encontraron registros de tareas ni estudiantes para el ciclo "${cicloNorm}" en la semana seleccionada.`);
     }
 
     const ExcelJS = require("exceljs");
     const workbook = new ExcelJS.Workbook();
-    const sheet = workbook.addWorksheet(`Tareas - ${cicloNorm.substring(0, 25)}`);
+    const sheet = workbook.addWorksheet(`Tareas - ${cicloNorm.substring(0, 20)}`);
 
-    const totalCols = Math.max(3 + columnasTareas.length + 2, 5);
+    const totalCols = Math.max(3 + columnasCursos.length + 2, 5);
+    const semanaLabel = formatSemanaLabel(semanaObj.start, semanaObj.end);
 
     // Fila 1: Título Institucional
     sheet.mergeCells(1, 1, 1, totalCols);
     const titleCell = sheet.getCell(1, 1);
-    titleCell.value = `ACADEMIA INGEMAT - CONSOLIDADO DE TAREAS: ${cicloNorm.toUpperCase()}`;
+    titleCell.value = `ACADEMIA INGEMAT - CONSOLIDADO SEMANAL DE TAREAS`;
     titleCell.font = { name: "Arial", size: 14, bold: true, color: { argb: "FFFFFFFF" } };
     titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0F172A" } };
     titleCell.alignment = { horizontal: "center", vertical: "middle" };
@@ -677,29 +812,27 @@ router.get("/tareas/excel-salon", async (req, res) => {
     sheet.mergeCells(2, 1, 2, totalCols);
     const subtitleCell = sheet.getCell(2, 1);
     const todayStr = new Date().toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", year: "numeric" });
-    subtitleCell.value = `Ciclo / Salón: ${cicloNorm} | Total Estudiantes: ${estudiantes.length} | Cursos/Tareas Evaluadas: ${columnasTareas.length} | Fecha de Emisión: ${todayStr}`;
+    subtitleCell.value = `Ciclo / Salón: ${cicloNorm.toUpperCase()} | Período: ${semanaLabel} | Total Estudiantes: ${estudiantes.length} | Cursos Evaluados: ${columnasCursos.length} | Fecha de Emisión: ${todayStr}`;
     subtitleCell.font = { name: "Arial", size: 10, italic: true, color: { argb: "FF475569" } };
     subtitleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF1F5F9" } };
     subtitleCell.alignment = { horizontal: "center", vertical: "middle" };
-    sheet.getRow(2).height = 20;
+    sheet.getRow(2).height = 22;
 
     sheet.addRow([]); // Fila 3 vacía
 
-    // Fila 4: Cabeceras
+    // Fila 4: Cabeceras de cursos (limpias, sin fechas individuales debajo de cada curso)
     const headers = ["N°", "CÓDIGO", "ESTUDIANTE"];
-    columnasTareas.forEach((col) => {
-      const fParts = (col.fecha || "").split("-");
-      const fFormatted = fParts.length === 3 ? `${fParts[2]}/${fParts[1]}` : col.fecha;
-      headers.push(`${col.curso}\n(${fFormatted})`);
+    columnasCursos.forEach((col) => {
+      headers.push(col.curso.toUpperCase());
     });
     headers.push("ENTREGADAS", "NO PRESENTÓ (NP)");
 
     const headerRow = sheet.addRow(headers);
-    headerRow.height = 30;
+    headerRow.height = 28;
     headerRow.eachCell((cell) => {
       cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1E293B" } };
       cell.font = { name: "Arial", size: 10, bold: true, color: { argb: "FFFFFFFF" } };
-      cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+      cell.alignment = { horizontal: "center", vertical: "middle" };
       cell.border = {
         top: { style: "thin", color: { argb: "FF94A3B8" } },
         bottom: { style: "medium", color: { argb: "FF64748B" } },
@@ -720,8 +853,8 @@ router.get("/tareas/excel-salon", async (req, res) => {
       let countEntregadas = 0;
       let countNP = 0;
 
-      columnasTareas.forEach((col) => {
-        const key = `${col.cursoUpper}_${col.fecha}_${est.codigo.toUpperCase()}`;
+      columnasCursos.forEach((col) => {
+        const key = `${col.cursoUpper}_${est.codigo.toUpperCase()}`;
         const reg = mapaRegistros.get(key);
 
         if (reg) {
@@ -759,7 +892,7 @@ router.get("/tareas/excel-salon", async (req, res) => {
         cell.font = {
           name: "Arial",
           size: 9.5,
-          bold: colNumber <= 2 || isNP || colNumber > (3 + columnasTareas.length),
+          bold: colNumber <= 2 || isNP || colNumber > (3 + columnasCursos.length),
           color: { argb: isNP ? "FF991B1B" : (colNumber === 3 ? "FF0F172A" : "FF334155") },
         };
         cell.alignment = {
@@ -779,16 +912,17 @@ router.get("/tareas/excel-salon", async (req, res) => {
     sheet.getColumn(1).width = 6;   // N°
     sheet.getColumn(2).width = 14;  // CÓDIGO
     sheet.getColumn(3).width = 34;  // ESTUDIANTE
-    columnasTareas.forEach((col, i) => {
+    columnasCursos.forEach((col, i) => {
       sheet.getColumn(4 + i).width = Math.max(col.curso.length + 4, 15);
     });
-    sheet.getColumn(4 + columnasTareas.length).width = 16;     // ENTREGADAS
-    sheet.getColumn(5 + columnasTareas.length).width = 18;     // NO PRESENTÓ (NP)
+    sheet.getColumn(4 + columnasCursos.length).width = 16;     // ENTREGADAS
+    sheet.getColumn(5 + columnasCursos.length).width = 18;     // NO PRESENTÓ (NP)
 
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    const fileSemanaTag = `${semanaObj.start}_${semanaObj.end}`.replace(/[^a-zA-Z0-9]/g, "_");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="Tareas_Salon_${cicloNorm.replace(/[^a-zA-Z0-9]/g, "_")}.xlsx"`
+      `attachment; filename="Consolidado_Tareas_${cicloNorm.replace(/[^a-zA-Z0-9]/g, "_")}_${fileSemanaTag}.xlsx"`
     );
 
     await workbook.xlsx.write(res);

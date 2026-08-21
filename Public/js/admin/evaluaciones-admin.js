@@ -50,11 +50,7 @@ export function initEvaluacionesAdmin() {
 }
 
 function setFechaHoyDefault() {
-  const today = new Date().toISOString().split("T")[0];
-  const tareaFecha = document.getElementById("tarea-fecha-input");
-  if (tareaFecha && !tareaFecha.value) {
-    tareaFecha.value = today;
-  }
+  populateSemanasTareasForm();
 }
 
 // ---------------------------------------------------------
@@ -317,12 +313,19 @@ function populateSelectsCiclos(ciclos) {
   selects.forEach((id) => {
     const sel = document.getElementById(id);
     if (!sel) return;
+    const prevVal = sel.value;
     sel.innerHTML = '<option value="">-- Seleccionar Ciclo / Salón --</option>' +
       ciclos.map((c) => {
         const val = typeof c === "object" ? c.nombre : c;
         return `<option value="${val}">${val}</option>`;
       }).join("");
+    if (prevVal) sel.value = prevVal;
   });
+
+  const excelCicloSel = document.getElementById("excel-tareas-ciclo-select");
+  if (excelCicloSel && excelCicloSel.value) {
+    cargarSemanasExcelConsolidado(excelCicloSel.value);
+  }
 }
 
 function populateSelectsEvaluaciones(evals) {
@@ -1023,6 +1026,91 @@ function copiarRankingAlPortapapeles(evalObj, ranking) {
   }, "image/png");
 }
 
+
+
+// Helper: Obtener Rango de Semana Sábado a Viernes
+function getSemanaSabadoVieInfo(refDate) {
+  let date = refDate
+    ? typeof refDate === "string"
+      ? new Date(refDate.includes("T") ? refDate : refDate + "T12:00:00")
+      : new Date(refDate)
+    : new Date();
+  if (isNaN(date.getTime())) date = new Date();
+
+  const day = date.getDay(); // 0: Dom, 1: Lun, ..., 6: Sab
+  const diffToSabado = day === 6 ? 0 : day + 1;
+
+  const sabado = new Date(date.getFullYear(), date.getMonth(), date.getDate() - diffToSabado);
+  const viernes = new Date(sabado.getFullYear(), sabado.getMonth(), sabado.getDate() + 6);
+
+  const pad = (n) => String(n).padStart(2, "0");
+  const formatISO = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+  const startISO = formatISO(sabado);
+  const endISO = formatISO(viernes);
+
+  const label = `📅 Sáb ${pad(sabado.getDate())}/${pad(sabado.getMonth() + 1)} al Vie ${pad(viernes.getDate())}/${pad(viernes.getMonth() + 1)}/${viernes.getFullYear()}`;
+
+  return {
+    start: startISO,
+    end: endISO,
+    key: `${startISO}_${endISO}`,
+    label,
+  };
+}
+
+function populateSemanasTareasForm() {
+  const select = document.getElementById("tarea-semana-select");
+  if (!select) return;
+
+  const currentInfo = getSemanaSabadoVieInfo(new Date());
+  const options = [];
+
+  const now = new Date();
+  for (let offset = -8; offset <= 4; offset++) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset * 7);
+    const info = getSemanaSabadoVieInfo(d);
+    if (!options.some((o) => o.key === info.key)) {
+      options.push(info);
+    }
+  }
+
+  options.sort((a, b) => b.start.localeCompare(a.start));
+
+  select.innerHTML = options
+    .map(
+      (opt) =>
+        `<option value="${opt.key}" ${opt.key === currentInfo.key ? "selected" : ""}>${opt.label}${opt.key === currentInfo.key ? " ⭐ (Actual)" : ""}</option>`
+    )
+    .join("");
+}
+
+async function cargarSemanasExcelConsolidado(ciclo) {
+  const selectSemana = document.getElementById("excel-tareas-semana-select");
+  if (!selectSemana) return;
+
+  if (!ciclo) {
+    selectSemana.innerHTML = '<option value="">-- Selecciona primero un ciclo --</option>';
+    return;
+  }
+
+  selectSemana.innerHTML = '<option value="">Cargando semanas registradas...</option>';
+  try {
+    const res = await fetch(`/api/evaluaciones/tareas/semanas?ciclo=${encodeURIComponent(ciclo)}`);
+    const data = await res.json();
+    if (data.exito && Array.isArray(data.semanas) && data.semanas.length > 0) {
+      selectSemana.innerHTML = data.semanas
+        .map((s, idx) => `<option value="${s.key}" ${idx === 0 ? "selected" : ""}>${s.label}</option>`)
+        .join("");
+    } else {
+      const currentInfo = getSemanaSabadoVieInfo(new Date());
+      selectSemana.innerHTML = `<option value="${currentInfo.key}">${currentInfo.label} (Sin registros aún)</option>`;
+    }
+  } catch (err) {
+    selectSemana.innerHTML = '<option value="">Error al cargar semanas</option>';
+  }
+}
+
 // 8. Registro de Tareas por Curso (Con Alternancia Vigesimal / Binario)
 function setupFormTareas() {
   const form = document.getElementById("form-registrar-tareas");
@@ -1033,6 +1121,8 @@ function setupFormTareas() {
   const cicloSelect = document.getElementById("tarea-ciclo-select");
   const studentSearchInput = document.getElementById("tarea-student-search");
   const studentCodeInput = document.getElementById("tarea-codigo-estudiante");
+
+  populateSemanasTareasForm();
 
   if (cicloSelect && studentSearchInput) {
     cicloSelect.addEventListener("change", () => {
@@ -1083,10 +1173,11 @@ function setupFormTareas() {
 
       const cursoSelect = document.getElementById("tarea-curso-select");
       const curso = cursoSelect ? cursoSelect.value.trim() : "";
-      const ciclo = document.getElementById("tarea-ciclo-select").value;
-      const fecha = document.getElementById("tarea-fecha-input").value;
-      const tipoEvaluacion = tipoEvalSelect.value;
-      const codigoEstudiante = document.getElementById("tarea-codigo-estudiante").value.trim();
+      const ciclo = document.getElementById("tarea-ciclo-select")?.value;
+      const semanaSelect = document.getElementById("tarea-semana-select");
+      const fecha = semanaSelect ? semanaSelect.value : "";
+      const tipoEvaluacion = tipoEvalSelect?.value;
+      const codigoEstudiante = document.getElementById("tarea-codigo-estudiante")?.value.trim();
 
       if (!curso) {
         msg.innerHTML = '<span style="color:red;">Debes seleccionar un curso predeterminado válido.</span>';
@@ -1124,25 +1215,37 @@ function setupFormTareas() {
 
         const data = await res.json();
         if (data.exito) {
-          msg.innerHTML = `<span style="color:green;">✅ ${data.mensaje} (Datos del curso y salón conservados)</span>`;
-
-          // Limpiar únicamente los campos del estudiante y la nota para registro continuo
           const studentSearchEl = document.getElementById("tarea-student-search");
-          const studentCodeEl = document.getElementById("tarea-codigo-estudiante");
-          const notaVigesimalEl = document.getElementById("tarea-nota-vigesimal");
+          const nombreEst = studentSearchEl ? studentSearchEl.value : `Estudiante [${codigoEstudiante}]`;
 
-          if (studentSearchEl) {
-            studentSearchEl.value = "";
-            studentSearchEl.focus(); // Enfocar para ingresar rápidamente al siguiente alumno
-          }
-          if (studentCodeEl) studentCodeEl.value = "";
-          if (notaVigesimalEl) notaVigesimalEl.value = "";
+          msg.innerHTML = `
+            <div id="tarea-success-alert" style="background:#f0fdf4; border:1px solid #86efac; padding:10px 14px; border-radius:8px; margin-top:8px; transition: opacity 0.5s ease;">
+              <b style="color:#166534;">✅ Calificación guardada para ${nombreEst}.</b><br/>
+              <span style="font-size:0.85rem; color:#475569;">Curso: <b>${curso}</b> | Salón: <b>${ciclo}</b></span>
+            </div>
+          `;
 
-          // Restablecer radio binario por defecto si aplica
-          const defaultRadio = document.querySelector('input[name="tarea-binario-radio"][value="PRESENTÓ"]');
-          if (defaultRadio) defaultRadio.checked = true;
+          // IMPORTANTE: MANTENER la selección del estudiante y los datos del curso/ciclo
+          // NO se limpia studentSearchInput ni studentCodeInput
+
+          // Auto-ocultar mensaje de confirmación
+          if (window._tareaSuccessMsgTimeout) clearTimeout(window._tareaSuccessMsgTimeout);
+          window._tareaSuccessMsgTimeout = setTimeout(() => {
+            const alertEl = document.getElementById("tarea-success-alert");
+            if (alertEl) {
+              alertEl.style.opacity = "0";
+              setTimeout(() => {
+                if (msg) msg.innerHTML = "";
+              }, 500);
+            }
+          }, 4500);
 
           await cargarHistorialTareas();
+
+          const selectTareasSalonCiclo = document.getElementById("excel-tareas-ciclo-select");
+          if (selectTareasSalonCiclo && selectTareasSalonCiclo.value) {
+            await cargarSemanasExcelConsolidado(selectTareasSalonCiclo.value);
+          }
         } else {
           msg.innerHTML = `<span style="color:red;">❌ ${data.mensaje}</span>`;
         }
@@ -1152,41 +1255,46 @@ function setupFormTareas() {
     });
   }
 
-  // Listener para Exportar Consolidado de Tareas por Salón a Excel
+  // Listener para Exportar Consolidado Semanal de Tareas por Salón a Excel
   const btnExportTareasSalon = document.getElementById("btn-export-tareas-salon-excel");
   const selectTareasSalonCiclo = document.getElementById("excel-tareas-ciclo-select");
+  const selectTareasSalonSemana = document.getElementById("excel-tareas-semana-select");
+
+  if (selectTareasSalonCiclo) {
+    selectTareasSalonCiclo.addEventListener("change", () => {
+      cargarSemanasExcelConsolidado(selectTareasSalonCiclo.value);
+    });
+  }
+
   if (btnExportTareasSalon && !btnExportTareasSalon.dataset.listener) {
     btnExportTareasSalon.dataset.listener = "true";
     btnExportTareasSalon.addEventListener("click", () => {
       const ciclo = selectTareasSalonCiclo ? selectTareasSalonCiclo.value.trim() : "";
+      const semana = selectTareasSalonSemana ? selectTareasSalonSemana.value.trim() : "";
+
       if (!ciclo) {
         alert("Por favor, selecciona un salón / ciclo para exportar su consolidado de tareas.");
         return;
       }
-      window.location.href = `/api/evaluaciones/tareas/excel-salon?ciclo=${encodeURIComponent(ciclo)}`;
+      window.location.href = `/api/evaluaciones/tareas/excel-salon?ciclo=${encodeURIComponent(ciclo)}&semana=${encodeURIComponent(semana)}`;
     });
   }
 
   cargarHistorialTareas();
 }
 
-// Helper: Obtener Rango de Semana (Lunes a Domingo)
+// Helper: Obtener Rango de Semana (Sábado a Viernes)
 function getSemanaRango(fechaStr) {
   if (!fechaStr) return "Semana Sin Fecha";
-  const parts = fechaStr.split("-");
-  if (parts.length !== 3) return `Semana (${fechaStr})`;
-
-  const date = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-  const day = date.getDay();
-  const diffToMonday = date.getDate() - day + (day === 0 ? -6 : 1);
-
-  const monday = new Date(date.getFullYear(), date.getMonth(), diffToMonday);
-  const sunday = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 6);
-
-  const pad = (n) => String(n).padStart(2, "0");
-  const format = (d) => `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
-
-  return `📅 Semana del ${format(monday)} al ${format(sunday)}`;
+  if (fechaStr.includes("_")) {
+    const parts = fechaStr.split("_");
+    const p1 = (parts[0] || "").split("-");
+    const p2 = (parts[1] || "").split("-");
+    if (p1.length === 3 && p2.length === 3) {
+      return `📅 Semana: Sáb ${p1[2]}/${p1[1]} al Vie ${p2[2]}/${p2[1]}/${p2[0]}`;
+    }
+  }
+  return getSemanaSabadoVieInfo(fechaStr).label;
 }
 
 // Helper: Nombre del Día de la Semana (Soporte completo para Sábados y Fin de Semana)
