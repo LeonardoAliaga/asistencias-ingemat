@@ -7,14 +7,13 @@ const router = express.Router();
 
 // Helper para obtener secciones únicas del catálogo
 function getSecciones() {
-  const defaultSecciones = ["MATEMÁTICA", "FÍSICA", "QUÍMICA", "LETRAS", "BIOLOGÍA"];
   let secRows = [];
   try {
     secRows = db.prepare("SELECT nombre FROM secciones_biblioteca ORDER BY id ASC").all().map((r) => r.nombre.toUpperCase());
   } catch (e) {}
 
   const bookRows = db.prepare("SELECT DISTINCT categoria FROM libros WHERE categoria != ''").all().map((r) => r.categoria.toUpperCase());
-  const set = new Set([...secRows, ...defaultSecciones, ...bookRows]);
+  const set = new Set([...secRows, ...bookRows]);
   return Array.from(set);
 }
 

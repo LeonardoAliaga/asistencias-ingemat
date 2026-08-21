@@ -146,12 +146,16 @@ try {
   // Columna ya existe
 }
 
-// Inicializar secciones por defecto si la tabla está vacía
-const countSecciones = db.prepare("SELECT COUNT(*) as count FROM secciones_biblioteca").get();
-if (countSecciones && countSecciones.count === 0) {
-  const defaultSecciones = ["MATEMÁTICA", "FÍSICA", "QUÍMICA", "LETRAS", "BIOLOGÍA"];
-  const insertSec = db.prepare("INSERT OR IGNORE INTO secciones_biblioteca (nombre) VALUES (?)");
-  defaultSecciones.forEach((sec) => insertSec.run(sec));
+// Inicializar secciones por defecto si la tabla está vacía y nunca se ha inicializado
+const initSecFlag = db.prepare("SELECT valor FROM config_general WHERE clave = 'secciones_biblioteca_inicializadas'").get();
+if (!initSecFlag) {
+  const countSecciones = db.prepare("SELECT COUNT(*) as count FROM secciones_biblioteca").get();
+  if (countSecciones && countSecciones.count === 0) {
+    const defaultSecciones = ["MATEMÁTICA", "FÍSICA", "QUÍMICA", "LETRAS", "BIOLOGÍA"];
+    const insertSec = db.prepare("INSERT OR IGNORE INTO secciones_biblioteca (nombre) VALUES (?)");
+    defaultSecciones.forEach((sec) => insertSec.run(sec));
+  }
+  db.prepare("INSERT OR REPLACE INTO config_general (clave, valor) VALUES ('secciones_biblioteca_inicializadas', '1')").run();
 }
 
 console.log("🟢 Base de Datos SQLite (ingemat.db) inicializada correctamente.");
