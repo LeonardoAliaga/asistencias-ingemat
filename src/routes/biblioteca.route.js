@@ -8,8 +8,13 @@ const router = express.Router();
 // Helper para obtener secciones únicas del catálogo
 function getSecciones() {
   const defaultSecciones = ["MATEMÁTICA", "FÍSICA", "QUÍMICA", "LETRAS", "BIOLOGÍA"];
-  const rows = db.prepare("SELECT DISTINCT categoria FROM libros WHERE categoria != ''").all();
-  const set = new Set([...defaultSecciones, ...rows.map((r) => r.categoria.toUpperCase())]);
+  let secRows = [];
+  try {
+    secRows = db.prepare("SELECT nombre FROM secciones_biblioteca ORDER BY id ASC").all().map((r) => r.nombre.toUpperCase());
+  } catch (e) {}
+
+  const bookRows = db.prepare("SELECT DISTINCT categoria FROM libros WHERE categoria != ''").all().map((r) => r.categoria.toUpperCase());
+  const set = new Set([...secRows, ...defaultSecciones, ...bookRows]);
   return Array.from(set);
 }
 
@@ -21,6 +26,7 @@ router.get("/", (req, res) => {
       id: l.id,
       codigo: l.codigo,
       titulo: l.titulo,
+      editorial: l.editorial || "",
       seccion: l.categoria,
       estado: l.prestados >= l.stock ? "prestado" : "disponible",
       stock: l.stock,
@@ -33,9 +39,56 @@ router.get("/", (req, res) => {
   }
 });
 
+// POST /api/biblioteca/seccion - Crear nueva sección
+router.post("/seccion", (req, res) => {
+  const { nombre } = req.body;
+  if (!nombre || !String(nombre).trim()) {
+    return res.status(400).json({ exito: false, mensaje: "El nombre de la sección es obligatorio." });
+  }
+
+  const nombreNorm = String(nombre).trim().toUpperCase();
+
+  try {
+    const existe = db.prepare("SELECT id FROM secciones_biblioteca WHERE UPPER(nombre) = ?").get(nombreNorm);
+    if (existe) {
+      return res.status(400).json({ exito: false, mensaje: `La sección "${nombreNorm}" ya existe.` });
+    }
+
+    db.prepare("INSERT INTO secciones_biblioteca (nombre) VALUES (?)").run(nombreNorm);
+    res.json({ exito: true, mensaje: `Sección "${nombreNorm}" creada correctamente.` });
+  } catch (err) {
+    res.status(500).json({ exito: false, mensaje: err.message });
+  }
+});
+
+// DELETE /api/biblioteca/seccion/:nombre - Eliminar una sección
+router.delete("/seccion/:nombre", (req, res) => {
+  const nombre = req.params.nombre;
+  if (!nombre) {
+    return res.status(400).json({ exito: false, mensaje: "Nombre de sección inválido." });
+  }
+
+  const nombreNorm = decodeURIComponent(String(nombre)).trim().toUpperCase();
+
+  try {
+    const librosEnSeccion = db.prepare("SELECT COUNT(*) as count FROM libros WHERE UPPER(categoria) = ?").get(nombreNorm);
+    if (librosEnSeccion && librosEnSeccion.count > 0) {
+      return res.status(400).json({
+        exito: false,
+        mensaje: `No se puede eliminar la sección "${nombreNorm}" porque contiene ${librosEnSeccion.count} libro(s) registrado(s). Primero elimine o reasigne dichos libros.`,
+      });
+    }
+
+    db.prepare("DELETE FROM secciones_biblioteca WHERE UPPER(nombre) = ?").run(nombreNorm);
+    res.json({ exito: true, mensaje: `Sección "${nombreNorm}" eliminada exitosamente.` });
+  } catch (err) {
+    res.status(500).json({ exito: false, mensaje: err.message });
+  }
+});
+
 // POST /api/biblioteca/libro - Registrar un nuevo libro
 router.post("/libro", (req, res) => {
-  const { codigo, titulo, seccion } = req.body;
+  const { codigo, titulo, seccion, editorial } = req.body;
   if (!codigo || !titulo || !seccion) {
     return res.status(400).json({ exito: false, mensaje: "Código, título y sección son campos obligatorios." });
   }
@@ -43,6 +96,7 @@ router.post("/libro", (req, res) => {
   const codigoNorm = String(codigo).trim().toUpperCase();
   const tituloNorm = String(titulo).trim();
   const seccionNorm = String(seccion).trim().toUpperCase();
+  const editorialNorm = editorial ? String(editorial).trim() : "";
 
   const dup = db.prepare("SELECT codigo FROM libros WHERE codigo = ?").get(codigoNorm);
   if (dup) {
@@ -52,20 +106,88 @@ router.post("/libro", (req, res) => {
   const newId = `LIB-${Date.now().toString().slice(-6)}`;
 
   try {
+    // Asegurar que la sección exista en secciones_biblioteca
+    const secExiste = db.prepare("SELECT id FROM secciones_biblioteca WHERE UPPER(nombre) = ?").get(seccionNorm);
+    if (!secExiste) {
+      db.prepare("INSERT INTO secciones_biblioteca (nombre) VALUES (?)").run(seccionNorm);
+    }
+
     db.prepare(`
-      INSERT INTO libros (id, codigo, titulo, categoria, stock, prestados)
-      VALUES (?, ?, ?, ?, 1, 0)
-    `).run(newId, codigoNorm, tituloNorm, seccionNorm);
+      INSERT INTO libros (id, codigo, titulo, categoria, editorial, stock, prestados)
+      VALUES (?, ?, ?, ?, ?, 1, 0)
+    `).run(newId, codigoNorm, tituloNorm, seccionNorm, editorialNorm);
 
     const nuevoLibro = {
       id: newId,
       codigo: codigoNorm,
       titulo: tituloNorm,
+      editorial: editorialNorm,
       seccion: seccionNorm,
       estado: "disponible",
     };
 
     res.json({ exito: true, mensaje: `Libro "${tituloNorm}" registrado con éxito.`, libro: nuevoLibro });
+  } catch (err) {
+    res.status(500).json({ exito: false, mensaje: err.message });
+  }
+});
+
+// PUT /api/biblioteca/libro/:id - Editar información de un libro
+router.put("/libro/:id", (req, res) => {
+  const id = req.params.id;
+  const { codigo, titulo, seccion, editorial } = req.body;
+
+  if (!codigo || !titulo || !seccion) {
+    return res.status(400).json({ exito: false, mensaje: "Código, título y sección son campos obligatorios." });
+  }
+
+  const codigoNorm = String(codigo).trim().toUpperCase();
+  const tituloNorm = String(titulo).trim();
+  const seccionNorm = String(seccion).trim().toUpperCase();
+  const editorialNorm = editorial ? String(editorial).trim() : "";
+
+  const libroActual = db.prepare("SELECT * FROM libros WHERE id = ?").get(id);
+  if (!libroActual) {
+    return res.status(404).json({ exito: false, mensaje: "Libro no encontrado." });
+  }
+
+  // Verificar que el nuevo código no choque con otro libro distinto
+  const dup = db.prepare("SELECT id FROM libros WHERE codigo = ? AND id != ?").get(codigoNorm, id);
+  if (dup) {
+    return res.status(400).json({ exito: false, mensaje: `El código de libro "${codigoNorm}" ya está asignado a otro libro.` });
+  }
+
+  try {
+    db.transaction(() => {
+      // Asegurar que la nueva sección exista en secciones_biblioteca
+      const secExiste = db.prepare("SELECT id FROM secciones_biblioteca WHERE UPPER(nombre) = ?").get(seccionNorm);
+      if (!secExiste) {
+        db.prepare("INSERT INTO secciones_biblioteca (nombre) VALUES (?)").run(seccionNorm);
+      }
+
+      // Si cambió el código, actualizar las referencias en préstamos
+      if (libroActual.codigo !== codigoNorm) {
+        db.prepare("UPDATE prestamos SET libroCodigo = ? WHERE libroCodigo = ?").run(codigoNorm, libroActual.codigo);
+      }
+
+      db.prepare(`
+        UPDATE libros
+        SET codigo = ?, titulo = ?, categoria = ?, editorial = ?
+        WHERE id = ?
+      `).run(codigoNorm, tituloNorm, seccionNorm, editorialNorm, id);
+    })();
+
+    res.json({
+      exito: true,
+      mensaje: `Libro "${tituloNorm}" actualizado correctamente.`,
+      libro: {
+        id,
+        codigo: codigoNorm,
+        titulo: tituloNorm,
+        editorial: editorialNorm,
+        seccion: seccionNorm,
+      },
+    });
   } catch (err) {
     res.status(500).json({ exito: false, mensaje: err.message });
   }

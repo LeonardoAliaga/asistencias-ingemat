@@ -230,8 +230,8 @@ function ejecutarMigracionInicial(force = false) {
       if ((force || stmtCount.count === 0) && Array.isArray(libros) && libros.length > 0) {
         console.log(`📦 Migrando ${libros.length} libros a SQLite...`);
         const insert = db.prepare(`
-          INSERT OR REPLACE INTO libros (id, codigo, titulo, autor, categoria, stock, prestados)
-          VALUES (@id, @codigo, @titulo, @autor, @categoria, @stock, @prestados)
+          INSERT OR REPLACE INTO libros (id, codigo, titulo, autor, categoria, editorial, stock, prestados)
+          VALUES (@id, @codigo, @titulo, @autor, @categoria, @editorial, @stock, @prestados)
         `);
         const insertMany = db.transaction((bList) => {
           for (const b of bList) {
@@ -241,6 +241,7 @@ function ejecutarMigracionInicial(force = false) {
               titulo: b.titulo,
               autor: b.autor || "",
               categoria: b.categoria || b.seccion || "",
+              editorial: b.editorial || "",
               stock: b.stock || 1,
               prestados: b.prestados || (b.estado === "prestado" ? 1 : 0),
             });

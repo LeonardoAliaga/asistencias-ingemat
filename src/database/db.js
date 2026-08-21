@@ -101,8 +101,15 @@ db.exec(`
     titulo TEXT NOT NULL,
     autor TEXT DEFAULT '',
     categoria TEXT DEFAULT '',
+    editorial TEXT DEFAULT '',
     stock INTEGER DEFAULT 1,
     prestados INTEGER DEFAULT 0
+  );
+
+  -- Tabla de Secciones de Biblioteca
+  CREATE TABLE IF NOT EXISTS secciones_biblioteca (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nombre TEXT UNIQUE NOT NULL
   );
 
   -- Tabla de Préstamos de Biblioteca
@@ -131,6 +138,21 @@ db.exec(`
     valor TEXT NOT NULL
   );
 `);
+
+// --- Migraciones y semillas adicionales ---
+try {
+  db.exec("ALTER TABLE libros ADD COLUMN editorial TEXT DEFAULT ''");
+} catch (e) {
+  // Columna ya existe
+}
+
+// Inicializar secciones por defecto si la tabla está vacía
+const countSecciones = db.prepare("SELECT COUNT(*) as count FROM secciones_biblioteca").get();
+if (countSecciones && countSecciones.count === 0) {
+  const defaultSecciones = ["MATEMÁTICA", "FÍSICA", "QUÍMICA", "LETRAS", "BIOLOGÍA"];
+  const insertSec = db.prepare("INSERT OR IGNORE INTO secciones_biblioteca (nombre) VALUES (?)");
+  defaultSecciones.forEach((sec) => insertSec.run(sec));
+}
 
 console.log("🟢 Base de Datos SQLite (ingemat.db) inicializada correctamente.");
 

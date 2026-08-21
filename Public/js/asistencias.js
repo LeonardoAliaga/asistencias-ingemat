@@ -226,17 +226,21 @@ if (btnPrestamoLibros) {
     box.innerHTML = `
       <img src="./img/Logo 1x1 nb.png" alt="Logo Ingemat" style="width:14rem;"/>
       <h2 style="margin: 10px 0; color: var(--red); font-family: var(--font-heading);">📚 Préstamo de Libros</h2>
-      <div style="display:flex; flex-direction:column; align-items:center; gap:12px; width: 100%; max-width: 400px;">
+      <div style="display:flex; flex-direction:column; align-items:center; gap:12px; width: 100%; max-width: 420px;">
         <div id="resultado-prestamo" style="margin-top:5px; font-size:0.95rem; width:100%; text-align:center;"></div>
         
-        <div style="width:100%; text-align:left;">
-          <label style="font-size:0.85rem; font-weight:600; color:#333;">1. Código del Libro:</label>
-          <input type="text" id="codigo-libro-input" placeholder="Escanea o escribe código del libro (ej. MAT-01)" style="padding:10px 12px; font-size:0.95rem; width:100%; border-radius:6px; border:1px solid #ccc; text-transform:uppercase; margin-top:4px;" />
+        <div style="width:100%; text-align:left; position: relative;">
+          <label style="font-size:0.85rem; font-weight:600; color:#333;">1. Libro (Búsqueda por código, título o editorial):</label>
+          <div style="position:relative; width:100%; margin-top:4px;">
+            <input type="text" id="codigo-libro-input" autocomplete="off" placeholder="🔍 Escribe código, título o editorial..." style="padding:10px 12px; font-size:0.95rem; width:100%; border-radius:6px; border:1px solid #cbd5e1; text-transform:uppercase; box-sizing: border-box;" />
+            <div id="libro-search-dropdown" class="libro-dropdown" style="display:none;"></div>
+          </div>
+          <div id="libro-selected-preview" style="display:none; margin-top:6px; font-size:0.82rem; color:#059669; font-weight:600; background:#ecfdf5; padding:6px 10px; border-radius:6px; border:1px solid #a7f3d0;"></div>
         </div>
 
         <div style="width:100%; text-align:left;">
           <label style="font-size:0.85rem; font-weight:600; color:#333;">2. Código del Estudiante:</label>
-          <input type="text" id="codigo-estudiante-input" placeholder="Escanea o escribe código del carnet (ej. EST-001)" style="padding:10px 12px; font-size:0.95rem; width:100%; border-radius:6px; border:1px solid #ccc; text-transform:uppercase; margin-top:4px;" />
+          <input type="text" id="codigo-estudiante-input" placeholder="Escanea o escribe código del carnet (ej. EST-001)" style="padding:10px 12px; font-size:0.95rem; width:100%; border-radius:6px; border:1px solid #cbd5e1; text-transform:uppercase; margin-top:4px; box-sizing: border-box;" />
         </div>
 
         <button id="btn-submit-prestamo" class="btn-red" style="width:100%; padding:11px; font-size:1rem; font-weight:700; margin-top:6px; cursor:pointer;">
@@ -247,10 +251,15 @@ if (btnPrestamoLibros) {
 
     const libroInput = document.getElementById("codigo-libro-input");
     const estudianteInput = document.getElementById("codigo-estudiante-input");
+    const dropdownEl = document.getElementById("libro-search-dropdown");
+    const previewEl = document.getElementById("libro-selected-preview");
     const btnSubmit = document.getElementById("btn-submit-prestamo");
     const resDiv = document.getElementById("resultado-prestamo");
 
     libroInput.focus();
+
+    // Inicializar autocompletado inteligente de libros
+    setupIntelligentBookSearch(libroInput, estudianteInput, previewEl, dropdownEl);
 
     const handleRegistrarPrestamo = async () => {
       const codLibro = libroInput.value.trim().toUpperCase();
@@ -283,6 +292,10 @@ if (btnPrestamoLibros) {
           `;
           libroInput.value = "";
           estudianteInput.value = "";
+          if (previewEl) {
+            previewEl.style.display = "none";
+            previewEl.innerHTML = "";
+          }
           libroInput.focus();
           cargarEstantePublico();
         } else {
@@ -302,13 +315,154 @@ if (btnPrestamoLibros) {
         handleRegistrarPrestamo();
       }
     });
+  });
+}
 
-    libroInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.keyCode === 13) {
-        e.preventDefault();
-        estudianteInput.focus();
-      }
+// Búsqueda inteligente / predictiva de libros para préstamos
+async function setupIntelligentBookSearch(libroInput, estudianteInput, previewEl, dropdownEl) {
+  if (!libroInput || !dropdownEl) return;
+
+  let librosList = [];
+  try {
+    const res = await fetch("/api/biblioteca");
+    const data = await res.json();
+    if (data.exito && Array.isArray(data.libros)) {
+      librosList = data.libros;
+    }
+  } catch (err) {
+    console.error("Error cargando libros para búsqueda inteligente:", err);
+  }
+
+  let selectedIndex = -1;
+
+  function renderSuggestions(query) {
+    const q = (query || "").trim().toLowerCase();
+    let filtered = librosList;
+
+    if (q) {
+      filtered = librosList.filter(
+        (l) =>
+          l.codigo.toLowerCase().includes(q) ||
+          l.titulo.toLowerCase().includes(q) ||
+          (l.editorial && l.editorial.toLowerCase().includes(q)) ||
+          (l.seccion && l.seccion.toLowerCase().includes(q))
+      );
+    }
+
+    if (filtered.length === 0) {
+      dropdownEl.innerHTML = `
+        <div style="padding: 12px; text-align: center; color: #64748b; font-size: 0.85rem;">
+          🔍 No se encontraron libros coincidentes con "<b>${q}</b>"
+        </div>
+      `;
+      dropdownEl.style.display = "block";
+      selectedIndex = -1;
+      return;
+    }
+
+    selectedIndex = -1;
+    let html = "";
+    // Limitar a máximo 10 sugerencias para rendimiento y legibilidad
+    filtered.slice(0, 10).forEach((libro, idx) => {
+      const isDisp = libro.estado === "disponible";
+      const badgeBg = isDisp ? "#d1fae5" : "#fef3c7";
+      const badgeColor = isDisp ? "#047857" : "#b45309";
+      const badgeText = isDisp ? "DISPONIBLE" : "PRESTADO";
+
+      html += `
+        <div class="libro-search-item ${isDisp ? "" : "prestado-item"}" data-index="${idx}" data-codigo="${libro.codigo}">
+          <div style="flex:1; min-width:0;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-weight:700; color:#1e293b; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${libro.titulo}</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; margin-top:2px; flex-wrap:wrap;">
+              <span style="font-size:0.76rem; background:#f1f5f9; color:#475569; padding:1px 6px; border-radius:4px; font-weight:600;">${libro.seccion}</span>
+              ${
+                libro.editorial
+                  ? `<span style="font-size:0.75rem; color:#64748b;"><i class="bi bi-building"></i> ${libro.editorial}</span>`
+                  : ""
+              }
+            </div>
+          </div>
+          <div style="display:flex; flex-direction:column; align-items:flex-end; gap:3px; flex-shrink:0;">
+            <span style="font-size:0.8rem; font-weight:800; color:var(--red); letter-spacing:0.5px;">${libro.codigo}</span>
+            <span style="font-size:0.68rem; font-weight:700; background:${badgeBg}; color:${badgeColor}; padding:2px 6px; border-radius:4px;">${badgeText}</span>
+          </div>
+        </div>
+      `;
     });
+
+    dropdownEl.innerHTML = html;
+    dropdownEl.style.display = "block";
+
+    // Listeners de clic en cada sugerencia
+    dropdownEl.querySelectorAll(".libro-search-item").forEach((item) => {
+      item.addEventListener("click", () => {
+        const codigo = item.getAttribute("data-codigo");
+        seleccionarLibro(codigo);
+      });
+    });
+  }
+
+  function seleccionarLibro(codigo) {
+    const libro = librosList.find((l) => l.codigo.toUpperCase() === codigo.toUpperCase());
+    if (libro) {
+      libroInput.value = libro.codigo;
+      if (previewEl) {
+        previewEl.innerHTML = `📖 <b>${libro.titulo}</b> (${libro.codigo}) - ${libro.seccion}${libro.editorial ? ` | Ed. ${libro.editorial}` : ""}`;
+        previewEl.style.display = "block";
+      }
+    } else {
+      libroInput.value = codigo;
+    }
+    dropdownEl.style.display = "none";
+    if (estudianteInput) estudianteInput.focus();
+  }
+
+  libroInput.addEventListener("input", () => {
+    renderSuggestions(libroInput.value);
+  });
+
+  libroInput.addEventListener("focus", () => {
+    if (librosList.length > 0) {
+      renderSuggestions(libroInput.value);
+    }
+  });
+
+  libroInput.addEventListener("keydown", (e) => {
+    const items = dropdownEl.querySelectorAll(".libro-search-item");
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (items.length === 0) return;
+      selectedIndex = (selectedIndex + 1) % items.length;
+      items.forEach((it, i) => it.classList.toggle("active", i === selectedIndex));
+      items[selectedIndex]?.scrollIntoView({ block: "nearest" });
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (items.length === 0) return;
+      selectedIndex = (selectedIndex - 1 + items.length) % items.length;
+      items.forEach((it, i) => it.classList.toggle("active", i === selectedIndex));
+      items[selectedIndex]?.scrollIntoView({ block: "nearest" });
+    } else if (e.key === "Enter" || e.keyCode === 13) {
+      if (selectedIndex >= 0 && items[selectedIndex]) {
+        e.preventDefault();
+        const codigo = items[selectedIndex].getAttribute("data-codigo");
+        seleccionarLibro(codigo);
+      } else {
+        dropdownEl.style.display = "none";
+        if (estudianteInput) estudianteInput.focus();
+      }
+    } else if (e.key === "Escape") {
+      dropdownEl.style.display = "none";
+    }
+  });
+
+  // Cerrar dropdown al hacer clic fuera
+  document.addEventListener("click", (e) => {
+    if (!libroInput.contains(e.target) && !dropdownEl.contains(e.target)) {
+      dropdownEl.style.display = "none";
+    }
   });
 }
 
@@ -340,7 +494,8 @@ async function cargarEstantePublico() {
           l.seccion.toUpperCase() === seccion.toUpperCase() &&
           (!searchTerm ||
             l.titulo.toLowerCase().includes(searchTerm) ||
-            l.codigo.toLowerCase().includes(searchTerm))
+            l.codigo.toLowerCase().includes(searchTerm) ||
+            (l.editorial && l.editorial.toLowerCase().includes(searchTerm)))
       );
 
       html += `
@@ -363,6 +518,11 @@ async function cargarEstantePublico() {
               <div class="book-details">
                 <span class="book-code">${libro.codigo}</span>
                 <h4 class="book-title">${libro.titulo}</h4>
+                ${
+                  libro.editorial
+                    ? `<span class="book-editorial" style="font-size:0.76rem; color:#64748b; font-weight:500; display:block; margin-top:-2px;"><i class="bi bi-building"></i> ${libro.editorial}</span>`
+                    : ""
+                }
                 <span class="book-status ${badgeClass}">${badgeText}</span>
               </div>
             </div>

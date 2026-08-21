@@ -795,6 +795,17 @@ header {
   line-height: 1.3;
 }
 
+.book-editorial {
+  font-size: 0.76rem;
+  color: #64748b;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: -2px;
+  line-height: 1.2;
+}
+
 .book-status {
   align-self: flex-start;
   font-size: 0.7rem;
@@ -813,6 +824,48 @@ header {
 .badge-borrowed {
   background-color: #fef3c7;
   color: #b45309;
+}
+
+/* Dropdown Búsqueda Inteligente de Libros */
+.libro-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 250px;
+  overflow-y: auto;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+  z-index: 1000;
+  margin-top: 4px;
+  scrollbar-width: thin;
+}
+
+.libro-search-item {
+  padding: 10px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  transition: background 0.15s ease;
+  text-align: left;
+}
+
+.libro-search-item:last-child {
+  border-bottom: none;
+}
+
+.libro-search-item:hover,
+.libro-search-item.active {
+  background-color: #f8fafc;
+}
+
+.libro-search-item.prestado-item {
+  background-color: #fffdf7;
 }
 
 /* Sub-pestañas internas en admin */

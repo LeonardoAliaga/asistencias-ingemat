@@ -207,14 +207,14 @@ function setupModalClavePopup() {
           <div class="checklist-q-num">Pregunta ${i}</div>
           <div class="checklist-options-group">
             ${options
-              .map(
-                (opt) => `
+          .map(
+            (opt) => `
               <div class="opt-pill ${currentSelected === opt ? "selected" : ""}" data-q="${i}" data-opt="${opt}">
                 ${opt}
               </div>
             `
-              )
-              .join("")}
+          )
+          .join("")}
           </div>
         </div>
       `;
@@ -370,8 +370,8 @@ function setupStudentAutocomplete(searchInputId, hiddenInputId, resultsContainer
     });
 
     if (matches.length === 0) {
-      const msgInfo = cicloFiltro 
-        ? `Sin alumnos en el ciclo '${cicloFiltro}' con esa búsqueda` 
+      const msgInfo = cicloFiltro
+        ? `Sin alumnos en el ciclo '${cicloFiltro}' con esa búsqueda`
         : 'Sin resultados';
       resultsContainer.innerHTML = `<div class="student-autocomplete-item" style="color:#94a3b8; font-size:0.85rem;">⚠️ ${msgInfo}</div>`;
       resultsContainer.style.display = "block";
@@ -1770,14 +1770,17 @@ function dibujarCartillaVerticalIngemat(canvas, evalData) {
   ctx.fillStyle = "#FFFFFF";
   ctx.fillRect(0, 0, W, H);
 
-  // 1. Marcadores de Calibración de Alta Precisión (4 Esquinas con núcleo blanco)
-  const markerSize = 24;
-  const marginOffset = 18;
+  // 1. Marcadores de Calibración (esquinas): cuadrado negro con núcleo blanco.
+  // Más grandes y con núcleo proporcionalmente mayor para que el motor de
+  // escaneo los reconozca de forma fiable por su firma (contorno con hijo)
+  // incluso en fotos algo borrosas o a distancia.
+  const markerSize = 32;
+  const marginOffset = 14;
   const drawTargetMarker = (x, y) => {
     ctx.fillStyle = "#000000";
     ctx.fillRect(x, y, markerSize, markerSize);
     ctx.fillStyle = "#FFFFFF";
-    ctx.fillRect(x + (markerSize - 6) / 2, y + (markerSize - 6) / 2, 6, 6);
+    ctx.fillRect(x + (markerSize - 10) / 2, y + (markerSize - 10) / 2, 10, 10);
   };
 
   drawTargetMarker(marginOffset, marginOffset);
@@ -1920,7 +1923,7 @@ function dibujarCartillaVerticalIngemat(canvas, evalData) {
 
   // Burbujas limpias con letra tenue para que el escáner no confunda letras con marcas
   const rowHeight = numCols === 1 && totalQ <= 15 ? 42 : (totalQ > 30 ? 29.5 : 32.5);
-  const bubbleRadius = numCols === 1 && totalQ <= 15 ? 13 : (totalQ > 30 ? 10.5 : 11.5);
+  const bubbleRadius = numCols === 1 && totalQ <= 15 ? 14 : (totalQ > 30 ? 11.5 : 12.5);
   const numFont = totalQ > 30 ? "bold 13px Arial" : "bold 14px Arial";
   const startTopPadding = 42;
 
@@ -1952,9 +1955,9 @@ function dibujarCartillaVerticalIngemat(canvas, evalData) {
       const bX = bubbleAreaStart + optIdx * bubbleStep + bubbleStep / 2;
       const bY = baseY;
 
-      // Anillo de la burbuja
+      // Anillo de la burbuja (más grueso: mejor contraste al fotografiar)
       ctx.strokeStyle = "#000000";
-      ctx.lineWidth = 1.3;
+      ctx.lineWidth = 1.8;
       ctx.beginPath();
       ctx.arc(bX, bY, bubbleRadius, 0, Math.PI * 2);
       ctx.stroke();
@@ -1992,14 +1995,17 @@ function dibujarCartillaHorizontalAdmision(canvas, evalData) {
   const primaryBlue = "#0284C7";
   const softBg = "#F0F9FF";
 
-  // 1. Marcadores de Calibración de Alta Precisión (4 Esquinas con núcleo blanco)
-  const markerSize = 24;
-  const marginOffset = 18;
+  // 1. Marcadores de Calibración (esquinas): cuadrado negro con núcleo blanco.
+  // Más grandes y con núcleo proporcionalmente mayor para que el motor de
+  // escaneo los reconozca de forma fiable por su firma (contorno con hijo)
+  // incluso en fotos algo borrosas o a distancia.
+  const markerSize = 32;
+  const marginOffset = 14;
   const drawTargetMarker = (x, y) => {
     ctx.fillStyle = "#000000";
     ctx.fillRect(x, y, markerSize, markerSize);
     ctx.fillStyle = "#FFFFFF";
-    ctx.fillRect(x + (markerSize - 6) / 2, y + (markerSize - 6) / 2, 6, 6);
+    ctx.fillRect(x + (markerSize - 10) / 2, y + (markerSize - 10) / 2, 10, 10);
   };
 
   drawTargetMarker(marginOffset, marginOffset);
@@ -2189,9 +2195,9 @@ function dibujarCartillaHorizontalAdmision(canvas, evalData) {
           const bY = rowY + 2;
 
           ctx.strokeStyle = "#000000";
-          ctx.lineWidth = 1.2;
+          ctx.lineWidth = 1.7;
           ctx.beginPath();
-          ctx.arc(bX, bY, 7.5, 0, Math.PI * 2);
+          ctx.arc(bX, bY, 8, 0, Math.PI * 2);
           ctx.stroke();
 
           // Letra interior en tono tenue
@@ -2380,7 +2386,10 @@ function detenerCamaraOMR() {
   if (dialog) dialog.close();
 }
 
-// Bucle de Detección Automática por Contraste de Imagen
+// Bucle de Detección Automática. Si OpenCV ya cargó, exige además nitidez
+// mínima y que se reconozcan los 4 marcadores de esquina (evita disparar con
+// la cartilla borrosa, en ángulo extremo o fuera de encuadre). Si OpenCV aún
+// no está disponible, usa el heurístico simple de contraste como respaldo.
 function evaluarAutoDeteccionOMR() {
   const video = document.getElementById("omr-video-feed");
   const processCanvas = document.getElementById("omr-process-canvas");
@@ -2395,10 +2404,53 @@ function evaluarAutoDeteccionOMR() {
   const ctx = processCanvas.getContext("2d");
   ctx.drawImage(video, 0, 0, W, H);
 
+  const cv = window.cv;
+  if (cv && cv.Mat) {
+    let src = null;
+    let gray = null;
+    let thresh = null;
+    try {
+      src = cv.imread(processCanvas);
+      gray = new cv.Mat();
+      cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
+
+      const nitidez = medirNitidezOMR(cv, gray);
+      if (nitidez !== null && nitidez < 35) {
+        if (statusEl) {
+          statusEl.innerHTML = `<span style="color:#fbbf24;">📷 Imagen borrosa, sostén el celular firme...</span>`;
+        }
+        return;
+      }
+
+      thresh = new cv.Mat();
+      cv.threshold(gray, thresh, 0, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU);
+      const marcadores = detectarMarcadoresOMR(cv, thresh, src.cols, src.rows);
+
+      if (marcadores) {
+        if (statusEl) {
+          statusEl.innerHTML = `<b style="color:#38bdf8;">⚡ ¡Cartilla detectada! Procesando respuestas...</b>`;
+        }
+        omrScanCooldown = true;
+        setTimeout(() => {
+          procesarCapturaOMR();
+        }, 200);
+      } else if (statusEl) {
+        statusEl.innerHTML = `<span>Enfoca los 4 recuadros de las esquinas dentro del cuadro...</span>`;
+      }
+    } catch (e) {
+      // Si algo falla en el análisis con OpenCV, se sigue con el heurístico simple más abajo
+    } finally {
+      if (src) src.delete();
+      if (gray) gray.delete();
+      if (thresh) thresh.delete();
+    }
+    return;
+  }
+
+  // --- Respaldo sin OpenCV: heurístico simple de contraste ---
   const imgData = ctx.getImageData(0, 0, W, H);
   const data = imgData.data;
 
-  // Analizar varianza y contraste en la región central
   let darkPixels = 0;
   let totalSampled = 0;
 
@@ -2429,6 +2481,111 @@ function evaluarAutoDeteccionOMR() {
 // MOTOR DE VISIÓN POR COMPUTADORA OMR (OPENCV.JS + FALLBACK)
 // ---------------------------------------------------------
 
+// Mide la nitidez de una imagen en escala de grises (varianza del Laplaciano).
+// Valores bajos = imagen borrosa/movida. Se usa para rechazar capturas malas
+// antes de intentar leer las burbujas.
+function medirNitidezOMR(cv, gray) {
+  let lap = null;
+  let mean = null;
+  let stddev = null;
+  try {
+    lap = new cv.Mat();
+    cv.Laplacian(gray, lap, cv.CV_64F);
+    mean = new cv.Mat();
+    stddev = new cv.Mat();
+    cv.meanStdDev(lap, mean, stddev);
+    const sd = stddev.data64F[0];
+    return sd * sd; // varianza
+  } catch (e) {
+    return null;
+  } finally {
+    if (lap) lap.delete();
+    if (mean) mean.delete();
+    if (stddev) stddev.delete();
+  }
+}
+
+// Detecta los 4 marcadores de esquina impresos en la cartilla (cuadrado negro
+// con núcleo blanco). Es mucho más robusto que buscar el contorno de toda la
+// hoja: funciona aunque el fondo no contraste bien con el papel, aunque la
+// hoja esté ligeramente recortada por los bordes de la foto, o con sombras
+// parciales, porque solo necesita reconocer 4 figuras pequeñas y específicas
+// (cuadrado con un "hijo" en la jerarquía de contornos = el núcleo blanco).
+// Devuelve [TL, TR, BR, BL] en coordenadas de la imagen fuente, o null si no
+// se pudo identificar con confianza.
+function detectarMarcadoresOMR(cv, threshBin, cols, rows) {
+  let contours = null;
+  let hierarchy = null;
+  try {
+    contours = new cv.MatVector();
+    hierarchy = new cv.Mat();
+    cv.findContours(threshBin, contours, hierarchy, cv.RETR_CCOMP, cv.CHAIN_APPROX_SIMPLE);
+
+    const area = cols * rows;
+    const minArea = area * 0.0006;
+    const maxArea = area * 0.02;
+    const candidates = [];
+
+    for (let i = 0; i < contours.size(); i++) {
+      const cnt = contours.get(i);
+      const cArea = cv.contourArea(cnt);
+      if (cArea > minArea && cArea < maxArea) {
+        const rect = cv.boundingRect(cnt);
+        const aspect = rect.width / rect.height;
+        if (aspect > 0.65 && aspect < 1.35) {
+          // hierarchy.intPtr(0,i) => [next, prev, firstChild, parent]
+          const h = hierarchy.intPtr(0, i);
+          const hasChild = h && h[2] !== -1;
+          if (hasChild) {
+            candidates.push({
+              cx: rect.x + rect.width / 2,
+              cy: rect.y + rect.height / 2,
+            });
+          }
+        }
+      }
+      cnt.delete();
+    }
+
+    if (candidates.length < 4) return null;
+
+    const expectedCorners = [
+      { x: 0, y: 0 },
+      { x: cols, y: 0 },
+      { x: cols, y: rows },
+      { x: 0, y: rows },
+    ];
+
+    const usedIdx = new Set();
+    const picked = [];
+    const maxDist = Math.max(cols, rows) * 0.35;
+
+    for (const corner of expectedCorners) {
+      let bestIdx = -1;
+      let bestDist = Infinity;
+      candidates.forEach((c, idx) => {
+        if (usedIdx.has(idx)) return;
+        const d = Math.hypot(c.cx - corner.x, c.cy - corner.y);
+        if (d < bestDist) {
+          bestDist = d;
+          bestIdx = idx;
+        }
+      });
+      if (bestIdx === -1 || bestDist > maxDist) return null;
+      usedIdx.add(bestIdx);
+      picked.push(candidates[bestIdx]);
+    }
+
+    return picked.map((p) => [p.cx, p.cy]);
+  } catch (err) {
+    console.error("Error detectando marcadores OMR:", err);
+    return null;
+  } finally {
+    if (contours) contours.delete();
+    if (hierarchy) hierarchy.delete();
+  }
+}
+
 function analizarBurbujasConOpenCV(processCanvas, totalQ) {
   const cv = window.cv;
   if (!cv || !cv.Mat) {
@@ -2450,6 +2607,8 @@ function analizarBurbujasConOpenCV(processCanvas, totalQ) {
   let warped = null;
   let M = null;
 
+  let warpedGray = null;
+
   try {
     src = cv.imread(processCanvas);
     gray = new cv.Mat();
@@ -2459,57 +2618,73 @@ function analizarBurbujasConOpenCV(processCanvas, totalQ) {
     cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
     cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
     // Umbralización de Otsu Invertida: Fondo papel = 0 (Negro), Tinta/Grafito = 255 (Blanco)
+    // Se usa solo para ENCONTRAR los marcadores/el contorno de la hoja, no para
+    // leer las burbujas (eso se hace más adelante con umbral adaptativo).
     cv.threshold(blurred, thresh, 0, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU);
 
-    // Intentar encontrar el contorno cuadrangular de la cartilla (o marcadores)
-    let contours = new cv.MatVector();
-    let hierarchy = new cv.Mat();
-    cv.findContours(thresh, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+    // 1) Método preferido: localizar los 4 marcadores de esquina impresos en
+    // la cartilla. Es más robusto que el contorno de toda la hoja porque no
+    // depende de que el papel contraste con el fondo ni de que quepa entero
+    // en el encuadre.
+    let srcCorners = detectarMarcadoresOMR(cv, thresh, src.cols, src.rows);
 
-    let docContour = null;
-    let maxArea = 0;
-    const minDocArea = (src.cols * src.rows) * 0.20;
+    // 2) Fallback: si no se detectaron los 4 marcadores con confianza, se
+    // intenta el método anterior (contorno cuadrangular de toda la hoja).
+    if (!srcCorners) {
+      let contours = new cv.MatVector();
+      let hierarchy = new cv.Mat();
+      cv.findContours(thresh, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
 
-    for (let i = 0; i < contours.size(); i++) {
-      let cnt = contours.get(i);
-      let area = cv.contourArea(cnt);
-      if (area > minDocArea && area > maxArea) {
-        let peri = cv.arcLength(cnt, true);
-        let approx = new cv.Mat();
-        cv.approxPolyDP(cnt, approx, 0.02 * peri, true);
-        if (approx.rows === 4) {
-          if (docContour) docContour.delete();
-          docContour = approx;
-          maxArea = area;
-        } else {
-          approx.delete();
+      let docContour = null;
+      let maxArea = 0;
+      const minDocArea = (src.cols * src.rows) * 0.20;
+
+      for (let i = 0; i < contours.size(); i++) {
+        let cnt = contours.get(i);
+        let area = cv.contourArea(cnt);
+        if (area > minDocArea && area > maxArea) {
+          let peri = cv.arcLength(cnt, true);
+          let approx = new cv.Mat();
+          cv.approxPolyDP(cnt, approx, 0.02 * peri, true);
+          if (approx.rows === 4) {
+            if (docContour) docContour.delete();
+            docContour = approx;
+            maxArea = area;
+          } else {
+            approx.delete();
+          }
         }
+        cnt.delete();
       }
-      cnt.delete();
+      contours.delete();
+      hierarchy.delete();
+
+      if (docContour && docContour.rows === 4) {
+        const pts = [];
+        for (let i = 0; i < 4; i++) {
+          pts.push({ x: docContour.data32S[i * 2], y: docContour.data32S[i * 2 + 1] });
+        }
+        pts.sort((a, b) => a.y - b.y);
+        const topPts = pts.slice(0, 2).sort((a, b) => a.x - b.x);
+        const bottomPts = pts.slice(2, 4).sort((a, b) => a.x - b.x);
+        srcCorners = [
+          [topPts[0].x, topPts[0].y],
+          [topPts[1].x, topPts[1].y],
+          [bottomPts[1].x, bottomPts[1].y],
+          [bottomPts[0].x, bottomPts[0].y],
+        ];
+        docContour.delete();
+      }
     }
-    contours.delete();
-    hierarchy.delete();
 
     let workingThresh = thresh;
 
-    // Si se detectaron las 4 esquinas, aplicar corrección de perspectiva (warpPerspective)
-    if (docContour && docContour.rows === 4) {
-      // Ordenar los 4 puntos: [TL, TR, BR, BL]
-      const pts = [];
-      for (let i = 0; i < 4; i++) {
-        pts.push({ x: docContour.data32S[i * 2], y: docContour.data32S[i * 2 + 1] });
-      }
-
-      // Ordenar por suma y diferencia para identificar TL, TR, BR, BL
-      pts.sort((a, b) => a.y - b.y);
-      const topPts = pts.slice(0, 2).sort((a, b) => a.x - b.x);
-      const bottomPts = pts.slice(2, 4).sort((a, b) => a.x - b.x);
-
+    if (srcCorners) {
       const srcCoords = [
-        topPts[0].x, topPts[0].y,
-        topPts[1].x, topPts[1].y,
-        bottomPts[1].x, bottomPts[1].y,
-        bottomPts[0].x, bottomPts[0].y,
+        srcCorners[0][0], srcCorners[0][1],
+        srcCorners[1][0], srcCorners[1][1],
+        srcCorners[2][0], srcCorners[2][1],
+        srcCorners[3][0], srcCorners[3][1],
       ];
 
       const dstCoords = [
@@ -2523,14 +2698,29 @@ function analizarBurbujasConOpenCV(processCanvas, totalQ) {
       let dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, dstCoords);
       M = cv.getPerspectiveTransform(srcTri, dstTri);
 
-      warped = new cv.Mat();
       let dsize = new cv.Size(targetW, targetH);
-      cv.warpPerspective(thresh, warped, M, dsize, cv.INTER_LINEAR, cv.BORDER_CONSTANT, new cv.Scalar());
+
+      // Se deforma la imagen en GRISES (no la ya binarizada) para poder
+      // aplicar después un umbral ADAPTATIVO local, que tolera mucho mejor
+      // la luz despareja típica de una foto tomada con celular.
+      warpedGray = new cv.Mat();
+      cv.warpPerspective(blurred, warpedGray, M, dsize, cv.INTER_LINEAR, cv.BORDER_CONSTANT, new cv.Scalar(255));
+
+      warped = new cv.Mat();
+      const blockSize = Math.max(15, (Math.round(targetW / 22) | 1)); // impar
+      cv.adaptiveThreshold(
+        warpedGray,
+        warped,
+        255,
+        cv.ADAPTIVE_THRESH_GAUSSIAN_C,
+        cv.THRESH_BINARY_INV,
+        blockSize,
+        12
+      );
 
       workingThresh = warped;
       srcTri.delete();
       dstTri.delete();
-      docContour.delete();
     }
 
     const curW = workingThresh.cols;
@@ -2557,7 +2747,9 @@ function analizarBurbujasConOpenCV(processCanvas, totalQ) {
         const bubbleAreaStart = colStartX + colWidth * 0.20;
         const bubbleAreaWidth = colWidth * 0.76;
         const bubbleStep = bubbleAreaWidth / 5;
-        const radius = Math.max(5, Math.min(10, Math.round(rowHeight * 0.28)));
+        // Radio de muestreo ligeramente menor al radio impreso de la burbuja,
+        // para medir solo el relleno y no el propio trazo negro del aro.
+        const radius = Math.max(5, Math.min(9, Math.round(rowHeight * 0.24)));
 
         const scores = [];
 
@@ -2605,7 +2797,9 @@ function analizarBurbujasConOpenCV(processCanvas, totalQ) {
       const gridWidth = gridRight - gridLeft;
       const colWidth = gridWidth / totalCols;
       const rowHeight = (gridBottom - gridTop) / maxPerCol;
-      const radius = Math.max(4, Math.min(8, Math.round(rowHeight * 0.26)));
+      // Radio de muestreo ligeramente menor al radio impreso de la burbuja,
+      // para medir solo el relleno y no el propio trazo negro del aro.
+      const radius = Math.max(4, Math.min(6, Math.round(rowHeight * 0.20)));
 
       for (let q = 1; q <= totalQ; q++) {
         const colIdx = Math.floor((q - 1) / maxPerCol);
@@ -2660,6 +2854,7 @@ function analizarBurbujasConOpenCV(processCanvas, totalQ) {
     if (blurred) blurred.delete();
     if (thresh) thresh.delete();
     if (warped) warped.delete();
+    if (warpedGray) warpedGray.delete();
     if (M) M.delete();
   }
 
@@ -2777,7 +2972,7 @@ function procesarCapturaOMR(fromFileUpload = false) {
     gain.connect(audioCtx.destination);
     osc.start();
     osc.stop(audioCtx.currentTime + 0.15);
-  } catch (e) {}
+  } catch (e) { }
 
   const codEst = activeScanCodigo;
   detenerCamaraOMR();
@@ -2804,14 +2999,14 @@ function procesarCapturaOMR(fromFileUpload = false) {
             <div class="checklist-q-num">Pregunta ${i}</div>
             <div class="checklist-options-group">
               ${options
-                .map(
-                  (opt) => `
+            .map(
+              (opt) => `
                 <div class="opt-pill ${curOpt === opt ? "selected" : ""}" data-q="${i}" data-opt="${opt}">
                   ${opt}
                 </div>
               `
-                )
-                .join("")}
+            )
+            .join("")}
             </div>
           </div>
         `;
