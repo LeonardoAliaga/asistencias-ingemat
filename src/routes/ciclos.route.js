@@ -1,8 +1,8 @@
-// src/routes/ciclos.route.js
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
-const { getCiclosData, normalizarTexto } = require("../utils/helpers"); // Importar helper
+const { getCiclosData, normalizarTexto } = require("../utils/helpers");
+const { requireAdmin } = require("../middleware/auth.middleware");
 
 const router = express.Router();
 const ciclosPath = path.join(__dirname, "../../data/ciclos.json");
@@ -10,7 +10,6 @@ const ciclosPath = path.join(__dirname, "../../data/ciclos.json");
 // Helper para guardar ciclos
 function saveCiclos(data) {
   try {
-    // Asegurar que la carpeta data exista
     const dataDir = path.dirname(ciclosPath);
     if (!fs.existsSync(dataDir)) {
       fs.mkdirSync(dataDir, { recursive: true });
@@ -18,20 +17,17 @@ function saveCiclos(data) {
     fs.writeFileSync(ciclosPath, JSON.stringify(data, null, 2));
   } catch (err) {
     console.error("Ciclos Route: Error al guardar ciclos.json:", err);
-    throw new Error("Error interno al guardar los datos de ciclos."); // Lanzar error
+    throw new Error("Error interno al guardar los datos de ciclos.");
   }
 }
 
 // GET /api/ciclos - Obtener lista de ciclos
 router.get("/", (req, res) => {
-  // getCiclosData maneja la creación/lectura y errores
   try {
     const data = getCiclosData();
     res.json(data);
   } catch (err) {
-    // Aunque getCiclosData ya loguea, podemos loguear aquí también si queremos
     console.error("Ciclos Route: Error al obtener datos de ciclos:", err);
-    // Devolver un default por si acaso
     res
       .status(500)
       .json({ ciclos: ["semestral", "anual", "sabatino", "domingos"] });
@@ -39,7 +35,7 @@ router.get("/", (req, res) => {
 });
 
 // POST /api/ciclos - Agregar ciclo
-router.post("/", (req, res) => {
+router.post("/", requireAdmin, (req, res) => {
   const { nombre } = req.body;
   if (!nombre || typeof nombre !== "string" || nombre.trim().length === 0) {
     console.log("Ciclos Route: Intento de agregar ciclo con nombre vacío.");
@@ -77,7 +73,7 @@ router.post("/", (req, res) => {
 });
 
 // DELETE /api/ciclos/:ciclo - Eliminar ciclo
-router.delete("/:ciclo", (req, res) => {
+router.delete("/:ciclo", requireAdmin, (req, res) => {
   const cicloABorrar = req.params.ciclo;
   let data;
   try {

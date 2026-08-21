@@ -2,7 +2,7 @@
   padding: 0;
   margin: 0;
   box-sizing: border-box;
-  font-family: "Rabbid Highway";
+  font-family: "Outfit", "Inter", "Rabbid Highway", sans-serif;
   scroll-behavior: smooth;
 }
 @font-face {
@@ -20,9 +20,9 @@
 :root {
   --red: #b72107;
   --red2: #da2b08;
-  --black: #272727;
-  --white1: #f4f4f4;
-  --white2: #dadada;
+  --black: #1e293b;
+  --white1: #f8fafc;
+  --white2: #e2e8f0;
 }
 
 /* Estilos personalizados para la barra de desplazamiento */

@@ -129,14 +129,14 @@ async function getExcelData(fileName) {
       }
       cellAValue = cellAValue?.toString() || "";
 
-      if (cellA.isMerged && cellAValue.startsWith("REGISTRO DE ASISTENCIA")) {
+      if (cellAValue.trim().toUpperCase().startsWith("REGISTRO DE ASISTENCIA")) {
         const parts = cellAValue
           .split(" - ")
           .map((p) => p.trim().toLowerCase());
 
         const isDocentes =
-          parts.some((p) => p === "docentes") ||
-          worksheet.name.toLowerCase() === "docentes";
+          parts.some((p) => normalizarTexto(p) === "docentes") ||
+          normalizarTexto(worksheet.name) === "docentes";
 
         currentSection = {
           sheetName: worksheet.name,
@@ -219,14 +219,20 @@ async function getExcelData(fileName) {
 
 function findSection(data, ciclo, turno) {
   if (!data || !Array.isArray(data)) return null;
-  // El turno para docentes siempre será 'docentes'
-  const searchTurno = ciclo === "docentes" ? "docentes" : turno;
-  return data.find((s) => s.ciclo === ciclo && s.turno === searchTurno);
+  const cicloNorm = normalizarTexto(ciclo);
+  const searchTurno = cicloNorm === "docentes" ? "docentes" : normalizarTexto(turno);
+
+  return data.find((s) => {
+    const sCiclo = normalizarTexto(s.ciclo);
+    const sTurno = sCiclo === "docentes" ? "docentes" : normalizarTexto(s.turno);
+    return sCiclo === cicloNorm && sTurno === searchTurno;
+  });
 }
 
-async function generateReportImage(ciclo, turno) {
+async function generateReportImage(ciclo, turno, customFileName = null, options = {}) {
   const today = new Date();
   const fileName =
+    customFileName ||
     today
       .toLocaleDateString("es-PE", {
         day: "2-digit",
@@ -238,23 +244,12 @@ async function generateReportImage(ciclo, turno) {
   let sectionData;
   try {
     const allData = await getExcelData(fileName);
-
-    // EXCEPCIÓN: si el ciclo es DOCENTES, buscar 'docentes'
-    const cicloNorm =
-      ciclo.toUpperCase() === "DOCENTES"
-        ? "docentes"
-        : ciclo.trim().toLowerCase();
-    const turnoNorm =
-      ciclo.toUpperCase() === "DOCENTES"
-        ? "docentes"
-        : turno.trim().toLowerCase();
-
-    sectionData = findSection(allData, cicloNorm, turnoNorm);
+    sectionData = findSection(allData, ciclo, turno);
 
     // Si no se encontró, registrar la información
     if (!sectionData) {
       console.log(
-        `Report-Generator: No se encontró sección exacta para '${cicloNorm} - ${turnoNorm}'. Secciones disponibles: ${allData
+        `Report-Generator: No se encontró sección exacta para '${ciclo} - ${turno}'. Secciones disponibles: ${allData
           .map((s) => `${s.ciclo} - ${s.turno}`)
           .join(", ")}`
       );
@@ -273,15 +268,30 @@ async function generateReportImage(ciclo, turno) {
     return null;
   }
 
-  const { title, headers, rows, turno: sectionTurno } = sectionData;
+  const { title, rows, turno: sectionTurno } = sectionData;
+
+  const dateHeader =
+    sectionData.headers && sectionData.headers[4]
+      ? sectionData.headers[4].toUpperCase()
+      : "HORA / ESTADO";
+
+  const isThreeCols = options.threeColumns !== false; // Default true si se solicita para vista personalizada
+  const colWidths = isThreeCols ? [50, 330, 160] : COL_WIDTHS;
+  const headers = isThreeCols
+    ? ["N°", "APELLIDOS Y NOMBRES", dateHeader]
+    : sectionData.headers;
+  const canvasWidth = isThreeCols
+    ? colWidths.reduce((a, b) => a + b, 0) + PADDING * 2
+    : TOTAL_WIDTH;
+
   const totalHeight =
     TITLE_HEIGHT + HEADER_HEIGHT + rows.length * ROW_HEIGHT + PADDING * 2;
 
-  const canvas = createCanvas(TOTAL_WIDTH, totalHeight);
+  const canvas = createCanvas(canvasWidth, totalHeight);
   const ctx = canvas.getContext("2d");
 
   ctx.fillStyle = "#FFFFFF";
-  ctx.fillRect(0, 0, TOTAL_WIDTH, totalHeight);
+  ctx.fillRect(0, 0, canvasWidth, totalHeight);
 
   let currentY = PADDING;
 
@@ -289,7 +299,7 @@ async function generateReportImage(ciclo, turno) {
   ctx.font = styles.title.font;
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
-  ctx.fillText(title, TOTAL_WIDTH / 2, currentY);
+  ctx.fillText(title, canvasWidth / 2, currentY);
   currentY += TITLE_HEIGHT;
 
   ctx.font = styles.headerFont;
@@ -297,14 +307,14 @@ async function generateReportImage(ciclo, turno) {
 
   const headerStyle = styles.header;
   ctx.fillStyle = headerStyle.bg(sectionTurno);
-  ctx.fillRect(PADDING, currentY, TOTAL_WIDTH - PADDING * 2, HEADER_HEIGHT);
+  ctx.fillRect(PADDING, currentY, canvasWidth - PADDING * 2, HEADER_HEIGHT);
 
   ctx.fillStyle = headerStyle.text;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
 
   for (let i = 0; i < headers.length; i++) {
-    const width = COL_WIDTHS[i];
+    const width = colWidths[i];
     ctx.fillText(
       headers[i],
       currentX + width / 2,
@@ -318,12 +328,15 @@ async function generateReportImage(ciclo, turno) {
 
   for (const row of rows) {
     currentX = PADDING;
-    const rowValues = [row.n, row.nombre, row.turno, row.dias, row.hora];
+    const rowValues = isThreeCols
+      ? [row.n, row.nombre, row.hora]
+      : [row.n, row.nombre, row.turno, row.dias, row.hora];
     const statusStyle = styles[row.status] || styles.base;
+    const statusColIndex = isThreeCols ? 2 : 4;
 
     for (let i = 0; i < rowValues.length; i++) {
-      const width = COL_WIDTHS[i];
-      const isStatusCell = i === 4;
+      const width = colWidths[i];
+      const isStatusCell = i === statusColIndex;
 
       ctx.fillStyle = isStatusCell ? statusStyle.bg : styles.base.bg;
       ctx.fillRect(currentX, currentY, width, ROW_HEIGHT);
@@ -331,7 +344,7 @@ async function generateReportImage(ciclo, turno) {
 
       if (i === 1) {
         ctx.textAlign = "left";
-        ctx.fillText(rowValues[i], currentX + 5, currentY + ROW_HEIGHT / 2);
+        ctx.fillText(rowValues[i], currentX + 8, currentY + ROW_HEIGHT / 2);
       } else {
         ctx.textAlign = "center";
         ctx.fillText(
@@ -349,10 +362,12 @@ async function generateReportImage(ciclo, turno) {
     currentY += ROW_HEIGHT;
   }
 
-  console.log(`Report-Generator: Imagen generada para ${ciclo} - ${turno}.`);
+  console.log(`Report-Generator: Imagen generada para ${ciclo} - ${turno} (Archivo: ${fileName}).`);
   return canvas.toBuffer("image/png");
 }
 
 module.exports = {
+  getExcelData,
+  findSection,
   generateReportImage,
 };

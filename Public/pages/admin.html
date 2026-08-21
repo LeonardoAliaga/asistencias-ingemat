@@ -2,7 +2,14 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Administrar Asistencia INGEMAT</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="../css/admin.css" />
     <link rel="stylesheet" href="../css/admin-forms.css" />
     <link rel="stylesheet" href="../css/admin-views.css" />
@@ -16,7 +23,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.1/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   </head>
   <body>
     <nav class="navbar">
@@ -760,6 +767,46 @@
         <h3 id="preview-filename" style="margin-bottom: 15px"></h3>
         <div id="preview-tabs" class="preview-tab-container"></div>
         <div id="preview-content" class="preview-content-area"></div>
+      </div>
+    </div>
+
+    <div id="image-export-modal" class="modal">
+      <div class="modal-content modal-image-content">
+        <span class="close-btn" id="close-image-modal">&times;</span>
+        <h2><i class="bi bi-card-image"></i> GENERAR IMAGEN DE TABLA</h2>
+        <h3 id="image-modal-filename" style="margin-bottom: 15px; color: #555; font-size: 1rem;"></h3>
+        
+        <div class="image-modal-filters">
+          <div class="filter-group">
+            <label for="image-modal-ciclo"><i class="bi bi-journal-bookmark-fill"></i> Ciclo:</label>
+            <select id="image-modal-ciclo" class="modal-select">
+              <option value="">Cargando ciclos...</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="image-modal-turno"><i class="bi bi-clock-fill"></i> Turno:</label>
+            <select id="image-modal-turno" class="modal-select">
+              <option value="mañana">Mañana</option>
+              <option value="tarde">Tarde</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="image-modal-preview-wrapper">
+          <div id="image-modal-table-container" class="image-modal-table-container">
+            <p><i>Seleccione un ciclo y turno para ver la previsualización...</i></p>
+          </div>
+        </div>
+
+        <div class="image-modal-actions">
+          <button id="btn-copy-table-image" class="btn-action-copy">
+            <i class="bi bi-clipboard-plus-fill"></i> COPIAR IMAGEN
+          </button>
+          <button id="btn-download-table-image" class="btn-action-download">
+            <i class="bi bi-download"></i> DESCARGAR PNG
+          </button>
+        </div>
+        <div id="msg-image-modal" class="form-message" style="margin-top: 10px; text-align: center;"></div>
       </div>
     </div>
     <div id="barcode-modal" class="modal">

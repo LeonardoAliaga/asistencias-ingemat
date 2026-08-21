@@ -70,18 +70,7 @@ app.post("/admin/logout", (req, res) => {
   }
 });
 
-// Middleware para proteger rutas de admin
-const requireAdmin = (req, res, next) => {
-  if (req.session && req.session.admin) {
-    next();
-  } else {
-    if (req.path.startsWith("/api/") || req.path.startsWith("/whatsapp/api/")) {
-      res.status(401).json({ exito: false, mensaje: "No autorizado" });
-    } else {
-      res.redirect("/admin"); // Redirige a /admin que mostrará el login si no hay sesión
-    }
-  }
-};
+const { requireAdmin } = require("./src/middleware/auth.middleware");
 
 // Ruta para cambiar contraseña (protegida)
 app.post("/admin/password", requireAdmin, (req, res) => {

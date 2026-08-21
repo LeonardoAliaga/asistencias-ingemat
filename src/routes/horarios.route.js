@@ -1,21 +1,20 @@
-// src/routes/horarios.route.js
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
-const { obtenerHorarios } = require("../utils/helpers"); // Importar para leer
+const { obtenerHorarios } = require("../utils/helpers");
+const { requireAdmin } = require("../middleware/auth.middleware");
 
 const router = express.Router();
 const horariosPath = path.join(__dirname, "../../data/horarios.json");
 
 // GET /api/horarios - Obtener horarios
 router.get("/", (req, res) => {
-  // obtenerHorarios ya maneja creación/lectura y errores
   const horarios = obtenerHorarios();
   res.json(horarios);
 });
 
-// POST /api/horarios - Guardar horarios (MODIFICADO)
-router.post("/", (req, res) => {
+// POST /api/horarios - Guardar horarios
+router.post("/", requireAdmin, (req, res) => {
   const { ciclo, horarios } = req.body; // Nueva estructura: { ciclo: "ANUAL"|"default", horarios: { mañana: {...}, tarde: {...} } }
   const timeRegex = /^[0-2][0-9]:[0-5][0-9]$/; // Regex para HH:MM
 

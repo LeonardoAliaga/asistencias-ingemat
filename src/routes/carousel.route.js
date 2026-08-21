@@ -1,7 +1,7 @@
-// src/routes/carousel.route.js
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
+const { requireAdmin } = require("../middleware/auth.middleware");
 
 const router = express.Router();
 const imgFolderPath = path.join(__dirname, "../../Public/img/ingresantes");
@@ -21,11 +21,10 @@ function ensureIngresantesDir() {
     );
   }
 }
-// --- FIN FUNCIÓN AÑADIDA ---
 
 // GET /api/carousel - Listar imágenes del carrusel
 router.get("/", (req, res) => {
-  ensureIngresantesDir(); // <-- Llamada a la función
+  ensureIngresantesDir();
   try {
     const allFiles = fs.readdirSync(imgFolderPath);
     const carouselImages = allFiles
@@ -37,10 +36,9 @@ router.get("/", (req, res) => {
             file.endsWith(".jpeg"))
       )
       .sort((a, b) => {
-        // Ordenar por timestamp (nombre de archivo)
         const timeA = parseInt(a.substring(1).split(".")[0] || "0");
         const timeB = parseInt(b.substring(1).split(".")[0] || "0");
-        return timeA - timeB; // Más antiguas primero
+        return timeA - timeB;
       });
 
     res.json({ exito: true, images: carouselImages });
@@ -51,7 +49,7 @@ router.get("/", (req, res) => {
 });
 
 // POST /api/carousel - Subir una nueva imagen (Base64)
-router.post("/", (req, res) => {
+router.post("/", requireAdmin, (req, res) => {
   const { imageData, imageName } = req.body; // <-- RECIBIR NOMBRE
 
   if (!imageData || !imageData.startsWith("data:image/")) {
@@ -127,7 +125,7 @@ router.post("/", (req, res) => {
 });
 
 // DELETE /api/carousel/:filename - Eliminar una imagen
-router.delete("/:filename", (req, res) => {
+router.delete("/:filename", requireAdmin, (req, res) => {
   const filename = req.params.filename;
 
   // Validación de seguridad

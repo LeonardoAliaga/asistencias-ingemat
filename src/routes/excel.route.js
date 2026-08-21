@@ -13,6 +13,7 @@ const {
   estiloDocenteRegistrado,
   estiloTardanzaJustificada, // <-- AÑADIDO
 } = require("../services/excel/excel.constants.js");
+const { getExcelData, findSection, generateReportImage } = require("../services/report-generator.js");
 const usuariosPath = path.join(__dirname, "../../data/usuarios.json");
 // --- FIN IMPORTACIONES ---
 
@@ -51,36 +52,62 @@ router.get("/", (req, res) => {
   }
 });
 
-// GET /api/excel/:archivo - Descargar archivo Excel
-router.get("/:archivo", (req, res) => {
-  const archivo = req.params.archivo;
-  if (
-    archivo.includes("..") ||
-    archivo.includes("/") ||
-    !archivo.endsWith(".xlsx")
-  ) {
-    console.log(
-      `Excel Route: Intento de acceso inválido a archivo: ${archivo}`
-    );
-    return res.status(400).send("Nombre de archivo inválido.");
+// --- RUTA PARA OBTENER DATOS DE SECCIÓN DE TABLA (3 COLUMNAS) ---
+router.get("/section-data", async (req, res) => {
+  const { archivo, ciclo, turno } = req.query;
+  if (!archivo || !ciclo || !turno) {
+    return res.status(400).json({ exito: false, mensaje: "Faltan parámetros: archivo, ciclo, turno" });
   }
-  const ruta = path.join(registrosPath, archivo);
-
-  if (!fs.existsSync(ruta)) {
-    console.log(`Excel Route: Archivo no encontrado para descarga: ${archivo}`);
-    return res.status(404).send("Archivo no encontrado.");
-  }
-  console.log(`Excel Route: Solicitud de descarga para ${archivo}`);
-  res.download(ruta, archivo, (err) => {
-    if (err) {
-      console.error(`Excel Route: Error al descargar ${archivo}:`, err);
-      if (!res.headersSent) {
-        res.status(500).send("Error al descargar el archivo.");
-      }
-    } else {
-      console.log(`Excel Route: Archivo ${archivo} descargado.`);
+  try {
+    const allData = await getExcelData(archivo);
+    const section = findSection(allData, ciclo, turno);
+    if (!section) {
+      return res.status(404).json({ exito: false, mensaje: `No se encontraron registros para ${ciclo} - ${turno}.` });
     }
-  });
+
+    const dateHeader =
+      section.headers && section.headers[4]
+        ? section.headers[4].toUpperCase()
+        : "HORA / ESTADO";
+
+    const rows3Col = section.rows.map((r) => ({
+      n: r.n,
+      nombre: r.nombre,
+      hora: r.hora,
+      status: r.status,
+    }));
+
+    res.json({
+      exito: true,
+      title: section.title,
+      ciclo: section.ciclo,
+      turno: section.turno,
+      dateHeader: dateHeader,
+      rows: rows3Col,
+    });
+  } catch (err) {
+    console.error("Excel Route: Error al obtener section-data:", err);
+    res.status(500).json({ exito: false, mensaje: err.message });
+  }
+});
+
+// --- RUTA PARA GENERAR Y DESCARGAR/OBTENER IMAGEN PNG CANVAS (3 COLUMNAS) ---
+router.get("/report-image", async (req, res) => {
+  const { archivo, ciclo, turno } = req.query;
+  if (!archivo || !ciclo || !turno) {
+    return res.status(400).send("Faltan parámetros: archivo, ciclo, turno");
+  }
+  try {
+    const imageBuffer = await generateReportImage(ciclo, turno, archivo, { threeColumns: true });
+    if (!imageBuffer) {
+      return res.status(404).send("No se encontraron registros para esa sección.");
+    }
+    res.set("Content-Type", "image/png");
+    res.send(imageBuffer);
+  } catch (err) {
+    console.error("Excel Route: Error al generar report-image:", err);
+    res.status(500).send("Error al generar la imagen.");
+  }
 });
 
 // --- RUTA PREVIEW MODIFICADA PARA MÚLTIPLES HOJAS Y JUSTIFICADO ---
@@ -390,5 +417,37 @@ router.post("/justificar", async (req, res) => {
   }
 });
 // --- FIN NUEVA RUTA ---
+
+// GET /api/excel/:archivo - Descargar archivo Excel (Ruta genérica debe ir al final de los GET)
+router.get("/:archivo", (req, res) => {
+  const archivo = req.params.archivo;
+  if (
+    archivo.includes("..") ||
+    archivo.includes("/") ||
+    !archivo.endsWith(".xlsx")
+  ) {
+    console.log(
+      `Excel Route: Intento de acceso inválido a archivo: ${archivo}`
+    );
+    return res.status(400).send("Nombre de archivo inválido.");
+  }
+  const ruta = path.join(registrosPath, archivo);
+
+  if (!fs.existsSync(ruta)) {
+    console.log(`Excel Route: Archivo no encontrado para descarga: ${archivo}`);
+    return res.status(404).send("Archivo no encontrado.");
+  }
+  console.log(`Excel Route: Solicitud de descarga para ${archivo}`);
+  res.download(ruta, archivo, (err) => {
+    if (err) {
+      console.error(`Excel Route: Error al descargar ${archivo}:`, err);
+      if (!res.headersSent) {
+        res.status(500).send("Error al descargar el archivo.");
+      }
+    } else {
+      console.log(`Excel Route: Archivo ${archivo} descargado.`);
+    }
+  });
+});
 
 module.exports = router;

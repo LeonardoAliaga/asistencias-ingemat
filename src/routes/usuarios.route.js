@@ -14,12 +14,18 @@ const usuariosPath = path.join(__dirname, "../../data/usuarios.json");
 // Helper para leer usuarios (con manejo de creación de archivo)
 function readUsuarios() {
   try {
+    const dataDir = path.dirname(usuariosPath);
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
     if (!fs.existsSync(usuariosPath)) {
       fs.writeFileSync(usuariosPath, JSON.stringify([], null, 2));
       console.log("Usuarios Route: Archivo usuarios.json creado vacío.");
       return [];
     }
-    const raw = JSON.parse(fs.readFileSync(usuariosPath, "utf8"));
+    const content = fs.readFileSync(usuariosPath, "utf8");
+    const raw = content.trim() ? JSON.parse(content) : [];
+    if (!Array.isArray(raw)) return [];
     const migrated = raw.map((u) => {
       if (!u) return u;
       const nombre = u.nombre ? String(u.nombre).trim().toUpperCase() : "";
@@ -39,13 +45,17 @@ function readUsuarios() {
     return migrated;
   } catch (err) {
     console.error("Usuarios Route: Error al leer/crear usuarios.json:", err);
-    throw new Error("Error interno al acceder a los datos de usuarios."); // Lanzar error para capturar en ruta
+    throw new Error("Error interno al acceder a los datos de usuarios.");
   }
 }
 
 // Helper para guardar usuarios
 function saveUsuarios(usuarios) {
   try {
+    const dataDir = path.dirname(usuariosPath);
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
     fs.writeFileSync(usuariosPath, JSON.stringify(usuarios, null, 2));
   } catch (writeErr) {
     console.error("Usuarios Route: Error al guardar usuarios.json:", writeErr);

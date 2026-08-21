@@ -166,9 +166,14 @@ export async function cargarArchivosExcel() {
             <a href="/api/excel/${a}" download title="Descargar ${a}">
               <i class="bi bi-file-earmark-arrow-down-fill"></i> ${a}
             </a>
-            <button class="btn-preview" data-filename="${a}" title="Vista Previa de ${a}">
-              <i class="bi bi-eye-fill"></i>
-            </button>
+            <div class="excel-item-actions">
+              <button class="btn-preview" data-filename="${a}" title="Vista Previa Completa de ${a}">
+                <i class="bi bi-eye-fill"></i>
+              </button>
+              <button class="btn-image-preview" data-filename="${a}" title="Generar Imagen/Copiar Cuadro de ${a}">
+                <i class="bi bi-image"></i>
+              </button>
+            </div>
         </div>
       `
       )
@@ -182,10 +187,252 @@ export async function cargarArchivosExcel() {
           else console.error("Botón sin data-filename:", e.currentTarget);
         });
       });
+    document
+      .querySelectorAll("#archivos-excel .btn-image-preview")
+      .forEach((button) => {
+        button.addEventListener("click", (e) => {
+          const filename = e.currentTarget.getAttribute("data-filename");
+          if (filename) abrirModalImagen(filename);
+          else console.error("Botón imagen sin data-filename:", e.currentTarget);
+        });
+      });
   } catch (error) {
     console.error("Error al cargar archivos Excel:", error);
     excelDiv.innerHTML =
       '<p style="color: red;">Error al cargar la lista de archivos.</p>';
+  }
+}
+
+// --- LÓGICA DEL MODAL DE EXPORTACIÓN A IMAGEN (3 COLUMNAS) ---
+let currentArchivoImagen = "";
+
+async function abrirModalImagen(archivo) {
+  currentArchivoImagen = archivo;
+  const modal = document.getElementById("image-export-modal");
+  const filenameEl = document.getElementById("image-modal-filename");
+  const cicloSelect = document.getElementById("image-modal-ciclo");
+  const msgEl = document.getElementById("msg-image-modal");
+
+  if (!modal || !filenameEl || !cicloSelect) return;
+
+  filenameEl.textContent = `Archivo: ${archivo}`;
+  if (msgEl) msgEl.innerHTML = "";
+  modal.style.display = "block";
+
+  try {
+    cicloSelect.innerHTML = '<option value="">Cargando ciclos...</option>';
+    const res = await fetch("/api/ciclos");
+    const data = await res.json();
+    cicloSelect.innerHTML = "";
+
+    let ciclosList = [];
+    if (data && data.ciclos && Array.isArray(data.ciclos)) {
+      ciclosList = data.ciclos;
+    }
+
+    if (ciclosList.length > 0) {
+      ciclosList.forEach((c) => {
+        const opt = document.createElement("option");
+        opt.value = c;
+        opt.textContent = c.toUpperCase();
+        cicloSelect.appendChild(opt);
+      });
+    }
+
+    const optDoc = document.createElement("option");
+    optDoc.value = "docentes";
+    optDoc.textContent = "DOCENTES";
+    cicloSelect.appendChild(optDoc);
+
+    await actualizarVistaPreviaImagen();
+  } catch (err) {
+    console.error("Error al cargar ciclos en modal imagen:", err);
+    cicloSelect.innerHTML = '<option value="">Error al cargar ciclos</option>';
+  }
+}
+
+const sectionDataCache = new Map();
+
+async function getSectionDataCached(archivo, ciclo, turno) {
+  const cacheKey = `${archivo}_${ciclo}_${turno}`.toLowerCase();
+  if (sectionDataCache.has(cacheKey)) {
+    return sectionDataCache.get(cacheKey);
+  }
+  const res = await fetch(
+    `/api/excel/section-data?archivo=${encodeURIComponent(
+      archivo
+    )}&ciclo=${encodeURIComponent(ciclo)}&turno=${encodeURIComponent(turno)}`
+  );
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.mensaje || "No se encontraron registros para este ciclo y turno.");
+  }
+  const data = await res.json();
+  if (data && data.exito) {
+    sectionDataCache.set(cacheKey, data);
+  }
+  return data;
+}
+
+async function actualizarVistaPreviaImagen() {
+  const container = document.getElementById("image-modal-table-container");
+  const cicloSelect = document.getElementById("image-modal-ciclo");
+  const turnoSelect = document.getElementById("image-modal-turno");
+  const msgEl = document.getElementById("msg-image-modal");
+
+  if (!container || !cicloSelect || !turnoSelect || !currentArchivoImagen) return;
+  if (msgEl) msgEl.innerHTML = "";
+
+  const ciclo = cicloSelect.value;
+  const turno = turnoSelect.value;
+
+  if (!ciclo || !turno) {
+    container.innerHTML = "<p><i>Seleccione ciclo y turno.</i></p>";
+    return;
+  }
+
+  container.innerHTML = "<p><i>Cargando vista previa del cuadro (3 columnas)...</i></p>";
+
+  try {
+    const data = await getSectionDataCached(currentArchivoImagen, ciclo, turno);
+
+    if (!data.exito || !data.rows || data.rows.length === 0) {
+      container.innerHTML = `<p style="color: #7f8c8d; font-weight: bold; text-align: center; padding: 25px;">No hay registros disponibles para ${ciclo.toUpperCase()} (${turno.toUpperCase()}).</p>`;
+      return;
+    }
+
+    const headerColumn3 = data.dateHeader || "HORA / ESTADO";
+
+    let html = `
+      <div class="image-table-title">${data.title}</div>
+      <table class="three-col-table">
+        <thead>
+          <tr>
+            <th style="width: 45px;">N°</th>
+            <th>NOMBRES Y APELLIDOS</th>
+            <th style="width: 160px;">${headerColumn3}</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    data.rows.forEach((row) => {
+      const statusClass = row.status ? `status-${row.status}` : "";
+      html += `
+        <tr>
+          <td class="text-center">${row.n}</td>
+          <td class="text-left">${row.nombre}</td>
+          <td class="text-center ${statusClass}">${row.hora || "-"}</td>
+        </tr>
+      `;
+    });
+
+    html += `
+        </tbody>
+      </table>
+    `;
+
+    container.innerHTML = html;
+  } catch (err) {
+    console.error("Error al actualizar vista previa imagen:", err);
+    container.innerHTML = `<p style="color: #c0392b; font-weight: bold; text-align: center; padding: 25px;">${err.message}</p>`;
+  }
+}
+
+async function copiarImagenAlPortapapeles() {
+  const cicloSelect = document.getElementById("image-modal-ciclo");
+  const turnoSelect = document.getElementById("image-modal-turno");
+  const copyBtn = document.getElementById("btn-copy-table-image");
+  const msgEl = document.getElementById("msg-image-modal");
+
+  if (!cicloSelect || !turnoSelect || !currentArchivoImagen) return;
+
+  const ciclo = cicloSelect.value;
+  const turno = turnoSelect.value;
+  if (!ciclo || !turno) {
+    if (msgEl) msgEl.innerHTML = '<span style="color: red;">Selecciona ciclo y turno primero.</span>';
+    return;
+  }
+
+  const originalBtnHTML = copyBtn ? copyBtn.innerHTML : "";
+  if (copyBtn) {
+    copyBtn.disabled = true;
+    copyBtn.innerHTML = '<i class="bi bi-arrow-repeat spin"></i> Generando imagen...';
+  }
+
+  try {
+    const res = await fetch(
+      `/api/excel/report-image?archivo=${encodeURIComponent(
+        currentArchivoImagen
+      )}&ciclo=${encodeURIComponent(ciclo)}&turno=${encodeURIComponent(turno)}`
+    );
+
+    if (!res.ok) {
+      throw new Error("No se encontraron registros para generar la imagen.");
+    }
+
+    const blob = await res.blob();
+
+    if (navigator.clipboard && navigator.clipboard.write) {
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+      if (msgEl) {
+        msgEl.innerHTML = `<span class="msg-success-badge"><i class="bi bi-check-circle-fill"></i> ¡Imagen de 3 columnas copiada al portapapeles! Ya puedes pegarla con Ctrl+V.</span>`;
+      }
+      if (copyBtn) {
+        copyBtn.innerHTML = '<i class="bi bi-check-lg"></i> ¡COPIADO!';
+        copyBtn.classList.add("btn-copied");
+      }
+    } else {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Reporte_${ciclo}_${turno}_3col.png`;
+      a.click();
+      if (msgEl) {
+        msgEl.innerHTML = '<span style="color: #2980b9;">Imagen descargada (copia directa no soportada en este navegador).</span>';
+      }
+    }
+  } catch (err) {
+    console.error("Error al copiar imagen al portapapeles:", err);
+    if (msgEl) {
+      msgEl.innerHTML = `<span style="color: #e74c3c; font-weight: bold;">Error al copiar: ${err.message}</span>`;
+    }
+  } finally {
+    setTimeout(() => {
+      if (copyBtn) {
+        copyBtn.disabled = false;
+        copyBtn.innerHTML = originalBtnHTML;
+        copyBtn.classList.remove("btn-copied");
+      }
+    }, 2500);
+  }
+}
+
+async function descargarImagenPNG() {
+  const cicloSelect = document.getElementById("image-modal-ciclo");
+  const turnoSelect = document.getElementById("image-modal-turno");
+  const msgEl = document.getElementById("msg-image-modal");
+
+  if (!cicloSelect || !turnoSelect || !currentArchivoImagen) return;
+
+  const ciclo = cicloSelect.value;
+  const turno = turnoSelect.value;
+  if (!ciclo || !turno) return;
+
+  try {
+    const imageUrl = `/api/excel/report-image?archivo=${encodeURIComponent(
+      currentArchivoImagen
+    )}&ciclo=${encodeURIComponent(ciclo)}&turno=${encodeURIComponent(turno)}`;
+
+    const a = document.createElement("a");
+    a.href = imageUrl;
+    a.download = `Asistencia_${ciclo}_${turno}_${currentArchivoImagen.replace(".xlsx", "")}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  } catch (err) {
+    console.error("Error al descargar PNG:", err);
+    if (msgEl) msgEl.innerHTML = `<span style="color: red;">Error al descargar: ${err.message}</span>`;
   }
 }
 
@@ -272,34 +519,67 @@ export function initCicloFormEvents() {
 }
 
 export function initModalEvents() {
-  const closeBtn = document.getElementById("close-preview");
-  const modal = document.getElementById("preview-modal");
+  const closeBtnPreview = document.getElementById("close-preview");
+  const modalPreview = document.getElementById("preview-modal");
   const previewContent = document.getElementById("preview-content");
-  const previewTabs = document.getElementById("preview-tabs"); // Obtener contenedor de pestañas
+  const previewTabs = document.getElementById("preview-tabs");
 
-  if (closeBtn && modal) {
-    closeBtn.onclick = function () {
-      modal.style.display = "none";
+  if (closeBtnPreview && modalPreview) {
+    closeBtnPreview.onclick = function () {
+      modalPreview.style.display = "none";
       if (previewContent) previewContent.innerHTML = "";
       if (previewTabs) previewTabs.innerHTML = "";
     };
   }
-  if (modal) {
-    window.onclick = function (event) {
-      if (event.target == modal) {
-        modal.style.display = "none";
+
+  // Eventos del modal de exportación a imagen
+  const closeBtnImage = document.getElementById("close-image-modal");
+  const modalImage = document.getElementById("image-export-modal");
+  const cicloSelectImage = document.getElementById("image-modal-ciclo");
+  const turnoSelectImage = document.getElementById("image-modal-turno");
+  const btnCopyImage = document.getElementById("btn-copy-table-image");
+  const btnDownloadImage = document.getElementById("btn-download-table-image");
+
+  if (closeBtnImage && modalImage) {
+    closeBtnImage.onclick = function () {
+      modalImage.style.display = "none";
+    };
+  }
+
+  if (cicloSelectImage) {
+    cicloSelectImage.addEventListener("change", actualizarVistaPreviaImagen);
+  }
+  if (turnoSelectImage) {
+    turnoSelectImage.addEventListener("change", actualizarVistaPreviaImagen);
+  }
+  if (btnCopyImage) {
+    btnCopyImage.addEventListener("click", copiarImagenAlPortapapeles);
+  }
+  if (btnDownloadImage) {
+    btnDownloadImage.addEventListener("click", descargarImagenPNG);
+  }
+
+  // Cierre global por clic afuera o tecla Escape
+  window.onclick = function (event) {
+    if (event.target == modalPreview) {
+      modalPreview.style.display = "none";
+      if (previewContent) previewContent.innerHTML = "";
+      if (previewTabs) previewTabs.innerHTML = "";
+    } else if (event.target == modalImage) {
+      modalImage.style.display = "none";
+    }
+  };
+
+  window.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" || event.key === "Esc") {
+      if (modalPreview && modalPreview.style.display === "block") {
+        modalPreview.style.display = "none";
         if (previewContent) previewContent.innerHTML = "";
         if (previewTabs) previewTabs.innerHTML = "";
       }
-    };
-    window.addEventListener("keydown", function (event) {
-      if (event.key === "Escape" || event.key === "Esc") {
-        if (modal.style.display === "block") {
-          modal.style.display = "none";
-          if (previewContent) previewContent.innerHTML = "";
-          if (previewTabs) previewTabs.innerHTML = "";
-        }
+      if (modalImage && modalImage.style.display === "block") {
+        modalImage.style.display = "none";
       }
-    });
-  }
+    }
+  });
 }

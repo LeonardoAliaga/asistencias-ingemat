@@ -59,6 +59,7 @@ li:hover {
   font-size: 1.2rem;
   letter-spacing: normal;
 }
+
 #vista-alumnos ul {
   padding-top: 10px;
 }
@@ -92,6 +93,7 @@ li:hover {
   background-color: var(--red);
   color: var(--white1);
 }
+
 .accordion-header.active h3 {
   color: var(--white1);
 }
@@ -116,6 +118,7 @@ li:hover {
   max-height: 5000px;
   padding: 15px;
 }
+
 .accordion-item h3 {
   color: var(--black);
   border: none;
@@ -135,17 +138,21 @@ li:hover {
   scrollbar-width: thin;
   scrollbar-color: var(--red) var(--white2);
 }
+
 #archivos-excel::-webkit-scrollbar {
   width: 8px;
 }
+
 #archivos-excel::-webkit-scrollbar-track {
   background: var(--white2);
   border-radius: 4px;
 }
+
 #archivos-excel::-webkit-scrollbar-thumb {
   background-color: var(--red);
   border-radius: 4px;
 }
+
 #archivos-excel::-webkit-scrollbar-thumb:hover {
   background-color: var(--red2);
 }
@@ -184,6 +191,7 @@ li:hover {
   /* box-shadow: 0 10px 22px rgba(0, 0, 0, 0.08); */
   background: linear-gradient(90deg, #007109, #009d05);
 }
+
 .excel-item:hover a {
   background-color: transparent;
   color: #fff !important;
@@ -208,6 +216,7 @@ li:hover {
 .excel-item:hover .btn-preview {
   color: #fff;
 }
+
 .btn-preview:hover {
   opacity: 100%;
 }
@@ -226,17 +235,21 @@ li:hover {
   scrollbar-width: thin;
   scrollbar-color: var(--red) var(--white2);
 }
+
 .preview-content-area::-webkit-scrollbar {
   width: 8px;
 }
+
 .preview-content-area::-webkit-scrollbar-track {
   background: var(--white2);
   border-radius: 4px;
 }
+
 .preview-content-area::-webkit-scrollbar-thumb {
   background-color: var(--red);
   border-radius: 4px;
 }
+
 .preview-content-area::-webkit-scrollbar-thumb:hover {
   background-color: var(--red2);
 }
@@ -250,6 +263,7 @@ li:hover {
   margin: 0 0 20px 0;
   border: 1px solid #ccc;
 }
+
 #preview-content table:last-child {
   margin-bottom: 0;
 }
@@ -290,28 +304,39 @@ li:hover {
 .table-header th:nth-child(1) {
   width: 5%;
   text-align: center;
-} /* N° */
+}
+
+/* N° */
 .table-header th:nth-child(2) {
   width: 35%;
   text-align: left;
-} /* ALUMNO/DOCENTE */
+}
+
+/* ALUMNO/DOCENTE */
 .table-header th:nth-child(3) {
   width: 10%;
   text-align: center;
-} /* TURNO */
+}
+
+/* TURNO */
 .table-header th:nth-child(4) {
   width: 25%;
   text-align: center;
-} /* DÍAS ASISTENCIA */
+}
+
+/* DÍAS ASISTENCIA */
 .table-header th:nth-child(5) {
   width: 25%;
   text-align: center;
-} /* HORA REGISTRO */
+}
+
+/* HORA REGISTRO */
 
 .table-data td {
   background-color: var(--white1);
   color: var(--black);
 }
+
 .table-data td:nth-child(1),
 .table-data td:nth-child(3),
 .table-data td:nth-child(4),
@@ -325,48 +350,61 @@ li:hover {
   color: #006100;
   font-weight: bold;
 }
+
 .table-data td.status-tolerancia {
   background-color: #ffeb9c;
   color: #9c5700;
   font-weight: bold;
 }
+
 .table-data td.status-tarde {
   background-color: #ffc7ce;
   color: #9c0006;
   font-weight: bold;
 }
+
 .table-data td.status-falta {
   background-color: #d9d9d9;
   color: #333333;
   font-weight: bold;
 }
+
 .table-data td.status-no_asiste {
   background-color: #c0c0c0;
   color: #404040;
   font-style: italic;
   font-weight: bold;
 }
+
 .table-data td.status-docente {
   background-color: #bdd7ee;
   color: #1f4e78;
   font-weight: bold;
 }
+
 .table-data td.status-registrado {
   background-color: #e7e6e6;
   color: #000000;
   font-weight: bold;
 }
+
 /* --- ESTILOS MODIFICADOS --- */
 .table-data td.status-falta_justificada {
-  background-color: #ffeb9c; /* Color Tolerancia */
-  color: #9c6500; /* Color Tolerancia */
+  background-color: #ffeb9c;
+  /* Color Tolerancia */
+  color: #9c6500;
+  /* Color Tolerancia */
   font-weight: bold;
 }
+
 .table-data td.status-tardanza_justificada {
-  background-color: #ffeb9c; /* Color Tolerancia */
-  color: #9c6500; /* Color Tolerancia */
+  background-color: #ffeb9c;
+  /* Color Tolerancia */
+  color: #9c6500;
+  /* Color Tolerancia */
   font-weight: bold;
 }
+
 /* --- FIN ESTILOS MODIFICADOS --- */
 
 /* ======================================================= */
@@ -428,7 +466,8 @@ li:hover {
   border: 1px solid #eee;
   overflow: hidden;
   max-width: 800px;
-  margin: 0 auto; /* Centrado */
+  margin: 0 auto;
+  /* Centrado */
 }
 
 .export-header {
@@ -450,7 +489,8 @@ li:hover {
   margin: 5px 0 0 0;
   color: #6c757d;
   font-size: 0.9rem;
-  padding-left: 26px; /* Alinear con el texto del h3 */
+  padding-left: 26px;
+  /* Alinear con el texto del h3 */
 }
 
 .export-body {
@@ -532,16 +572,24 @@ li:hover {
 
 /* Colores Botones */
 .btn-pdf {
-  background-color: #e74c3c; /* Rojo PDF */
+  background-color: #e74c3c;
+  /* Rojo PDF */
   color: white;
 }
-.btn-pdf:hover:not(:disabled) { background-color: #c0392b; }
+
+.btn-pdf:hover:not(:disabled) {
+  background-color: #c0392b;
+}
 
 .btn-zip {
-  background-color: #2980b9; /* Azul ZIP */
+  background-color: #2980b9;
+  /* Azul ZIP */
   color: white;
 }
-.btn-zip:hover:not(:disabled) { background-color: #2471a3; }
+
+.btn-zip:hover:not(:disabled) {
+  background-color: #2471a3;
+}
 
 .btn-export:disabled {
   background-color: #e0e0e0;
@@ -580,6 +628,263 @@ li:hover {
 
 /* Responsive para celular */
 @media (max-width: 600px) {
-  .export-filters { grid-template-columns: 1fr; }
-  .export-actions { flex-direction: column; }
+  .export-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .export-actions {
+    flex-direction: column;
+  }
+}
+
+/* ======================================================= */
+/* Estilos para el nuevo Botón de Imagen y Modal de Exportación */
+/* ======================================================= */
+.excel-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-image-preview {
+  background-color: transparent;
+  color: var(--black1);
+  opacity: 80%;
+  border: none;
+  padding: 8px 10px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background-color 0.18s ease, transform 0.18s ease;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+
+.excel-item:hover .btn-image-preview {
+  color: #fff;
+}
+
+.btn-image-preview:hover {
+  opacity: 100%;
+  background-color: rgba(255, 255, 255, 0.25);
+  transform: scale(1.08);
+}
+
+/* Modal de Exportación a Imagen */
+.modal-image-content {
+  max-width: 650px !important;
+  border-radius: 12px;
+  padding: 24px 28px;
+  background: #ffffff;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+}
+
+.image-modal-filters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 18px;
+  background: #f8f9fa;
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.modal-select {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 6px;
+  border: 1px solid #cccccc;
+  font-size: 0.95rem;
+  font-weight: 500;
+  background-color: #ffffff;
+  color: #2c3e50;
+  transition: border-color 0.2s ease;
+}
+
+.modal-select:focus {
+  border-color: #27ae60;
+  outline: none;
+}
+
+/* Previsualizador de Tabla de 3 Columnas */
+.image-modal-preview-wrapper {
+  max-height: 420px;
+  overflow-y: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background-color: #ffffff;
+  margin-bottom: 20px;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.image-modal-table-container {
+  padding: 12px;
+}
+
+.image-table-title {
+  font-weight: 700;
+  font-size: 1.05rem;
+  text-align: center;
+  color: #1a252f;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.three-col-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  font-family: inherit;
+}
+
+.three-col-table th {
+  background-color: #2b3e50;
+  color: #ffffff;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 10px 8px;
+  text-align: center;
+  border: 1px solid #1a252f;
+}
+
+.three-col-table td {
+  padding: 8px 10px;
+  border: 1px solid #e0e0e0;
+  color: #2d3748;
+}
+
+.three-col-table td.text-center {
+  text-align: center;
+}
+
+.three-col-table td.text-left {
+  text-align: left;
+}
+
+/* Estados de Asistencia para la Tabla HTML */
+.three-col-table td.status-puntual {
+  background-color: #C6EFCE !important;
+  color: #006100 !important;
+  font-weight: 600;
+}
+
+.three-col-table td.status-tolerancia {
+  background-color: #FFEB9C !important;
+  color: #9C6500 !important;
+  font-weight: 600;
+}
+
+.three-col-table td.status-tarde {
+  background-color: #FFC7CE !important;
+  color: #9C0006 !important;
+  font-weight: 600;
+}
+
+.three-col-table td.status-falta {
+  background-color: #BDD7EE !important;
+  color: #1F4E78 !important;
+  font-weight: 600;
+}
+
+.three-col-table td.status-no_asiste {
+  background-color: #F2F2F2 !important;
+  color: #595959 !important;
+  font-weight: 600;
+}
+
+.three-col-table td.status-docente,
+.three-col-table td.status-falta_justificada {
+  background-color: #E2EFDA !important;
+  color: #375623 !important;
+  font-weight: 600;
+}
+
+.three-col-table td.status-tardanza_justificada {
+  background-color: #FFF2CC !important;
+  color: #7F6000 !important;
+  font-weight: 600;
+}
+
+/* Acciones del Modal */
+.image-modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.btn-action-copy {
+  flex: 2;
+  background: linear-gradient(135deg, #27ae60, #219653);
+  color: #ffffff;
+  border: none;
+  padding: 12px 18px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+}
+
+.btn-action-copy:hover:not(:disabled) {
+  background: linear-gradient(135deg, #219653, #1e824c);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(39, 174, 96, 0.4);
+}
+
+.btn-action-copy.btn-copied {
+  background: #10b981 !important;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.btn-action-download {
+  flex: 1;
+  background-color: #4b5563;
+  color: #ffffff;
+  border: none;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background-color 0.2s ease;
+}
+
+.btn-action-download:hover {
+  background-color: #374151;
+}
+
+.msg-success-badge {
+  display: inline-block;
+  background-color: #d1fae5;
+  color: #065f46;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: 1px solid #a7f3d0;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+  display: inline-block;
 }
