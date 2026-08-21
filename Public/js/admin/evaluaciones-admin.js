@@ -96,6 +96,7 @@ function setupModalClavePopup() {
       const evalSelect = document.getElementById("eval-select-respuesta");
       const evalId = evalSelect?.value;
       const evalObj = globalEvaluaciones.find((e) => e.id === evalId);
+      const codigoEst = (document.getElementById("eval-codigo-estudiante")?.value || "").trim().toUpperCase();
       const statusEl = document.getElementById("eval-respuestas-estudiante-status");
 
       if (!evalObj) {
@@ -105,8 +106,27 @@ function setupModalClavePopup() {
 
       modalState.mode = "respuesta_estudiante";
       modalState.numPreguntas = evalObj.numPreguntas;
+      modalState.respuestas = {};
 
-      document.getElementById("modal-clave-popup-title").innerHTML = `<i class="bi bi-person-check-fill"></i> Registrar Respuestas Alumno: ${evalObj.titulo} (${evalObj.numPreguntas} Preguntas)`;
+      // Verificar si el estudiante ya cuenta con respuestas registradas previamente
+      let prevReg = null;
+      if (codigoEst && Array.isArray(evalObj.respuestasEstudiantes)) {
+        prevReg = evalObj.respuestasEstudiantes.find(
+          (r) => String(r.codigoEstudiante).toUpperCase() === codigoEst
+        );
+      }
+
+      if (prevReg && prevReg.respuestas) {
+        modalState.respuestas = { ...prevReg.respuestas };
+        const count = Object.keys(modalState.respuestas).filter((k) => modalState.respuestas[k]).length;
+        if (statusEl) {
+          statusEl.innerHTML = `<span style="color:#2563eb; font-weight:700;">✏️ Editando respuestas guardadas anteriormente de ${prevReg.nombreEstudiante || codigoEst}. (${count} respuestas cargadas)</span>`;
+        }
+        document.getElementById("modal-clave-popup-title").innerHTML = `<i class="bi bi-pencil-square"></i> Modificar Respuestas: ${prevReg.nombreEstudiante || codigoEst} (${evalObj.numPreguntas} Preguntas)`;
+      } else {
+        document.getElementById("modal-clave-popup-title").innerHTML = `<i class="bi bi-person-check-fill"></i> Registrar Respuestas Alumno: ${evalObj.titulo} (${evalObj.numPreguntas} Preguntas)`;
+      }
+
       renderModalChecklist();
       dialog.showModal();
     });
@@ -367,6 +387,24 @@ function setupStudentAutocomplete(searchInputId, hiddenInputId, resultsContainer
           searchInput.value = `[${code}] ${name}`;
           resultsContainer.innerHTML = "";
           resultsContainer.style.display = "none";
+
+          // Notificar si el alumno ya tiene respuestas en el examen seleccionado
+          if (searchInputId === "eval-student-search") {
+            const evalSelect = document.getElementById("eval-select-respuesta");
+            const evalId = evalSelect?.value;
+            const evalObj = globalEvaluaciones.find((e) => e.id === evalId);
+            const statusEl = document.getElementById("eval-respuestas-estudiante-status");
+
+            if (evalObj && Array.isArray(evalObj.respuestasEstudiantes)) {
+              const prevReg = evalObj.respuestasEstudiantes.find(
+                (r) => String(r.codigoEstudiante).toUpperCase() === code.toUpperCase()
+              );
+
+              if (prevReg && statusEl) {
+                statusEl.innerHTML = `<span style="color:#2563eb; font-weight:700;">✏️ ¡El estudiante ${name} ya rindió este examen! (Puntaje: ${prevReg.puntajeTotal} pts). Haz clic en "Abrir Formulario" para corregir/modificar sus respuestas.</span>`;
+              }
+            }
+          }
         }
       });
     });
