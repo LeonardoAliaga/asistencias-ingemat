@@ -556,8 +556,6 @@ function setupFormRegistrarRespuesta() {
               <span style="font-size:1.05rem; font-weight:800; color:#b72107;">Puntaje Total: ${resObj.puntajeTotal} pts</span> ${puestoText ? `<span style="font-weight:700; color:#1e293b;">${puestoText}</span>` : ""}
             </div>
           `;
-          if (searchInput) searchInput.value = "";
-          if (hiddenCodeInput) hiddenCodeInput.value = "";
           modalState.respuestas = {};
           await cargarDatosEvaluaciones();
 

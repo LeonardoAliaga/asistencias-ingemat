@@ -435,14 +435,33 @@ router.post("/tareas", (req, res) => {
       });
     }
 
-    const newId = `TAR-${Date.now()}`;
     const fechaUsar = fecha || new Date().toISOString().split("T")[0];
+    const cursoTrim = curso.trim();
+    const cicloTrim = ciclo.trim();
+
+    let targetTareaId;
 
     db.transaction(() => {
-      db.prepare(`
-        INSERT INTO tareas (id, curso, ciclo, fecha, tipoEvaluacion)
-        VALUES (?, ?, ?, ?, ?)
-      `).run(newId, curso.trim(), ciclo.trim(), fechaUsar, tipoEvaluacion || "vigesimal");
+      // Buscar si ya existe una tarea registrada para el mismo curso, ciclo y fecha
+      const tareaExistente = db.prepare(`
+        SELECT id FROM tareas 
+        WHERE UPPER(curso) = UPPER(?) AND UPPER(ciclo) = UPPER(?) AND fecha = ?
+      `).get(cursoTrim, cicloTrim, fechaUsar);
+
+      if (tareaExistente) {
+        targetTareaId = tareaExistente.id;
+        db.prepare(`UPDATE tareas SET tipoEvaluacion = ? WHERE id = ?`).run(tipoEvaluacion || "vigesimal", targetTareaId);
+      } else {
+        targetTareaId = `TAR-${Date.now()}`;
+        db.prepare(`
+          INSERT INTO tareas (id, curso, ciclo, fecha, tipoEvaluacion)
+          VALUES (?, ?, ?, ?, ?)
+        `).run(targetTareaId, cursoTrim, cicloTrim, fechaUsar, tipoEvaluacion || "vigesimal");
+      }
+
+      const deletePrevReg = db.prepare(`
+        DELETE FROM registros_tarea WHERE tarea_id = ? AND UPPER(codigoEstudiante) = ?
+      `);
 
       const insertReg = db.prepare(`
         INSERT INTO registros_tarea (tarea_id, codigoEstudiante, nombreEstudiante, nota, estado)
@@ -454,17 +473,18 @@ router.post("/tareas", (req, res) => {
         const u = db.prepare("SELECT nombre, apellido FROM usuarios WHERE codigo = ?").get(codeUpper);
         const nombreEstudiante = u ? `${u.apellido}${u.apellido && u.nombre ? " " : ""}${u.nombre}`.trim() : `Alumno [${codeUpper}]`;
 
-        insertReg.run(newId, codeUpper, nombreEstudiante, r.nota !== undefined ? r.nota : null, r.estado || "EVALUADO");
+        deletePrevReg.run(targetTareaId, codeUpper);
+        insertReg.run(targetTareaId, codeUpper, nombreEstudiante, r.nota !== undefined ? r.nota : null, r.estado || "EVALUADO");
       }
     })();
 
     const tareaRegistrada = {
-      id: newId,
-      curso: curso.trim(),
-      ciclo: ciclo.trim(),
+      id: targetTareaId,
+      curso: cursoTrim,
+      ciclo: cicloTrim,
       fecha: fechaUsar,
       tipoEvaluacion: tipoEvaluacion || "vigesimal",
-      registros: db.prepare("SELECT codigoEstudiante, nombreEstudiante, nota, estado FROM registros_tarea WHERE tarea_id = ?").all(newId),
+      registros: db.prepare("SELECT id, codigoEstudiante, nombreEstudiante, nota, estado FROM registros_tarea WHERE tarea_id = ?").all(targetTareaId),
     };
 
     res.json({
@@ -585,30 +605,37 @@ router.get("/tareas/excel-salon", async (req, res) => {
       ORDER BY apellido ASC, nombre ASC
     `).all(cicloNorm);
 
-    // 2. Obtener tareas del ciclo que tengan al menos 1 registro (contar un curso si hay como mínimo un estudiante registrado)
-    const tareasRows = db.prepare(`
-      SELECT t.id, t.curso, t.fecha, t.tipoEvaluacion, COUNT(r.id) as totalRegistros
+    // 2. Obtener cursos evaluados agrupados por Curso y Fecha (1 sola columna por curso en ese día)
+    const columnasTareas = db.prepare(`
+      SELECT 
+        UPPER(t.curso) as cursoUpper,
+        t.curso,
+        t.fecha,
+        COUNT(r.id) as totalRegistros
       FROM tareas t
       JOIN registros_tarea r ON t.id = r.tarea_id
       WHERE UPPER(t.ciclo) = UPPER(?)
-      GROUP BY t.id
+      GROUP BY UPPER(t.curso), t.fecha
       HAVING totalRegistros > 0
       ORDER BY t.fecha ASC, t.curso ASC
     `).all(cicloNorm);
 
-    // 3. Obtener todos los registros de tareas para este ciclo
+    // 3. Obtener todos los registros de tareas para este ciclo asociando a cursoUpper y fecha
     const registrosRows = db.prepare(`
-      SELECT r.tarea_id, r.codigoEstudiante, r.nota, r.estado
+      SELECT UPPER(t.curso) as cursoUpper, t.fecha, r.codigoEstudiante, r.nota, r.estado
       FROM registros_tarea r
       JOIN tareas t ON r.tarea_id = t.id
       WHERE UPPER(t.ciclo) = UPPER(?)
+      ORDER BY r.id DESC
     `).all(cicloNorm);
 
-    // Mapa de registros: `tareaId_codigoEstudiante` -> { nota, estado }
+    // Mapa de registros: `${cursoUpper}_${fecha}_${codigoEstudiante}` -> { nota, estado }
     const mapaRegistros = new Map();
     registrosRows.forEach((reg) => {
-      const key = `${reg.tarea_id}_${String(reg.codigoEstudiante).toUpperCase()}`;
-      mapaRegistros.set(key, reg);
+      const key = `${reg.cursoUpper}_${reg.fecha}_${String(reg.codigoEstudiante).toUpperCase()}`;
+      if (!mapaRegistros.has(key)) {
+        mapaRegistros.set(key, reg);
+      }
     });
 
     // Si algún alumno registrado en tareas no figura en la tabla usuarios con ese ciclo, incluirlo
@@ -627,7 +654,7 @@ router.get("/tareas/excel-salon", async (req, res) => {
       }
     });
 
-    if (estudiantes.length === 0 && tareasRows.length === 0) {
+    if (estudiantes.length === 0 && columnasTareas.length === 0) {
       return res.status(404).send(`No se encontraron registros de tareas ni estudiantes para el ciclo "${cicloNorm}".`);
     }
 
@@ -635,7 +662,7 @@ router.get("/tareas/excel-salon", async (req, res) => {
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet(`Tareas - ${cicloNorm.substring(0, 25)}`);
 
-    const totalCols = Math.max(3 + tareasRows.length + 2, 5);
+    const totalCols = Math.max(3 + columnasTareas.length + 2, 5);
 
     // Fila 1: Título Institucional
     sheet.mergeCells(1, 1, 1, totalCols);
@@ -650,7 +677,7 @@ router.get("/tareas/excel-salon", async (req, res) => {
     sheet.mergeCells(2, 1, 2, totalCols);
     const subtitleCell = sheet.getCell(2, 1);
     const todayStr = new Date().toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", year: "numeric" });
-    subtitleCell.value = `Ciclo / Salón: ${cicloNorm} | Total Estudiantes: ${estudiantes.length} | Tareas Evaluadas: ${tareasRows.length} | Fecha de Emisión: ${todayStr}`;
+    subtitleCell.value = `Ciclo / Salón: ${cicloNorm} | Total Estudiantes: ${estudiantes.length} | Cursos/Tareas Evaluadas: ${columnasTareas.length} | Fecha de Emisión: ${todayStr}`;
     subtitleCell.font = { name: "Arial", size: 10, italic: true, color: { argb: "FF475569" } };
     subtitleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF1F5F9" } };
     subtitleCell.alignment = { horizontal: "center", vertical: "middle" };
@@ -660,10 +687,10 @@ router.get("/tareas/excel-salon", async (req, res) => {
 
     // Fila 4: Cabeceras
     const headers = ["N°", "CÓDIGO", "ESTUDIANTE"];
-    tareasRows.forEach((t) => {
-      const fParts = (t.fecha || "").split("-");
-      const fFormatted = fParts.length === 3 ? `${fParts[2]}/${fParts[1]}` : t.fecha;
-      headers.push(`${t.curso}\n(${fFormatted})`);
+    columnasTareas.forEach((col) => {
+      const fParts = (col.fecha || "").split("-");
+      const fFormatted = fParts.length === 3 ? `${fParts[2]}/${fParts[1]}` : col.fecha;
+      headers.push(`${col.curso}\n(${fFormatted})`);
     });
     headers.push("ENTREGADAS", "NO PRESENTÓ (NP)");
 
@@ -693,8 +720,8 @@ router.get("/tareas/excel-salon", async (req, res) => {
       let countEntregadas = 0;
       let countNP = 0;
 
-      tareasRows.forEach((t) => {
-        const key = `${t.id}_${est.codigo.toUpperCase()}`;
+      columnasTareas.forEach((col) => {
+        const key = `${col.cursoUpper}_${col.fecha}_${est.codigo.toUpperCase()}`;
         const reg = mapaRegistros.get(key);
 
         if (reg) {
@@ -732,7 +759,7 @@ router.get("/tareas/excel-salon", async (req, res) => {
         cell.font = {
           name: "Arial",
           size: 9.5,
-          bold: colNumber <= 2 || isNP || colNumber > (3 + tareasRows.length),
+          bold: colNumber <= 2 || isNP || colNumber > (3 + columnasTareas.length),
           color: { argb: isNP ? "FF991B1B" : (colNumber === 3 ? "FF0F172A" : "FF334155") },
         };
         cell.alignment = {
@@ -752,11 +779,11 @@ router.get("/tareas/excel-salon", async (req, res) => {
     sheet.getColumn(1).width = 6;   // N°
     sheet.getColumn(2).width = 14;  // CÓDIGO
     sheet.getColumn(3).width = 34;  // ESTUDIANTE
-    tareasRows.forEach((t, i) => {
-      sheet.getColumn(4 + i).width = Math.max(t.curso.length + 4, 15);
+    columnasTareas.forEach((col, i) => {
+      sheet.getColumn(4 + i).width = Math.max(col.curso.length + 4, 15);
     });
-    sheet.getColumn(4 + tareasRows.length).width = 16;     // ENTREGADAS
-    sheet.getColumn(5 + tareasRows.length).width = 18;     // NO PRESENTÓ (NP)
+    sheet.getColumn(4 + columnasTareas.length).width = 16;     // ENTREGADAS
+    sheet.getColumn(5 + columnasTareas.length).width = 18;     // NO PRESENTÓ (NP)
 
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     res.setHeader(
