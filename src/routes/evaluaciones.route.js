@@ -25,6 +25,11 @@ function getEvaluacionCompleta(id) {
     preguntasPorArea = JSON.parse(evalRow.preguntasPorArea || "{}");
   } catch (e) {}
 
+  let preguntasSinDescuento = {};
+  try {
+    preguntasSinDescuento = JSON.parse(evalRow.preguntasSinDescuento || "{}");
+  } catch (e) {}
+
   const respuestasEstudiantes = respRows.map((r, i) => {
     let respuestas = {};
     try {
@@ -56,6 +61,7 @@ function getEvaluacionCompleta(id) {
     puntajeIncorrecta: evalRow.puntajeIncorrecta,
     claveRespuestas: claves,
     preguntasPorArea,
+    preguntasSinDescuento,
     respuestasEstudiantes,
   };
 }
@@ -85,6 +91,7 @@ router.post("/", (req, res) => {
       puntajeIncorrecta,
       claveRespuestas,
       preguntasPorArea,
+      preguntasSinDescuento,
     } = req.body;
 
     if (!titulo || !ciclo) {
@@ -107,8 +114,8 @@ router.post("/", (req, res) => {
     const totalCuadernillo = parseInt(totalPreguntasCuadernillo, 10) || nPreg;
 
     db.prepare(`
-      INSERT INTO evaluaciones (id, titulo, ciclo, fecha, tipo, numPreguntas, totalPreguntasCuadernillo, puntajeCorrecta, puntajeIncorrecta, claves, preguntasPorArea)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO evaluaciones (id, titulo, ciclo, fecha, tipo, numPreguntas, totalPreguntasCuadernillo, puntajeCorrecta, puntajeIncorrecta, claves, preguntasPorArea, preguntasSinDescuento)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       newId,
       titulo.trim(),
@@ -120,7 +127,8 @@ router.post("/", (req, res) => {
       parseFloat(puntajeCorrecta) || (tipo === "test" ? 20 : 20),
       Math.abs(parseFloat(puntajeIncorrecta) || 0),
       JSON.stringify(claveRespuestas || {}),
-      JSON.stringify(preguntasPorArea || {})
+      JSON.stringify(preguntasPorArea || {}),
+      JSON.stringify(preguntasSinDescuento || {})
     );
 
     const nuevaEval = getEvaluacionCompleta(newId);
@@ -204,17 +212,23 @@ router.post("/:id/respuesta", (req, res) => {
         : evalObj.claveRespuestas;
 
       const pregKeys = Object.keys(clavesArea);
+      const sinDescuentoMap = evalObj.preguntasSinDescuento || {};
 
       if (pregKeys.length > 0) {
         pregKeys.forEach((qKey) => {
           const respAlumno = (respuestasGuardar[qKey] || "").trim().toUpperCase();
           const respOficial = (clavesArea[qKey] || "").trim().toUpperCase();
+          const esSinDescuento = !!sinDescuentoMap[qKey];
           if (!respAlumno) {
             enBlanco++;
           } else if (respAlumno === respOficial) {
             correctas++;
+            puntajeTotal += evalObj.puntajeCorrecta;
           } else {
             incorrectas++;
+            if (!esSinDescuento) {
+              puntajeTotal -= evalObj.puntajeIncorrecta;
+            }
           }
         });
       } else {
@@ -222,37 +236,44 @@ router.post("/:id/respuesta", (req, res) => {
           const qKey = i.toString();
           const respAlumno = (respuestasGuardar[qKey] || "").trim().toUpperCase();
           const respOficial = (evalObj.claveRespuestas[qKey] || "").trim().toUpperCase();
+          const esSinDescuento = !!sinDescuentoMap[qKey];
           if (!respAlumno) {
             enBlanco++;
           } else if (respAlumno === respOficial) {
             correctas++;
+            puntajeTotal += evalObj.puntajeCorrecta;
           } else {
             incorrectas++;
+            if (!esSinDescuento) {
+              puntajeTotal -= evalObj.puntajeIncorrecta;
+            }
           }
         }
       }
 
-      puntajeTotal = parseFloat(
-        (correctas * evalObj.puntajeCorrecta - incorrectas * evalObj.puntajeIncorrecta).toFixed(3)
-      );
+      puntajeTotal = parseFloat(puntajeTotal.toFixed(3));
     } else {
       // Simulacro Estándar
+      const sinDescuentoMap = evalObj.preguntasSinDescuento || {};
       for (let i = 1; i <= evalObj.numPreguntas; i++) {
         const qKey = i.toString();
         const respAlumno = (respuestasGuardar[qKey] || "").trim().toUpperCase();
         const respOficial = (evalObj.claveRespuestas[qKey] || "").trim().toUpperCase();
+        const esSinDescuento = !!sinDescuentoMap[qKey];
         if (!respAlumno) {
           enBlanco++;
         } else if (respAlumno === respOficial) {
           correctas++;
+          puntajeTotal += evalObj.puntajeCorrecta;
         } else {
           incorrectas++;
+          if (!esSinDescuento) {
+            puntajeTotal -= evalObj.puntajeIncorrecta;
+          }
         }
       }
 
-      puntajeTotal = parseFloat(
-        (correctas * evalObj.puntajeCorrecta - incorrectas * evalObj.puntajeIncorrecta).toFixed(3)
-      );
+      puntajeTotal = parseFloat(puntajeTotal.toFixed(3));
     }
 
     const nombreEstudiante = `${usuario.apellido}${usuario.apellido && usuario.nombre ? " " : ""}${usuario.nombre}`.trim();

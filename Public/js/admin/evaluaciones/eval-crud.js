@@ -256,6 +256,7 @@ export function setupFormCrearEvaluacion() {
             puntajeIncorrecta,
             claveRespuestas,
             preguntasPorArea,
+            preguntasSinDescuento: evalState.modalState.preguntasSinDescuento || {},
           }),
         });
 
@@ -266,6 +267,8 @@ export function setupFormCrearEvaluacion() {
           if (fechaInput) fechaInput.value = new Date().toISOString().split("T")[0];
           evalState.modalState.respuestas = {};
           evalState.modalState.areasPorPregunta = {};
+          evalState.modalState.preguntasSinDescuento = {};
+          evalState.modalState.mostrarActitudinales = false;
           actualizarCamposPorTipo();
           const statusEl = document.getElementById("eval-clave-resumen-status");
           if (statusEl) statusEl.innerHTML = "⚪ <i>Ingresa la cantidad de preguntas y abre el Pop-Up.</i>";
@@ -351,6 +354,7 @@ export function setupModalClavePopup() {
   const btnGuardar = document.getElementById("btn-guardar-modal-clave");
   const btnClear = document.getElementById("btn-quick-clear");
   const btnQuickAllAreas = document.getElementById("btn-quick-all-areas");
+  const btnToggleActitudinal = document.getElementById("btn-toggle-modo-actitudinal");
   const quickFillBtns = document.querySelectorAll(".btn-quick-fill");
   const checklistContainer = document.getElementById("modal-clave-checklist-container");
 
@@ -358,6 +362,26 @@ export function setupModalClavePopup() {
 
   if (!evalState.modalState.areasPorPregunta) {
     evalState.modalState.areasPorPregunta = {};
+  }
+  if (!evalState.modalState.preguntasSinDescuento) {
+    evalState.modalState.preguntasSinDescuento = {};
+  }
+
+  const updateToggleBtnState = () => {
+    if (!btnToggleActitudinal) return;
+    const isActive = !!evalState.modalState.mostrarActitudinales;
+    btnToggleActitudinal.classList.toggle("active", isActive);
+    btnToggleActitudinal.innerHTML = isActive
+      ? '<i class="bi bi-shield-fill-check"></i> Actitudinales: Visibles (ON)'
+      : '<i class="bi bi-shield"></i> Preguntas Actitudinales (Sin Descuento)';
+  };
+
+  if (btnToggleActitudinal) {
+    btnToggleActitudinal.onclick = () => {
+      evalState.modalState.mostrarActitudinales = !evalState.modalState.mostrarActitudinales;
+      updateToggleBtnState();
+      renderModalChecklist();
+    };
   }
 
   if (btnQuickAllAreas) {
@@ -384,6 +408,11 @@ export function setupModalClavePopup() {
         if (btnQuickAllAreas) btnQuickAllAreas.style.display = "none";
       }
 
+      if (btnToggleActitudinal) {
+        btnToggleActitudinal.style.display = "inline-flex";
+        updateToggleBtnState();
+      }
+
       const statusEl = document.getElementById("eval-clave-resumen-status");
 
       if (numPreg <= 0) {
@@ -402,6 +431,10 @@ export function setupModalClavePopup() {
         if (!evalState.modalState.areasPorPregunta[String(i)]) {
           evalState.modalState.areasPorPregunta[String(i)] = ["A", "B", "C", "D", "E"];
         }
+      }
+
+      if (!evalState.modalState.preguntasSinDescuento) {
+        evalState.modalState.preguntasSinDescuento = {};
       }
 
       document.getElementById(
@@ -426,6 +459,7 @@ export function setupModalClavePopup() {
       }
 
       if (btnQuickAllAreas) btnQuickAllAreas.style.display = "none";
+      if (btnToggleActitudinal) btnToggleActitudinal.style.display = "none";
 
       evalState.modalState.mode = "respuesta_estudiante";
       evalState.modalState.isAreasMode = false;
@@ -497,8 +531,10 @@ export function setupModalClavePopup() {
 
       if (evalState.modalState.mode === "clave") {
         const statusEl = document.getElementById("eval-clave-resumen-status");
+        const countSinDesc = Object.keys(evalState.modalState.preguntasSinDescuento || {}).filter((k) => evalState.modalState.preguntasSinDescuento[k]).length;
         if (statusEl) {
-          statusEl.innerHTML = `<b style="color:#166534;">✅ Clave configurada: ${count} de ${evalState.modalState.numPreguntas} respuestas marcadas en el Pop-Up.</b>`;
+          const actitudinalText = countSinDesc > 0 ? ` (${countSinDesc} actitudinales sin descuento)` : "";
+          statusEl.innerHTML = `<b style="color:#166534;">✅ Clave configurada: ${count} de ${evalState.modalState.numPreguntas} respuestas marcadas en el Pop-Up${actitudinalText}.</b>`;
         }
       } else {
         const statusEl = document.getElementById("eval-respuestas-estudiante-status");
@@ -517,12 +553,15 @@ export function setupModalClavePopup() {
     let html = "";
     const options = ["A", "B", "C", "D", "E"];
     const allAreas = ["A", "B", "C", "D", "E"];
-    const isClaveAreas = evalState.modalState.mode === "clave" && evalState.modalState.isAreasMode;
+    const isClaveMode = evalState.modalState.mode === "clave";
+    const isClaveAreas = isClaveMode && evalState.modalState.isAreasMode;
+    const showActitudinalCol = isClaveMode && !!evalState.modalState.mostrarActitudinales;
 
     for (let i = 1; i <= evalState.modalState.numPreguntas; i++) {
       const qStr = String(i);
       const currentSelected = evalState.modalState.respuestas[i] || "";
       const currentAreas = evalState.modalState.areasPorPregunta?.[qStr] || allAreas;
+      const isSinDescuento = isClaveMode && !!(evalState.modalState.preguntasSinDescuento?.[qStr]);
 
       let areasHtml = "";
       if (isClaveAreas) {
@@ -543,8 +582,18 @@ export function setupModalClavePopup() {
         `;
       }
 
+      let actitudinalHtml = "";
+      if (showActitudinalCol) {
+        actitudinalHtml = `
+          <label class="checklist-no-descuento-label ${isSinDescuento ? "active" : ""}" title="Si se marca, las respuestas incorrectas en esta pregunta no restarán puntaje (Pregunta Actitudinal)">
+            <input type="checkbox" class="chk-no-descuento-opt" data-q="${i}" ${isSinDescuento ? "checked" : ""} />
+            <span>🛡️ Sin Descuento</span>
+          </label>
+        `;
+      }
+
       html += `
-        <div class="checklist-q-row">
+        <div class="checklist-q-row ${isSinDescuento ? "is-actitudinal" : ""}">
           <div class="checklist-q-num">Pregunta ${i}</div>
           <div class="checklist-options-group">
             ${options
@@ -558,6 +607,7 @@ export function setupModalClavePopup() {
               .join("")}
           </div>
           ${areasHtml}
+          ${actitudinalHtml}
         </div>
       `;
     }
@@ -601,10 +651,33 @@ export function setupModalClavePopup() {
       });
     }
 
+    // Listeners de checkboxes de actitudinal (sin descuento)
+    if (showActitudinalCol) {
+      checklistContainer.querySelectorAll(".chk-no-descuento-opt").forEach((chk) => {
+        chk.onchange = () => {
+          const q = chk.getAttribute("data-q");
+          if (!evalState.modalState.preguntasSinDescuento) {
+            evalState.modalState.preguntasSinDescuento = {};
+          }
+          if (chk.checked) {
+            evalState.modalState.preguntasSinDescuento[q] = true;
+          } else {
+            delete evalState.modalState.preguntasSinDescuento[q];
+          }
+          renderModalChecklist();
+        };
+      });
+    }
+
     const counterEl = document.getElementById("modal-clave-counter-status");
     const count = Object.keys(evalState.modalState.respuestas).filter((k) => evalState.modalState.respuestas[k]).length;
+    const countSinDesc = Object.keys(evalState.modalState.preguntasSinDescuento || {}).filter((k) => evalState.modalState.preguntasSinDescuento[k]).length;
     if (counterEl) {
-      counterEl.textContent = `${count} de ${evalState.modalState.numPreguntas} preguntas marcadas`;
+      if (isClaveMode && countSinDesc > 0) {
+        counterEl.textContent = `${count} de ${evalState.modalState.numPreguntas} preguntas marcadas (${countSinDesc} actitudinales sin descuento)`;
+      } else {
+        counterEl.textContent = `${count} de ${evalState.modalState.numPreguntas} preguntas marcadas`;
+      }
     }
   }
 }

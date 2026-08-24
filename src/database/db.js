@@ -157,6 +157,10 @@ try {
 } catch (e) {}
 
 try {
+  db.exec("ALTER TABLE evaluaciones ADD COLUMN preguntasSinDescuento TEXT DEFAULT '{}'");
+} catch (e) {}
+
+try {
   db.exec("ALTER TABLE respuestas_evaluacion ADD COLUMN area TEXT DEFAULT ''");
 } catch (e) {}
 

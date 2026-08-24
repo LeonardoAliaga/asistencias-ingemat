@@ -13,6 +13,9 @@ export const evalState = {
     mode: "clave", // 'clave' o 'respuesta_estudiante'
     numPreguntas: 0,
     respuestas: {},
+    areasPorPregunta: {},
+    preguntasSinDescuento: {}, // { [qNum]: true / false }
+    mostrarActitudinales: false,
   },
 
   // Datos temporales en memoria
