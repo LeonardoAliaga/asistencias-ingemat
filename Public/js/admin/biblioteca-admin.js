@@ -63,6 +63,31 @@ export async function cargarTodoBibliotecaAdmin() {
   cargarPrestamosAdmin();
 }
 
+const shelfSortPreferences = {};
+
+// Helper: Ordenar lista de libros según criterio
+function ordenarLibrosColeccion(libros, sortKey = "titulo_asc") {
+  const lista = [...libros];
+  switch (sortKey) {
+    case "titulo_asc":
+      return lista.sort((a, b) => (a.titulo || "").localeCompare(b.titulo || "", "es", { sensitivity: "base" }));
+    case "titulo_desc":
+      return lista.sort((a, b) => (b.titulo || "").localeCompare(a.titulo || "", "es", { sensitivity: "base" }));
+    case "codigo_asc":
+      return lista.sort((a, b) => (a.codigo || "").localeCompare(b.codigo || "", undefined, { numeric: true }));
+    case "codigo_desc":
+      return lista.sort((a, b) => (b.codigo || "").localeCompare(a.codigo || "", undefined, { numeric: true }));
+    case "disponible":
+      return lista.sort((a, b) => {
+        if (a.estado === "disponible" && b.estado !== "disponible") return -1;
+        if (a.estado !== "disponible" && b.estado === "disponible") return 1;
+        return (a.titulo || "").localeCompare(b.titulo || "");
+      });
+    default:
+      return lista;
+  }
+}
+
 // 3. Renderizar Estantería Visual en Admin
 function renderAdminBookshelf(secciones, libros) {
   const container = document.getElementById("admin-bookshelf-container");
@@ -75,12 +100,12 @@ function renderAdminBookshelf(secciones, libros) {
   let seccionesMostradas = 0;
 
   secciones.forEach((seccion) => {
-    const librosSeccion = libros.filter(
+    let librosSeccion = libros.filter(
       (l) =>
-        l.seccion.toUpperCase() === seccion.toUpperCase() &&
+        String(l.seccion || "").toUpperCase() === seccion.toUpperCase() &&
         (!searchTerm ||
-          l.titulo.toLowerCase().includes(searchTerm) ||
-          l.codigo.toLowerCase().includes(searchTerm) ||
+          (l.titulo && l.titulo.toLowerCase().includes(searchTerm)) ||
+          (l.codigo && l.codigo.toLowerCase().includes(searchTerm)) ||
           (l.editorial && l.editorial.toLowerCase().includes(searchTerm)))
     );
 
@@ -91,11 +116,29 @@ function renderAdminBookshelf(secciones, libros) {
 
     seccionesMostradas++;
 
+    const currentSort = shelfSortPreferences[seccion] || "titulo_asc";
+    librosSeccion = ordenarLibrosColeccion(librosSeccion, currentSort);
+
     html += `
       <div class="shelf-section">
         <div class="shelf-title">
-          <span><i class="bi bi-bookmark-star"></i> ESTANTE: ${seccion}</span>
-          <button class="btn-delete-seccion" data-seccion="${seccion}" style="background:transparent; border:none; color:#ef4444; cursor:pointer; font-size:0.85rem; padding: 2px 6px; border-radius:4px;" title="Eliminar Sección"><i class="bi bi-trash"></i> Eliminar Sección</button>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span><i class="bi bi-bookmark-star"></i> ESTANTE: ${seccion}</span>
+            <span style="font-size:0.75rem; background:#f1f5f9; color:#475569; padding:2px 8px; border-radius:10px; font-weight:700;">${librosSeccion.length} libros</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div class="shelf-sort-wrapper">
+              <label style="font-size:0.78rem; font-weight:600; color:#64748b;"><i class="bi bi-arrow-down-up"></i> Orden:</label>
+              <select class="shelf-sort-select" data-seccion="${seccion}">
+                <option value="titulo_asc" ${currentSort === "titulo_asc" ? "selected" : ""}>🔤 Nombre (A - Z)</option>
+                <option value="titulo_desc" ${currentSort === "titulo_desc" ? "selected" : ""}>🔤 Nombre (Z - A)</option>
+                <option value="codigo_asc" ${currentSort === "codigo_asc" ? "selected" : ""}>🔢 Código (Asc)</option>
+                <option value="codigo_desc" ${currentSort === "codigo_desc" ? "selected" : ""}>🔢 Código (Desc)</option>
+                <option value="disponible" ${currentSort === "disponible" ? "selected" : ""}>🟢 Disponibles 1°</option>
+              </select>
+            </div>
+            <button class="btn-delete-seccion" data-seccion="${seccion}" style="background:#fef2f2; border:1px solid #fecaca; color:#ef4444; cursor:pointer; font-size:0.8rem; padding: 4px 8px; border-radius:6px;" title="Eliminar Sección"><i class="bi bi-trash"></i></button>
+          </div>
         </div>
         <div class="shelf-books-grid">
     `;
@@ -137,6 +180,18 @@ function renderAdminBookshelf(secciones, libros) {
   }
 
   container.innerHTML = html;
+
+  // Listeners para cambio de orden por estante
+  container.querySelectorAll(".shelf-sort-select").forEach((sel) => {
+    sel.addEventListener("change", (e) => {
+      const sec = e.target.getAttribute("data-seccion");
+      const val = e.target.value;
+      if (sec) {
+        shelfSortPreferences[sec] = val;
+        renderAdminBookshelf(secciones, libros);
+      }
+    });
+  });
 
   // Listeners para eliminar sección
   container.querySelectorAll(".btn-delete-seccion").forEach((btn) => {

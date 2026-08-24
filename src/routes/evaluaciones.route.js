@@ -20,6 +20,11 @@ function getEvaluacionCompleta(id) {
     claves = JSON.parse(evalRow.claves || "{}");
   } catch (e) {}
 
+  let preguntasPorArea = {};
+  try {
+    preguntasPorArea = JSON.parse(evalRow.preguntasPorArea || "{}");
+  } catch (e) {}
+
   const respuestasEstudiantes = respRows.map((r, i) => {
     let respuestas = {};
     try {
@@ -29,6 +34,7 @@ function getEvaluacionCompleta(id) {
       codigoEstudiante: r.codigoEstudiante,
       nombreEstudiante: r.nombreEstudiante,
       ciclo: r.ciclo,
+      area: r.area || "",
       correctas: r.correctas,
       incorrectas: r.incorrectas,
       enBlanco: r.enBlanco,
@@ -43,10 +49,13 @@ function getEvaluacionCompleta(id) {
     titulo: evalRow.titulo,
     ciclo: evalRow.ciclo,
     fecha: evalRow.fecha,
+    tipo: evalRow.tipo || "simulacro_estandar",
     numPreguntas: evalRow.numPreguntas,
+    totalPreguntasCuadernillo: evalRow.totalPreguntasCuadernillo || evalRow.numPreguntas,
     puntajeCorrecta: evalRow.puntajeCorrecta,
     puntajeIncorrecta: evalRow.puntajeIncorrecta,
     claveRespuestas: claves,
+    preguntasPorArea,
     respuestasEstudiantes,
   };
 }
@@ -69,34 +78,49 @@ router.post("/", (req, res) => {
       titulo,
       ciclo,
       fecha,
+      tipo = "simulacro_estandar",
       numPreguntas,
+      totalPreguntasCuadernillo,
       puntajeCorrecta,
       puntajeIncorrecta,
       claveRespuestas,
+      preguntasPorArea,
     } = req.body;
 
-    if (!titulo || !ciclo || !numPreguntas || !claveRespuestas) {
+    if (!titulo || !ciclo) {
       return res.status(400).json({
         exito: false,
-        mensaje: "Faltan datos obligatorios para crear la evaluación.",
+        mensaje: "Título y ciclo son obligatorios.",
+      });
+    }
+
+    if (tipo !== "test" && (!numPreguntas || (!claveRespuestas && !preguntasPorArea))) {
+      return res.status(400).json({
+        exito: false,
+        mensaje: "Faltan datos de preguntas o claves para crear la evaluación.",
       });
     }
 
     const newId = `EVAL-${Date.now()}`;
     const fechaUsar = fecha || new Date().toISOString().split("T")[0];
+    const nPreg = tipo === "test" ? (parseInt(numPreguntas, 10) || 20) : (parseInt(numPreguntas, 10) || 100);
+    const totalCuadernillo = parseInt(totalPreguntasCuadernillo, 10) || nPreg;
 
     db.prepare(`
-      INSERT INTO evaluaciones (id, titulo, ciclo, fecha, numPreguntas, puntajeCorrecta, puntajeIncorrecta, claves)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO evaluaciones (id, titulo, ciclo, fecha, tipo, numPreguntas, totalPreguntasCuadernillo, puntajeCorrecta, puntajeIncorrecta, claves, preguntasPorArea)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       newId,
       titulo.trim(),
       ciclo.trim(),
       fechaUsar,
-      parseInt(numPreguntas, 10),
-      parseFloat(puntajeCorrecta) || 20,
+      tipo,
+      nPreg,
+      totalCuadernillo,
+      parseFloat(puntajeCorrecta) || (tipo === "test" ? 20 : 20),
       Math.abs(parseFloat(puntajeIncorrecta) || 0),
-      JSON.stringify(claveRespuestas || {})
+      JSON.stringify(claveRespuestas || {}),
+      JSON.stringify(preguntasPorArea || {})
     );
 
     const nuevaEval = getEvaluacionCompleta(newId);
@@ -128,16 +152,16 @@ router.delete("/:id", (req, res) => {
   }
 });
 
-// 4. POST /api/evaluaciones/:id/respuesta - Registrar respuestas de alumno
+// 4. POST /api/evaluaciones/:id/respuesta - Registrar respuestas o nota de alumno
 router.post("/:id/respuesta", (req, res) => {
   try {
     const { id } = req.params;
-    const { codigoEstudiante, respuestas } = req.body;
+    const { codigoEstudiante, respuestas, area = "", notaManual } = req.body;
 
-    if (!codigoEstudiante || !respuestas) {
+    if (!codigoEstudiante) {
       return res.status(400).json({
         exito: false,
-        mensaje: "Código de estudiante y respuestas son obligatorios.",
+        mensaje: "El código de estudiante es obligatorio.",
       });
     }
 
@@ -156,62 +180,114 @@ router.post("/:id/respuesta", (req, res) => {
       return res.status(404).json({ exito: false, mensaje: "Evaluación no encontrada." });
     }
 
-    // Calificar respuestas
     let correctas = 0;
     let incorrectas = 0;
     let enBlanco = 0;
+    let puntajeTotal = 0;
+    const respuestasGuardar = respuestas || {};
 
-    for (let i = 1; i <= evalObj.numPreguntas; i++) {
-      const qKey = i.toString();
-      const respAlumno = (respuestas[qKey] || "").trim().toUpperCase();
-      const respOficial = (evalObj.claveRespuestas[qKey] || "").trim().toUpperCase();
-
-      if (!respAlumno) {
-        enBlanco++;
-      } else if (respAlumno === respOficial) {
-        correctas++;
-      } else {
-        incorrectas++;
+    if (evalObj.tipo === "test") {
+      // Test de calificación directa
+      const notaNum = parseFloat(notaManual);
+      if (isNaN(notaNum) || notaNum < 0) {
+        return res.status(400).json({ exito: false, mensaje: "Ingresa una nota numérica válida." });
       }
-    }
+      puntajeTotal = notaNum;
+      correctas = notaNum;
+      incorrectas = 0;
+      enBlanco = 0;
+    } else if (evalObj.tipo === "simulacro_areas") {
+      // Simulacro con Áreas (A, B, C, D, E)
+      const areaUsar = String(area || "").trim().toUpperCase();
+      const clavesArea = (evalObj.preguntasPorArea && evalObj.preguntasPorArea[areaUsar])
+        ? evalObj.preguntasPorArea[areaUsar]
+        : evalObj.claveRespuestas;
 
-    const puntajeTotal = parseFloat(
-      (correctas * evalObj.puntajeCorrecta - incorrectas * evalObj.puntajeIncorrecta).toFixed(3)
-    );
+      const pregKeys = Object.keys(clavesArea);
+
+      if (pregKeys.length > 0) {
+        pregKeys.forEach((qKey) => {
+          const respAlumno = (respuestasGuardar[qKey] || "").trim().toUpperCase();
+          const respOficial = (clavesArea[qKey] || "").trim().toUpperCase();
+          if (!respAlumno) {
+            enBlanco++;
+          } else if (respAlumno === respOficial) {
+            correctas++;
+          } else {
+            incorrectas++;
+          }
+        });
+      } else {
+        for (let i = 1; i <= evalObj.numPreguntas; i++) {
+          const qKey = i.toString();
+          const respAlumno = (respuestasGuardar[qKey] || "").trim().toUpperCase();
+          const respOficial = (evalObj.claveRespuestas[qKey] || "").trim().toUpperCase();
+          if (!respAlumno) {
+            enBlanco++;
+          } else if (respAlumno === respOficial) {
+            correctas++;
+          } else {
+            incorrectas++;
+          }
+        }
+      }
+
+      puntajeTotal = parseFloat(
+        (correctas * evalObj.puntajeCorrecta - incorrectas * evalObj.puntajeIncorrecta).toFixed(3)
+      );
+    } else {
+      // Simulacro Estándar
+      for (let i = 1; i <= evalObj.numPreguntas; i++) {
+        const qKey = i.toString();
+        const respAlumno = (respuestasGuardar[qKey] || "").trim().toUpperCase();
+        const respOficial = (evalObj.claveRespuestas[qKey] || "").trim().toUpperCase();
+        if (!respAlumno) {
+          enBlanco++;
+        } else if (respAlumno === respOficial) {
+          correctas++;
+        } else {
+          incorrectas++;
+        }
+      }
+
+      puntajeTotal = parseFloat(
+        (correctas * evalObj.puntajeCorrecta - incorrectas * evalObj.puntajeIncorrecta).toFixed(3)
+      );
+    }
 
     const nombreEstudiante = `${usuario.apellido}${usuario.apellido && usuario.nombre ? " " : ""}${usuario.nombre}`.trim();
     const cicloEstudiante = usuario.ciclo || evalObj.ciclo;
+    const areaFinal = String(area || "").trim().toUpperCase();
+
+    let miPosicion = 1;
 
     db.transaction(() => {
-      // Borrar respuesta previa del alumno si existe
       db.prepare("DELETE FROM respuestas_evaluacion WHERE evaluacion_id = ? AND codigoEstudiante = ?").run(
         id,
         codeUpper
       );
 
-      // Insertar nuevo resultado
       db.prepare(`
-        INSERT INTO respuestas_evaluacion (evaluacion_id, codigoEstudiante, nombreEstudiante, ciclo, correctas, incorrectas, enBlanco, puntajeTotal, respuestas)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO respuestas_evaluacion (evaluacion_id, codigoEstudiante, nombreEstudiante, ciclo, area, correctas, incorrectas, enBlanco, puntajeTotal, respuestas)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         id,
         codeUpper,
         nombreEstudiante,
         cicloEstudiante,
+        areaFinal,
         correctas,
         incorrectas,
         enBlanco,
         puntajeTotal,
-        JSON.stringify(respuestas)
+        JSON.stringify(respuestasGuardar)
       );
 
-      // Re-calcular posiciones del ranking
       const respRows = db
         .prepare("SELECT id, codigoEstudiante FROM respuestas_evaluacion WHERE evaluacion_id = ? ORDER BY puntajeTotal DESC")
         .all(id);
 
       const updatePos = db.prepare("UPDATE respuestas_evaluacion SET posicion = ? WHERE id = ?");
-      let miPosicion = 1;
       respRows.forEach((r, idx) => {
         const pos = idx + 1;
         updatePos.run(pos, r.id);
@@ -225,7 +301,8 @@ router.post("/:id/respuesta", (req, res) => {
       codigoEstudiante: codeUpper,
       nombreEstudiante,
       ciclo: cicloEstudiante,
-      respuestas,
+      area: areaFinal,
+      respuestas: respuestasGuardar,
       correctas,
       incorrectas,
       enBlanco,
@@ -235,11 +312,11 @@ router.post("/:id/respuesta", (req, res) => {
 
     res.json({
       exito: true,
-      mensaje: "Respuestas calificadas correctamente.",
+      mensaje: "Calificación registrada correctamente.",
       resultado: registroEstudiante,
     });
   } catch (err) {
-    console.error("Error al registrar respuestas en SQLite:", err);
+    console.error("Error al registrar calificación en SQLite:", err);
     res.status(500).json({ exito: false, mensaje: "Error interno del servidor." });
   }
 });
@@ -248,10 +325,19 @@ router.post("/:id/respuesta", (req, res) => {
 router.get("/:id/ranking", (req, res) => {
   try {
     const { id } = req.params;
+    const { area } = req.query;
     const evalObj = getEvaluacionCompleta(id);
 
     if (!evalObj) {
       return res.status(404).json({ exito: false, mensaje: "Evaluación no encontrada." });
+    }
+
+    let ranking = evalObj.respuestasEstudiantes;
+    if (area && area.trim() !== "" && area.toUpperCase() !== "TODOS") {
+      const areaFiltro = area.trim().toUpperCase();
+      ranking = ranking
+        .filter((r) => String(r.area || "").toUpperCase() === areaFiltro)
+        .map((r, idx) => ({ ...r, posicion: idx + 1 }));
     }
 
     res.json({
@@ -261,11 +347,14 @@ router.get("/:id/ranking", (req, res) => {
         titulo: evalObj.titulo,
         ciclo: evalObj.ciclo,
         fecha: evalObj.fecha,
+        tipo: evalObj.tipo,
         numPreguntas: evalObj.numPreguntas,
+        totalPreguntasCuadernillo: evalObj.totalPreguntasCuadernillo,
         puntajeCorrecta: evalObj.puntajeCorrecta,
         puntajeIncorrecta: evalObj.puntajeIncorrecta,
+        preguntasPorArea: evalObj.preguntasPorArea,
       },
-      ranking: evalObj.respuestasEstudiantes,
+      ranking,
     });
   } catch (err) {
     console.error("Error al obtener ranking:", err);
@@ -277,19 +366,34 @@ router.get("/:id/ranking", (req, res) => {
 router.get("/:id/excel", async (req, res) => {
   try {
     const { id } = req.params;
+    const { area } = req.query;
     const evalObj = getEvaluacionCompleta(id);
 
     if (!evalObj) {
       return res.status(404).send("Evaluación no encontrada.");
     }
 
-    const workbook = new ExcelJS.Workbook();
-    const sheet = workbook.addWorksheet("Ranking General");
+    let estudiantes = evalObj.respuestasEstudiantes;
+    let sheetName = "Ranking General";
+    let tituloBanner = "ACADEMIA PREUNIVERSITARIA INGEMAT - CUADRO GENERAL DE MÉRITO Y RANKING";
 
-    // Ancho de Columnas (6 Columnas sin Código ni Ciclo)
+    if (area && area.trim() !== "" && area.toUpperCase() !== "TODOS") {
+      const areaUpper = area.trim().toUpperCase();
+      estudiantes = estudiantes
+        .filter((r) => String(r.area || "").toUpperCase() === areaUpper)
+        .map((r, idx) => ({ ...r, posicion: idx + 1 }));
+      sheetName = `Ranking Área ${areaUpper}`;
+      tituloBanner = `ACADEMIA PREUNIVERSITARIA INGEMAT - CUADRO DE MÉRITO ÁREA ${areaUpper}`;
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet(sheetName);
+
+    // Ancho de Columnas
     sheet.columns = [
       { key: "posicion", width: 14 },
       { key: "nombreEstudiante", width: 42 },
+      { key: "area", width: 14 },
       { key: "correctas", width: 14 },
       { key: "incorrectas", width: 14 },
       { key: "enBlanco", width: 14 },
@@ -297,16 +401,16 @@ router.get("/:id/excel", async (req, res) => {
     ];
 
     // Banner de Título
-    sheet.mergeCells("A1:F1");
+    sheet.mergeCells("A1:G1");
     const titleCell = sheet.getCell("A1");
-    titleCell.value = "ACADEMIA PREUNIVERSITARIA INGEMAT - CUADRO GENERAL DE MÉRITO Y RANKING";
+    titleCell.value = tituloBanner;
     titleCell.font = { name: "Arial", size: 13, bold: true, color: { argb: "FFFFFFFF" } };
     titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0A2240" } };
     titleCell.alignment = { horizontal: "center", vertical: "middle" };
     sheet.getRow(1).height = 34;
 
     // Metadatos
-    sheet.mergeCells("A2:F2");
+    sheet.mergeCells("A2:G2");
     const subTitleCell = sheet.getCell("A2");
     subTitleCell.value = `EXAMEN: ${evalObj.titulo.toUpperCase()} | CICLO: ${evalObj.ciclo} | FECHA: ${evalObj.fecha} | PREGUNTAS: ${evalObj.numPreguntas}`;
     subTitleCell.font = { name: "Arial", size: 10, bold: true, color: { argb: "FF475569" } };
@@ -317,7 +421,7 @@ router.get("/:id/excel", async (req, res) => {
     sheet.getRow(3).height = 10;
 
     // Cabecera
-    const headers = ["POSICIÓN", "ESTUDIANTE", "CORRECTAS", "INCORRECTAS", "EN BLANCO", "PUNTAJE TOTAL"];
+    const headers = ["POSICIÓN", "ESTUDIANTE", "ÁREA", "CORRECTAS", "INCORRECTAS", "EN BLANCO", "PUNTAJE TOTAL"];
     const headerRow = sheet.getRow(4);
     headerRow.height = 28;
 
@@ -336,7 +440,7 @@ router.get("/:id/excel", async (req, res) => {
     });
 
     // Filas
-    evalObj.respuestasEstudiantes.forEach((item, index) => {
+    estudiantes.forEach((item, index) => {
       const pos = index + 1;
       let posText = `#${pos}`;
       if (pos === 1) posText = "🥇 1°";
@@ -346,25 +450,22 @@ router.get("/:id/excel", async (req, res) => {
       const row = sheet.addRow([
         posText,
         item.nombreEstudiante,
-        item.correctas,
-        item.incorrectas,
-        item.enBlanco,
+        item.area ? `Área ${item.area}` : "-",
+        evalObj.tipo === "test" ? "-" : item.correctas,
+        evalObj.tipo === "test" ? "-" : item.incorrectas,
+        evalObj.tipo === "test" ? "-" : item.enBlanco,
         item.puntajeTotal,
       ]);
 
       row.height = 22;
       let rowBg = pos % 2 === 0 ? "FFF8FAFC" : "FFFFFFFF";
-      let isTop = false;
 
       if (pos === 1) {
         rowBg = "FFFFF9C3";
-        isTop = true;
       } else if (pos === 2) {
         rowBg = "FFF1F5F9";
-        isTop = true;
       } else if (pos === 3) {
         rowBg = "FFFFEDD5";
-        isTop = true;
       }
 
       row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
@@ -372,15 +473,14 @@ router.get("/:id/excel", async (req, res) => {
         cell.font = {
           name: "Arial",
           size: 10,
-          bold: isTop || colNumber === 1 || colNumber === 6,
-          color: { argb: colNumber === 6 ? "FFB72107" : "FF0F172A" },
+          bold: colNumber === 1 || colNumber === 7 || pos <= 3,
+          color: { argb: colNumber === 7 ? "FFB72107" : "FF0F172A" },
         };
         cell.alignment = {
           horizontal: colNumber === 2 ? "left" : "center",
           vertical: "middle",
         };
         cell.border = {
-          top: { style: "thin", color: { argb: "FFCBD5E1" } },
           bottom: { style: "thin", color: { argb: "FFCBD5E1" } },
           left: { style: "thin", color: { argb: "FFCBD5E1" } },
           right: { style: "thin", color: { argb: "FFCBD5E1" } },
@@ -516,22 +616,35 @@ router.get("/reporte-estudiante/:codigo", (req, res) => {
 
     // 1. Evaluaciones
     const evalRows = db.prepare(`
-      SELECT e.id as evaluacionId, e.titulo, e.ciclo, e.fecha, e.numPreguntas,
-             r.correctas, r.incorrectas, r.enBlanco, r.puntajeTotal, r.posicion
+      SELECT e.id as evaluacionId, e.titulo, e.ciclo, e.fecha, e.tipo, e.numPreguntas,
+             r.area, r.correctas, r.incorrectas, r.enBlanco, r.puntajeTotal, r.posicion,
+             (SELECT COUNT(*) FROM respuestas_evaluacion re WHERE re.evaluacion_id = e.id) as totalParticipantes
       FROM respuestas_evaluacion r
       JOIN evaluaciones e ON r.evaluacion_id = e.id
       WHERE r.codigoEstudiante = ?
       ORDER BY e.creado_en DESC
     `).all(codeUpper);
 
-    // 2. Tareas
+    // 2. Tareas (Incluye todas las tareas registradas en el ciclo del alumno; si no tiene registro individual, figura como NO PRESENTÓ)
+    const cicloEstudiante = String(usuario.ciclo || "").trim().toUpperCase();
     const tareaRows = db.prepare(`
-      SELECT t.id as tareaId, t.curso, t.ciclo, t.fecha, t.tipoEvaluacion, r.nota, r.estado
-      FROM registros_tarea r
-      JOIN tareas t ON r.tarea_id = t.id
-      WHERE r.codigoEstudiante = ?
-      ORDER BY t.creado_en DESC
-    `).all(codeUpper);
+      SELECT 
+        t.id as tareaId, 
+        t.curso, 
+        t.ciclo, 
+        t.fecha, 
+        t.tipoEvaluacion, 
+        r.nota, 
+        CASE 
+          WHEN r.id IS NOT NULL THEN COALESCE(r.estado, 'EVALUADO')
+          ELSE 'NO PRESENTÓ'
+        END as estado
+      FROM tareas t
+      LEFT JOIN registros_tarea r ON r.tarea_id = t.id AND UPPER(r.codigoEstudiante) = ?
+      WHERE (UPPER(t.ciclo) = ? AND ? <> '') OR r.id IS NOT NULL
+      GROUP BY t.id
+      ORDER BY t.fecha DESC, t.creado_en DESC
+    `).all(codeUpper, cicloEstudiante, cicloEstudiante);
 
     res.json({
       exito: true,

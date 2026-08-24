@@ -743,7 +743,7 @@
             <label for="manual-carnet-search">Buscar Usuario:</label>
             <input type="text" id="manual-carnet-search" placeholder="Escribe nombre o código..." autocomplete="off">
             <input type="hidden" id="manual-carnet-codigo-hidden">
-            <div class="autocomplete-items" id="manual-carnet-results"></div>
+            <div class="student-autocomplete-dropdown" id="manual-carnet-results"></div>
         </div>
 
         <div>
@@ -1297,38 +1297,57 @@
           <div id="eval-panel-simulacros" class="eval-subpanel">
             <div class="eval-grid">
               <!-- Columna Izquierda: Formulario Crear Examen -->
+              <!-- Columna Izquierda: Formulario Crear Examen -->
               <div class="eval-card-box">
                 <h4 style="margin-bottom: 12px; color: var(--red); font-family: var(--font-heading);"><i class="bi bi-file-earmark-plus"></i> Crear Nuevo Examen / Simulacro</h4>
                 <form id="form-crear-evaluacion">
                   <div>
-                    <label style="font-size: 0.88rem; font-weight: 600;">1. Título del Examen / Simulacro:</label>
-                    <input type="text" id="eval-titulo-input" required placeholder="ej. Simulacro General 01" style="margin-top:2px;" />
+                    <label style="font-size: 0.88rem; font-weight: 600;">1. Título del Examen / Simulacro / Test:</label>
+                    <input type="text" id="eval-titulo-input" required placeholder="ej. Simulacro General 01 o Paso Corto 01" style="margin-top:2px;" />
                   </div>
 
-                  <div class="form-row-inline">
-                    <div>
+                  <div class="form-row-inline" style="margin-top: 6px;">
+                    <div style="flex: 1;">
                       <label style="font-size: 0.88rem; font-weight: 600;">2. Ciclo / Salón:</label>
                       <select id="eval-ciclo-select" required>
                         <option value="">Cargando ciclos...</option>
                       </select>
                     </div>
-                    <div>
-                      <label style="font-size: 0.88rem; font-weight: 600;">Tipo:</label>
-                      <select id="eval-tipo-select">
-                        <option value="simulacro">Simulacro</option>
+                    <div style="flex: 1.2;">
+                      <label style="font-size: 0.88rem; font-weight: 600;">3. Modalidad / Tipo:</label>
+                      <select id="eval-tipo-select" style="font-weight: 600;">
+                        <option value="simulacro_estandar">Simulacro estándar</option>
+                        <option value="simulacro_areas">Simulacro por Áreas (A, B, C, D, E)</option>
                         <option value="test">Test</option>
-                        <option value="practica">Práctica</option>
                       </select>
                     </div>
                   </div>
 
-                  <div>
-                    <label style="font-size: 0.88rem; font-weight: 600;">3. N° Preguntas:</label>
-                    <input type="number" id="eval-num-preguntas" required min="1" max="100" placeholder="ej. 20 o 50" />
+                  <div style="margin-top: 6px;">
+                    <label style="font-size: 0.88rem; font-weight: 600;">4. Fecha de Realización de la Prueba:</label>
+                    <input type="date" id="eval-fecha-input" required style="margin-top: 2px;" />
                   </div>
 
-                  <!-- Configuración de Puntajes -->
-                  <div class="form-row-inline">
+                  <!-- Bloque Dinámico: N° Preguntas para Modo Estándar -->
+                  <div id="eval-estandar-preguntas-row" style="margin-top: 6px;">
+                    <label style="font-size: 0.88rem; font-weight: 600;">5. Preguntas a responder:</label>
+                    <input type="number" id="eval-num-preguntas" value="100" min="1" max="200" placeholder="ej. 100 o 50" />
+                  </div>
+
+                  <!-- Bloque Dinámico: N° Preguntas para Modo por Áreas -->
+                  <div id="eval-areas-cuadernillo-row" class="form-row-inline" style="display: none; margin-top: 6px;">
+                    <div style="flex: 1;">
+                      <label style="font-size: 0.85rem; font-weight: 600; color: #0284c7;">5. Preguntas Totales:</label>
+                      <input type="number" id="eval-total-preguntas-areas" value="120" min="1" max="200" placeholder="ej. 120 o 128" />
+                    </div>
+                    <div style="flex: 1;">
+                      <label style="font-size: 0.85rem; font-weight: 600; color: #166534;">Preguntas a Responder:</label>
+                      <input type="number" id="eval-num-preguntas-areas" value="100" min="1" max="200" placeholder="ej. 100" />
+                    </div>
+                  </div>
+
+                  <!-- Bloque Dinámico: Configuración de Puntajes (Oculto en Test) -->
+                  <div id="eval-config-puntajes-wrapper" class="form-row-inline" style="margin-top: 6px;">
                     <div>
                       <label style="font-size: 0.78rem; font-weight: 700; color:#166534;">+ Correcta (pts)</label>
                       <input type="number" id="eval-pts-correcta" step="0.001" value="20" required />
@@ -1339,9 +1358,14 @@
                     </div>
                   </div>
 
-                  <!-- Botón Abrir Pop-Up Clave de Respuestas -->
-                  <div class="eval-clave-matrix-wrapper">
-                    <label style="font-size: 0.88rem; font-weight: 600; display:block;">4. Clave de Respuestas Oficial (Pop-Up):</label>
+                  <!-- Bloque Dinámico: Nota Máxima para Test (Visible solo en Test) -->
+                  <div id="eval-config-test-wrapper" style="display: none; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 10px 14px; margin-top: 8px;">
+                    <span style="font-size: 0.85rem; color: #166534; font-weight: 600;"><i class="bi bi-info-circle-fill"></i> Modalidad Test: No requiere claves A-E. Introducirás directamente la nota del estudiante en el formulario de la derecha.</span>
+                  </div>
+
+                  <!-- Bloque Dinámico: Botón Claves Oficiales (Oculto en Test) -->
+                  <div id="eval-config-claves-wrapper" class="eval-clave-matrix-wrapper" style="margin-top: 8px;">
+                    <label style="font-size: 0.88rem; font-weight: 600; display:block;">Clave de Respuestas Oficial (Pop-Up):</label>
                     <div style="display:flex; gap:8px; margin-bottom:4px;">
                       <button type="button" id="btn-abrir-modal-clave" class="btn-form-submit" style="background:#0284c7; flex:1; font-size:0.88rem; padding:9px;"><i class="bi bi-ui-checks-grid"></i> Pop-Up Configurar Claves</button>
                       <button type="button" id="btn-preview-cartilla-crear" class="btn-form-submit" style="background:#475569; width:auto; font-size:0.88rem; padding:9px 12px;" title="Previsualizar e imprimir cartilla vacía para este examen"><i class="bi bi-file-earmark-pdf"></i> Cartilla OMR</button>
@@ -1349,7 +1373,7 @@
                     <div id="eval-clave-resumen-status" style="font-size:0.85rem; color:#64748b; margin-top:4px;">⚪ <i>Ingresa la cantidad de preguntas y abre el Pop-Up.</i></div>
                   </div>
 
-                  <button type="submit" class="btn-form-submit" style="margin-top: 4px; width: 100%;"><i class="bi bi-check-circle-fill"></i> Crear Examen y Guardar Clave</button>
+                  <button type="submit" class="btn-form-submit" style="margin-top: 8px; width: 100%;"><i class="bi bi-check-circle-fill"></i> Guardar y Crear Evaluación</button>
                 </form>
                 <div id="msg-crear-evaluacion" style="margin-top: 8px; font-size: 0.85rem;"></div>
               </div>
@@ -1358,16 +1382,16 @@
               <div style="display: flex; flex-direction: column; gap: 24px;">
                 <!-- Formulario Registrar Respuesta Estudiante -->
                 <div class="eval-card-box">
-                  <h4 style="margin-bottom: 12px; color: var(--black); font-family: var(--font-heading);"><i class="bi bi-person-check-fill"></i> Registrar Respuestas de un Estudiante</h4>
+                  <h4 style="margin-bottom: 12px; color: var(--black); font-family: var(--font-heading);"><i class="bi bi-person-check-fill"></i> Registrar Respuestas / Calificación de un Estudiante</h4>
                   <form id="form-registrar-respuestas-estudiante">
                     <div class="form-row-inline">
-                      <div>
-                        <label style="font-size: 0.88rem; font-weight: 600;">Seleccionar Examen:</label>
+                      <div style="flex: 1;">
+                        <label style="font-size: 0.88rem; font-weight: 600;">Seleccionar Examen / Test:</label>
                         <select id="eval-select-respuesta" required>
                           <option value="">Cargando exámenes...</option>
                         </select>
                       </div>
-                      <div style="position: relative;">
+                      <div style="flex: 1; position: relative;">
                         <label style="font-size: 0.88rem; font-weight: 600;">Estudiante:</label>
                         <input type="text" id="eval-student-search" placeholder="🔍 Buscar por nombre o código..." autocomplete="off" />
                         <input type="hidden" id="eval-codigo-estudiante" required />
@@ -1375,7 +1399,26 @@
                       </div>
                     </div>
 
-                    <div id="eval-respuestas-estudiante-container" style="margin-bottom: 8px;">
+                    <!-- Selector de Área del Postulante (Visible si es simulacro_areas) -->
+                    <div id="eval-area-postulante-wrapper" style="display: none; margin-top: 8px;">
+                      <label style="font-size: 0.88rem; font-weight: 700; color: #0284c7;"><i class="bi bi-mortarboard-fill"></i> Área del Postulante (A, B, C, D, E):</label>
+                      <select id="eval-estudiante-area" style="font-weight: 600; border-color: #0284c7; background: #f0f9ff;">
+                        <option value="A">ÁREA A: Ciencias de la Salud</option>
+                        <option value="B">ÁREA B: Ciencias Básicas</option>
+                        <option value="C">ÁREA C: Ingenierías</option>
+                        <option value="D">ÁREA D: Ciencias Económicas y de la Gestión</option>
+                        <option value="E">ÁREA E: Humanidades y Ciencias Jurídicas y Sociales</option>
+                      </select>
+                    </div>
+
+                    <!-- Modo Test: Entrada Directa de Nota Manual -->
+                    <div id="eval-modo-test-wrapper" style="display: none; margin-top: 10px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px 14px;">
+                      <label style="font-size: 0.88rem; font-weight: 700; color: #166534; display: block; margin-bottom: 4px;"><i class="bi bi-pencil-square"></i> Calificación / Nota Obtenida:</label>
+                      <input type="number" id="eval-nota-directa-input" step="0.01" min="0" max="1000" placeholder="Ingresa nota (ej. 18.5 o 14)" style="font-size: 1.05rem; font-weight: 700; padding: 8px 12px; border-radius: 6px; border: 1px solid #166534;" />
+                    </div>
+
+                    <!-- Modo Simulacro: Botones Pop-Up Respuestas y Escáner -->
+                    <div id="eval-respuestas-estudiante-container" style="margin-top: 10px; margin-bottom: 8px;">
                       <div style="display:flex; gap:8px; margin-bottom:4px;">
                         <button type="button" id="btn-abrir-modal-respuestas-estudiante" class="btn-form-submit" style="background:#0284c7; flex:1; font-size:0.88rem; padding:9px;"><i class="bi bi-card-checklist"></i> Abrir Pop-Up Respuestas (A al E)</button>
                         <button type="button" id="btn-escanear-cartilla-camara" class="btn-form-submit" style="background:#166534; width:auto; font-size:0.88rem; padding:9px 12px;" title="Escanear cartilla física con la cámara web"><i class="bi bi-camera-fill"></i> Escanear OMR</button>
@@ -1383,7 +1426,7 @@
                       <div id="eval-respuestas-estudiante-status" style="font-size:0.85rem; color:#64748b; margin-top:4px;">⚪ <i>Selecciona un examen y abre el Pop-Up o escáner de cámara.</i></div>
                     </div>
 
-                    <button type="submit" class="btn-form-submit" style="width: 100%;"><i class="bi bi-calculator"></i> Calcular y Guardar Notas</button>
+                    <button type="submit" class="btn-form-submit" style="width: 100%; margin-top: 6px;"><i class="bi bi-calculator"></i> Guardar Calificación</button>
                   </form>
                   <div id="msg-respuesta-estudiante"></div>
                 </div>
@@ -1407,14 +1450,21 @@
                   <div style="flex: 1; min-width: 280px; position: relative;">
                     <label style="font-weight: 700; font-size: 0.88rem; color: #1e293b; display: block; margin-bottom: 4px;"><i class="bi bi-search"></i> Buscador Inteligente de Evaluaciones:</label>
                     <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                      <div style="position: relative; flex: 1; min-width: 240px;">
+                      <div style="position: relative; flex: 1; min-width: 220px;">
                         <input type="text" id="eval-ranking-search-input" placeholder="🔍 Escribe título, ciclo o fecha (ej: Álgebra, UNI, 2026)..." autocomplete="off" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.92rem;" />
                         <div id="eval-ranking-search-results" class="student-autocomplete-dropdown" style="display: none; max-height: 250px; overflow-y: auto;"></div>
                       </div>
-                      <select id="eval-select-ranking" style="padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; max-width: 260px; font-size: 0.88rem;">
+                      <select id="eval-select-ranking" style="padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; max-width: 240px; font-size: 0.88rem;">
                         <option value="">-- O elige de la lista --</option>
                       </select>
-                      <button type="button" id="btn-clear-ranking-selection" class="btn-form-submit" style="background: #64748b; padding: 8px 12px; font-size: 0.85rem;" title="Limpiar selección"><i class="bi bi-x-circle"></i> Limpiar</button>
+                      <select id="eval-ranking-filtro-area" style="display: none; padding: 8px 12px; border-radius: 6px; border: 1px solid #0284c7; background: #f0f9ff; font-weight: 600; font-size: 0.88rem;">
+                        <option value="TODOS">📊 Todas las Áreas</option>
+                        <option value="A">Área A: Ciencias de la Salud</option>
+                        <option value="B">Área B: Ciencias Básicas</option>
+                        <option value="C">Área C: Ingenierías</option>
+                        <option value="D">Área D: Ciencias Económicas</option>
+                        <option value="E">Área E: Humanidades y Jurídicas</option>
+                      </select>
                     </div>
                   </div>
                   <div id="eval-ranking-actions" style="display: none; gap: 10px; align-self: flex-end;">
@@ -1582,25 +1632,31 @@
 
           <!-- SUB-PANEL 4: Reporte Consolidado por Alumno -->
           <div id="eval-panel-reporte-alumno" class="eval-subpanel" style="display: none;">
-            <div class="eval-card-box">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
-                <div style="display: flex; gap: 10px; align-items: center; flex: 1; min-width: 280px; position: relative;">
-                  <label style="font-weight: 700; white-space: nowrap;">Buscar Estudiante:</label>
-                  <div style="flex: 1; position: relative;">
-                    <input type="text" id="reporte-student-search" placeholder="🔍 Ingrese código o nombre del alumno..." autocomplete="off" style="width:100%; padding: 9px 14px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.95rem;" />
+            <div class="eval-card-box" style="margin-bottom: 18px;">
+              <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 14px 18px;">
+                <label style="font-weight: 700; font-size: 0.88rem; color: #1e293b; display: block; margin-bottom: 6px;"><i class="bi bi-search"></i> Buscador Inteligente de Estudiante:</label>
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                  <div style="flex: 1; min-width: 260px; position: relative;">
+                    <input type="text" id="reporte-student-search" placeholder="🔍 Escribe nombre o código del alumno..." autocomplete="off" style="width:100%; padding: 9px 14px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.95rem; box-sizing: border-box;" />
                     <input type="hidden" id="search-reporte-alumno-codigo" />
-                    <div id="reporte-student-results" class="student-autocomplete-dropdown"></div>
+                    <div id="reporte-student-results" class="student-autocomplete-dropdown" style="z-index: 2000;"></div>
                   </div>
-                  <button id="btn-buscar-reporte-alumno" class="btn-form-submit" style="padding: 9px 16px;"><i class="bi bi-search"></i> Buscar</button>
+                  <button id="btn-buscar-reporte-alumno" class="btn-form-submit" style="padding: 9px 18px;"><i class="bi bi-search"></i> Generar Ficha</button>
                 </div>
-                <button id="btn-imprimir-reporte-alumno" class="btn-form-submit" style="background:#475569; display:none;"><i class="bi bi-printer"></i> Imprimir Ficha PDF</button>
               </div>
+            </div>
 
-              <div id="alumno-reporte-dashboard">
-                <div style="text-align: center; padding: 40px; color: #64748b;">
-                  <i class="bi bi-search" style="font-size: 2.5rem; color: #cbd5e1; display: block; margin-bottom: 10px;"></i>
-                  Ingresa el código o nombre de un estudiante arriba para generar su <b>Ficha Consolidada Integral</b>.
-                </div>
+            <!-- Toolbar de Acciones del Estudiante (Aparece cuando el alumno está cargado) -->
+            <div id="reporte-alumno-toolbar" style="display: none; justify-content: flex-end; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;">
+              <button id="btn-copiar-imagen-reporte" class="btn-form-submit" style="background:#0f766e; padding: 9px 16px; font-size: 0.9rem;" title="Copiar ficha integral completa como imagen al portapapeles"><i class="bi bi-card-image"></i> Generar Reporte Imagen</button>
+              <button id="btn-imprimir-reporte-alumno" class="btn-form-submit" style="background:#475569; padding: 9px 16px; font-size: 0.9rem;" title="Imprimir o guardar ficha en PDF"><i class="bi bi-printer"></i> Generar Reporte PDF</button>
+            </div>
+
+            <div id="alumno-reporte-dashboard">
+              <div class="eval-card-box" style="text-align: center; padding: 45px 20px; color: #64748b; border: 2px dashed #cbd5e1; background: #f8fafc;">
+                <i class="bi bi-person-badge" style="font-size: 2.8rem; color: #94a3b8; display: block; margin-bottom: 12px;"></i>
+                <h4 style="margin: 0 0 6px 0; color: #1e293b; font-weight: 700;">No hay ningún estudiante seleccionado</h4>
+                <p style="margin: 0; font-size: 0.9rem;">Escribe el nombre o código de un alumno en el buscador superior para generar su <b>Ficha Consolidada Integral</b>.</p>
               </div>
             </div>
           </div>
@@ -1626,7 +1682,8 @@
             <button type="button" class="btn-quick-fill" data-option="C">C</button>
             <button type="button" class="btn-quick-fill" data-option="D">D</button>
             <button type="button" class="btn-quick-fill" data-option="E">E</button>
-            <button type="button" class="btn-quick-clear" id="btn-quick-clear">🧹 Limpiar Selección</button>
+            <button type="button" class="btn-quick-clear" id="btn-quick-clear">🧹 Limpiar Claves</button>
+            <button type="button" class="btn-quick-fill" id="btn-quick-all-areas" style="display:none; background:#0284c7; color:#fff; border-color:#0284c7; padding:4px 10px; width:auto; border-radius:6px; font-size:0.8rem; font-weight:700;">✓ Marcar Todas las Áreas</button>
           </div>
 
           <!-- Modal Body: Checklist Ordenado con Círculos A al E por Pregunta -->

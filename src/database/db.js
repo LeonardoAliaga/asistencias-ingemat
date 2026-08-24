@@ -142,9 +142,23 @@ db.exec(`
 // --- Migraciones y semillas adicionales ---
 try {
   db.exec("ALTER TABLE libros ADD COLUMN editorial TEXT DEFAULT ''");
-} catch (e) {
-  // Columna ya existe
-}
+} catch (e) {}
+
+try {
+  db.exec("ALTER TABLE evaluaciones ADD COLUMN tipo TEXT DEFAULT 'simulacro_estandar'");
+} catch (e) {}
+
+try {
+  db.exec("ALTER TABLE evaluaciones ADD COLUMN totalPreguntasCuadernillo INTEGER DEFAULT 100");
+} catch (e) {}
+
+try {
+  db.exec("ALTER TABLE evaluaciones ADD COLUMN preguntasPorArea TEXT DEFAULT '{}'");
+} catch (e) {}
+
+try {
+  db.exec("ALTER TABLE respuestas_evaluacion ADD COLUMN area TEXT DEFAULT ''");
+} catch (e) {}
 
 // Inicializar secciones por defecto si la tabla está vacía y nunca se ha inicializado
 const initSecFlag = db.prepare("SELECT valor FROM config_general WHERE clave = 'secciones_biblioteca_inicializadas'").get();

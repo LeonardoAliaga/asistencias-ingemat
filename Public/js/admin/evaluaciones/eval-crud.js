@@ -1,0 +1,610 @@
+import { evalState } from "./eval-state.js";
+import { limpiarSeleccionRanking } from "./eval-ranking.js";
+
+// 1. Manejo de Sub-Pestañas Internas
+export function setupSubtabs() {
+  const subtabs = [
+    { btn: "subtab-eval-simulacros", panel: "eval-panel-simulacros" },
+    { btn: "subtab-eval-ranking", panel: "eval-panel-ranking" },
+    { btn: "subtab-eval-tareas", panel: "eval-panel-tareas" },
+    { btn: "subtab-eval-reporte-alumno", panel: "eval-panel-reporte-alumno" },
+  ];
+
+  subtabs.forEach(({ btn, panel }) => {
+    const btnEl = document.getElementById(btn);
+    if (!btnEl) return;
+
+    btnEl.addEventListener("click", () => {
+      subtabs.forEach((item) => {
+        document.getElementById(item.btn)?.classList.remove("active");
+        const p = document.getElementById(item.panel);
+        if (p) p.style.display = "none";
+      });
+
+      btnEl.classList.add("active");
+      const targetPanel = document.getElementById(panel);
+      if (targetPanel) targetPanel.style.display = "block";
+
+      // Limpiar automáticamente la selección anterior de ranking
+      limpiarSeleccionRanking();
+
+      cargarDatosEvaluaciones();
+    });
+  });
+}
+
+// 2. Cargar Evaluaciones, Ciclos y Usuarios desde la API
+export async function cargarDatosEvaluaciones() {
+  try {
+    const [resEval, resCiclos, resUsers] = await Promise.all([
+      fetch("/api/evaluaciones"),
+      fetch("/api/ciclos"),
+      fetch("/api/usuarios"),
+    ]);
+
+    const dataEval = await resEval.json();
+    const dataCiclos = await resCiclos.json();
+
+    if (dataEval.exito) {
+      evalState.globalEvaluaciones = dataEval.evaluaciones || [];
+      populateSelectsEvaluaciones(evalState.globalEvaluaciones);
+      renderListaEvaluaciones(evalState.globalEvaluaciones);
+    }
+
+    const listCiclos = dataCiclos.ciclos || (Array.isArray(dataCiclos) ? dataCiclos : []);
+    if (listCiclos.length > 0) {
+      evalState.globalCiclos = listCiclos;
+      populateSelectsCiclos(evalState.globalCiclos);
+    }
+
+    if (resUsers.ok) {
+      const dataUsers = await resUsers.json();
+      evalState.globalUsuarios = Array.isArray(dataUsers) ? dataUsers : (dataUsers.usuarios || []);
+    }
+  } catch (err) {
+    console.error("Error al cargar datos de evaluaciones:", err);
+  }
+}
+
+export function populateSelectsCiclos(ciclos) {
+  const selects = ["eval-ciclo-select", "tarea-ciclo-select", "excel-tareas-ciclo-select"];
+
+  selects.forEach((id) => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const prevVal = sel.value;
+    sel.innerHTML =
+      '<option value="">-- Seleccionar Ciclo / Salón --</option>' +
+      ciclos
+        .map((c) => {
+          const val = typeof c === "object" ? c.nombre : c;
+          return `<option value="${val}">${val}</option>`;
+        })
+        .join("");
+    if (prevVal) sel.value = prevVal;
+  });
+
+  const excelCicloSel = document.getElementById("excel-tareas-ciclo-select");
+  if (excelCicloSel && excelCicloSel.value && window._cargarSemanasExcelConsolidado) {
+    window._cargarSemanasExcelConsolidado(excelCicloSel.value);
+  }
+}
+
+export function populateSelectsEvaluaciones(evals) {
+  const selects = ["eval-select-respuesta", "eval-select-ranking"];
+
+  selects.forEach((id) => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    if (evals.length === 0) {
+      sel.innerHTML = '<option value="">No hay evaluaciones registradas</option>';
+      return;
+    }
+    sel.innerHTML =
+      '<option value="">-- Seleccionar Evaluación --</option>' +
+      evals
+        .map((e) => {
+          let badge = "";
+          if (e.tipo === "test") badge = " [TEST]";
+          else if (e.tipo === "simulacro_areas") badge = " [ÁREAS A-E]";
+          return `<option value="${e.id}">${e.titulo}${badge} (${e.ciclo}) - ${e.fecha}</option>`;
+        })
+        .join("");
+  });
+}
+
+// 3. Crear Evaluación y Guardar Clave
+export function setupFormCrearEvaluacion() {
+  const form = document.getElementById("form-crear-evaluacion");
+  const tipoSelect = document.getElementById("eval-tipo-select");
+  const fechaInput = document.getElementById("eval-fecha-input");
+  const areasCuadernilloRow = document.getElementById("eval-areas-cuadernillo-row");
+  const estandarPreguntasRow = document.getElementById("eval-estandar-preguntas-row");
+  const configPuntajesWrapper = document.getElementById("eval-config-puntajes-wrapper");
+  const configTestWrapper = document.getElementById("eval-config-test-wrapper");
+  const configClavesWrapper = document.getElementById("eval-config-claves-wrapper");
+
+  // Establecer fecha por defecto (hoy)
+  if (fechaInput && !fechaInput.value) {
+    fechaInput.value = new Date().toISOString().split("T")[0];
+  }
+
+  const actualizarCamposPorTipo = () => {
+    const tipo = tipoSelect ? tipoSelect.value : "simulacro_estandar";
+
+    const setVisibility = (el, visible, flexDisplay = false) => {
+      if (!el) return;
+      if (visible) {
+        el.style.display = flexDisplay ? "flex" : "block";
+        el.classList.remove("is-hidden");
+        el.removeAttribute("hidden");
+      } else {
+        el.style.display = "none";
+        el.classList.add("is-hidden");
+        el.setAttribute("hidden", "true");
+      }
+    };
+
+    if (tipo === "test") {
+      setVisibility(areasCuadernilloRow, false);
+      setVisibility(estandarPreguntasRow, false);
+      setVisibility(configPuntajesWrapper, false);
+      setVisibility(configTestWrapper, true);
+      setVisibility(configClavesWrapper, false);
+    } else if (tipo === "simulacro_areas") {
+      setVisibility(areasCuadernilloRow, true, true);
+      setVisibility(estandarPreguntasRow, false);
+      setVisibility(configPuntajesWrapper, true, true);
+      setVisibility(configTestWrapper, false);
+      setVisibility(configClavesWrapper, true);
+    } else {
+      // simulacro_estandar
+      setVisibility(areasCuadernilloRow, false);
+      setVisibility(estandarPreguntasRow, true);
+      setVisibility(configPuntajesWrapper, true, true);
+      setVisibility(configTestWrapper, false);
+      setVisibility(configClavesWrapper, true);
+    }
+  };
+
+  if (tipoSelect) {
+    tipoSelect.addEventListener("change", actualizarCamposPorTipo);
+    actualizarCamposPorTipo();
+  }
+
+  if (form) {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById("msg-crear-evaluacion");
+
+      const titulo = document.getElementById("eval-titulo-input").value.trim();
+      const ciclo = document.getElementById("eval-ciclo-select").value;
+      const tipo = tipoSelect ? tipoSelect.value : "simulacro_estandar";
+      const fecha = fechaInput ? fechaInput.value : new Date().toISOString().split("T")[0];
+
+      let numPreguntas = 100;
+      let totalPreguntasCuadernillo = 100;
+      let puntajeCorrecta = 20;
+      let puntajeIncorrecta = 1.125;
+
+      if (tipo === "test") {
+        numPreguntas = 20;
+        totalPreguntasCuadernillo = 20;
+        puntajeCorrecta = 20;
+        puntajeIncorrecta = 0;
+      } else if (tipo === "simulacro_areas") {
+        totalPreguntasCuadernillo = parseInt(document.getElementById("eval-total-preguntas-areas")?.value, 10) || 120;
+        numPreguntas = parseInt(document.getElementById("eval-num-preguntas-areas")?.value, 10) || 100;
+        puntajeCorrecta = parseFloat(document.getElementById("eval-pts-correcta")?.value) || 20;
+        puntajeIncorrecta = parseFloat(document.getElementById("eval-pts-incorrecta")?.value) || 1.125;
+      } else {
+        // simulacro_estandar: Lee el input de preguntas a responder
+        numPreguntas = parseInt(document.getElementById("eval-num-preguntas")?.value, 10) || 100;
+        totalPreguntasCuadernillo = numPreguntas;
+        puntajeCorrecta = parseFloat(document.getElementById("eval-pts-correcta")?.value) || 20;
+        puntajeIncorrecta = parseFloat(document.getElementById("eval-pts-incorrecta")?.value) || 1.125;
+      }
+
+      let claveRespuestas = {};
+      let preguntasPorArea = {};
+
+      if (tipo !== "test") {
+        claveRespuestas = evalState.modalState.respuestas || {};
+
+        if (tipo === "simulacro_areas") {
+          const areasConfig = evalState.modalState.areasPorPregunta || {};
+          preguntasPorArea = { A: {}, B: {}, C: {}, D: {}, E: {} };
+
+          for (let i = 1; i <= totalPreguntasCuadernillo; i++) {
+            const qKey = String(i);
+            const ans = claveRespuestas[qKey] || "";
+            const areasForQ = areasConfig[qKey] || ["A", "B", "C", "D", "E"];
+
+            if (ans) {
+              areasForQ.forEach((areaCode) => {
+                if (preguntasPorArea[areaCode]) {
+                  preguntasPorArea[areaCode][qKey] = ans;
+                }
+              });
+            }
+          }
+
+          if (Object.keys(claveRespuestas).length === 0) {
+            msg.innerHTML = '<span style="color:red;">⚠️ Abre el Pop-Up y configura las claves del simulacro.</span>';
+            return;
+          }
+        } else {
+          if (Object.keys(claveRespuestas).length === 0) {
+            msg.innerHTML = '<span style="color:red;">⚠️ Abre el Pop-Up y configura al menos una respuesta clave.</span>';
+            return;
+          }
+        }
+      }
+
+      try {
+        const res = await fetch("/api/evaluaciones", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            titulo,
+            ciclo,
+            fecha,
+            tipo,
+            numPreguntas,
+            totalPreguntasCuadernillo,
+            puntajeCorrecta,
+            puntajeIncorrecta,
+            claveRespuestas,
+            preguntasPorArea,
+          }),
+        });
+
+        const data = await res.json();
+        if (data.exito) {
+          msg.innerHTML = `<span style="color:green;">✅ ${data.mensaje}</span>`;
+          form.reset();
+          if (fechaInput) fechaInput.value = new Date().toISOString().split("T")[0];
+          evalState.modalState.respuestas = {};
+          evalState.modalState.areasPorPregunta = {};
+          actualizarCamposPorTipo();
+          const statusEl = document.getElementById("eval-clave-resumen-status");
+          if (statusEl) statusEl.innerHTML = "⚪ <i>Ingresa la cantidad de preguntas y abre el Pop-Up.</i>";
+          await cargarDatosEvaluaciones();
+        } else {
+          msg.innerHTML = `<span style="color:red;">❌ ${data.mensaje}</span>`;
+        }
+      } catch (err) {
+        msg.innerHTML = '<span style="color:red;">❌ Error al conectar con el servidor.</span>';
+      }
+    });
+  }
+}
+
+// 4. Renderizar Lista de Evaluaciones Creadas
+export function renderListaEvaluaciones(evals) {
+  const container = document.getElementById("evaluaciones-list-container");
+  if (!container) return;
+
+  if (evals.length === 0) {
+    container.innerHTML = "<i>No hay evaluaciones creadas.</i>";
+    return;
+  }
+
+  let html = `<div style="display:flex; flex-direction:column; gap:10px;">`;
+  evals.forEach((e) => {
+    let tipoBadge = `<span style="background:#e0f2fe; color:#0369a1; padding:2px 7px; border-radius:4px; font-size:0.75rem; font-weight:700;">Simulacro estándar</span>`;
+    if (e.tipo === "test") {
+      tipoBadge = `<span style="background:#dcfce7; color:#166534; padding:2px 7px; border-radius:4px; font-size:0.75rem; font-weight:700;">Test</span>`;
+    } else if (e.tipo === "simulacro_areas") {
+      tipoBadge = `<span style="background:#fef3c7; color:#b45309; padding:2px 7px; border-radius:4px; font-size:0.75rem; font-weight:700;">Áreas A-E (${e.totalPreguntasCuadernillo || e.numPreguntas}p)</span>`;
+    }
+
+    const evaluadosCount = (e.respuestasEstudiantes || []).length;
+
+    html += `
+      <div style="background:#fff; border:1px solid #e2e8f0; padding:12px 16px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <div>
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:3px;">
+            <b style="color:#0f172a; font-size:0.95rem;">${e.titulo}</b>
+            <span style="background:#f1f5f9; color:#475569; padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:700;">${e.ciclo}</span>
+            ${tipoBadge}
+          </div>
+          <small style="color:#64748b;">📅 ${e.fecha} | ${e.tipo === 'test' ? 'Nota directa' : `Preguntas: ${e.numPreguntas} (+${e.puntajeCorrecta} / -${e.puntajeIncorrecta})`} | Evaluados: <b>${evaluadosCount}</b></small>
+        </div>
+        <div style="display:flex; gap:6px; align-items:center;">
+          ${e.tipo !== 'test' ? `<button class="btn-download-cartilla" data-id="${e.id}" style="background:#f1f5f9; border:1px solid #cbd5e1; color:#0f172a; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:0.8rem; font-weight:600;" title="Previsualizar / Imprimir Cartilla OMR"><i class="bi bi-file-earmark-pdf"></i> Cartilla</button>` : ''}
+          <button class="btn-delete-eval" data-id="${e.id}" style="background:#fef2f2; border:1px solid #fca5a5; color:#dc2626; padding:4px 8px; border-radius:4px; cursor:pointer;" title="Eliminar Examen"><i class="bi bi-trash"></i></button>
+        </div>
+      </div>
+    `;
+  });
+  html += `</div>`;
+  container.innerHTML = html;
+
+  container.querySelectorAll(".btn-download-cartilla").forEach((btn) => {
+    btn.addEventListener("click", (ev) => {
+      const id = ev.currentTarget.getAttribute("data-id");
+      const evalObj = evals.find((e) => e.id === id);
+      if (evalObj && window._abrirPrevisualizacionCartilla) {
+        window._abrirPrevisualizacionCartilla(evalObj);
+      }
+    });
+  });
+
+  container.querySelectorAll(".btn-delete-eval").forEach((btn) => {
+    btn.addEventListener("click", async (ev) => {
+      const id = ev.currentTarget.getAttribute("data-id");
+      if (confirm("¿Seguro que deseas eliminar esta evaluación?")) {
+        await fetch(`/api/evaluaciones/${id}`, { method: "DELETE" });
+        await cargarDatosEvaluaciones();
+      }
+    });
+  });
+}
+
+// 5. Pop-Up Modal de Registro de Claves y Respuestas
+export function setupModalClavePopup() {
+  const dialog = document.getElementById("modal-clave-popup");
+  const btnAbrirClave = document.getElementById("btn-abrir-modal-clave");
+  const btnAbrirRespEstudiante = document.getElementById("btn-abrir-modal-respuestas-estudiante");
+  const btnCerrar = document.getElementById("btn-cerrar-modal-clave");
+  const btnGuardar = document.getElementById("btn-guardar-modal-clave");
+  const btnClear = document.getElementById("btn-quick-clear");
+  const btnQuickAllAreas = document.getElementById("btn-quick-all-areas");
+  const quickFillBtns = document.querySelectorAll(".btn-quick-fill");
+  const checklistContainer = document.getElementById("modal-clave-checklist-container");
+
+  if (!dialog) return;
+
+  if (!evalState.modalState.areasPorPregunta) {
+    evalState.modalState.areasPorPregunta = {};
+  }
+
+  if (btnQuickAllAreas) {
+    btnQuickAllAreas.onclick = () => {
+      for (let i = 1; i <= evalState.modalState.numPreguntas; i++) {
+        evalState.modalState.areasPorPregunta[String(i)] = ["A", "B", "C", "D", "E"];
+      }
+      renderModalChecklist();
+    };
+  }
+
+  if (btnAbrirClave) {
+    btnAbrirClave.addEventListener("click", () => {
+      const tipo = document.getElementById("eval-tipo-select")?.value || "simulacro_estandar";
+      let numPreg = 100;
+
+      if (tipo === "simulacro_areas") {
+        numPreg = parseInt(document.getElementById("eval-total-preguntas-areas")?.value, 10) || 120;
+        evalState.modalState.isAreasMode = true;
+        if (btnQuickAllAreas) btnQuickAllAreas.style.display = "inline-block";
+      } else {
+        numPreg = parseInt(document.getElementById("eval-num-preguntas")?.value, 10) || 100;
+        evalState.modalState.isAreasMode = false;
+        if (btnQuickAllAreas) btnQuickAllAreas.style.display = "none";
+      }
+
+      const statusEl = document.getElementById("eval-clave-resumen-status");
+
+      if (numPreg <= 0) {
+        if (statusEl)
+          statusEl.innerHTML =
+            '<span style="color:#dc2626;">⚠️ Por favor ingresa el N° de preguntas antes de abrir el Pop-Up.</span>';
+        return;
+      }
+
+      evalState.modalState.mode = "clave";
+      evalState.modalState.numPreguntas = numPreg;
+
+      // Inicializar áreas por defecto si no existen
+      if (!evalState.modalState.areasPorPregunta) evalState.modalState.areasPorPregunta = {};
+      for (let i = 1; i <= numPreg; i++) {
+        if (!evalState.modalState.areasPorPregunta[String(i)]) {
+          evalState.modalState.areasPorPregunta[String(i)] = ["A", "B", "C", "D", "E"];
+        }
+      }
+
+      document.getElementById(
+        "modal-clave-popup-title"
+      ).innerHTML = `<i class="bi bi-ui-checks-grid"></i> Configurar Claves Oficiales (${numPreg} Preguntas Totales)`;
+      renderModalChecklist();
+      dialog.showModal();
+    });
+  }
+
+  if (btnAbrirRespEstudiante) {
+    btnAbrirRespEstudiante.addEventListener("click", () => {
+      const evalSelect = document.getElementById("eval-select-respuesta");
+      const evalId = evalSelect?.value;
+      const evalObj = evalState.globalEvaluaciones.find((e) => e.id === evalId);
+      const codigoEst = (document.getElementById("eval-codigo-estudiante")?.value || "").trim().toUpperCase();
+      const statusEl = document.getElementById("eval-respuestas-estudiante-status");
+
+      if (!evalObj) {
+        if (statusEl) statusEl.innerHTML = '<span style="color:#dc2626;">⚠️ Selecciona un examen registrado arriba.</span>';
+        return;
+      }
+
+      if (btnQuickAllAreas) btnQuickAllAreas.style.display = "none";
+
+      evalState.modalState.mode = "respuesta_estudiante";
+      evalState.modalState.isAreasMode = false;
+      evalState.modalState.numPreguntas = evalObj.totalPreguntasCuadernillo || evalObj.numPreguntas;
+
+      const hasScannedAnswers = evalState.modalState.respuestas && Object.keys(evalState.modalState.respuestas).length > 0;
+
+      let prevReg = null;
+      if (codigoEst && Array.isArray(evalObj.respuestasEstudiantes)) {
+        prevReg = evalObj.respuestasEstudiantes.find(
+          (r) => String(r.codigoEstudiante).toUpperCase() === codigoEst
+        );
+      }
+
+      if (!hasScannedAnswers) {
+        if (prevReg && prevReg.respuestas) {
+          evalState.modalState.respuestas = { ...prevReg.respuestas };
+        } else {
+          evalState.modalState.respuestas = {};
+        }
+      }
+
+      const count = Object.keys(evalState.modalState.respuestas).filter((k) => evalState.modalState.respuestas[k]).length;
+
+      if (hasScannedAnswers) {
+        document.getElementById(
+          "modal-clave-popup-title"
+        ).innerHTML = `<i class="bi bi-camera-fill"></i> Respuestas Escaneadas: ${codigoEst} (${count}/${evalState.modalState.numPreguntas})`;
+      } else if (prevReg && prevReg.respuestas) {
+        document.getElementById(
+          "modal-clave-popup-title"
+        ).innerHTML = `<i class="bi bi-pencil-square"></i> Modificar Respuestas: ${prevReg.nombreEstudiante || codigoEst} (${evalState.modalState.numPreguntas} Preguntas)`;
+      } else {
+        document.getElementById(
+          "modal-clave-popup-title"
+        ).innerHTML = `<i class="bi bi-person-check-fill"></i> Registrar Respuestas Alumno: ${evalObj.titulo} (${evalState.modalState.numPreguntas} Preguntas)`;
+      }
+
+      renderModalChecklist();
+      dialog.showModal();
+    });
+  }
+
+  if (btnCerrar) {
+    btnCerrar.onclick = () => dialog.close();
+  }
+
+  quickFillBtns.forEach((btn) => {
+    btn.onclick = () => {
+      const opt = btn.getAttribute("data-option");
+      if (!opt) return;
+      for (let i = 1; i <= evalState.modalState.numPreguntas; i++) {
+        evalState.modalState.respuestas[i] = opt;
+      }
+      renderModalChecklist();
+    };
+  });
+
+  if (btnClear) {
+    btnClear.onclick = () => {
+      evalState.modalState.respuestas = {};
+      renderModalChecklist();
+    };
+  }
+
+  if (btnGuardar) {
+    btnGuardar.onclick = () => {
+      const count = Object.keys(evalState.modalState.respuestas).filter((k) => evalState.modalState.respuestas[k]).length;
+
+      if (evalState.modalState.mode === "clave") {
+        const statusEl = document.getElementById("eval-clave-resumen-status");
+        if (statusEl) {
+          statusEl.innerHTML = `<b style="color:#166534;">✅ Clave configurada: ${count} de ${evalState.modalState.numPreguntas} respuestas marcadas en el Pop-Up.</b>`;
+        }
+      } else {
+        const statusEl = document.getElementById("eval-respuestas-estudiante-status");
+        if (statusEl) {
+          statusEl.innerHTML = `<b style="color:#166534;">✅ Respuestas del estudiante: ${count} de ${evalState.modalState.numPreguntas} alternativas marcadas en el Pop-Up.</b>`;
+        }
+      }
+
+      dialog.close();
+    };
+  }
+
+  function renderModalChecklist() {
+    if (!checklistContainer) return;
+
+    let html = "";
+    const options = ["A", "B", "C", "D", "E"];
+    const allAreas = ["A", "B", "C", "D", "E"];
+    const isClaveAreas = evalState.modalState.mode === "clave" && evalState.modalState.isAreasMode;
+
+    for (let i = 1; i <= evalState.modalState.numPreguntas; i++) {
+      const qStr = String(i);
+      const currentSelected = evalState.modalState.respuestas[i] || "";
+      const currentAreas = evalState.modalState.areasPorPregunta?.[qStr] || allAreas;
+
+      let areasHtml = "";
+      if (isClaveAreas) {
+        areasHtml = `
+          <div class="checklist-areas-group">
+            <span style="font-size:0.75rem; font-weight:700; color:#64748b; margin-right:4px;">Áreas:</span>
+            ${allAreas
+              .map(
+                (a) => `
+              <label class="checklist-area-label">
+                <input type="checkbox" class="chk-area-opt" data-q="${i}" data-area="${a}" ${currentAreas.includes(a) ? "checked" : ""} />
+                ${a}
+              </label>
+            `
+              )
+              .join("")}
+          </div>
+        `;
+      }
+
+      html += `
+        <div class="checklist-q-row">
+          <div class="checklist-q-num">Pregunta ${i}</div>
+          <div class="checklist-options-group">
+            ${options
+              .map(
+                (opt) => `
+              <div class="opt-pill ${currentSelected === opt ? "selected" : ""}" data-q="${i}" data-opt="${opt}">
+                ${opt}
+              </div>
+            `
+              )
+              .join("")}
+          </div>
+          ${areasHtml}
+        </div>
+      `;
+    }
+
+    checklistContainer.innerHTML = html;
+
+    // Listeners de alternativas A-E
+    checklistContainer.querySelectorAll(".opt-pill").forEach((pill) => {
+      pill.onclick = () => {
+        const q = pill.getAttribute("data-q");
+        const opt = pill.getAttribute("data-opt");
+
+        if (evalState.modalState.respuestas[q] === opt) {
+          delete evalState.modalState.respuestas[q];
+        } else {
+          evalState.modalState.respuestas[q] = opt;
+        }
+
+        renderModalChecklist();
+      };
+    });
+
+    // Listeners de checkboxes de áreas
+    if (isClaveAreas) {
+      checklistContainer.querySelectorAll(".chk-area-opt").forEach((chk) => {
+        chk.onchange = () => {
+          const q = chk.getAttribute("data-q");
+          const area = chk.getAttribute("data-area");
+          if (!evalState.modalState.areasPorPregunta[q]) {
+            evalState.modalState.areasPorPregunta[q] = ["A", "B", "C", "D", "E"];
+          }
+
+          let arr = evalState.modalState.areasPorPregunta[q];
+          if (chk.checked) {
+            if (!arr.includes(area)) arr.push(area);
+          } else {
+            arr = arr.filter((x) => x !== area);
+          }
+          evalState.modalState.areasPorPregunta[q] = arr;
+        };
+      });
+    }
+
+    const counterEl = document.getElementById("modal-clave-counter-status");
+    const count = Object.keys(evalState.modalState.respuestas).filter((k) => evalState.modalState.respuestas[k]).length;
+    if (counterEl) {
+      counterEl.textContent = `${count} de ${evalState.modalState.numPreguntas} preguntas marcadas`;
+    }
+  }
+}

@@ -467,6 +467,31 @@ async function setupIntelligentBookSearch(libroInput, estudianteInput, previewEl
 }
 
 // =========================================================
+const publicShelfSortMap = {};
+
+function ordenarLibrosPublico(libros, sortKey = "titulo_asc") {
+  const lista = [...libros];
+  switch (sortKey) {
+    case "titulo_asc":
+      return lista.sort((a, b) => (a.titulo || "").localeCompare(b.titulo || "", "es", { sensitivity: "base" }));
+    case "titulo_desc":
+      return lista.sort((a, b) => (b.titulo || "").localeCompare(a.titulo || "", "es", { sensitivity: "base" }));
+    case "codigo_asc":
+      return lista.sort((a, b) => (a.codigo || "").localeCompare(b.codigo || "", undefined, { numeric: true }));
+    case "codigo_desc":
+      return lista.sort((a, b) => (b.codigo || "").localeCompare(a.codigo || "", undefined, { numeric: true }));
+    case "disponible":
+      return lista.sort((a, b) => {
+        if (a.estado === "disponible" && b.estado !== "disponible") return -1;
+        if (a.estado !== "disponible" && b.estado === "disponible") return 1;
+        return (a.titulo || "").localeCompare(b.titulo || "");
+      });
+    default:
+      return lista;
+  }
+}
+
+// =========================================================
 // RENDERIZADO DEL ESTANTE DE LIBROS PÚBLICO
 // =========================================================
 async function cargarEstantePublico() {
@@ -489,18 +514,40 @@ async function cargarEstantePublico() {
     let html = "";
 
     secciones.forEach((seccion) => {
-      const librosSeccion = libros.filter(
+      let librosSeccion = libros.filter(
         (l) =>
-          l.seccion.toUpperCase() === seccion.toUpperCase() &&
+          String(l.seccion || "").toUpperCase() === seccion.toUpperCase() &&
           (!searchTerm ||
-            l.titulo.toLowerCase().includes(searchTerm) ||
-            l.codigo.toLowerCase().includes(searchTerm) ||
+            (l.titulo && l.titulo.toLowerCase().includes(searchTerm)) ||
+            (l.codigo && l.codigo.toLowerCase().includes(searchTerm)) ||
             (l.editorial && l.editorial.toLowerCase().includes(searchTerm)))
       );
 
+      if (searchTerm && librosSeccion.length === 0) {
+        return;
+      }
+
+      const currentSort = publicShelfSortMap[seccion] || "titulo_asc";
+      librosSeccion = ordenarLibrosPublico(librosSeccion, currentSort);
+
       html += `
         <div class="shelf-section">
-          <div class="shelf-title"><i class="bi bi-bookmark-star"></i> ESTANTE: ${seccion}</div>
+          <div class="shelf-title">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span><i class="bi bi-bookmark-star"></i> ESTANTE: ${seccion}</span>
+              <span style="font-size:0.75rem; background:#f1f5f9; color:#475569; padding:2px 8px; border-radius:10px; font-weight:700;">${librosSeccion.length} libros</span>
+            </div>
+            <div class="shelf-sort-wrapper">
+              <label style="font-size:0.78rem; font-weight:600; color:#64748b;"><i class="bi bi-arrow-down-up"></i> Orden:</label>
+              <select class="shelf-sort-select public-shelf-sort" data-seccion="${seccion}">
+                <option value="titulo_asc" ${currentSort === "titulo_asc" ? "selected" : ""}>🔤 Nombre (A - Z)</option>
+                <option value="titulo_desc" ${currentSort === "titulo_desc" ? "selected" : ""}>🔤 Nombre (Z - A)</option>
+                <option value="codigo_asc" ${currentSort === "codigo_asc" ? "selected" : ""}>🔢 Código (Asc)</option>
+                <option value="codigo_desc" ${currentSort === "codigo_desc" ? "selected" : ""}>🔢 Código (Desc)</option>
+                <option value="disponible" ${currentSort === "disponible" ? "selected" : ""}>🟢 Disponibles 1°</option>
+              </select>
+            </div>
+          </div>
           <div class="shelf-books-grid">
       `;
 
@@ -537,6 +584,18 @@ async function cargarEstantePublico() {
     });
 
     container.innerHTML = html;
+
+    // Listeners de ordenación en estantería pública
+    container.querySelectorAll(".public-shelf-sort").forEach((sel) => {
+      sel.addEventListener("change", (e) => {
+        const sec = e.target.getAttribute("data-seccion");
+        const val = e.target.value;
+        if (sec) {
+          publicShelfSortMap[sec] = val;
+          cargarEstantePublico();
+        }
+      });
+    });
 
     if (filterInput && !filterInput.dataset.listener) {
       filterInput.dataset.listener = "true";

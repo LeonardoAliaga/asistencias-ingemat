@@ -255,17 +255,17 @@ button[type="submit"]:hover {
 /* Contenedor de los resultados */
 .autocomplete-items {
   position: absolute;
-  border: 1px solid var(--white2);
-  border-top: none;
-  z-index: 99;
+  border: 1px solid #cbd5e1;
+  z-index: 2000;
   top: 100%;
   left: 0;
   right: 0;
   background-color: #ffffff;
-  border-radius: 0 0 5px 5px;
-  max-height: 220px;
+  border-radius: 8px;
+  max-height: 240px;
   overflow-y: auto;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+  margin-top: 2px;
 }
 
 /* * LA REGLA QUE OCULTABA TODO (.autocomplete-items div { display: none; }) 
