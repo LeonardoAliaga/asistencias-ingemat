@@ -8,6 +8,7 @@ export {
 
 export {
   getSemanaSabadoVieInfo,
+  extraerSemanasRegistradas,
   getSabadoVieOptions,
   formatFechaTarea,
   calcularRangoFechas,

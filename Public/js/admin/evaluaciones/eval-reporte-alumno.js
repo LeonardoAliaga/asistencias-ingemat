@@ -7,14 +7,15 @@ import {
   formatFechaTarea,
   getTareaEstadoInfo,
   calcularRangoFechas,
+  getSemanaSabadoVieInfo,
+  extraerSemanasRegistradas,
 } from "./eval-utils.js";
 
 // 9. Buscador y Reporte Consolidado por Alumno
 export async function buscarYRenderizarReporteAlumno(codigoEstudiante) {
   const dashboardContainer = document.getElementById("alumno-reporte-dashboard");
-  const btnPrint = document.getElementById("btn-imprimir-reporte-alumno");
-  const btnCopyTareasImg = document.getElementById("btn-copiar-imagen-tareas");
-  const btnCopyReporteImg = document.getElementById("btn-copiar-imagen-reporte");
+  const toolbar = document.getElementById("reporte-alumno-toolbar");
+  const semanaSelect = document.getElementById("reporte-alumno-semana-select");
 
   let cod = (codigoEstudiante || "").trim();
   if (!cod) {
@@ -38,17 +39,36 @@ export async function buscarYRenderizarReporteAlumno(codigoEstudiante) {
     const data = await res.json();
 
     if (data.exito) {
+      const rawEval = data.historialEvaluaciones || [];
+      const rawTarea = data.historialTareas || [];
+      const semanas = extraerSemanasRegistradas(rawEval, rawTarea);
+
+      if (semanaSelect) {
+        if (semanas.length > 0) {
+          semanaSelect.innerHTML = [
+            `<option value="TODAS">📅 Todas las Semanas Registradas (${semanas.length})</option>`,
+            ...semanas.map((s) => `<option value="${s.value}">${s.label}</option>`),
+          ].join("");
+        } else {
+          semanaSelect.innerHTML = `<option value="TODAS">📅 Todas las Semanas Registradas</option>`;
+        }
+        semanaSelect.value = "TODAS";
+      }
+
       evalState.currentStudentReportData = {
         estudiante: data.estudiante,
-        evalHist: data.historialEvaluaciones || [],
-        tareaHist: data.historialTareas || [],
+        rawEvalHist: rawEval,
+        rawTareaHist: rawTarea,
+        evalHist: rawEval,
+        tareaHist: rawTarea,
+        selectedSemana: "TODAS",
+        selectedSemanaLabel: null,
       };
-      const toolbar = document.getElementById("reporte-alumno-toolbar");
+
       if (toolbar) toolbar.style.display = "flex";
-      renderDashboardEstudiante(data.estudiante, data.historialEvaluaciones, data.historialTareas);
+      renderDashboardEstudiante(data.estudiante, rawEval, rawTarea, null);
     } else {
       evalState.currentStudentReportData = null;
-      const toolbar = document.getElementById("reporte-alumno-toolbar");
       if (toolbar) toolbar.style.display = "none";
       if (dashboardContainer) {
         dashboardContainer.innerHTML = `<div class="eval-card-box" style="text-align:center; padding:30px; color:#ef4444; border:1px solid #fecaca; background:#fef2f2;">⚠️ ${data.mensaje}</div>`;
@@ -59,12 +79,52 @@ export async function buscarYRenderizarReporteAlumno(codigoEstudiante) {
   }
 }
 
+// Aplicar filtro reactivo según la semana seleccionada
+export function aplicarFiltroSemanaReporte() {
+  if (!evalState.currentStudentReportData) return;
+
+  const semanaSelect = document.getElementById("reporte-alumno-semana-select");
+  const selectedVal = semanaSelect ? semanaSelect.value : "TODAS";
+  const { estudiante, rawEvalHist, rawTareaHist } = evalState.currentStudentReportData;
+
+  let evalFiltradas = rawEvalHist;
+  let tareasFiltradas = rawTareaHist;
+  let semanaLabel = null;
+
+  if (selectedVal && selectedVal !== "TODAS") {
+    evalFiltradas = rawEvalHist.filter((e) => {
+      const info = getSemanaSabadoVieInfo(e.fecha);
+      return info.value === selectedVal;
+    });
+    tareasFiltradas = rawTareaHist.filter((t) => {
+      const info = getSemanaSabadoVieInfo(t.fecha);
+      return info.value === selectedVal;
+    });
+    const optText = semanaSelect.options[semanaSelect.selectedIndex]?.text || selectedVal;
+    semanaLabel = optText;
+  }
+
+  evalState.currentStudentReportData.evalHist = evalFiltradas;
+  evalState.currentStudentReportData.tareaHist = tareasFiltradas;
+  evalState.currentStudentReportData.selectedSemana = selectedVal;
+  evalState.currentStudentReportData.selectedSemanaLabel = semanaLabel;
+
+  renderDashboardEstudiante(estudiante, evalFiltradas, tareasFiltradas, semanaLabel);
+}
+
 export function setupBuscadorReporteAlumno() {
   const textInput = document.getElementById("reporte-student-search");
   const btnSearch = document.getElementById("btn-buscar-reporte-alumno");
   const btnPrint = document.getElementById("btn-imprimir-reporte-alumno");
   const btnCopyTareasImg = document.getElementById("btn-copiar-imagen-tareas");
   const btnCopyReporteImg = document.getElementById("btn-copiar-imagen-reporte");
+  const semanaSelect = document.getElementById("reporte-alumno-semana-select");
+
+  if (semanaSelect) {
+    semanaSelect.onchange = () => {
+      aplicarFiltroSemanaReporte();
+    };
+  }
 
   if (btnPrint) {
     btnPrint.onclick = () => {
@@ -72,7 +132,8 @@ export function setupBuscadorReporteAlumno() {
         generarFichaAlumnoPDF(
           evalState.currentStudentReportData.estudiante,
           evalState.currentStudentReportData.evalHist,
-          evalState.currentStudentReportData.tareaHist
+          evalState.currentStudentReportData.tareaHist,
+          evalState.currentStudentReportData.selectedSemanaLabel
         );
       } else {
         window.print();
@@ -85,7 +146,8 @@ export function setupBuscadorReporteAlumno() {
       if (evalState.currentStudentReportData) {
         copiarReporteTareasImagen(
           evalState.currentStudentReportData.estudiante,
-          evalState.currentStudentReportData.tareaHist
+          evalState.currentStudentReportData.tareaHist,
+          evalState.currentStudentReportData.selectedSemanaLabel
         );
       } else {
         alert("⚠️ Seleccione primero un estudiante para generar el reporte de tareas.");
@@ -99,7 +161,8 @@ export function setupBuscadorReporteAlumno() {
         copiarReporteCompletoImagen(
           evalState.currentStudentReportData.estudiante,
           evalState.currentStudentReportData.evalHist,
-          evalState.currentStudentReportData.tareaHist
+          evalState.currentStudentReportData.tareaHist,
+          evalState.currentStudentReportData.selectedSemanaLabel
         );
       } else {
         alert("⚠️ Seleccione primero un estudiante para generar la ficha integral.");
@@ -122,14 +185,14 @@ export function setupBuscadorReporteAlumno() {
 }
 
 // Generador de Ficha de Alumno en Documento PDF Limpio y Organizado
-export function generarFichaAlumnoPDF(est, evalHist, tareaHist) {
+export function generarFichaAlumnoPDF(est, evalHist, tareaHist, semanaLabel = null) {
   const hoyStr = new Date().toLocaleDateString("es-PE", { year: "numeric", month: "long", day: "numeric" });
-  const rangoFechas = calcularRangoFechas(evalHist, tareaHist);
+  const rangoFechas = semanaLabel ? semanaLabel.replace(/^📅\s*/, "") : calcularRangoFechas(evalHist, tareaHist);
+  const tagReporte = semanaLabel ? "FICHA SEMANAL PDF" : "FICHA CONSOLIDADA PDF";
 
   let evalRows = "";
   if (evalHist.length === 0) {
-    evalRows =
-      '<tr><td colspan="7" style="text-align:center; padding:12px; color:#64748b;">Sin evaluaciones registradas</td></tr>';
+    evalRows = `<tr><td colspan="7" style="text-align:center; padding:14px; color:#64748b;">${semanaLabel ? "Sin evaluaciones registradas en la semana seleccionada" : "Sin evaluaciones registradas"}</td></tr>`;
   } else {
     evalHist.forEach((e) => {
       evalRows += `
@@ -148,8 +211,7 @@ export function generarFichaAlumnoPDF(est, evalHist, tareaHist) {
 
   let tareaRows = "";
   if (tareaHist.length === 0) {
-    tareaRows =
-      '<tr><td colspan="4" style="text-align:center; padding:12px; color:#64748b;">Sin tareas registradas</td></tr>';
+    tareaRows = `<tr><td colspan="4" style="text-align:center; padding:14px; color:#64748b;">${semanaLabel ? "Sin tareas registradas en la semana seleccionada" : "Sin tareas registradas"}</td></tr>`;
   } else {
     tareaHist.forEach((t) => {
       const stInfo = getTareaEstadoInfo(t);
@@ -205,14 +267,14 @@ export function generarFichaAlumnoPDF(est, evalHist, tareaHist) {
           <h1 class="brand-title">ACADEMIA PREUNIVERSITARIA INGEMAT</h1>
           <div class="brand-sub">Sistema de Evaluación Integral y Reporte de Desempeño</div>
         </div>
-        <div class="report-tag">FICHA CONSOLIDADA PDF</div>
+        <div class="report-tag">${tagReporte}</div>
       </div>
 
       <div class="student-box">
         <div class="student-info">
           <h2>${est.nombre}</h2>
           <p><b>Código de Estudiante:</b> ${est.codigo} &nbsp;|&nbsp; <b>Ciclo / Salón:</b> ${est.ciclo}</p>
-          <p><b>Turno:</b> ${est.turno} &nbsp;|&nbsp; <b>Periodo Evaluado:</b> <span style="color:#b72107; font-weight:700;">${rangoFechas}</span></p>
+          <p><b>Turno:</b> ${est.turno} &nbsp;|&nbsp; <b>${semanaLabel ? "Semana Evaluada" : "Periodo Evaluado"}:</b> <span style="color:#b72107; font-weight:700;">${rangoFechas}</span></p>
           <p><b>Fecha de Emisión:</b> ${hoyStr}</p>
         </div>
       </div>
@@ -228,7 +290,7 @@ export function generarFichaAlumnoPDF(est, evalHist, tareaHist) {
         </div>
         <div class="metric-card">
           <div class="metric-num" style="font-size: 15px; padding-top: 4px;">${rangoFechas}</div>
-          <div class="metric-lbl">Periodo Evaluado</div>
+          <div class="metric-lbl">${semanaLabel ? "Semana Evaluada" : "Periodo Evaluado"}</div>
         </div>
       </div>
 
@@ -288,7 +350,7 @@ export function generarFichaAlumnoPDF(est, evalHist, tareaHist) {
 }
 
 // Generador de Imagen de Reporte Exclusivo de Tareas (Entregadas y No Entregadas) para Copiar al Portapapeles
-export function copiarReporteTareasImagen(est, tareaHist = []) {
+export function copiarReporteTareasImagen(est, tareaHist = [], semanaLabel = null) {
   const canvas = document.createElement("canvas");
   const canvasWidth = 1000;
   const rowHeight = 38;
@@ -317,10 +379,10 @@ export function copiarReporteTareasImagen(est, tareaHist = []) {
 
   ctx.fillStyle = "#B72107";
   ctx.font = "bold 18px 'Segoe UI', Tahoma, sans-serif";
-  ctx.fillText("CONTROL Y REPORTE DE ENTREGA DE TAREAS", canvasWidth / 2, 75);
+  ctx.fillText(semanaLabel ? "CONTROL SEMANAL DE ENTREGA DE TAREAS" : "CONTROL Y REPORTE DE ENTREGA DE TAREAS", canvasWidth / 2, 75);
 
   const hoyStr = new Date().toLocaleDateString("es-PE", { year: "numeric", month: "long", day: "numeric" });
-  const rangoFechas = calcularRangoFechas([], tareaHist);
+  const rangoFechas = semanaLabel ? semanaLabel.replace(/^📅\s*/, "") : calcularRangoFechas([], tareaHist);
 
   // Tarjeta de Información del Estudiante
   const startX = 40;
@@ -343,7 +405,7 @@ export function copiarReporteTareasImagen(est, tareaHist = []) {
   ctx.textAlign = "right";
   ctx.fillStyle = "#B72107";
   ctx.font = "bold 13px 'Segoe UI', Tahoma, sans-serif";
-  ctx.fillText(`Periodo: ${rangoFechas}`, startX + tableWidth - 16, 116);
+  ctx.fillText(`${semanaLabel ? "Semana" : "Periodo"}: ${rangoFechas}`, startX + tableWidth - 16, 116);
 
   ctx.fillStyle = "#64748B";
   ctx.font = "12.5px 'Segoe UI', Tahoma, sans-serif";
@@ -433,7 +495,11 @@ export function copiarReporteTareasImagen(est, tareaHist = []) {
     ctx.fillStyle = "#64748B";
     ctx.font = "italic 14px 'Segoe UI', sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("El estudiante no cuenta con registros de tareas.", startX + tableWidth / 2, currentY + 24);
+    ctx.fillText(
+      semanaLabel ? "Sin tareas registradas en la semana seleccionada." : "El estudiante no cuenta con registros de tareas.",
+      startX + tableWidth / 2,
+      currentY + 24
+    );
     currentY += rowHeight;
   } else {
     tareaHist.forEach((t, idx) => {
@@ -505,12 +571,13 @@ export function copiarReporteTareasImagen(est, tareaHist = []) {
     currentY + 40
   );
 
-  const filename = `Tareas_${(est.nombre || "Estudiante").replace(/[^a-zA-Z0-9]/g, "_")}_${est.codigo}.png`;
-  copyCanvasToClipboard(canvas, filename, `¡Imagen de Tareas de "${est.nombre}" copiada con éxito al portapapeles!`);
+  const sufijo = semanaLabel ? `_${semanaLabel.replace(/[^a-zA-Z0-9]/g, "_").slice(0, 25)}` : "";
+  const filename = `Tareas_${(est.nombre || "Estudiante").replace(/[^a-zA-Z0-9]/g, "_")}_${est.codigo}${sufijo}.png`;
+  copyCanvasToClipboard(canvas, filename, `¡Imagen de Tareas ${semanaLabel ? `(${semanaLabel})` : ""} de "${est.nombre}" copiada con éxito al portapapeles!`);
 }
 
 // Generador de Imagen de Reporte Consolidado Completo (Evaluaciones + Tareas) para Copiar al Portapapeles
-export function copiarReporteCompletoImagen(est, evalHist = [], tareaHist = []) {
+export function copiarReporteCompletoImagen(est, evalHist = [], tareaHist = [], semanaLabel = null) {
   const canvas = document.createElement("canvas");
   const canvasWidth = 1100;
   const rowHeight = 38;
@@ -518,7 +585,7 @@ export function copiarReporteCompletoImagen(est, evalHist = [], tareaHist = []) 
   const tableHeaderHeight = 36;
 
   const hoyStr = new Date().toLocaleDateString("es-PE", { year: "numeric", month: "long", day: "numeric" });
-  const rangoFechas = calcularRangoFechas(evalHist, tareaHist);
+  const rangoFechas = semanaLabel ? semanaLabel.replace(/^📅\s*/, "") : calcularRangoFechas(evalHist, tareaHist);
 
   const numEvalRows = Math.max(evalHist.length, 1);
   const numTareaRows = Math.max(tareaHist.length, 1);
@@ -550,7 +617,7 @@ export function copiarReporteCompletoImagen(est, evalHist = [], tareaHist = []) 
 
   ctx.fillStyle = "#B72107";
   ctx.font = "bold 19px 'Segoe UI', Tahoma, sans-serif";
-  ctx.fillText("FICHA CONSOLIDADA INTEGRAL DE DESEMPEÑO", canvasWidth / 2, 76);
+  ctx.fillText(semanaLabel ? "FICHA SEMANAL INTEGRAL DE DESEMPEÑO" : "FICHA CONSOLIDADA INTEGRAL DE DESEMPEÑO", canvasWidth / 2, 76);
 
   // Tarjeta de Información del Estudiante
   const startX = 40;
@@ -569,7 +636,7 @@ export function copiarReporteCompletoImagen(est, evalHist = [], tareaHist = []) 
   ctx.textAlign = "right";
   ctx.fillStyle = "#B72107";
   ctx.font = "bold 13.5px 'Segoe UI', Tahoma, sans-serif";
-  ctx.fillText(`Periodo: ${rangoFechas}`, startX + tableWidth - 18, 120);
+  ctx.fillText(`${semanaLabel ? "Semana" : "Periodo"}: ${rangoFechas}`, startX + tableWidth - 18, 120);
 
   ctx.fillStyle = "#64748B";
   ctx.font = "12.5px 'Segoe UI', Tahoma, sans-serif";
@@ -675,7 +742,11 @@ export function copiarReporteCompletoImagen(est, evalHist = [], tareaHist = []) 
     ctx.fillStyle = "#64748B";
     ctx.font = "italic 13.5px 'Segoe UI', sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("El estudiante no cuenta con simulacros o exámenes registrados.", startX + tableWidth / 2, currentY + 24);
+    ctx.fillText(
+      semanaLabel ? "Sin simulacros o exámenes registrados en la semana seleccionada." : "El estudiante no cuenta con simulacros o exámenes registrados.",
+      startX + tableWidth / 2,
+      currentY + 24
+    );
     currentY += rowHeight + 14;
   } else {
     evalHist.forEach((e, idx) => {
@@ -778,7 +849,11 @@ export function copiarReporteCompletoImagen(est, evalHist = [], tareaHist = []) 
     ctx.fillStyle = "#64748B";
     ctx.font = "italic 13.5px 'Segoe UI', sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("El estudiante no cuenta con registros de tareas.", startX + tableWidth / 2, currentY + 24);
+    ctx.fillText(
+      semanaLabel ? "Sin tareas registradas en la semana seleccionada." : "El estudiante no cuenta con registros de tareas.",
+      startX + tableWidth / 2,
+      currentY + 24
+    );
     currentY += rowHeight + 14;
   } else {
     tareaHist.forEach((t, idx) => {
@@ -856,23 +931,28 @@ export function copiarReporteCompletoImagen(est, evalHist = [], tareaHist = []) 
     currentY + 62
   );
 
-  const filename = `ReporteCompleto_${(est.nombre || "Estudiante").replace(/[^a-zA-Z0-9]/g, "_")}_${est.codigo}.png`;
-  copyCanvasToClipboard(canvas, filename, `¡Ficha Integral de "${est.nombre}" copiada con éxito al portapapeles!`);
+  const sufijo = semanaLabel ? `_${semanaLabel.replace(/[^a-zA-Z0-9]/g, "_").slice(0, 25)}` : "";
+  const filename = `ReporteCompleto_${(est.nombre || "Estudiante").replace(/[^a-zA-Z0-9]/g, "_")}_${est.codigo}${sufijo}.png`;
+  copyCanvasToClipboard(canvas, filename, `¡Ficha Integral ${semanaLabel ? `(${semanaLabel})` : ""} de "${est.nombre}" copiada con éxito al portapapeles!`);
 }
 
-export function renderDashboardEstudiante(est, evalHist, tareaHist) {
+export function renderDashboardEstudiante(est, evalHist, tareaHist, semanaLabel = null) {
   const container = document.getElementById("alumno-reporte-dashboard");
   const toolbar = document.getElementById("reporte-alumno-toolbar");
   if (!container) return;
 
   if (toolbar) toolbar.style.display = "flex";
 
-  const rangoFechas = calcularRangoFechas(evalHist, tareaHist);
+  const rangoFechas = semanaLabel ? semanaLabel.replace(/^📅\s*/, "") : calcularRangoFechas(evalHist, tareaHist);
 
   let tareasEntregadas = 0;
   tareaHist.forEach((t) => {
     if (getTareaEstadoInfo(t).entregado) tareasEntregadas++;
   });
+
+  const periodoHtml = semanaLabel
+    ? `<p style="margin-top:2px;"><b>📅 Semana Seleccionada:</b> <span style="color:#0284c7; font-weight:700;">${rangoFechas}</span> <span style="background:#e0f2fe; color:#0369a1; padding:2px 8px; border-radius:10px; font-size:0.75rem; font-weight:700; margin-left:4px;">Semana Filtrada</span></p>`
+    : `<p style="margin-top:2px;"><b>📅 Periodo Evaluado:</b> <span style="color:#b72107; font-weight:700;">${rangoFechas}</span></p>`;
 
   let html = `
     <!-- Perfil del Estudiante -->
@@ -882,7 +962,7 @@ export function renderDashboardEstudiante(est, evalHist, tareaHist) {
         <div class="student-info-details">
           <h3 style="margin:0 0 4px 0;">${est.nombre}</h3>
           <p style="margin:0;"><b>Código:</b> ${est.codigo} | <b>Ciclo:</b> ${est.ciclo} | <b>Turno:</b> ${est.turno}</p>
-          <p style="margin-top:2px;"><b>📅 Periodo Evaluado:</b> <span style="color:#b72107; font-weight:700;">${rangoFechas}</span></p>
+          ${periodoHtml}
         </div>
       </div>
     </div>
@@ -899,7 +979,7 @@ export function renderDashboardEstudiante(est, evalHist, tareaHist) {
       </div>
       <div class="stat-pill-box">
         <div class="stat-pill-value" style="font-size:1.05rem;">${rangoFechas}</div>
-        <div class="stat-pill-label">Periodo de Registros</div>
+        <div class="stat-pill-label">${semanaLabel ? "Semana Seleccionada" : "Periodo de Registros"}</div>
       </div>
     </div>
 
@@ -911,7 +991,9 @@ export function renderDashboardEstudiante(est, evalHist, tareaHist) {
   `;
 
   if (evalHist.length === 0) {
-    html += `<i>El estudiante no tiene simulacros o exámenes registrados.</i>`;
+    html += semanaLabel
+      ? `<i>No hay evaluaciones ni simulacros registrados para la semana seleccionada (${rangoFechas}).</i>`
+      : `<i>El estudiante no tiene simulacros o exámenes registrados.</i>`;
   } else {
     html += `
       <table class="three-col-table" style="width:100%;">
@@ -965,7 +1047,9 @@ export function renderDashboardEstudiante(est, evalHist, tareaHist) {
   `;
 
   if (tareaHist.length === 0) {
-    html += `<i>El estudiante no tiene tareas registradas.</i>`;
+    html += semanaLabel
+      ? `<i>No hay tareas registradas para la semana seleccionada (${rangoFechas}).</i>`
+      : `<i>El estudiante no tiene tareas registradas.</i>`;
   } else {
     html += `
       <table class="three-col-table" style="width:100%;">
@@ -1001,7 +1085,7 @@ export function renderDashboardEstudiante(est, evalHist, tareaHist) {
   const btnCardTareas = document.getElementById("btn-card-copiar-tareas");
   if (btnCardTareas) {
     btnCardTareas.onclick = () => {
-      copiarReporteTareasImagen(est, tareaHist);
+      copiarReporteTareasImagen(est, tareaHist, semanaLabel);
     };
   }
 }

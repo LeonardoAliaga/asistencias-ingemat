@@ -4,11 +4,19 @@
  * Calcula la semana de ciclo académico de Sábado a Viernes para una fecha dada.
  */
 export function getSemanaSabadoVieInfo(refDate) {
-  let date = refDate
-    ? typeof refDate === "string"
-      ? new Date(refDate.includes("T") ? refDate : refDate + "T12:00:00")
-      : new Date(refDate)
-    : new Date();
+  let date;
+  if (!refDate) {
+    date = new Date();
+  } else if (typeof refDate === "string") {
+    if (refDate.includes("_")) {
+      const parts = refDate.split("_");
+      date = new Date(parts[0] + "T12:00:00");
+    } else {
+      date = new Date(refDate.includes("T") ? refDate : refDate + "T12:00:00");
+    }
+  } else {
+    date = new Date(refDate);
+  }
   if (isNaN(date.getTime())) date = new Date();
 
   const day = date.getDay(); // 0: Dom, 1: Lun, ..., 6: Sab
@@ -44,6 +52,31 @@ export function getSemanaSabadoVieInfo(refDate) {
     sabadoYMD: sabYMD,
     viernesYMD: vieYMD,
   };
+}
+
+/**
+ * Extrae y consolida todas las semanas únicas registradas en un historial de evaluaciones y tareas.
+ */
+export function extraerSemanasRegistradas(evalHist = [], tareaHist = []) {
+  const map = new Map();
+
+  const procesarFecha = (fechaStr) => {
+    if (!fechaStr) return;
+    const info = getSemanaSabadoVieInfo(fechaStr);
+    if (!map.has(info.value)) {
+      map.set(info.value, {
+        value: info.value,
+        label: info.label,
+        sabadoYMD: info.sabadoYMD,
+        viernesYMD: info.viernesYMD,
+      });
+    }
+  };
+
+  evalHist.forEach((e) => procesarFecha(e.fecha));
+  tareaHist.forEach((t) => procesarFecha(t.fecha));
+
+  return Array.from(map.values()).sort((a, b) => b.sabadoYMD.localeCompare(a.sabadoYMD));
 }
 
 /**
