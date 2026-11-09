@@ -77,7 +77,7 @@ Usa código, lector USB o cámara.
 3. **Comprueba el resultado.** Revisa nombre, ciclo, turno y hora. La fecha y hora se calculan en America/Lima.
 4. **Evita registros repetidos.** Una segunda lectura del mismo usuario, fecha y turno informa que ya existe un ingreso.
 5. **Continúa aunque falle Internet.** La asistencia se guarda en SQLite. Los avisos quedan en cola y se envían cuando la conexión oficial vuelva a estar disponible.
-6. **Consulta la lista.** En Asistencias filtra por fecha y ciclo; exporta el Excel para compartir el registro.
+6. **Consulta la lista.** En Asistencia filtra por fecha, ciclo y turno. Descarga Excel o pulsa Copiar imagen para pegar el reporte PNG con Ctrl+V.
 
 - Un aviso en cola no equivale a un mensaje entregado. Consulta Comunicación para comprobar el estado.
 
@@ -95,11 +95,15 @@ Deja un motivo y una persona responsable.
 
 Distingue los nuevos registros de los Excel anteriores.
 
-1. **Elige fecha y ciclo.** Abre Asistencias y aplica los filtros.
+1. **Elige fecha, ciclo y turno.** Abre Asistencia. Los filtros se aplican al listado, al Excel y a la imagen. Puedes usar Consultar para actualizar.
 2. **Revisa el listado.** Los nuevos ingresos se leen directamente desde la base de datos.
-3. **Descarga Excel.** Usa Exportar Excel. El archivo se genera desde los registros almacenados y no se utiliza como base de datos.
-4. **Consulta archivos antiguos.** En Asistencia → Archivos históricos puedes abrir y descargar los Excel que existían antes de actualizar.
-5. **Respalda ambos conjuntos.** Incluye la base de datos, las imágenes de lectura y la carpeta Registros en las copias de seguridad.
+3. **Descarga Excel.** Usa Descargar Excel. El archivo se genera desde los registros almacenados y no se utiliza como base de datos.
+4. **Copia el reporte como imagen.** Pulsa Copiar imagen y pégala con Ctrl+V en el destino que necesites. El PNG conserva el diseño clásico: tres columnas, fuentes originales, encabezados y colores por estado. Si seleccionas varios ciclos o turnos, se muestran en secciones separadas. Incluye los ingresos registrados que corresponden a los filtros.
+5. **Consulta archivos antiguos.** En Asistencia → Archivos históricos puedes abrir y descargar los Excel que existían antes de actualizar.
+6. **Respalda ambos conjuntos.** Incluye la base de datos, las imágenes de lectura y la carpeta Registros en las copias de seguridad.
+
+- La copia directa necesita un navegador compatible y permiso de portapapeles. Si el navegador la bloquea, la app descarga el PNG y te informa.
+- Las imágenes usan los registros guardados; los reportes de archivos anteriores conservan su exportación dentro de Archivos históricos.
 
 ## Crear un simulacro estándar de 100 preguntas
 

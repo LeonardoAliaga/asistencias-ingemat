@@ -228,7 +228,7 @@
         },
         {
           "title": "Consulta la lista",
-          "text": "En Asistencias filtra por fecha y ciclo; exporta el Excel para compartir el registro."
+          "text": "En Asistencia filtra por fecha, ciclo y turno. Descarga Excel o pulsa Copiar imagen para pegar el reporte PNG con Ctrl+V."
         }
       ],
       "tips": [
@@ -271,8 +271,8 @@
       "summary": "Distingue los nuevos registros de los Excel anteriores.",
       "steps": [
         {
-          "title": "Elige fecha y ciclo",
-          "text": "Abre Asistencias y aplica los filtros."
+          "title": "Elige fecha, ciclo y turno",
+          "text": "Abre Asistencia. Los filtros se aplican al listado, al Excel y a la imagen. Puedes usar Consultar para actualizar."
         },
         {
           "title": "Revisa el listado",
@@ -280,7 +280,11 @@
         },
         {
           "title": "Descarga Excel",
-          "text": "Usa Exportar Excel. El archivo se genera desde los registros almacenados y no se utiliza como base de datos."
+          "text": "Usa Descargar Excel. El archivo se genera desde los registros almacenados y no se utiliza como base de datos."
+        },
+        {
+          "title": "Copia el reporte como imagen",
+          "text": "Pulsa Copiar imagen y pégala con Ctrl+V en el destino que necesites. El PNG conserva el diseño clásico: tres columnas, fuentes originales, encabezados y colores por estado. Si seleccionas varios ciclos o turnos, se muestran en secciones separadas. Incluye los ingresos registrados que corresponden a los filtros."
         },
         {
           "title": "Consulta archivos antiguos",
@@ -291,7 +295,10 @@
           "text": "Incluye la base de datos, las imágenes de lectura y la carpeta Registros en las copias de seguridad."
         }
       ],
-      "tips": []
+      "tips": [
+        "La copia directa necesita un navegador compatible y permiso de portapapeles. Si el navegador la bloquea, la app descarga el PNG y te informa.",
+        "Las imágenes usan los registros guardados; los reportes de archivos anteriores conservan su exportación dentro de Archivos históricos."
+      ]
     },
     {
       "id": "simulacro-100",

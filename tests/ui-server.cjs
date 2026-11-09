@@ -89,6 +89,14 @@ exams.saveGrade(
   },
   req,
 );
+const attendance = require("../src/services/attendance.service");
+for (const [code, time] of [
+  ["DEMO001", "13:30"],
+  ["DEMO002", "13:35"],
+  ["DEMO003", "20:00"],
+  ["DOC001", "13:30"],
+])
+  attendance.register(code, req, new Date(`${businessDate()}T${time}:00Z`));
 const server = app.listen(
   Number(process.env.UI_TEST_PORT || 3017),
   "127.0.0.1",

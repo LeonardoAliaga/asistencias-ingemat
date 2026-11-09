@@ -497,9 +497,22 @@ B:51-100,1-50"
         >Ciclo<select id="v2-attendance-cycle">
           <option value="">Todos los ciclos</option>
         </select></label
+      ><label
+        >Turno<select id="v2-attendance-shift">
+          <option value="">Todos los turnos</option>
+          <option value="mañana">Mañana</option>
+          <option value="tarde">Tarde</option>
+          <option value="docente">Docentes</option>
+        </select></label
       ><button class="v2-button" id="v2-attendance-load">Consultar</button
       ><a class="v2-button secondary" href="#" id="v2-attendance-export"
         >Exportar Excel</a
+      ><button
+        class="v2-button secondary"
+        id="v2-attendance-image"
+        type="button"
+      >
+        <i class="bi bi-image" aria-hidden="true"></i> Copiar imagen</button
       ><button class="v2-link" data-guide="asistencia">
         Tutorial de recepción
       </button>

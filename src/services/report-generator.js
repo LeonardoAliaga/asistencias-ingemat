@@ -93,6 +93,7 @@ const TITLE_HEIGHT = 40;
 const HEADER_HEIGHT = 35;
 const PADDING = 10;
 const COL_WIDTHS = [40, 300, 90, 150, 100];
+const THREE_COLUMN_WIDTHS = [50, 330, 160];
 const TOTAL_WIDTH = COL_WIDTHS.reduce((a, b) => a + b, 0) + PADDING * 2;
 const { recordsDir: registrosPath } = require("../config");
 
@@ -287,6 +288,11 @@ async function generateReportImage(
     return null;
   }
 
+  return renderReportImage(sectionData, options);
+}
+
+// Shared renderer: retain the original fonts, widths, colors and row layout.
+function reportCanvas(sectionData, options = {}) {
   const { title, rows, turno: sectionTurno } = sectionData;
 
   const dateHeader =
@@ -295,7 +301,7 @@ async function generateReportImage(
       : "HORA / ESTADO";
 
   const isThreeCols = options.threeColumns !== false; // Default true si se solicita para vista personalizada
-  const colWidths = isThreeCols ? [50, 330, 160] : COL_WIDTHS;
+  const colWidths = isThreeCols ? THREE_COLUMN_WIDTHS : COL_WIDTHS;
   const headers = isThreeCols
     ? ["N°", "APELLIDOS Y NOMBRES", dateHeader]
     : sectionData.headers;
@@ -381,9 +387,37 @@ async function generateReportImage(
     currentY += ROW_HEIGHT;
   }
 
-  console.log(
-    `Report-Generator: Imagen generada para ${ciclo} - ${turno} (Archivo: ${fileName}).`,
+  return canvas;
+}
+
+function renderReportImage(sectionData, options = {}) {
+  return reportCanvas(sectionData, options).toBuffer("image/png");
+}
+function renderReportSections(sections) {
+  if (!sections.length) return null;
+  const heights = sections.map(
+    (section) =>
+      TITLE_HEIGHT +
+      HEADER_HEIGHT +
+      section.rows.length * ROW_HEIGHT +
+      PADDING * 2,
   );
+  const height = heights.reduce((sum, h) => sum + h, 0);
+  if (height > 16000)
+    throw new (require("../utils/errors").AppError)(
+      "El reporte es demasiado largo para una imagen. Selecciona un ciclo y turno para reducirlo.",
+    );
+  if (sections.length === 1) return renderReportImage(sections[0]);
+  const canvas = createCanvas(
+      THREE_COLUMN_WIDTHS.reduce((sum, w) => sum + w, 0) + PADDING * 2,
+      height,
+    ),
+    ctx = canvas.getContext("2d");
+  let y = 0;
+  sections.forEach((section, i) => {
+    ctx.drawImage(reportCanvas(section), 0, y);
+    y += heights[i];
+  });
   return canvas.toBuffer("image/png");
 }
 
@@ -391,4 +425,6 @@ module.exports = {
   getExcelData,
   findSection,
   generateReportImage,
+  renderReportImage,
+  renderReportSections,
 };

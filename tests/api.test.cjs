@@ -31,14 +31,15 @@ async function client() {
       jar.set(k, v.join("="));
       if (k === "ingemat.csrf") csrf = decodeURIComponent(v.join("="));
     }
-    const text = await r.text();
+    const buffer = Buffer.from(await r.arrayBuffer());
+    const text = buffer.toString("utf8");
     let data;
     try {
       data = JSON.parse(text);
     } catch {
       data = text;
     }
-    return { status: r.status, data, headers: r.headers };
+    return { status: r.status, data, headers: r.headers, buffer };
   };
   await call("/api/session");
   return call;
@@ -700,5 +701,35 @@ test("historical Excel routes reject traversal and ambiguous names", async () =>
       )
     ).status,
     400,
+  );
+});
+
+test("attendance PNG export requires an operator, applies filters and returns the classic image", async () => {
+  const service = require("../src/services/attendance.service");
+  service.register(
+    "T002",
+    { session: { username: "admin", role: "admin" } },
+    new Date("2031-02-17T13:30:00Z"),
+  );
+  const query = "date=2031-02-17&ciclo=ANUAL&turno=mañana";
+  const r = await admin(`/api/v2/attendance/image?${query}`);
+  assert.equal(r.status, 200);
+  assert.match(r.headers.get("content-type"), /^image\/png/);
+  assert.equal(r.headers.get("cache-control"), "no-store");
+  assert.deepEqual(
+    [...r.buffer.subarray(0, 8)],
+    [137, 80, 78, 71, 13, 10, 26, 10],
+  );
+  assert.equal(r.buffer.readUInt32BE(16), 560);
+  assert.equal(r.buffer.readUInt32BE(20), 125);
+  assert.equal((await guest(`/api/v2/attendance/image?${query}`)).status, 401);
+  assert.equal(
+    (await admin("/api/v2/attendance/image?date=2031-02-30")).status,
+    400,
+  );
+  assert.equal(
+    (await admin("/api/v2/attendance/image?date=2031-02-17&turno=tarde"))
+      .status,
+    404,
   );
 });

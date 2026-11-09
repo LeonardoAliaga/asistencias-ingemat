@@ -211,6 +211,7 @@ router.get("/attendance", requirePermission("reportes:read"), (req, res) =>
     rows: attendance.list(
       req.query.date || businessDate(),
       String(req.query.ciclo || ""),
+      String(req.query.turno || ""),
     ),
   }),
 );
@@ -223,9 +224,25 @@ router.get(
       .type("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
       .attachment(`asistencias-${day}.xlsx`);
     await attendance
-      .workbook(day, String(req.query.ciclo || ""))
+      .workbook(
+        day,
+        String(req.query.ciclo || ""),
+        String(req.query.turno || ""),
+      )
       .xlsx.write(res);
     res.end();
+  },
+);
+router.get(
+  "/attendance/image",
+  requirePermission("reportes:read"),
+  (req, res) => {
+    const png = attendance.image(
+      req.query.date || businessDate(),
+      String(req.query.ciclo || ""),
+      String(req.query.turno || ""),
+    );
+    res.set("Cache-Control", "no-store").type("image/png").send(png);
   },
 );
 router.post(

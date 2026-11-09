@@ -12,6 +12,7 @@ const { AppError } = require("../utils/errors");
 const { audit } = require("./audit.service");
 const { hasPermission } = require("./auth.service");
 const notifications = require("./notifications.service");
+const { renderReportSections } = require("./report-generator");
 function register(code, req, date = new Date()) {
   let codigo = String(code || "")
     .trim()
@@ -109,16 +110,24 @@ function register(code, req, date = new Date()) {
     mensajeAdicional: scheduled ? null : "Registrado fuera del día programado.",
   };
 }
-function list(day = businessDate(), cycle = "") {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) throw new AppError("Fecha inválida.");
+function list(day = businessDate(), cycle = "", shift = "") {
+  if (
+    typeof day !== "string" ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(day) ||
+    !Number.isFinite(Date.parse(day)) ||
+    new Date(day + "T00:00:00Z").toISOString().slice(0, 10) !== day
+  )
+    throw new AppError("Fecha inválida.");
+  if (!["", "mañana", "tarde", "docente"].includes(shift))
+    throw new AppError("Selecciona un turno válido.");
   return db
     .prepare(
-      "SELECT * FROM attendance WHERE business_date=? AND (?='' OR UPPER(cycle_snapshot)=UPPER(?)) ORDER BY arrived_at DESC,name_snapshot",
+      "SELECT * FROM attendance WHERE business_date=? AND (?='' OR UPPER(cycle_snapshot)=UPPER(?)) AND (?='' OR shift_snapshot=?) ORDER BY arrived_at DESC,name_snapshot",
     )
-    .all(day, cycle, cycle);
+    .all(day, cycle, cycle, shift, shift);
 }
-function workbook(day, cycle = "") {
-  const rows = list(day, cycle),
+function workbook(day, cycle = "", shift = "") {
+  const rows = list(day, cycle, shift),
     wb = new ExcelJS.Workbook(),
     sheet = wb.addWorksheet("Asistencias");
   sheet.columns = [
@@ -142,6 +151,73 @@ function workbook(day, cycle = "") {
   sheet.autoFilter = "A1:H1";
   return wb;
 }
+function imageSections(day, cycle = "", shift = "") {
+  const groups = new Map();
+  for (const row of list(day, cycle, shift)) {
+    const teacher = row.shift_snapshot === "docente";
+    const key = JSON.stringify([row.cycle_snapshot, row.shift_snapshot]);
+    if (!groups.has(key))
+      groups.set(key, {
+        title: teacher
+          ? "REGISTRO DE ASISTENCIA - DOCENTES"
+          : `REGISTRO DE ASISTENCIA - ${row.cycle_snapshot.toUpperCase()} - ${row.shift_snapshot.toUpperCase()}`,
+        turno: teacher ? "docentes" : row.shift_snapshot,
+        headers: [
+          "N°",
+          "ESTUDIANTE",
+          "TURNO",
+          "CICLO",
+          new Date(day + "T12:00:00Z")
+            .toLocaleDateString("es-PE", { timeZone: "UTC", weekday: "long" })
+            .toUpperCase() +
+            " " +
+            day.slice(8),
+        ],
+        rows: [],
+      });
+    const match = /^(\d{2}):(\d{2})$/.exec(row.arrival_time || "");
+    const hour = match
+      ? `${String(Number(match[1]) % 12 || 12).padStart(2, "0")}:${match[2]}${Number(match[1]) >= 12 ? "PM" : "AM"}`
+      : row.arrival_time || "-";
+    groups.get(key).rows.push({
+      nombre: row.name_snapshot,
+      hora:
+        row.status === "justificada"
+          ? match
+            ? `${hour} (J)`
+            : "F. JUSTIFICADA"
+          : hour,
+      status:
+        row.status === "justificada"
+          ? match
+            ? "tardanza_justificada"
+            : "falta_justificada"
+          : teacher && row.status === "registrado"
+            ? "docente"
+            : row.status,
+    });
+  }
+  return [...groups.values()]
+    .sort((a, b) => a.title.localeCompare(b.title, "es"))
+    .map((section) => ({
+      ...section,
+      rows: section.rows
+        .sort((a, b) =>
+          a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" }),
+        )
+        .map((r, i) => ({ ...r, n: String(i + 1) })),
+    }));
+}
+function image(day = businessDate(), cycle = "", shift = "") {
+  const sections = imageSections(day, cycle, shift);
+  if (!sections.length)
+    throw new AppError(
+      "No hay asistencias registradas para esa fecha, ciclo y turno.",
+      404,
+    );
+  return renderReportSections(sections);
+}
+
 function justify(id, reason, req) {
   if (String(reason || "").trim().length < 5)
     throw new AppError("Describe el motivo de la justificación.");
@@ -152,4 +228,4 @@ function justify(id, reason, req) {
   ).run(reason.trim(), id);
   audit(req, "justificar", "asistencia", id, { reason });
 }
-module.exports = { register, list, workbook, justify };
+module.exports = { register, list, workbook, imageSections, image, justify };

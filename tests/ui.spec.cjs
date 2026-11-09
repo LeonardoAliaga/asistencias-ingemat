@@ -492,3 +492,81 @@ test("table sanitization preserves cells and removes executable markup", async (
   });
   expect(result).toEqual({ rows: 1, cells: 2, buttons: 1, safe: true });
 });
+
+test("attendance copies a real PNG with the classic layout and selected filters", async ({
+  page,
+  context,
+}) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await login(page);
+  await navigate(page, "attendance");
+  await page.selectOption("#v2-attendance-cycle", "ANUAL");
+  await page.selectOption("#v2-attendance-shift", "mañana");
+  await expect(page.locator("#v2-attendance")).toContainText("DEMO001");
+  await expect(page.locator("#v2-attendance")).not.toContainText("DEMO003");
+  const response = page.waitForResponse(
+    (r) => r.url().includes("/api/v2/attendance/image?") && r.status() === 200,
+  );
+  await page.click("#v2-attendance-image");
+  expect((await response).url()).toContain("turno=ma%C3%B1ana");
+  await expect(page.locator("#v2-message")).toContainText(
+    "copiada al portapapeles",
+  );
+  const png = await page.evaluate(async () => {
+    const items = await navigator.clipboard.read();
+    const blob = await items
+      .find((item) => item.types.includes("image/png"))
+      .getType("image/png");
+    const bitmap = await createImageBitmap(blob);
+    const result = {
+      type: blob.type,
+      width: bitmap.width,
+      height: bitmap.height,
+    };
+    bitmap.close();
+    return result;
+  });
+  expect(png).toEqual({ type: "image/png", width: 560, height: 155 });
+  await expect(page.locator("#v2-attendance-export")).toHaveAttribute(
+    "href",
+    /turno=ma%C3%B1ana/,
+  );
+});
+test("attendance downloads the PNG when clipboard permission is blocked", async ({
+  page,
+}) => {
+  await login(page);
+  await navigate(page, "attendance");
+  await page.evaluate(() =>
+    Object.defineProperty(navigator.clipboard, "write", {
+      value: () =>
+        Promise.reject(new DOMException("Blocked", "NotAllowedError")),
+    }),
+  );
+  const downloading = page.waitForEvent("download");
+  await page.click("#v2-attendance-image");
+  const download = await downloading;
+  expect(download.suggestedFilename()).toMatch(
+    /^Asistencia_\d{4}-\d{2}-\d{2}\.png$/,
+  );
+  await expect(page.locator("#v2-message")).toContainText("Se descargó el PNG");
+});
+test("empty attendance exports explain the selection and leave the button available", async ({
+  page,
+}) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await login(page);
+  await navigate(page, "attendance");
+  await page.fill("#v2-attendance-date", "2040-01-01");
+  await page.click("#v2-attendance-load");
+  await expect(page.locator("#v2-attendance")).toContainText(
+    "Todavía no hay registros",
+  );
+  await page.click("#v2-attendance-image");
+  await expect(page.locator("#v2-message")).toContainText(
+    "No hay asistencias registradas",
+  );
+  await expect(page.locator("#v2-attendance-image")).toBeEnabled();
+  expect(errors).toEqual([]);
+});

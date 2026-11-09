@@ -920,12 +920,71 @@ function reviewPage(index) {
   bind("v2-review-form", "submit", () => save(false));
   bind("v2-review-exclude", "click", () => save(true));
 }
-async function loadAttendance() {
-  const date = $("v2-attendance-date").value || today(),
-    cycle = $("v2-attendance-cycle").value;
-  const data = await api(
-    `/api/v2/attendance?date=${date}&ciclo=${encodeURIComponent(cycle)}`,
+function attendanceQuery() {
+  return new URLSearchParams({
+    date: $("v2-attendance-date").value || today(),
+    ciclo: $("v2-attendance-cycle").value,
+    turno: $("v2-attendance-shift").value,
+  }).toString();
+}
+async function copyAttendanceImage() {
+  const query = attendanceQuery();
+  const imagePromise = fetch(`/api/v2/attendance/image?${query}`).then(
+    async (response) => {
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(
+          error.mensaje || "No se pudo generar la imagen de asistencia.",
+        );
+      }
+      return response.blob();
+    },
   );
+  // Start writing during the click gesture. ClipboardItem resolves the PNG when
+  // the server finishes, including browsers that require transient activation.
+  let writing;
+  if (
+    window.isSecureContext &&
+    navigator.clipboard?.write &&
+    window.ClipboardItem
+  ) {
+    try {
+      writing = navigator.clipboard.write([
+        new ClipboardItem({ "image/png": imagePromise }),
+      ]);
+    } catch (error) {
+      writing = Promise.reject(error);
+    }
+  }
+  const [imageResult, copyResult] = await Promise.allSettled([
+    imagePromise,
+    writing || Promise.resolve(false),
+  ]);
+  if (imageResult.status === "rejected") throw imageResult.reason;
+  if (writing && copyResult.status === "fulfilled") {
+    message(
+      "Imagen de asistencia copiada al portapapeles. Ya puedes pegarla con Ctrl+V.",
+    );
+    return;
+  }
+  const url = URL.createObjectURL(imageResult.value),
+    link = document.createElement("a");
+  link.href = url;
+  link.download = `Asistencia_${new URLSearchParams(query).get("date")}.png`;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  message(
+    "Se descargó el PNG porque el navegador no permitió copiar la imagen al portapapeles.",
+  );
+}
+async function loadAttendance() {
+  const query = attendanceQuery(),
+    version = (state.attendanceVersion || 0) + 1;
+  state.attendanceVersion = version;
+  const data = await api(`/api/v2/attendance?${query}`);
+  if (version !== state.attendanceVersion) return;
   $("v2-attendance").innerHTML = table(
     ["Código", "Persona", "Ciclo / turno", "Hora", "Estado", "Acción"],
     data.rows.map((r) => [
@@ -939,8 +998,7 @@ async function loadAttendance() {
         : "",
     ]),
   );
-  $("v2-attendance-export").href =
-    `/api/v2/attendance/excel?date=${date}&ciclo=${encodeURIComponent(cycle)}`;
+  $("v2-attendance-export").href = `/api/v2/attendance/excel?${query}`;
   $("v2-attendance")
     .querySelectorAll("[data-justify]")
     .forEach(
@@ -1513,6 +1571,13 @@ async function initialize() {
   bind("v2-guide-category", "change", renderGuides);
   bind("v2-contact-search", "input", renderContacts);
   bind("v2-attendance-load", "click", loadAttendance);
+  bind("v2-attendance-image", "click", copyAttendanceImage);
+  for (const id of [
+    "v2-attendance-date",
+    "v2-attendance-cycle",
+    "v2-attendance-shift",
+  ])
+    bind(id, "change", loadAttendance);
   bind("v2-refresh-batches", "click", loadBatches);
   bind("v2-refresh-notifications", "click", loadNotifications);
   bind("v2-reload", "click", async () => {
