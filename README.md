@@ -4,6 +4,14 @@ Gestión de una academia preuniversitaria: usuarios, recepción, asistencia, bib
 
 La guía completa está dentro de la dashboard, en **Guía y tutoriales**: 34 tutoriales con buscador, categorías y ayuda contextual. También se puede leer en [docs/GUIA.md](docs/GUIA.md).
 
+## Panel de administración
+
+El menú lateral separa Personas, Académico y Gestión. Resumen contiene indicadores y accesos rápidos; ciclos, horarios, comunicación, cuentas y página pública tienen espacios propios. El perfil superior abre Mi cuenta. En móvil el menú es desplegable.
+
+Los simulacros usan un asistente de cuatro pasos, con cursos plegables, comprobación de cantidades por área y opciones avanzadas opcionales. El examen guardado separa Resultados, Imprimir cartillas e Ingreso manual. Reportes reúne el seguimiento por estudiante, el consolidado semanal y los rankings históricos.
+
+Criterios de diseño, referencias de Carbon/WCAG y alcance de las verificaciones: [docs/DISENO_ADMIN.md](docs/DISENO_ADMIN.md).
+
 ## Requisitos
 
 - Node.js **24 LTS o 26 LTS**, npm y un equipo que pueda permanecer encendido durante la jornada.
@@ -32,13 +40,13 @@ python -m pip install -r src/omr/requirements.txt
 
 Copia `.env.example` a `.env`. Configura `PYTHON_BIN` con la ruta del Python del entorno; en Windows, por ejemplo `C:/Academia/asistencias/.venv/Scripts/python.exe`. Usa barras `/` en `.env`.
 
-Para la primera cuenta define `ADMIN_INITIAL_PASSWORD` con al menos 12 caracteres. Si se omite, el servidor muestra una contraseña aleatoria una sola vez en su consola. La cuenta inicial es `admin`; cambia la contraseña desde Inicio. Las contraseñas de versiones anteriores no se reutilizan como credencial.
+Para la primera cuenta define `ADMIN_INITIAL_PASSWORD` con al menos 12 caracteres. Si se omite, el servidor muestra una contraseña aleatoria una sola vez en su consola. La cuenta inicial es `admin`; cambia la contraseña desde **Mi cuenta**. Las contraseñas de versiones anteriores no se reutilizan como credencial.
 
 ```sh
 npm start
 ```
 
-Abre `http://localhost:3001/admin`. La página pública y la recepción están en `/`. Un punto de recepción necesita vincularse con un código generado en **Cuentas y respaldo**, o utilizar una sesión de operador autorizada.
+Abre `http://localhost:3001/admin`. La página pública y la recepción están en `/`. Un punto de recepción necesita vincularse con un código generado en **Asistencia → Vincular un punto de recepción**, o utilizar una sesión de operador autorizada.
 
 No es necesario ejecutar Node, el navegador o `start.bat` como administrador del sistema operativo. El script inicia únicamente el proceso `ingemat` y no elimina otros procesos de PM2. Para un servidor con PM2:
 
@@ -61,13 +69,13 @@ La base de datos es `DATA_DIR/ingemat.db`; el valor predeterminado es `./data`. 
 
 ## Simulacros
 
-1. Crea el examen, ciclo, fecha, cantidad impresa y perfiles de postulación.
+1. En **Simulacros → Nuevo examen**, sigue el asistente: **Datos → Cursos y áreas → Claves → Revisión**. Empieza por título, ciclo, fecha y formato.
 2. Distribuye todas las preguntas en cursos, sin huecos ni solapamientos.
 3. Para cada área y curso define preguntas fijas o un conjunto elegible y cupo. La suma tiene que coincidir con el total evaluable del perfil.
 4. Carga todas las claves, penalizaciones, excepciones y versiones A/B si las hay.
-5. Guarda el borrador y pulsa **Validar y preparar**. Después la estructura se conserva.
-6. Asigna las áreas a los alumnos e imprime cartillas personalizadas con QR. Un cuadernillo de 120 preguntas imprime las 120, aunque solo se evalúen 100 por alumno.
-7. Carga PDF multipágina o imágenes en **Lotes OMR**, o importa CSV. Revisa las incidencias y confirma el lote.
+5. En Revisión puedes **Guardar borrador** con claves pendientes o **Guardar y validar** cuando esté completo. Después la estructura se conserva.
+6. Asigna las áreas a los alumnos. En la pestaña **Imprimir cartillas** descarga las hojas personalizadas con QR. Un cuadernillo de 120 preguntas imprime las 120, aunque solo se evalúen 100 por alumno.
+7. Carga PDF multipágina o imágenes en **Lectura de cartillas**, o importa CSV. Revisa las incidencias y confirma el lote.
 8. Comprueba resultados, desglose por curso y ranking; publica y, opcionalmente, programa los avisos individuales.
 
 Una marca doble confirmada se califica como incorrecta. Una marca dudosa impide calificar hasta su revisión. Las preguntas fuera del perfil no cuentan como blancos. En «Elegir cupo» no se seleccionan las mejores respuestas si el alumno excede el máximo: se solicita revisión.
@@ -108,7 +116,7 @@ Plantillas de **cuerpo con parámetros de texto**, en este orden:
 - Asistencia: nombre, fecha, hora, estado.
 - Resultado: nombre, examen, puntaje, área.
 
-Registra nombre exacto e idioma aprobado de ambas plantillas en **Comunicación**. Registra a los apoderados en **Contactos y áreas** y su autorización. Los avisos permanecen desactivados hasta completar la configuración. Los resultados solo se notifican cuando el administrador pulsa el botón correspondiente.
+Registra nombre exacto e idioma aprobado de ambas plantillas en **Comunicación**. Registra a los apoderados en **Apoderados y áreas** y su autorización. Los avisos permanecen desactivados hasta completar la configuración. Los resultados solo se notifican cuando el administrador pulsa el botón correspondiente.
 
 La cola evita duplicar un mismo evento. Se diferencian pendiente, aceptado, enviado, entregado, leído y fallido; un corte incierto se conserva para comprobación y no se reenvía a ciegas. Una autorización revocada cancela avisos que todavía no se enviaron.
 

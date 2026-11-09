@@ -7,50 +7,51 @@ Este contenido también está integrado en la dashboard, con buscador, categorí
 Prepara una instalación nueva y conoce dónde está cada función.
 
 1. **Accede con tu cuenta.** Abre /admin. La primera cuenta se llama admin. La contraseña inicial está en ADMIN_INITIAL_PASSWORD o se muestra una sola vez en la consola del servidor.
-2. **Cambia la contraseña temporal.** En Inicio, completa Contraseña actual y una nueva de al menos 12 caracteres. No compartas tu cuenta entre operadores.
-3. **Crea ciclos y horarios.** En Inicio registra primero los ciclos; después establece la entrada y tolerancia para mañana y tarde.
-4. **Registra usuarios.** Abre Usuarios y crea estudiantes y docentes. El código debe ser único. Los estudiantes necesitan ciclo y turno.
-5. **Completa áreas y contactos.** En Contactos y áreas asigna el perfil de postulación y los apoderados que recibirán avisos.
-6. **Vincula recepción.** En Cuentas y respaldo genera un código para cada punto de registro. En la página pública usa Vincular punto de asistencia.
-7. **Prepara un simulacro de prueba.** Usa un alumno ficticio y un examen pequeño antes del primer lote real. Verifica impresión, lecturas y puntajes.
+2. **Ubícate en el panel.** Resumen muestra los indicadores y accesos rápidos. El menú lateral separa Principal, Personas, Académico y Gestión. En el celular usa el botón de menú. Cada sección tiene su propia ayuda y el perfil superior abre Mi cuenta.
+3. **Cambia la contraseña temporal.** En Mi cuenta (el perfil de la barra superior), completa Contraseña actual y una nueva de al menos 12 caracteres. No compartas tu cuenta entre operadores.
+4. **Crea ciclos y horarios.** En Ciclos y horarios registra primero los ciclos; después establece la entrada y tolerancia para mañana y tarde.
+5. **Registra usuarios.** En Estudiantes y docentes pulsa Nuevo usuario para crear una ficha. El código debe ser único. Los estudiantes necesitan ciclo y turno.
+6. **Completa áreas y contactos.** En Apoderados y áreas asigna el perfil de postulación y los apoderados que recibirán avisos.
+7. **Vincula recepción.** En Asistencia abre Vincular un punto de recepción y genera un código para cada equipo. En la página pública usa Vincular punto de asistencia.
+8. **Prepara un simulacro de prueba.** Usa un alumno ficticio y un examen pequeño antes del primer lote real. Verifica impresión, lecturas y puntajes.
 
 ## Crear cuentas y distribuir permisos
 
 Separa administración, corrección, docencia y recepción.
 
 1. **Abre Cuentas y respaldo.** Solo administración puede ver esta sección.
-2. **Crea una cuenta por persona.** Escribe usuario, contraseña temporal y rol. Entrega la contraseña por un canal privado.
+2. **Crea una cuenta por persona.** En Operadores escribe usuario, contraseña temporal y rol. Entrega la contraseña por un canal privado.
 3. **Elige el rol apropiado.** Administración configura todo. Corrección administra simulacros y lecturas. Docencia registra tareas y consulta reportes. Recepción registra y justifica asistencias y opera biblioteca.
-4. **Cambia claves temporales.** Cada persona debe cambiar su contraseña desde Inicio.
+4. **Cambia claves temporales.** Cada persona debe cambiar su contraseña desde Mi cuenta.
 5. **Revoca un acceso.** Desactiva la cuenta cuando alguien deje de operar el sistema. Sus sesiones anteriores quedarán invalidadas.
-6. **Consulta la auditoría.** En esta misma sección revisa quién calificó, corrigió, justificó, publicó o cambió la configuración.
+6. **Consulta la auditoría.** En Cuentas y respaldo abre Actividad y auditoría para revisar quién calificó, corrigió, justificó, publicó o cambió la configuración.
 
 ## Ciclos, turnos y horarios
 
 Organiza aulas y define cómo se calcula la puntualidad.
 
-1. **Crea el ciclo.** En Inicio, Gestión de ciclos, escribe un nombre claro y único.
+1. **Crea el ciclo.** En Ciclos y horarios, dentro de Ciclos académicos, escribe un nombre claro y único.
 2. **Selecciona el ciclo en Horarios.** Configura hora de entrada y fin de tolerancia para cada turno.
 3. **Guarda los cambios.** Llegar exactamente a la hora de entrada cuenta como puntual. Después de entrada y hasta la tolerancia cuenta como tolerancia.
-4. **Asigna estudiantes.** En Usuarios asigna cada estudiante a su ciclo y turno. El ciclo no es el área de postulación.
+4. **Asigna estudiantes.** En Estudiantes y docentes asigna cada estudiante a su ciclo y turno. El ciclo no es el área de postulación.
 5. **Revisa antes de eliminar.** No elimines ciclos que siguen en uso. Primero reasigna a los estudiantes y conserva los exámenes históricos.
 
 ## Registrar, buscar y editar estudiantes o docentes
 
 Mantén códigos e identidad consistentes.
 
-1. **Abre Usuarios.** Busca primero el código para evitar duplicados.
+1. **Abre Estudiantes y docentes.** Busca primero por nombre o código para evitar duplicados. La búsqueda encuentra ambos turnos. Pulsa Nuevo usuario para abrir el formulario sin salir del directorio.
 2. **Completa datos.** Ingresa nombre, apellidos, rol y código. Los códigos se guardan en mayúsculas.
 3. **Configura asistencia.** Para estudiantes elige ciclo, turno y días programados; para docentes define sus días.
 4. **Guarda y comprueba.** Busca el usuario recién creado y verifica su carnet.
-5. **Edita con cuidado.** Cambiar un código actualiza las referencias académicas. Los registros conservan sus datos históricos.
+5. **Edita con cuidado.** Abre el ciclo y usa el botón de lápiz de la persona. Cambiar un código actualiza las referencias académicas. Los registros conservan sus datos históricos.
 6. **Conserva el historial.** Si el usuario tiene notas o asistencias no se permite borrarlo. Cambia el ciclo cuando corresponda y conserva sus resultados.
 
 ## Carnets, códigos de barras y QR
 
 Imprime identificaciones para acelerar la recepción.
 
-1. **Abre Usuarios.** Busca al estudiante y usa las acciones de carnet disponibles.
+1. **Abre Estudiantes y docentes.** Busca al estudiante y pulsa su botón de carnet. Para impresión por grupo usa la pestaña Carnets e impresión.
 2. **Revisa el código.** El código impreso debe ser el mismo que utiliza la ficha del estudiante.
 3. **Imprime el carnet.** Usa la opción de impresión o descarga. Conserva margen alrededor del código.
 4. **Prueba el lector.** Un lector USB funciona como teclado: coloca el foco en el campo de código y escanea.
@@ -61,7 +62,7 @@ Imprime identificaciones para acelerar la recepción.
 
 Autoriza un equipo de recepción sin darle acceso a las notas.
 
-1. **Genera el código.** Una cuenta administradora abre Cuentas y respaldo y pulsa Generar código de recepción.
+1. **Genera el código.** Una cuenta administradora abre Asistencia, despliega Vincular un punto de recepción y pulsa Generar código de recepción.
 2. **Abre la página pública en recepción.** Usa el botón Vincular punto de asistencia de la esquina inferior e ingresa el código. El navegador conserva una sesión de ocho horas.
 3. **Registra un código de prueba.** Escanea un carnet o escribe su código y comprueba la hora y el estado.
 4. **Protege el equipo.** El punto vinculado solo registra asistencias. Las justificaciones requieren una cuenta autorizada.
@@ -88,7 +89,7 @@ Deja un motivo y una persona responsable.
 2. **Busca el registro.** En Asistencias selecciona la fecha y el ciclo.
 3. **Pulsa Justificar.** Escribe un motivo de al menos cinco caracteres y confirma.
 4. **Verifica el cambio.** La fila pasa a justificada y conserva la hora original. La auditoría identifica quién hizo el cambio.
-5. **Consulta el histórico anterior.** Los Excel de la versión anterior permanecen en Archivos de Inicio; las justificaciones de esos archivos se manejan en su vista previa.
+5. **Consulta el histórico anterior.** Los Excel de la versión anterior permanecen en Asistencia → Archivos históricos; las justificaciones de esos archivos se manejan en su vista previa.
 
 ## Reportes diarios y archivos históricos
 
@@ -97,32 +98,32 @@ Distingue los nuevos registros de los Excel anteriores.
 1. **Elige fecha y ciclo.** Abre Asistencias y aplica los filtros.
 2. **Revisa el listado.** Los nuevos ingresos se leen directamente desde la base de datos.
 3. **Descarga Excel.** Usa Exportar Excel. El archivo se genera desde los registros almacenados y no se utiliza como base de datos.
-4. **Consulta archivos antiguos.** En Inicio, Archivos, puedes abrir y descargar los Excel que existían antes de actualizar.
+4. **Consulta archivos antiguos.** En Asistencia → Archivos históricos puedes abrir y descargar los Excel que existían antes de actualizar.
 5. **Respalda ambos conjuntos.** Incluye la base de datos, las imágenes de lectura y la carpeta Registros en las copias de seguridad.
 
 ## Crear un simulacro estándar de 100 preguntas
 
-Configura cursos y una clave completa.
+Sigue cuatro pasos: Datos, Cursos y áreas, Claves y Revisión.
 
-1. **Abre Simulacros.** Pulsa Nuevo examen y elige el formato estándar de 100 preguntas.
+1. **Abre Simulacros.** Pulsa Nuevo examen. En el paso Datos elige Estándar de 100 preguntas. Las opciones avanzadas permanecen plegadas.
 2. **Completa los datos.** Indica título, ciclo y fecha. El perfil GENERAL evalúa las 100 preguntas.
-3. **Distribuye los cursos.** Agrega cursos con rangos sin solapamientos; por ejemplo Matemática 1-20, Física 21-30 y los demás hasta 100. Cada pregunta debe pertenecer a un único curso.
-4. **Configura puntajes.** Indica puntos por correcta, penalización por incorrecta y puntaje por blanco. Cada curso puede tener sus propios valores.
-5. **Pega las claves.** Escribe una alternativa por pregunta o líneas como 1,A y 2,C. Se necesitan claves para todas las preguntas, salvo las anuladas o con puntajes por alternativa.
-6. **Guarda el borrador.** Puedes salir y volver a editar sin perder el trabajo guardado.
-7. **Valida el examen.** Pulsa Validar y preparar. El sistema comprueba cursos, claves y cantidades. Después la estructura queda fijada.
-8. **Imprime y califica.** Descarga cartillas personalizadas o usa carga manual/CSV. Comprueba resultados antes de publicar.
+3. **Distribuye los cursos.** Pulsa Continuar para abrir Cursos y áreas. Edita el curso General o agrega cursos con rangos sin solapamientos: Matemática 1-20, Física 21-30 y los demás hasta 100. Cada pregunta pertenece a un único curso. El resumen inferior indica huecos, repeticiones y cantidades por área.
+4. **Configura puntajes.** Los valores iniciales están en Puntajes del simulacro, dentro de Datos. Abre Puntajes especiales para este curso si un curso necesita valores diferentes. En Ajustes de puntaje para todos los cursos puedes reaplicar los valores generales.
+5. **Pega las claves.** Continúa a Claves. Pega una secuencia A B C… o líneas 1,A y 2,C. El contador indica cuántas claves llevas. Las anulaciones, puntajes por alternativa y versiones están en opciones desplegables.
+6. **Guarda el borrador.** En Revisión comprueba el resumen. Guardar borrador conserva el trabajo con claves pendientes; después puedes abrir Editar borrador.
+7. **Valida el examen.** Si todas las claves o reglas están completas, usa Guardar y validar. También puedes validar un borrador guardado desde Validar y preparar. Después la estructura queda fijada.
+8. **Imprime y califica.** El examen tiene pestañas separadas: Resultados, Imprimir cartillas e Ingreso manual. Para lectura por lotes abre Lectura de cartillas. Comprueba las notas antes de publicar.
 
 ## Cuadernillo de 120 preguntas con 100 evaluables por área
 
 El número impreso y el número evaluado son conceptos diferentes.
 
-1. **Elige formato por áreas.** Define 120 preguntas impresas. Crea los perfiles con sus códigos, nombres y 100 preguntas evaluables, o la cantidad que establezca tu reglamento.
-2. **Asigna cursos.** Distribuye las 120 preguntas entre todos los cursos, sin dejar huecos.
+1. **Elige formato por áreas.** En Simulacros pulsa Nuevo examen. En Datos elige Por áreas: 120 impresas / 100 evaluables. Continúa a Cursos y áreas; despliega Áreas y cantidad evaluable para ajustar códigos, nombres y cantidades según tu reglamento y pulsa Aplicar perfiles a los cursos.
+2. **Asigna cursos.** Abre cada curso para definir su nombre y números; distribuye las 120 preguntas, sin huecos ni repeticiones. Los otros cursos pueden permanecer plegados.
 3. **Configura la matriz de áreas.** En cada curso define las preguntas aplicables al área. Usa rangos como 1-10,15,18-20. Las preguntas no aplicables no se cuentan como blancos.
-4. **Comprueba los totales.** La suma de los cupos de cada área debe coincidir exactamente con su cantidad evaluable.
+4. **Comprueba los totales.** El resumen inferior de Cursos y áreas muestra las cantidades asignadas a cada perfil. Su suma debe coincidir exactamente con la cantidad evaluable; corrige las diferencias antes de continuar.
 5. **Carga la clave del cuadernillo.** Incluye las 120 claves. La selección por área es independiente de la clave.
-6. **Asigna áreas a estudiantes.** En Contactos y áreas registra el perfil de cada postulante antes de imprimir.
+6. **Asigna áreas a estudiantes.** En Apoderados y áreas registra el perfil de cada postulante antes de imprimir.
 7. **Valida y descarga cartillas.** La cartilla contiene 120 filas aunque la nota de un alumno utilice solo 100.
 8. **Revisa por curso y área.** Los resultados muestran aciertos, errores, blancos, anuladas y puntaje por curso. El ranking comparte puesto cuando hay empate.
 
@@ -166,8 +167,8 @@ Relaciona el orden impreso con las preguntas originales.
 Guarda cursos y matriz de áreas como una plantilla.
 
 1. **Prepara el diseño.** Completa perfiles, cursos, puntajes y cantidades.
-2. **Guarda una plantilla.** Escribe un nombre identificable. Puedes guardar una estructura con claves aún pendientes.
-3. **Crea el siguiente examen.** Selecciona la plantilla, cambia título, ciclo y fecha y pega las nuevas claves.
+2. **Guarda una plantilla.** En el editor abre Reutilizar una plantilla o un archivo de configuración. Usa Guardar como plantilla y escribe un nombre identificable. Puedes guardar una estructura con claves pendientes.
+3. **Crea el siguiente examen.** Crea un nuevo examen y despliega Reutilizar una plantilla o un archivo de configuración. Selecciona la plantilla, cambia título, ciclo y fecha y pega las nuevas claves.
 4. **Revisa las reglas.** No asumas que el formato del examen anterior sigue vigente.
 5. **Exporta o importa estructura.** Usa el archivo JSON de estructura para llevar una configuración completa entre instalaciones. El archivo no contiene notas de estudiantes.
 
@@ -177,7 +178,7 @@ El QR elimina la selección manual de estudiante, área y versión.
 
 1. **Valida el examen.** Solo un examen listo o publicado puede generar cartillas.
 2. **Revisa el padrón.** Cada alumno debe pertenecer al ciclo y tener un área válida. Para un examen general no se requiere un perfil adicional.
-3. **Elige alcance y versión.** Descarga las cartillas de todo el ciclo o de un código concreto.
+3. **Elige alcance y versión.** En Simulacros selecciona el examen y abre Imprimir cartillas. Elige todo el ciclo o un estudiante concreto y la versión; pulsa Descargar PDF de cartillas.
 4. **Imprime A4 horizontal al 100%.** No recortes las esquinas ni el QR. Usa papel blanco y prueba primero una hoja.
 5. **Comprueba identificación.** La hoja muestra alumno, código, área, versión, revisión y número de página.
 6. **Explica cómo marcar.** Rellenar una burbuja por pregunta, borrar completamente y no dibujar sobre los marcadores.
@@ -190,7 +191,7 @@ Ruta recomendada para ahorrar trabajo repetitivo.
 1. **Prepara el escáner.** Usa alimentador automático (ADF), 300 ppp y PDF multipágina. Empieza con escala de grises y desactiva filtros que borren marcas tenues.
 2. **Revisa el papel.** Quita grapas, separa hojas pegadas y comprueba que todas tengan QR y cuatro marcadores.
 3. **Escanea el lote.** No es necesario ordenar por estudiante: las cartillas personalizadas se identifican por QR.
-4. **Carga los archivos.** En Lotes OMR selecciona el examen y carga PDF, PNG o JPG. Se admiten hasta 10 archivos de 20 MB y 100 páginas por lote.
+4. **Carga los archivos.** En Lectura de cartillas selecciona el examen y carga PDF, PNG o JPG. Se admiten hasta 10 archivos de 20 MB y 100 páginas por lote.
 5. **Espera el procesamiento.** El estado pasa de En cola a Procesando, después a Listo o Revisar. Puedes actualizar sin volver a cargar.
 6. **Resuelve incidencias.** Revisa marcas dobles, tenues, identificadores desconocidos y páginas faltantes.
 7. **Comprueba la previsualización.** Revisa estudiante, área y puntaje antes de confirmar la importación.
@@ -203,7 +204,7 @@ Alternativa para pocos alumnos o para repetir una hoja problemática.
 1. **Usa la cartilla v2.** Las fichas anteriores no tienen los marcadores ni el QR del nuevo lector.
 2. **Coloca la hoja plana.** Usa luz uniforme, evita sombras y reflejos y mantén visibles las cuatro esquinas.
 3. **Toma una foto nítida.** Incluye toda la hoja. No envíes una captura comprimida de mensajería.
-4. **Carga PNG o JPG.** En Lotes OMR selecciona las fotos desde el dispositivo.
+4. **Carga PNG o JPG.** En Lectura de cartillas selecciona las fotos desde el dispositivo.
 5. **Revisa el resultado.** Una foto dudosa no debe aceptarse por intuición: repítela o revisa las marcas junto a la imagen.
 6. **Compara el tiempo total.** Para varios salones el alimentador automático suele reducir más la manipulación que fotografiar una hoja a la vez.
 
@@ -234,11 +235,11 @@ Aprovecha lectores externos conservando el motor de calificación de INGEMAT.
 
 También sirve como alternativa cuando una hoja no se puede escanear.
 
-1. **Selecciona el examen y estudiante.** Debe estar listo y el alumno debe pertenecer al ciclo.
+1. **Selecciona el examen y estudiante.** En Simulacros selecciona un examen listo y abre la pestaña Ingreso manual. Selecciona al estudiante por nombre o código.
 2. **Confirma área y versión.** Estos datos determinan qué preguntas se evalúan.
 3. **Pega las respuestas.** Puedes escribir una secuencia o líneas 1,A; 2,-; 3,A/B. El guion representa blanco.
-4. **Guarda y comprueba.** Pulsa Calificar y guardar. Comprueba el resultado y el desglose por curso antes de publicar.
-5. **Corrige un registro existente.** Activa Reemplazar calificación y explica el motivo. El registro anterior queda en el historial. Si ya estaba publicado, vuelve a Listo. Comprueba y publica de nuevo; los avisos pendientes de la nota anterior se cancelan.
+4. **Guarda y comprueba.** Pulsa Calificar y guardar. Abre Resultados y consulta Cursos e historial para comprobar el desglose antes de publicar.
+5. **Corrige un registro existente.** En Ingreso manual despliega Corregir una calificación anterior, activa Corregir una calificación existente y explica el motivo. El registro anterior queda en el historial. Si ya estaba publicado, vuelve a Listo. Comprueba y publica de nuevo; los avisos pendientes de la nota anterior se cancelan.
 6. **Consulta la trazabilidad.** La revisión de claves, el operador, la fecha y el origen de la captura acompañan la nota.
 
 ## Corregir una clave y recalcular todas las notas
@@ -259,7 +260,7 @@ Revisa antes de comunicar.
 
 1. **Consulta resultados.** Filtra por área y revisa el desglose por curso.
 2. **Interpreta empates.** Dos estudiantes con el mismo puntaje comparten puesto. El orden secundario por código solo facilita la consulta.
-3. **Exporta el cuadro.** Usa el Excel de ranking o los reportes individuales de Tareas y reportes.
+3. **Exporta el cuadro.** Usa el Excel de ranking o los reportes individuales de Reportes.
 4. **Publica.** Pulsa Publicar cuando hayas comprobado claves y lecturas. Publicar no envía mensajes automáticamente.
 5. **Envía avisos si corresponde.** Con WhatsApp configurado y contactos autorizados, pulsa Notificar resultados. El envío queda en cola.
 6. **Comprueba entregas.** Comunicación distingue aceptado por Meta, enviado, entregado, leído y fallido.
@@ -268,18 +269,18 @@ Revisa antes de comunicar.
 
 Consolida el trabajo semanal por curso.
 
-1. **Abre Tareas y reportes.** Selecciona la pestaña de Tareas.
+1. **Abre Tareas.** Esta sección contiene el registro y la lista de tareas; los consolidados están en Reportes.
 2. **Elige curso y ciclo.** Indica la semana académica de sábado a viernes y el tipo de evaluación.
 3. **Agrega estudiantes.** Usa la búsqueda por nombre o código y registra nota o estado de entrega.
 4. **Verifica la lista.** Revisa antes de guardar. No uses una nota cero para representar un registro que aún no has evaluado.
 5. **Guarda el grupo.** El sistema conserva los registros por curso, ciclo y semana.
-6. **Exporta el consolidado.** Selecciona ciclo y semana para descargar el resumen. Revisa los NO PRESENTÓ, que incluyen alumnos sin registro individual.
+6. **Exporta el consolidado.** En Reportes → Consolidado semanal selecciona ciclo y semana para descargar el resumen. Revisa los NO PRESENTÓ, que incluyen alumnos sin registro individual.
 
 ## Reporte individual y consolidado semanal
 
 Consulta simulacros y tareas de un alumno.
 
-1. **Abre Reporte por alumno.** Usa el buscador en Tareas y reportes.
+1. **Abre Reporte por alumno.** En Reportes, pestaña Por estudiante, usa el buscador.
 2. **Selecciona al estudiante.** El sistema usa su código para recuperar historial.
 3. **Filtra la semana.** La semana académica se cuenta de sábado a viernes.
 4. **Comprueba el contexto.** No compares puntajes brutos entre exámenes con reglas o cantidades diferentes sin revisar sus escalas.
@@ -302,7 +303,7 @@ Administra ejemplares sin perder trazabilidad.
 
 Mantén la información pública desde el panel.
 
-1. **Abre Info / página pública.** Estas opciones requieren administración.
+1. **Abre Página pública.** Estas opciones requieren administración.
 2. **Gestiona los ciclos visibles.** Edita los títulos, descripciones y datos del ciclo público.
 3. **Prepara las imágenes.** El cargador de ingresantes espera PNG o JPG, en el tamaño indicado en pantalla.
 4. **Previsualiza y sube.** Usa nombres sencillos sin datos personales innecesarios.
@@ -319,7 +320,7 @@ Sustituye las sesiones de navegador por una integración oficial.
 4. **Suscribe eventos de mensajes.** Configura el token de verificación y los eventos de mensajes y estados en Meta. Los POST se validan con la firma del App Secret.
 5. **Crea las plantillas.** Asistencia: nombre, fecha, hora, estado. Resultados: nombre, examen, puntaje, área. Solicita su aprobación y usa exactamente el código de idioma aprobado.
 6. **Completa Comunicación.** Introduce nombres de plantillas e idioma. Activa los avisos cuando el estado indique credenciales completas.
-7. **Registra contactos autorizados.** En Contactos y áreas agrega teléfonos internacionales y registra su autorización para recibir los avisos.
+7. **Registra contactos autorizados.** En Apoderados y áreas agrega teléfonos internacionales y registra su autorización para recibir los avisos.
 8. **Haz una prueba controlada.** Registra un ingreso de un alumno de prueba y comprueba el estado real de entrega antes de usarlo con toda la academia.
 
 - La API oficial tiene tarifas y reglas de plantillas. Consulta los costos vigentes para Perú. La aplicación no solicita ni muestra tokens en el navegador.
@@ -328,7 +329,7 @@ Sustituye las sesiones de navegador por una integración oficial.
 
 Cada alumno puede tener varios contactos autorizados.
 
-1. **Busca al estudiante.** Abre Contactos y áreas.
+1. **Busca al estudiante.** Abre Apoderados y áreas.
 2. **Asigna su área.** Debe coincidir con el código configurado en el examen. Guarda antes de imprimir cartillas.
 3. **Agrega un contacto.** Indica nombre del apoderado y teléfono internacional, por ejemplo +51900111222.
 4. **Registra autorización.** Activa Autorizó recibir avisos únicamente cuando tengas esa autorización.
@@ -361,7 +362,7 @@ La migración oficial no conserva automáticamente los grupos del salón.
 
 Protege la información y prueba una restauración antes de necesitarla.
 
-1. **Crea una copia consistente.** En Cuentas y respaldo pulsa Crear copia. Se utiliza una instantánea de SQLite compatible con WAL.
+1. **Crea una copia consistente.** En Cuentas y respaldo abre Copias de seguridad y pulsa Crear copia de seguridad. Se utiliza una instantánea de SQLite compatible con WAL.
 2. **Descarga la copia.** Guárdala en un destino protegido fuera del equipo de recepción.
 3. **Incluye archivos asociados.** Copia también data/imports, los Excel históricos de Registros y session-secret.key. Esta clave permite validar los QR ya impresos.
 4. **Guarda la configuración en privado.** Respalda .env por un canal seguro. Nunca lo subas a GitHub.
