@@ -1,5 +1,3 @@
-// Proyecto/Public/js/admin.js - Archivo principal que orquesta todo
-
 import {
   cargarUsuarios,
   initUserFormEvents,
@@ -9,503 +7,591 @@ import {
   cargarArchivosExcel,
   initModalEvents,
   cargarCiclos,
-  initCicloFormEvents,
 } from "./admin/excel-preview.js";
-import { initWhatsappAdmin } from "./admin/whatsapp.js";
 import { initBibliotecaAdmin } from "./admin/biblioteca-admin.js";
-import { initEvaluacionesAdmin } from "./admin/evaluaciones-admin.js";
+import {
+  initEvaluacionesAdmin,
+  cargarDatosEvaluaciones,
+} from "./admin/evaluaciones-admin.js";
+import { v2Ready, openV2Panel, openV2Guide } from "./admin/v2.js";
+import "./admin/forms.js";
 
-// --- Lógica para el manejo de vistas ---
-async function mostrarVista(vistaId, buttonId) {
-  // <-- Convertida a async
-  document.querySelectorAll(".vista-content, .vista-admin").forEach((el) => {
-    el.style.display = "none";
-  });
-  const vistaActiva = document.getElementById(vistaId);
-  if (vistaActiva) {
-    vistaActiva.style.display = "block";
-  } else {
-    console.error("Error: Vista no encontrada -", vistaId);
-    document.getElementById("vista-principal").style.display = "block";
-    buttonId = "btn-vista-inicio";
+const $ = (id) => document.getElementById(id);
+const all = ["admin", "corrector", "docente", "recepcion"],
+  academic = ["admin", "corrector", "docente"];
+const routes = {
+  overview: {
+    title: "Resumen",
+    group: "Vista general",
+    description: "La jornada de tu academia, en un solo lugar.",
+    guide: "primer-inicio",
+    roles: all,
+  },
+  attendance: {
+    title: "Asistencia",
+    group: "Control diario",
+    description:
+      "Consulta los ingresos, revisa tardanzas y exporta el registro de cada jornada.",
+    guide: "asistencia",
+    roles: all,
+    v2: true,
+  },
+  archives: {
+    title: "Archivos históricos",
+    group: "Asistencia",
+    description:
+      "Consulta los registros Excel conservados de la instalación anterior.",
+    guide: "excel-asistencia",
+    roles: all,
+  },
+  people: {
+    title: "Estudiantes y docentes",
+    group: "Personas",
+    description:
+      "Mantén el directorio actualizado y genera los carnets de tu academia.",
+    guide: "usuarios",
+    roles: all,
+  },
+  contacts: {
+    title: "Apoderados y áreas",
+    group: "Personas",
+    description:
+      "Asigna el perfil de postulación y administra los contactos autorizados.",
+    guide: "whatsapp-contactos",
+    roles: all,
+    v2: true,
+  },
+  exams: {
+    title: "Simulacros",
+    group: "Académico",
+    description:
+      "Prepara el examen, imprime cartillas y consulta los resultados por curso y área.",
+    guide: "simulacro-120",
+    roles: academic,
+    v2: true,
+  },
+  imports: {
+    title: "Lectura de cartillas",
+    group: "Académico",
+    description:
+      "Carga un lote, revisa las incidencias y confirma sus calificaciones.",
+    guide: "escanear-lote",
+    roles: academic,
+    v2: true,
+  },
+  tests: {
+    title: "Tests y prácticas",
+    group: "Académico",
+    description:
+      "Registra evaluaciones con nota directa y consulta sus resultados.",
+    guide: "tareas",
+    roles: ["admin", "corrector"],
+  },
+  tasks: {
+    title: "Tareas",
+    group: "Académico",
+    description:
+      "Registra entregas y calificaciones por estudiante, curso y semana.",
+    guide: "tareas",
+    roles: ["admin", "docente"],
+  },
+  reports: {
+    title: "Reportes académicos",
+    group: "Académico",
+    description:
+      "Consulta el seguimiento individual, los consolidados semanales y los rankings.",
+    guide: "reporte-alumno",
+    roles: academic,
+  },
+  library: {
+    title: "Biblioteca",
+    group: "Gestión",
+    description:
+      "Organiza el catálogo y lleva el control de préstamos y devoluciones.",
+    guide: "biblioteca",
+    roles: all,
+  },
+  notifications: {
+    title: "Comunicación",
+    group: "Gestión",
+    description:
+      "Configura los avisos oficiales de WhatsApp y comprueba sus estados de entrega.",
+    guide: "whatsapp-configurar",
+    roles: ["admin"],
+    v2: true,
+  },
+  cycles: {
+    title: "Ciclos y horarios",
+    group: "Configuración",
+    description:
+      "Define los ciclos de la academia y los horarios que utiliza la asistencia.",
+    guide: "ciclos",
+    roles: ["admin"],
+  },
+  website: {
+    title: "Página pública",
+    group: "Gestión",
+    description:
+      "Actualiza los ciclos publicados y las imágenes de ingresantes.",
+    guide: "web-publica",
+    roles: ["admin"],
+  },
+  settings: {
+    title: "Cuentas y respaldo",
+    group: "Configuración",
+    description:
+      "Administra accesos, conserva copias de seguridad y revisa la actividad.",
+    guide: "roles",
+    roles: ["admin"],
+    v2: true,
+  },
+  account: {
+    title: "Mi cuenta",
+    group: "Acceso personal",
+    description: "Actualiza tu contraseña y protege tu acceso a la academia.",
+    guide: "roles",
+    roles: all,
+  },
+  guide: {
+    title: "Guía y tutoriales",
+    group: "Centro de ayuda",
+    description:
+      "Encuentra instrucciones para cada tarea y resuelve tus dudas paso a paso.",
+    guide: "primer-inicio",
+    roles: all,
+    v2: true,
+  },
+};
+let session,
+  current = "overview",
+  initialized = false,
+  routeVersion = 0;
+const roleNames = {
+  admin: "Administración",
+  corrector: "Corrección",
+  docente: "Docencia",
+  recepcion: "Recepción",
+};
+function notify(text, error = false) {
+  $("app-message").hidden = false;
+  $("app-message").textContent = text;
+  $("app-message").classList.toggle("warning", error);
+}
+function allowed(route) {
+  return routes[route]?.roles.includes(session?.usuario.role);
+}
+function closeMenu() {
+  document.querySelector(".app-workspace").inert = false;
+  document.body.classList.remove("menu-open");
+  $("sidebar-toggle").setAttribute("aria-expanded", "false");
+  $("sidebar-backdrop").hidden = true;
+  if (matchMedia("(max-width: 960px)").matches) $("admin-sidebar").inert = true;
+}
+function toggleMenu() {
+  const open = !document.body.classList.contains("menu-open");
+  document.body.classList.toggle("menu-open", open);
+  $("sidebar-toggle").setAttribute("aria-expanded", String(open));
+  $("sidebar-backdrop").hidden = !open;
+  $("admin-sidebar").inert = !open;
+  document.querySelector(".app-workspace").inert = open;
+  if (open) $("admin-sidebar").querySelector("[aria-current=page]")?.focus();
+}
+function activate(route, v2 = false) {
+  const config = routes[route];
+  current = route;
+  for (const pane of document.querySelectorAll("[data-page]"))
+    pane.hidden = pane.dataset.page !== route;
+  $("vista-v2").hidden = !v2;
+  for (const link of document.querySelectorAll("[data-route]")) {
+    if (link.dataset.route === route) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
   }
-
-  document.querySelectorAll(".nav-button").forEach((btn) => {
-    btn.classList.remove("active");
-  });
-  const botonActivo = document.getElementById(buttonId);
-  if (botonActivo) {
-    botonActivo.classList.add("active");
-  } else {
-    console.error("Error: Botón no encontrado -", buttonId);
-    document.getElementById("btn-vista-inicio").classList.add("active");
-  }
-
-  if (vistaId === "vista-usuarios-completa") {
-    await cargarUsuarios(true); // Esperar a que cargue
-  } else if (vistaId === "vista-whatsapp") {
-    initWhatsappAdmin();
-  } else if (vistaId === "vista-biblioteca") {
-    initBibliotecaAdmin();
-  } else if (vistaId === "vista-evaluaciones") {
-    initEvaluacionesAdmin();
-  } else if (vistaId === "vista-principal") {
-    // Recargar datos dinámicos de la vista principal al volver a ella
-    await cargarUsuarios();
-    await cargarArchivosExcel();
-    await cargarHorarios();
-    await cargarCiclos();
-  }
+  $("page-title").textContent = config.title;
+  $("page-description").textContent = config.description;
+  $("page-eyebrow").textContent = config.group;
+  $("page-breadcrumb").textContent = config.title;
+  document.title = `${config.title} · INGEMAT`;
+  $("app-message").hidden = true;
+  closeMenu();
 }
-
-// Muestra mensajes globales
-function showGlobalMessage(elementId, message, isError = false) {
-  const element = document.getElementById(elementId);
-  if (!element) return;
-  element.textContent = message;
-  element.className = isError ? "form-message error" : "form-message success";
-  element.style.display = "block";
-  setTimeout(() => {
-    element.style.display = "none";
-    element.textContent = "";
-    element.className = "form-message";
-  }, 4000);
-}
-
-// Botones de Navegación con verificación de existencia segura
-const btnInicio = document.getElementById("btn-vista-inicio");
-if (btnInicio) {
-  btnInicio.onclick = () => mostrarVista("vista-principal", "btn-vista-inicio");
-}
-
-const btnUsuarios = document.getElementById("btn-vista-usuarios");
-if (btnUsuarios) {
-  btnUsuarios.onclick = () => mostrarVista("vista-usuarios-completa", "btn-vista-usuarios");
-}
-
-const btnWhatsapp = document.getElementById("btn-vista-whatsapp");
-if (btnWhatsapp) {
-  btnWhatsapp.onclick = () => mostrarVista("vista-whatsapp", "btn-vista-whatsapp");
-}
-
-const btnBiblioteca = document.getElementById("btn-vista-biblioteca");
-if (btnBiblioteca) {
-  btnBiblioteca.onclick = () => mostrarVista("vista-biblioteca", "btn-vista-biblioteca");
-}
-
-const btnEvaluaciones = document.getElementById("btn-vista-evaluaciones");
-if (btnEvaluaciones) {
-  btnEvaluaciones.onclick = () => mostrarVista("vista-evaluaciones", "btn-vista-evaluaciones");
-}
-
-const btnInfo = document.getElementById("btn-vista-info");
-if (btnInfo) {
-  btnInfo.onclick = () => mostrarVista("vista-info", "btn-vista-info");
-}
-
-// --- *** NUEVO HELPER (para submit de horarios) *** ---
-function get24hFromPicker(hrId, minId, ampmId) {
+window.ingematAdmin = {
+  activateV2(route) {
+    if (!allowed(route)) return;
+    activate(route, true);
+    if (location.hash !== `#${route}`) history.pushState({}, "", `#${route}`);
+  },
+};
+async function navigate(route, update = true) {
+  if (!initialized) return;
+  if (!allowed(route)) route = "overview";
+  const version = ++routeVersion;
+  if (update && location.hash !== `#${route}`)
+    history.pushState({}, "", `#${route}`);
+  activate(route, !!routes[route].v2);
+  $("main-content").setAttribute("aria-busy", "true");
   try {
-    let hours = parseInt(document.getElementById(hrId).value, 10);
-    const minutes = document.getElementById(minId).value;
-    const ampm = document.getElementById(ampmId).value;
-
-    if (ampm === "PM" && hours !== 12) {
-      hours += 12;
+    if (routes[route].v2) await openV2Panel(route);
+    else if (route === "overview") await loadOverview();
+    else if (route === "people") {
+      await cargarUsuarios(true);
+      filterPeople();
+    } else if (route === "cycles") {
+      await cargarCiclos();
+      await cargarHorarios();
+    } else if (route === "archives") await cargarArchivosExcel();
+    else if (route === "library") await initBibliotecaAdmin();
+    else if (["tasks", "reports", "tests"].includes(route)) {
+      initEvaluacionesAdmin();
+      await cargarDatosEvaluaciones();
     }
-    if (ampm === "AM" && hours === 12) {
-      hours = 0; // Medianoche
+    if (version === routeVersion) {
+      window.scrollTo({ top: 0, behavior: "instant" });
+      $("page-title").focus({ preventScroll: true });
     }
-    return `${hours.toString().padStart(2, "0")}:${minutes}`;
-  } catch (e) {
-    console.error("Error al convertir 12h a 24h:", hrId, e);
-    return "00:00"; // Fallback
+  } catch (error) {
+    if (version === routeVersion) notify(error.message, true);
+  } finally {
+    if (version === routeVersion)
+      $("main-content").setAttribute("aria-busy", "false");
   }
 }
-
-// Formulario Horarios
-const formHorarios = document.getElementById("form-horarios");
-if (formHorarios) {
-  formHorarios.onsubmit = async function (e) {
-    e.preventDefault();
-    const botonSubmit = this.querySelector('button[type="submit"]');
-    if (botonSubmit) botonSubmit.disabled = true;
-
-    const cicloSelect = document.getElementById("horarios-ciclo-select");
-    const cicloSeleccionado = cicloSelect ? cicloSelect.value : "";
-    if (!cicloSeleccionado) {
-      showGlobalMessage("msg-horarios", `Error: No se seleccionó ciclo.`, true);
-      if (botonSubmit) botonSubmit.disabled = false;
-      return;
-    }
-
-    const payloadHorarios = {
-      mañana: {
-        entrada: get24hFromPicker("entrada-manana-hr", "entrada-manana-min", "entrada-manana-ampm"),
-        tolerancia: get24hFromPicker("tolerancia-manana-hr", "tolerancia-manana-min", "tolerancia-manana-ampm"),
-      },
-      tarde: {
-        entrada: get24hFromPicker("entrada-tarde-hr", "entrada-tarde-min", "entrada-tarde-ampm"),
-        tolerancia: get24hFromPicker("tolerancia-tarde-hr", "tolerancia-tarde-min", "tolerancia-tarde-ampm"),
-      },
-    };
-
-    const payload = { ciclo: cicloSeleccionado, horarios: payloadHorarios };
-
-    try {
-      const res = await fetch("/api/horarios", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.mensaje || `Error ${res.status}`);
-      showGlobalMessage("msg-horarios", data.mensaje || "Horarios guardados.");
-      await cargarHorarios();
-    } catch (error) {
-      showGlobalMessage("msg-horarios", `Error: ${error.message}`, true);
-    } finally {
-      if (botonSubmit) botonSubmit.disabled = false;
-    }
-  };
+async function loadOverview() {
+  const response = await fetch("/api/v2/summary");
+  if (!response.ok) throw new Error("No se pudo cargar el resumen.");
+  const summary = await response.json();
+  const values = [
+    [
+      summary.usuarios,
+      "Personas registradas",
+      "Estudiantes y docentes",
+      "people",
+    ],
+    [
+      summary.asistencias,
+      "Ingresos de hoy",
+      "Registro de la jornada",
+      "calendar-check",
+    ],
+    [
+      summary.evaluaciones,
+      "Evaluaciones",
+      "Simulacros y prácticas",
+      "journal-check",
+    ],
+    [
+      summary.imports,
+      "Lotes por revisar",
+      "Pendientes de lectura o revisión",
+      "upc-scan",
+    ],
+  ];
+  $("overview-stats").replaceChildren(
+    ...values.map(([value, label, help, icon]) => {
+      const card = document.createElement("div");
+      card.className = "stat-card";
+      const top = document.createElement("div");
+      top.className = "stat-label";
+      const span = document.createElement("span");
+      span.textContent = label;
+      const i = document.createElement("i");
+      i.className = `bi bi-${icon}`;
+      i.setAttribute("aria-hidden", "true");
+      top.append(span, i);
+      const number = document.createElement("strong");
+      number.textContent = value;
+      const sub = document.createElement("small");
+      sub.textContent = help;
+      card.append(top, number, sub);
+      return card;
+    }),
+  );
 }
-
-// Formulario Cambiar Contraseña
-const formPassword = document.getElementById("form-password");
-if (formPassword) {
-  formPassword.onsubmit = async function (e) {
-    e.preventDefault();
-    const botonSubmit = this.querySelector('button[type="submit"]');
-    if (botonSubmit) botonSubmit.disabled = true;
-    const nuevaInput = document.getElementById("nueva-password");
-    const nueva = nuevaInput ? nuevaInput.value : "";
-    try {
-      const res = await fetch("/admin/password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nueva, actual: document.getElementById("actual-password").value }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.mensaje || `Error ${res.status}`);
-      showGlobalMessage("msg-password", data.mensaje || "Contraseña actualizada.");
-      this.reset();
-    } catch (error) {
-      showGlobalMessage("msg-password", `Error: ${error.message}`, true);
-    } finally {
-      if (botonSubmit) botonSubmit.disabled = false;
-    }
-  };
+function localTab(button) {
+  const nav = button.closest(".local-tabs");
+  const owner = nav.parentElement;
+  for (const candidate of nav.querySelectorAll("[data-local-tab]")) {
+    candidate.setAttribute("aria-selected", String(candidate === button));
+    candidate.tabIndex = candidate === button ? 0 : -1;
+  }
+  for (const panel of owner.querySelectorAll(":scope > [data-local-panel]"))
+    panel.hidden = panel.dataset.localPanel !== button.dataset.localTab;
 }
-
-// Formulario Agregar Ciclo
-const formAgregarCiclo = document.getElementById("form-agregar-ciclo");
-if (formAgregarCiclo) {
-  formAgregarCiclo.onsubmit = async function (e) {
-  e.preventDefault();
-  const botonSubmit = this.querySelector('button[type="submit"]');
-  botonSubmit.disabled = true;
-  const nombreInput = document.getElementById("nuevo-ciclo-nombre");
-  // Normalizar: colapsar espacios, trim y forzar mayúsculas
-  const nombre = (nombreInput.value || "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .toUpperCase();
-  if (!nombre) {
-    showGlobalMessage(
-      "msg-ciclos",
-      "El nombre del ciclo no puede estar vacío.",
-      true
-    );
-    botonSubmit.disabled = false;
+let peopleFilterActive = false;
+const peopleFilterState = new WeakMap();
+function filterPeople() {
+  const query = $("people-search")
+    .value.normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+  let count = 0;
+  for (const group of $("vista-usuarios-list").querySelectorAll(
+    ".accordion-item",
+  )) {
+    const header = group.querySelector(".accordion-header"),
+      content = group.querySelector(".accordion-content");
+    if (query && !peopleFilterState.has(group))
+      peopleFilterState.set(group, {
+        active: header.classList.contains("active"),
+        show: content.classList.contains("show"),
+        panels: [...group.querySelectorAll(".turno-panel")].map((panel) => [
+          panel,
+          panel.style.display,
+        ]),
+      });
+    if (!query && peopleFilterActive && peopleFilterState.has(group)) {
+      const saved = peopleFilterState.get(group);
+      header.classList.toggle("active", saved.active);
+      header.setAttribute("aria-expanded", String(saved.active));
+      content.classList.toggle("show", saved.show);
+      for (const [panel, display] of saved.panels)
+        panel.style.display = display;
+      peopleFilterState.delete(group);
+    }
+    const tabs = group.querySelector(".turno-tabs");
+    if (tabs) tabs.hidden = !!query;
+    let matches = 0;
+    for (const row of group.querySelectorAll("li")) {
+      const text = row.textContent
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase();
+      row.hidden = !!query && !text.includes(query);
+      if (!row.hidden) matches++;
+    }
+    group.hidden = !!query && !matches;
+    count += matches;
+    if (query && matches) {
+      header.classList.add("active");
+      header.setAttribute("aria-expanded", "true");
+      group.querySelector(".accordion-content").classList.add("show");
+      for (const panel of group.querySelectorAll(".turno-panel"))
+        panel.style.display = "block";
+    }
+  }
+  peopleFilterActive = !!query;
+  $("people-search-status").textContent = query
+    ? `${count} coincidencia${count === 1 ? "" : "s"}`
+    : "";
+}
+// Native dialogs and retained modal windows share keyboard and focus behavior.
+function installModalBehavior() {
+  let previousFocus = null;
+  for (const modal of document.querySelectorAll(".modal")) {
+    let wasShown = false;
+    const close = modal.querySelector(".close-btn");
+    if (close) {
+      close.setAttribute("role", "button");
+      close.tabIndex = 0;
+      close.setAttribute("aria-label", "Cerrar ventana");
+      close.addEventListener("keydown", (e) => {
+        if (["Enter", " "].includes(e.key)) {
+          e.preventDefault();
+          close.click();
+        }
+      });
+    }
+    new MutationObserver(() => {
+      const shown =
+        modal.style.display !== "none" &&
+        getComputedStyle(modal).display !== "none";
+      if (shown === wasShown) return;
+      wasShown = shown;
+      if (shown) {
+        previousFocus = document.activeElement;
+        document.body.classList.add("modal-open");
+        modal
+          .querySelector('input:not([type=hidden]),button,[tabindex="0"]')
+          ?.focus();
+      } else {
+        if (
+          ![...document.querySelectorAll(".modal")].some(
+            (m) => m.style.display !== "none",
+          )
+        ) {
+          document.body.classList.remove("modal-open");
+          document.body.style.overflow = "";
+        }
+        previousFocus?.focus();
+      }
+    }).observe(modal, { attributes: true, attributeFilter: ["style"] });
+  }
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      if (document.body.classList.contains("menu-open")) {
+        closeMenu();
+        $("sidebar-toggle").focus();
+      }
+      for (const modal of document.querySelectorAll(".modal"))
+        if (modal.style.display !== "none") modal.style.display = "none";
+    }
+    if (event.key === "Tab") {
+      const modal = [...document.querySelectorAll(".modal")].find(
+        (m) => m.style.display !== "none",
+      );
+      if (!modal) return;
+      const nodes = [
+        ...modal.querySelectorAll(
+          'a[href],button,input,select,textarea,[tabindex="0"]',
+        ),
+      ].filter((n) => !n.disabled && n.getClientRects().length);
+      const first = nodes[0],
+        last = nodes.at(-1);
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    }
+  });
+}
+async function initialize() {
+  session = await window.ingematSession;
+  if (!session.usuario) {
+    location.assign("/pages/admin-login.html");
     return;
   }
-
-  try {
-    const res = await fetch("/api/ciclos", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nombre }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.mensaje || `Error ${res.status}`);
-
-    nombreInput.value = "";
-    showGlobalMessage("msg-ciclos", data.mensaje || "Ciclo agregado.");
-    await cargarCiclos();
-    await cargarHorarios(); // <-- Recargar horarios para que aparezca el nuevo ciclo
-    window.dispatchEvent(new CustomEvent("cyclesUpdated"));
-  } catch (error) {
-    showGlobalMessage("msg-ciclos", `Error: ${error.message}`, true);
-  } finally {
-    botonSubmit.disabled = false;
+  document.body.dataset.accountRole = session.usuario.role;
+  for (const link of document.querySelectorAll("[data-route]")) {
+    if (routes[link.dataset.route]) link.hidden = !allowed(link.dataset.route);
   }
- };
-}
-
-// Formulario Agregar Usuario
-const formAgregar = document.getElementById("form-agregar");
-if (formAgregar) {
-  formAgregar.onsubmit = async function (e) {
-    e.preventDefault();
-    const botonSubmit = this.querySelector('button[type="submit"]');
-    if (botonSubmit) botonSubmit.disabled = true;
-
-    const codigoInput = document.getElementById("codigo");
-    const nombreInput = document.getElementById("nombre");
-    const codigo = codigoInput ? codigoInput.value.trim().toUpperCase() : "";
-    const nombre = nombreInput ? nombreInput.value.trim() : "";
-    const apellido = (document.getElementById("apellido") && document.getElementById("apellido").value.trim()) || "";
-    const rol = document.getElementById("rol") ? document.getElementById("rol").value : "";
-    const turno = document.getElementById("turno") ? document.getElementById("turno").value : "";
-    const ciclo = document.getElementById("ciclo") ? document.getElementById("ciclo").value : "";
-
-    const getSelectedDays = () => {
-      const selected = [];
-      document.querySelectorAll("#dias-asistencia-selector .day-btn.active").forEach((btn) => {
-        selected.push(btn.getAttribute("data-day"));
-      });
-      return selected;
-    };
-    const diasAsistencia = getSelectedDays();
-
-    let errorMsg = null;
-    if (!codigo || !nombre || !apellido || !rol) {
-      errorMsg = "Código, Nombre, Apellido y Rol son obligatorios.";
-    } else if (rol === "estudiante" && (!turno || !ciclo)) {
-      errorMsg = "Turno y Ciclo son obligatorios para estudiantes.";
-    } else if ((rol === "estudiante" || rol === "docente") && diasAsistencia.length === 0) {
-      errorMsg = "Selecciona al menos un día de asistencia.";
-    }
-
-    if (errorMsg) {
-      showGlobalMessage("msg-agregar-usuario", errorMsg, true);
-      if (botonSubmit) botonSubmit.disabled = false;
-      return;
-    }
-
-    const payload = { codigo, nombre, apellido, rol };
-    if (rol === "estudiante") {
-      payload.turno = turno;
-      payload.ciclo = ciclo;
-      payload.dias_asistencia = diasAsistencia;
-    } else if (rol === "docente") {
-      payload.dias_asistencia = diasAsistencia;
-      payload.turno = "";
-      payload.ciclo = "";
-    }
-
-    try {
-      const res = await fetch("/api/usuarios", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.mensaje || `Error ${res.status}`);
-
-      showGlobalMessage("msg-agregar-usuario", data.mensaje || "Usuario agregado.");
-      await cargarUsuarios(true);
-      this.reset();
-      document.querySelectorAll("#dias-asistencia-selector .day-btn").forEach((button) => {
-        const day = button.getAttribute("data-day");
-        if (day !== "D") {
-          button.classList.add("active");
-        } else {
-          button.classList.remove("active");
-        }
-      });
-      const rolEl = document.getElementById("rol");
-      if (rolEl) rolEl.dispatchEvent(new Event("change"));
-    } catch (error) {
-      showGlobalMessage("msg-agregar-usuario", `Error: ${error.message}`, true);
-    } finally {
-      if (botonSubmit) botonSubmit.disabled = false;
-    }
+  for (const group of document.querySelectorAll(".nav-group"))
+    if (![...group.querySelectorAll("[data-route]")].some((l) => !l.hidden))
+      group.hidden = true;
+  for (const node of document.querySelectorAll("[data-admin]"))
+    node.hidden = session.usuario.role !== "admin";
+  $("account-name").textContent = session.usuario.username;
+  $("account-role").textContent = roleNames[session.usuario.role];
+  $("account-avatar").textContent = session.usuario.username
+    .slice(0, 1)
+    .toUpperCase();
+  $("app-timezone").textContent = session.timezone;
+  $("topbar-date").textContent = new Intl.DateTimeFormat("es-PE", {
+    dateStyle: "medium",
+    timeZone: session.timezone,
+  }).format(new Date());
+  $("sidebar-toggle").onclick = toggleMenu;
+  $("sidebar-close").onclick = () => {
+    closeMenu();
+    $("sidebar-toggle").focus();
   };
-}
-
-// FORMULARIO EDITAR USUARIO
-const formEditar = document.getElementById("form-editar");
-if (formEditar) {
-  formEditar.onsubmit = async function (e) {
-    e.preventDefault();
-    const botonSubmit = this.querySelector('button[type="submit"]');
-    if (botonSubmit) botonSubmit.disabled = true;
-
-    const originalCodigoEl = document.getElementById("edit-original-codigo");
-    const originalCodigo = originalCodigoEl ? originalCodigoEl.value.trim() : "";
-    const codigoEl = document.getElementById("edit-codigo");
-    const codigo = codigoEl ? codigoEl.value.trim().toUpperCase() : "";
-    const nombre = document.getElementById("edit-nombre") ? document.getElementById("edit-nombre").value.trim() : "";
-    const apellido = document.getElementById("edit-apellido") ? document.getElementById("edit-apellido").value.trim() : "";
-    const rol = document.getElementById("edit-rol") ? document.getElementById("edit-rol").value : "";
-    const turno = document.getElementById("edit-turno") ? document.getElementById("edit-turno").value : "";
-    const ciclo = document.getElementById("edit-ciclo") ? document.getElementById("edit-ciclo").value : "";
-
-    const getSelectedDays = () => {
-      const selected = [];
-      document.querySelectorAll("#edit-dias-asistencia-selector .day-btn.active").forEach((btn) => {
-        selected.push(btn.getAttribute("data-day"));
-      });
-      return selected;
-    };
-    const diasAsistencia = getSelectedDays();
-
-    let errorMsg = null;
-    if (!codigo || !nombre || !apellido || !rol || !originalCodigo) {
-      errorMsg = "Código, Nombre, Apellido y Rol son obligatorios.";
-    } else if (rol === "estudiante" && (!turno || !ciclo)) {
-      errorMsg = "Turno y Ciclo son obligatorios para estudiantes.";
-    } else if ((rol === "estudiante" || rol === "docente") && diasAsistencia.length === 0) {
-      errorMsg = "Selecciona al menos un día de asistencia.";
-    }
-
-    if (errorMsg) {
-      showGlobalMessage("msg-editar-usuario", errorMsg, true);
-      if (botonSubmit) botonSubmit.disabled = false;
-      return;
-    }
-
-    const payload = { codigo, nombre, apellido, rol };
-    if (rol === "estudiante") {
-      payload.turno = turno;
-      payload.ciclo = ciclo;
-      payload.dias_asistencia = diasAsistencia;
-    } else if (rol === "docente") {
-      payload.dias_asistencia = diasAsistencia;
-      payload.turno = "";
-      payload.ciclo = "";
-    }
-
-    try {
-      const res = await fetch(`/api/usuarios/${originalCodigo}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.mensaje || `Error ${res.status}`);
-
-      showGlobalMessage("msg-editar-usuario", data.mensaje || "Usuario actualizado.");
-      const modalEl = document.getElementById("edit-user-modal");
-      if (modalEl) modalEl.style.display = "none";
-      const vistaActiva = document.querySelector(".vista-content[style*='block']");
-      if (vistaActiva) {
-        if (vistaActiva.id === "vista-usuarios-completa") {
-          await cargarUsuarios(true);
-        } else if (vistaActiva.id === "vista-principal") {
-          await cargarUsuarios();
-        }
-      }
-    } catch (error) {
-      showGlobalMessage("msg-editar-usuario", `Error: ${error.message}`, true);
-    } finally {
-      if (botonSubmit) botonSubmit.disabled = false;
-    }
+  $("sidebar-backdrop").onclick = () => {
+    closeMenu();
+    $("sidebar-toggle").focus();
   };
-}
-
-// FORMULARIO JUSTIFICAR FALTA
-const formJustificar = document.getElementById("form-justificar-falta");
-if (formJustificar) {
-  formJustificar.onsubmit = async function (e) {
-    e.preventDefault();
-    const botonSubmit = this.querySelector('button[type="submit"]');
-    if (botonSubmit) botonSubmit.disabled = true;
-
-    const codigoEl = document.getElementById("justificar-alumno-hidden");
-    const fechaEl = document.getElementById("justificar-fecha");
-    const filtroInput = document.getElementById("justificar-usuario-filtro");
-
-    const codigo = codigoEl ? codigoEl.value : "";
-    const fechaInput = fechaEl ? fechaEl.value : "";
-
-    if (!codigo || !fechaInput) {
-      showGlobalMessage("msg-justificar-falta", "Debes seleccionar fecha y un usuario válido de la lista.", true);
-      if (botonSubmit) botonSubmit.disabled = false;
-      return;
-    }
-
-    const fechaParts = fechaInput.split("-");
-    const fechaFormateada = `${fechaParts[2]}-${fechaParts[1]}-${fechaParts[0]}`;
-
-    try {
-      const res = await fetch("/api/excel/justificar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ codigo: codigo, fecha: fechaFormateada }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.mensaje || `Error ${res.status}`);
-
-      showGlobalMessage("msg-justificar-falta", data.mensaje || "Falta justificada.");
-      if (filtroInput) filtroInput.value = "";
-      if (codigoEl) codigoEl.value = "";
-    } catch (error) {
-      showGlobalMessage("msg-justificar-falta", `Error: ${error.message}`, true);
-    } finally {
-      if (botonSubmit) botonSubmit.disabled = false;
-    }
+  const media = matchMedia("(max-width: 960px)");
+  const adapt = () => {
+    $("admin-sidebar").inert =
+      media.matches && !document.body.classList.contains("menu-open");
   };
-}
-
-// Botón Logout
-const btnLogout = document.getElementById("btn-logout");
-if (btnLogout) {
-  btnLogout.onclick = async function () {
-    try {
-      await fetch("/admin/logout", { method: "POST" });
-      window.location.href = "/admin";
-    } catch (error) {
-      console.error("Error al cerrar sesión:", error);
-      window.location.href = "/admin";
-    }
+  media.addEventListener("change", () => {
+    closeMenu();
+    adapt();
+  });
+  adapt();
+  $("btn-logout").onclick = async () => {
+    await fetch("/admin/logout", { method: "POST" });
+    location.assign("/admin");
   };
-}
-
-// ====================================================
-// Inicialización General
-// ====================================================
-
-window.onload = async function () {
-  // <-- *** FUNCIÓN CONVERTIDA A ASYNC ***
-  console.log("Admin panel cargado.");
-
-  initModalEvents(); // Esta no depende de datos, puede ir primero
-
-  // Cargar datos iniciales para la vista principal
-  // *** CORRECCIÓN: Esperar (await) a que los datos carguen ***
-  await cargarUsuarios();
-  await cargarArchivosExcel();
-  await cargarHorarios(); // <-- MODIFICADO
-  await cargarCiclos();
-
-  // *** CORRECCIÓN: Llamar a initUserFormEvents DESPUÉS de que cargarUsuarios haya terminado ***
+  $("page-help").onclick = () => openV2Guide(routes[current].guide);
+  $("people-create").onclick = () => {
+    $("create-user-dialog").showModal();
+    $("codigo").focus();
+  };
+  $("people-search").addEventListener("input", filterPeople);
+  document.addEventListener("click", (event) => {
+    const close = event.target.closest("[data-close-dialog]");
+    if (close) $(close.dataset.closeDialog).close();
+    const link = event.target.closest("[data-route]");
+    if (link) {
+      event.preventDefault();
+      navigate(link.dataset.route);
+    }
+    const tab = event.target.closest("[data-local-tab]");
+    if (tab) localTab(tab);
+  });
+  document.addEventListener("keydown", (event) => {
+    const tab = event.target.closest("[role=tab][data-local-tab]");
+    if (tab && ["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) {
+      event.preventDefault();
+      const tabs = [...tab.parentElement.querySelectorAll("[role=tab]")];
+      const index =
+        event.key === "Home"
+          ? 0
+          : event.key === "End"
+            ? tabs.length - 1
+            : (tabs.indexOf(tab) +
+                (event.key === "ArrowRight" ? 1 : -1) +
+                tabs.length) %
+              tabs.length;
+      tabs[index].focus();
+      localTab(tabs[index]);
+    }
+  });
+  initModalEvents();
+  installModalBehavior();
+  await cargarUsuarios(true);
   initUserFormEvents();
-
-  if (document.querySelector(".nav-button.active")?.id === "btn-vista-inicio") {
-    mostrarVista("vista-principal", "btn-vista-inicio");
+  await cargarCiclos();
+  await cargarHorarios();
+  if ($("justificar-fecha"))
+    $("justificar-fecha").value = window.ingematToday();
+  if (session.usuario.mustChangePassword) {
+    const warning = document.createElement("div");
+    warning.id = "password-warning";
+    warning.className = "notice warning";
+    warning.append("Tu contraseña es temporal. ");
+    const link = document.createElement("a");
+    link.href = "#account";
+    link.dataset.route = "account";
+    link.textContent = "Actualízala desde Mi cuenta.";
+    warning.append(link);
+    $("vista-principal").prepend(warning);
   }
-
+  await v2Ready;
+  $("page-title").tabIndex = -1;
+  for (const nav of document.querySelectorAll('.local-tabs[role="tablist"]')) {
+    const owner = nav.parentElement;
+    for (const [index, button] of [
+      ...nav.querySelectorAll("[data-local-tab]"),
+    ].entries()) {
+      button.id ||= `tab-${button.dataset.localTab}`;
+      button.tabIndex =
+        button.getAttribute("aria-selected") === "true" ? 0 : -1;
+      const panel = [
+        ...owner.querySelectorAll(":scope > [data-local-panel]"),
+      ].find((p) => p.dataset.localPanel === button.dataset.localTab);
+      if (panel) {
+        panel.id ||= `panel-${button.dataset.localTab}`;
+        panel.setAttribute("role", "tabpanel");
+        panel.setAttribute("aria-labelledby", button.id);
+        button.setAttribute("aria-controls", panel.id);
+      }
+    }
+  }
+  initialized = true;
+  window.addEventListener("popstate", () =>
+    navigate(location.hash.slice(1) || "overview", false),
+  );
+  window.addEventListener("hashchange", () => {
+    if (location.hash.slice(1) !== current)
+      navigate(location.hash.slice(1) || "overview", false);
+  });
+  window.addEventListener("peopleUpdated", (event) => {
+    filterPeople();
+    loadOverview();
+    if (event.detail?.message) notify(event.detail.message);
+  });
   window.addEventListener("cyclesUpdated", async () => {
     await cargarCiclos();
-    await cargarHorarios(); // <-- Recargar horarios si los ciclos cambian
+    await cargarHorarios();
   });
-
-  // --- AÑADIDO: Poner fecha de hoy por defecto ---
-  try {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = (today.getMonth() + 1).toString().padStart(2, "0");
-    const day = today.getDate().toString().padStart(2, "0");
-    const fechaHoy = `${year}-${month}-${day}`; // Formato YYYY-MM-DD
-
-    const justificarFechaInput = document.getElementById("justificar-fecha");
-    if (justificarFechaInput) {
-      justificarFechaInput.value = fechaHoy;
-    }
-  } catch (e) {
-    console.error("Error al setear fecha por defecto:", e);
-  }
-  // --- FIN AÑADIDO ---
-};
+  await navigate(location.hash.slice(1) || "overview", false);
+  document.body.dataset.ready = "true";
+}
+initialize().catch((error) => {
+  console.error(error);
+  notify("No se pudo preparar el panel. " + error.message, true);
+});

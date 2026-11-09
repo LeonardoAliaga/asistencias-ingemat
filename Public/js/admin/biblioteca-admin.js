@@ -11,7 +11,7 @@ export function initBibliotecaAdmin() {
     setupControlPrestamos();
     bibliotecaInitialized = true;
   }
-  cargarTodoBibliotecaAdmin();
+  return cargarTodoBibliotecaAdmin();
 }
 
 // 1. Manejo de Sub-Pestañas Internas
@@ -64,7 +64,7 @@ export async function cargarTodoBibliotecaAdmin() {
     console.error("Error al cargar biblioteca admin:", err);
   }
 
-  cargarPrestamosAdmin();
+  await cargarPrestamosAdmin();
 }
 
 const shelfSortPreferences = {};
@@ -143,18 +143,18 @@ function renderAdminBookshelf(secciones, libros) {
       <div class="shelf-section">
         <div class="shelf-title">
           <div style="display:flex; align-items:center; gap:8px;">
-            <span><i class="bi bi-bookmark-star"></i> ESTANTE: ${seccion}</span>
+            <span><i class="bi bi-bookmark-star"></i> ${seccion}</span>
             <span style="font-size:0.75rem; background:#f1f5f9; color:#475569; padding:2px 8px; border-radius:10px; font-weight:700;">${librosSeccion.length} libros</span>
           </div>
-          <div style="display:flex; align-items:center; gap:10px;">
+          <div class="shelf-actions">
             <div class="shelf-sort-wrapper">
               <label style="font-size:0.78rem; font-weight:600; color:#64748b;"><i class="bi bi-arrow-down-up"></i> Orden:</label>
-              <select class="shelf-sort-select" data-seccion="${seccion}">
-                <option value="titulo_asc" ${currentSort === "titulo_asc" ? "selected" : ""}>🔤 Nombre (A - Z)</option>
-                <option value="titulo_desc" ${currentSort === "titulo_desc" ? "selected" : ""}>🔤 Nombre (Z - A)</option>
-                <option value="codigo_asc" ${currentSort === "codigo_asc" ? "selected" : ""}>🔢 Código (Asc)</option>
-                <option value="codigo_desc" ${currentSort === "codigo_desc" ? "selected" : ""}>🔢 Código (Desc)</option>
-                <option value="disponible" ${currentSort === "disponible" ? "selected" : ""}>🟢 Disponibles 1°</option>
+              <select aria-label="Orden de los libros" class="shelf-sort-select" data-seccion="${seccion}">
+                <option value="titulo_asc" ${currentSort === "titulo_asc" ? "selected" : ""}>Nombre (A - Z)</option>
+                <option value="titulo_desc" ${currentSort === "titulo_desc" ? "selected" : ""}>Nombre (Z - A)</option>
+                <option value="codigo_asc" ${currentSort === "codigo_asc" ? "selected" : ""}>Código (Asc)</option>
+                <option value="codigo_desc" ${currentSort === "codigo_desc" ? "selected" : ""}>Código (Desc)</option>
+                <option value="disponible" ${currentSort === "disponible" ? "selected" : ""}>Disponibles primero</option>
               </select>
             </div>
             <button class="btn-delete-seccion" data-seccion="${seccion}" style="background:#fef2f2; border:1px solid #fecaca; color:#ef4444; cursor:pointer; font-size:0.8rem; padding: 4px 8px; border-radius:6px;" title="Eliminar Sección"><i class="bi bi-trash"></i></button>

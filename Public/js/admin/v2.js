@@ -22,30 +22,6 @@ const state = {
   sections: [],
   poll: null,
 };
-const names = {
-  exams: [
-    "Simulacros",
-    "Configura el examen una vez. Lee, revisa y califica con las mismas reglas.",
-  ],
-  imports: [
-    "Lotes OMR",
-    "Carga un salón completo y dedica tiempo a las excepciones.",
-  ],
-  attendance: ["Asistencias", "Ingresos guardados por código, fecha y turno."],
-  contacts: [
-    "Contactos y áreas",
-    "Perfiles de postulación y personas autorizadas para recibir avisos.",
-  ],
-  notifications: [
-    "Comunicación",
-    "WhatsApp oficial, cola persistente y seguimiento de entregas.",
-  ],
-  settings: [
-    "Cuentas y respaldo",
-    "Permisos, vinculación de recepción y copias de seguridad.",
-  ],
-  guide: ["Guía y tutoriales", "Aprende cada tarea con pasos y ejemplos."],
-};
 const today = () => {
   const p = Object.fromEntries(
     new Intl.DateTimeFormat("en-GB", {
@@ -102,7 +78,7 @@ function bind(id, event, fn) {
     if (event === "submit") e.preventDefault();
     const button =
       event === "submit"
-        ? e.target.querySelector("button[type=submit]")
+        ? e.submitter || e.target.querySelector("button[type=submit]")
         : e.currentTarget;
     try {
       if (button?.tagName === "BUTTON") button.disabled = true;
@@ -111,6 +87,7 @@ function bind(id, event, fn) {
       message(error.message, true);
     } finally {
       if (button?.tagName === "BUTTON") button.disabled = false;
+      if (id === "v2-exam-editor") updateWizardFeedback();
     }
   });
 }
@@ -149,21 +126,7 @@ function showDialog(title, html) {
   $("v2-dialog").showModal();
 }
 function expose() {
-  document.querySelector(".hero-header").hidden = true;
-  document
-    .querySelectorAll(".vista-content,.vista-admin")
-    .forEach((el) => (el.style.display = "none"));
-  $("vista-v2").style.display = "block";
-  document
-    .querySelectorAll(".nav-button")
-    .forEach((b) => b.classList.remove("active"));
-  $(
-    state.tab === "guide"
-      ? "btn-vista-guia"
-      : state.tab === "notifications"
-        ? "btn-vista-whatsapp"
-        : "btn-vista-v2",
-  )?.classList.add("active");
+  window.ingematAdmin?.activateV2(state.tab);
 }
 async function tab(name) {
   if (state.tab !== name) $("v2-message").hidden = true;
@@ -173,8 +136,7 @@ async function tab(name) {
     el.hidden = el.dataset.v2Panel !== name;
   for (const b of document.querySelectorAll("[data-v2-tab]"))
     b.setAttribute("aria-selected", String(b.dataset.v2Tab === name));
-  $("v2-title").textContent = names[name][0];
-  $("v2-description").textContent = names[name][1];
+
   if (name === "imports") await loadBatches();
   if (name === "attendance") await loadAttendance();
   if (name === "contacts") {
@@ -259,9 +221,11 @@ async function selectExam(id) {
   $("v2-exam-actions").hidden = !e;
   $("v2-exam-workspace").hidden = !e?.definition;
   $("v2-exam-editor").hidden = true;
+  $("v2-exam-editor").closest(".v2-panel").classList.remove("is-editing");
   $("v2-manual-answers").value = "";
   $("v2-manual-replace").checked = false;
   $("v2-manual-reason").value = "";
+  $("v2-manual-reason").required = false;
   if (!e) {
     $("v2-exam-summary").textContent = "Selecciona un examen o crea uno nuevo.";
     return;
@@ -309,6 +273,8 @@ async function selectExam(id) {
   $("v2-ranking-excel").href =
     `/api/evaluaciones/${encodeURIComponent(e.id)}/excel`;
   $("v2-manual").hidden = !canWrite;
+  $("v2-manual-tab").hidden = !canWrite;
+  $("v2-replace-reason").hidden = true;
   $("v2-print").disabled =
     !canWrite || !["listo", "publicado"].includes(e.estado);
   await loadResults();
@@ -386,7 +352,7 @@ function answerValues(text) {
     }),
   );
 }
-function collectEditor() {
+function collectEditor({ structureOnly = false } = {}) {
   const form = $("v2-exam-editor"),
     total = Number(form.elements.total.value);
   const areas = [...$("v2-areas").querySelectorAll(".v2-area-row")].map(
@@ -409,7 +375,11 @@ function collectEditor() {
         throw new Error(
           "Aplica los cambios de áreas antes de guardar los cursos.",
         );
-      const qs = expand(r.querySelector("[data-rule-questions]").value),
+      const qs =
+          areas.length === 1 &&
+          r.querySelector("[data-rule-selection]").value === "fixed"
+            ? questions
+            : expand(r.querySelector("[data-rule-questions]").value),
         selection = r.querySelector("[data-rule-selection]").value;
       rules[a.code] = {
         questions: qs,
@@ -432,6 +402,24 @@ function collectEditor() {
       },
     };
   });
+  const payload = {
+    titulo: form.elements.titulo.value,
+    ciclo: form.elements.ciclo.value,
+    fecha: form.elements.fecha.value,
+    definition: {
+      totalQuestions: total,
+      areas,
+      sections,
+      keys: {},
+      scoring: {
+        correct: Number(form.elements.correct.value),
+        wrong: Number(form.elements.wrong.value),
+        blank: Number(form.elements.blank.value),
+      },
+      forms: {},
+    },
+  };
+  if (structureOnly) return payload;
   const values = keyValues($("v2-keys").value),
     noPenalty = new Set(expand($("v2-no-penalty").value)),
     annulled = new Set(expand($("v2-void").value));
@@ -466,32 +454,68 @@ function collectEditor() {
       line.slice(index + 1),
     );
   }
-  return {
-    titulo: form.elements.titulo.value,
-    ciclo: form.elements.ciclo.value,
-    fecha: form.elements.fecha.value,
-    definition: {
-      totalQuestions: total,
-      areas,
-      sections,
-      keys,
-      scoring: {
-        correct: Number(form.elements.correct.value),
-        wrong: Number(form.elements.wrong.value),
-        blank: Number(form.elements.blank.value),
-      },
-      forms,
-    },
-  };
+  payload.definition.keys = keys;
+  payload.definition.forms = forms;
+  return payload;
+}
+function captureAreas() {
+  state.areas = [...$("v2-areas").querySelectorAll(".v2-area-row")].map(
+    (row) => ({
+      code: row.querySelector("[data-area-code]").value.trim().toUpperCase(),
+      name: row.querySelector("[data-area-name]").value,
+      requiredQuestions: Number(row.querySelector("[data-area-total]").value),
+    }),
+  );
 }
 function captureSections() {
-  if (!$("v2-sections").children.length) return;
-  try {
-    state.sections = collectEditor().definition.sections;
-  } catch {
-    /* Preserve the last valid configuration while the user edits incomplete ranges. */
-  }
+  const elements = [...$("v2-sections").querySelectorAll(".v2-section-editor")];
+  if (!elements.length) return;
+  // Keep incomplete ranges as text when adding/removing another course.
+  const safeRange = (value) => {
+    try {
+      return expand(value);
+    } catch {
+      return [];
+    }
+  };
+  state.sections = elements.map((el) => {
+    const text = el.querySelector("[data-course-range]").value;
+    return {
+      name: el.querySelector("[data-course-name]").value,
+      questions: safeRange(text),
+      _range: text,
+      scoring: Object.fromEntries(
+        ["correct", "wrong", "blank"].map((key) => [
+          key,
+          Number(el.querySelector(`[data-course-${key}]`).value),
+        ]),
+      ),
+      rules: Object.fromEntries(
+        [...el.querySelectorAll("[data-rule-area]")].map((row) => {
+          const selection = row.querySelector("[data-rule-selection]").value;
+          const range =
+            state.areas.length === 1 && selection === "fixed"
+              ? text
+              : row.querySelector("[data-rule-questions]").value;
+          const questions = safeRange(range);
+          return [
+            row.dataset.ruleArea,
+            {
+              questions,
+              _range: range,
+              selection,
+              quota:
+                selection === "fixed"
+                  ? questions.length
+                  : Number(row.querySelector("[data-rule-quota]").value),
+            },
+          ];
+        }),
+      ),
+    };
+  });
 }
+
 function renderAreas() {
   const area = $("v2-areas");
   area.innerHTML =
@@ -506,6 +530,7 @@ function renderAreas() {
     (b) =>
       (b.onclick = () => {
         captureSections();
+        captureAreas();
         state.areas.splice(Number(b.dataset.removeArea), 1);
         renderAreas();
         renderSections();
@@ -514,11 +539,7 @@ function renderAreas() {
   $("v2-apply-areas").onclick = () => {
     try {
       captureSections();
-      state.areas = [...area.querySelectorAll(".v2-area-row")].map((r) => ({
-        code: r.querySelector("[data-area-code]").value.trim().toUpperCase(),
-        name: r.querySelector("[data-area-name]").value,
-        requiredQuestions: Number(r.querySelector("[data-area-total]").value),
-      }));
+      captureAreas();
       if (
         state.areas.some((a) => !a.code) ||
         new Set(state.areas.map((a) => a.code)).size !== state.areas.length
@@ -535,47 +556,60 @@ function renderSections() {
   const form = $("v2-exam-editor"),
     total = Number(form.elements.total.value);
   $("v2-sections").innerHTML = state.sections
-    .map(
-      (s, i) =>
-        `<div class="v2-section-editor"><div class="v2-section-title"><strong>Curso ${i + 1}</strong><button type="button" class="v2-link" data-remove-section="${i}">Quitar curso</button></div><div class="v2-form-grid"><label>Nombre<input data-course-name value="${esc(s.name)}" required maxlength="100"></label><label>Preguntas del curso<input data-course-range value="${esc(compact(s.questions))}" placeholder="1-20" required></label><label>Correcta<input data-course-correct type="number" step=".001" value="${s.scoring?.correct ?? Number(form.elements.correct.value)}"></label><label>Penalización<input data-course-wrong type="number" min="0" step=".001" value="${s.scoring?.wrong ?? Number(form.elements.wrong.value)}"></label><label>Blanco<input data-course-blank type="number" step=".001" value="${s.scoring?.blank ?? Number(form.elements.blank.value)}"></label></div>${state.areas
-          .map((a) => {
-            const rule = s.rules?.[a.code] || {
-              questions: state.areas.length === 1 ? s.questions : [],
-              selection: "fixed",
-              quota: 0,
-            };
-            return `<div class="v2-form-grid v2-rule" data-rule-area="${esc(a.code)}"><label>Área ${esc(a.code)} · preguntas aplicables<input data-rule-questions value="${esc(compact(rule.questions))}" placeholder="Sin preguntas para esta área"></label><label>Selección<select data-rule-selection><option value="fixed" ${rule.selection === "fixed" ? "selected" : ""}>Preguntas fijas</option><option value="choose" ${rule.selection === "choose" ? "selected" : ""}>Elegir cupo</option></select></label><label>Cupo al elegir<input data-rule-quota type="number" min="0" max="${total}" value="${rule.quota ?? rule.questions?.length ?? 0}"></label></div>`;
-          })
-          .join("")}</div>`,
-    )
+    .map((course, i) => {
+      const rules = state.areas
+        .map((a) => {
+          const rule = course.rules?.[a.code] || {
+            questions: state.areas.length === 1 ? course.questions : [],
+            selection: "fixed",
+            quota: 0,
+          };
+          return `<div class="v2-form-grid v2-rule" data-rule-area="${esc(a.code)}"><label>Área ${esc(a.code)} · preguntas<input data-rule-questions value="${esc(rule._range ?? compact(rule.questions))}" placeholder="Ej.: 1-10,15"></label><label>Modo<select data-rule-selection><option value="fixed" ${rule.selection === "fixed" ? "selected" : ""}>Preguntas fijas</option><option value="choose" ${rule.selection === "choose" ? "selected" : ""}>Elegir un cupo</option></select></label><label>Cupo<input data-rule-quota type="number" min="0" max="${total}" value="${rule.quota ?? rule.questions?.length ?? 0}"></label></div>`;
+        })
+        .join("");
+      return `<details class="v2-section-editor" ${state.sections.length === 1 || state.expandedCourse === i ? "open" : ""}><summary><span class="course-number">${i + 1}</span><span class="course-caption"><strong>${esc(course.name || "Nuevo curso")}</strong><small>${esc(compact(course.questions)) || "Completa la distribución"}</small></span><i class="bi bi-chevron-down" aria-hidden="true"></i></summary><div class="course-fields"><div class="v2-form-grid"><label>Nombre del curso<input data-course-name value="${esc(course.name)}" maxlength="100" required placeholder="Ej.: Aritmética"></label><label>Preguntas del curso<input data-course-range value="${esc(course._range ?? compact(course.questions))}" required placeholder="Ej.: 1-20"></label></div>${state.areas.length === 1 ? `<details><summary>Selección de preguntas para este perfil</summary>${rules}<p class="v2-help">En preguntas fijas se utiliza el rango del curso. Elige un cupo si el alumno debe responder solo una parte.</p></details>` : `<div class="stack"><p class="v2-help">Define qué preguntas corresponden a cada área.</p>${rules}</div>`}<details><summary>Puntajes especiales para este curso</summary><div class="course-scoring">${["correct", "wrong", "blank"].map((key, j) => `<label>${["Correcta", "Penalización", "Blanco"][j]}<input data-course-${key} type="number" step=".001" ${key === "wrong" ? 'min="0"' : ""} value="${course.scoring?.[key] ?? Number(form.elements[key].value)}"></label>`).join("")}</div></details><button type="button" class="v2-link" data-remove-section="${i}">Quitar este curso</button></div></details>`;
+    })
     .join("");
   for (const row of $("v2-sections").querySelectorAll("[data-rule-area]")) {
-    const select = row.querySelector("[data-rule-selection]");
-    const quota = row.querySelector("[data-rule-quota]");
-    quota.disabled = select.value === "fixed";
-    select.onchange = () => {
+    const select = row.querySelector("[data-rule-selection]"),
+      quota = row.querySelector("[data-rule-quota]");
+    const updateRule = () => {
       quota.disabled = select.value === "fixed";
+      quota.closest("label").hidden = select.value === "fixed";
+      row.querySelector("[data-rule-questions]").closest("label").hidden =
+        state.areas.length === 1 && select.value === "fixed";
+    };
+    updateRule();
+    select.onchange = () => {
+      updateRule();
+      updateWizardFeedback();
     };
   }
-  $("v2-sections")
-    .querySelectorAll("[data-remove-section]")
-    .forEach(
-      (b) =>
-        (b.onclick = () => {
-          captureSections();
-          state.sections.splice(Number(b.dataset.removeSection), 1);
-          renderSections();
-        }),
-    );
+  for (const button of $("v2-sections").querySelectorAll(
+    "[data-remove-section]",
+  ))
+    button.onclick = () => {
+      captureSections();
+      state.sections.splice(Number(button.dataset.removeSection), 1);
+      renderSections();
+    };
+  if ($("v2-wizard-review")) updateWizardFeedback();
 }
 function setEditor(def, id = null) {
   state.editor = id;
   const f = $("v2-exam-editor");
   f.hidden = false;
+  f.closest(".v2-panel").classList.add("is-editing");
   f.elements.total.value = def.totalQuestions;
   f.elements.correct.value = def.scoring?.correct ?? 20;
   f.elements.wrong.value = def.scoring?.wrong ?? 1.125;
   f.elements.blank.value = def.scoring?.blank ?? 0;
+  state.defaultScoring = Object.fromEntries(
+    ["correct", "wrong", "blank"].map((key) => [
+      key,
+      Number(f.elements[key].value),
+    ]),
+  );
   state.areas = structuredClone(def.areas);
   state.sections = structuredClone(def.sections);
   renderAreas();
@@ -603,9 +637,23 @@ function setEditor(def, id = null) {
       [n, ...["A", "B", "C", "D", "E"].map((o) => k.optionScores[o])].join(","),
     )
     .join("\n");
+  $("wizard-areas").open = def.areas.length > 1;
   $("v2-forms").value = Object.entries(def.forms || {})
     .map(([n, m]) => `${n}:${compact(m)}`)
     .join("\n");
+  state.expandedCourse = null;
+  state.lastTotal = def.totalQuestions;
+  state.currentPreset =
+    def.areas.length > 1
+      ? "areas"
+      : def.sections.length > 1
+        ? "custom"
+        : [100, 120].includes(def.totalQuestions)
+          ? String(def.totalQuestions)
+          : "custom";
+  $("v2-preset").value = state.currentPreset;
+  $("v2-format-confirm").hidden = true;
+  showWizardStep(0, false);
 }
 function preset(value) {
   const editorId = state.editor;
@@ -647,6 +695,8 @@ function preset(value) {
     },
     editorId,
   );
+  $("v2-preset").value = value;
+  state.currentPreset = value;
   if (value === "areas")
     message(
       "Define los cursos y las preguntas de cada área. No hay una distribución oficial precargada.",
@@ -1095,6 +1145,240 @@ function openGuide(id) {
     `<article class="v2-tutorial"><p class="v2-eyebrow">${esc(a.category)}</p><p>${esc(a.summary)}</p><ol>${a.steps.map((s) => `<li><strong>${esc(s.title)}</strong><p>${esc(s.text)}</p></li>`).join("")}</ol>${a.tips?.length ? `<div class="v2-notice warning">${a.tips.map(esc).join("<br>")}</div>` : ""}</article>`,
   );
 }
+let wizardStep = 0;
+function revealField(field) {
+  const pane = field.closest("[data-wizard-pane]");
+  if (pane) showWizardStep(Number(pane.dataset.wizardPane), false);
+  for (
+    let parent = field.parentElement;
+    parent && parent !== pane;
+    parent = parent.parentElement
+  )
+    if (parent.tagName === "DETAILS") parent.open = true;
+  field.focus();
+  field.reportValidity();
+}
+function showWizardStep(next, validate = true) {
+  next = Math.max(0, Math.min(3, next));
+  if (validate && next > wizardStep) {
+    for (const pane of document.querySelectorAll("[data-wizard-pane]")) {
+      if (Number(pane.dataset.wizardPane) >= next) continue;
+      for (const field of pane.querySelectorAll("input,select,textarea")) {
+        if (!field.disabled && !field.checkValidity()) {
+          revealField(field);
+          return;
+        }
+      }
+    }
+    if (next > 1 && updateWizardFeedback()?.issues.length) {
+      showWizardStep(1, false);
+      $("v2-structure-summary").focus();
+      return;
+    }
+  }
+  wizardStep = next;
+  for (const pane of document.querySelectorAll("[data-wizard-pane]"))
+    pane.hidden = Number(pane.dataset.wizardPane) !== next;
+  for (const button of document.querySelectorAll("[data-wizard-step]")) {
+    const i = Number(button.dataset.wizardStep);
+    if (i === next) button.setAttribute("aria-current", "step");
+    else button.removeAttribute("aria-current");
+    button.classList.toggle("is-complete", i < next);
+  }
+  $("wizard-back").hidden = next === 0;
+  $("wizard-next").hidden = next === 3;
+  $("wizard-save").hidden = next !== 3;
+  $("wizard-prepare").hidden = next !== 3;
+  $("wizard-progress").textContent = `Paso ${next + 1} de 4`;
+  updateWizardFeedback();
+  const heading = document.querySelector(`[data-wizard-pane="${next}"] h3`);
+  heading.tabIndex = -1;
+  heading.focus({ preventScroll: true });
+  $("v2-exam-editor").scrollIntoView({ block: "start", behavior: "instant" });
+}
+function updateWizardFeedback() {
+  if (!$("v2-exam-editor")) return;
+  const total = Number($("v2-exam-editor").elements.total.value);
+  let keys = {},
+    keyError = "";
+  try {
+    keys = keyValues($("v2-keys").value);
+  } catch (error) {
+    keyError = error.message;
+  }
+  const validKey = (v) =>
+    /^[ABCDE](?:\/[ABCDE])*$/.test(String(v).trim().toUpperCase());
+  const count = Object.entries(keys).filter(
+    ([q, v]) => Number(q) >= 1 && Number(q) <= total && validKey(v),
+  ).length;
+  if (
+    Object.entries(keys).some(
+      ([q, v]) => Number(q) < 1 || Number(q) > total || !validKey(v),
+    )
+  )
+    keyError =
+      "Revisa las claves: usa alternativas A a E y números dentro del cuadernillo.";
+  $("v2-keys-count").textContent =
+    keyError || `${count} de ${total} claves ingresadas`;
+  $("v2-keys-count").classList.toggle("field-error", !!keyError);
+  const feedback = $("v2-structure-summary");
+  feedback.tabIndex = -1;
+  $("wizard-prepare").disabled = true;
+  try {
+    const { definition: def } = collectEditor({ structureOnly: true });
+    const all = def.sections.flatMap((s) => s.questions),
+      unique = new Set(all),
+      issues = [];
+    if (!Number.isInteger(total) || total < 1 || total > 200)
+      issues.push("El cuadernillo debe tener entre 1 y 200 preguntas.");
+    if (
+      !def.sections.length ||
+      def.sections.some((s) => !s.questions.length || !s.name.trim())
+    )
+      issues.push("Completa el nombre y las preguntas de cada curso.");
+    if (all.some((q) => q < 1 || q > total))
+      issues.push("Hay preguntas fuera del cuadernillo.");
+    if (unique.size !== all.length)
+      issues.push("Una pregunta aparece en más de un curso.");
+    if (unique.size !== total)
+      issues.push(`Los cursos cubren ${unique.size} de ${total} preguntas.`);
+    if (
+      new Set(def.areas.map((a) => a.code)).size !== def.areas.length ||
+      def.areas.some(
+        (a) =>
+          !/^[A-Z0-9_-]{1,20}$/.test(a.code) ||
+          a.requiredQuestions < 1 ||
+          a.requiredQuestions > total,
+      )
+    )
+      issues.push(
+        "Revisa los códigos y las cantidades evaluables de las áreas.",
+      );
+    for (const s of def.sections)
+      for (const a of def.areas) {
+        const r = s.rules[a.code];
+        if (r.questions.some((q) => !s.questions.includes(q)))
+          issues.push(
+            `${s.name}, área ${a.code}: hay preguntas fuera del curso.`,
+          );
+        if (
+          !Number.isInteger(r.quota) ||
+          r.quota < 0 ||
+          r.quota > r.questions.length
+        )
+          issues.push(
+            `${s.name}, área ${a.code}: el cupo supera las preguntas disponibles.`,
+          );
+      }
+    const totals = def.areas.map((a) => {
+      const assigned = def.sections.reduce(
+        (sum, s) => sum + (s.rules[a.code]?.quota || 0),
+        0,
+      );
+      if (assigned !== a.requiredQuestions)
+        issues.push(
+          `Área ${a.code}: ${assigned} preguntas asignadas de ${a.requiredQuestions} esperadas.`,
+        );
+      return { ...a, assigned };
+    });
+    feedback.classList.toggle("error", issues.length > 0);
+    feedback.textContent = issues.length
+      ? issues.join(" ")
+      : `Distribución completa: ${total} preguntas en ${def.sections.length} curso${def.sections.length === 1 ? "" : "s"}. ${totals.map((a) => `Área ${a.code}: ${a.assigned} evaluables`).join(" · ")}`;
+    for (const el of $("v2-sections").querySelectorAll(".v2-section-editor")) {
+      el.querySelector(".course-caption strong").textContent =
+        el.querySelector("[data-course-name]").value || "Nuevo curso";
+      el.querySelector(".course-caption small").textContent =
+        el.querySelector("[data-course-range]").value ||
+        "Completa la distribución";
+    }
+    let complete = 0;
+    try {
+      const { definition } = collectEditor();
+      complete = Object.values(definition.keys).filter(
+        (k) =>
+          k.voidPolicy ||
+          k.optionScores ||
+          (k.answers.length && k.answers.every((v) => /^[ABCDE]$/.test(v))),
+      ).length;
+      for (const [name, mapping] of Object.entries(definition.forms))
+        if (
+          mapping.length !== total ||
+          new Set(mapping).size !== total ||
+          mapping.some((q) => q < 1 || q > total)
+        )
+          keyError = `La versión ${name} debe contener todas las preguntas una sola vez.`;
+      if (
+        Object.values(definition.keys).some(
+          (k) =>
+            k.optionScores &&
+            Object.values(k.optionScores).some((v) => !Number.isFinite(v)),
+        )
+      )
+        keyError = "Revisa los puntajes por alternativa.";
+    } catch (error) {
+      keyError = error.message;
+    }
+    $("v2-wizard-review").innerHTML =
+      `<div class="wizard-review-grid"><div><strong>${total}</strong><span>preguntas impresas</span></div><div><strong>${def.sections.length}</strong><span>cursos</span></div><div><strong>${complete}/${total}</strong><span>preguntas con clave o regla</span></div></div><div class="v2-card wizard-review-details"><h3>${esc($("v2-exam-editor").elements.titulo.value || "Sin título")}</h3><p>${esc($("v2-exam-editor").elements.ciclo.value)} · ${esc($("v2-exam-editor").elements.fecha.value)}</p>${table(
+        ["Perfil", "Preguntas evaluables"],
+        totals.map((a) => [
+          `${esc(a.code)} · ${esc(a.name)}`,
+          `${a.assigned} de ${a.requiredQuestions}`,
+        ]),
+      )}</div><p class="${keyError ? "field-error" : "v2-help"}">${esc(keyError || (complete === total ? "La clave está completa. Puedes guardar y validar el simulacro." : "Puedes guardar el borrador y completar las claves después. Para validar se requiere una clave o regla para cada pregunta."))}</p>`;
+    $("wizard-prepare").disabled =
+      issues.length > 0 || !!keyError || complete !== total;
+    return { issues, def };
+  } catch (error) {
+    feedback.classList.add("error");
+    feedback.textContent = error.message;
+    $("v2-wizard-review").textContent = error.message;
+    return { issues: [error.message] };
+  }
+}
+function syncSimpleTotal() {
+  const total = Number($("v2-exam-editor").elements.total.value),
+    previous = state.lastTotal;
+  if (
+    !Number.isInteger(total) ||
+    total < 1 ||
+    total > 200 ||
+    total === previous
+  )
+    return;
+  captureSections();
+  if (
+    state.areas.length === 1 &&
+    state.areas[0].requiredQuestions === previous
+  ) {
+    state.areas[0].requiredQuestions = total;
+    renderAreas();
+  }
+  if (
+    state.sections.length === 1 &&
+    state.sections[0].questions.length === previous &&
+    state.sections[0].questions.every((q, i) => q === i + 1)
+  ) {
+    delete state.sections[0]._range;
+    state.sections[0].questions = Array.from(
+      { length: total },
+      (_, i) => i + 1,
+    );
+    for (const rule of Object.values(state.sections[0].rules)) {
+      if (rule.selection === "fixed" && rule.questions.length === previous) {
+        delete rule._range;
+        rule.questions = [...state.sections[0].questions];
+        rule.quota = total;
+      }
+    }
+    renderSections();
+  }
+  state.lastTotal = total;
+  $("v2-preset").value = "custom";
+  updateWizardFeedback();
+}
+
 async function initialize() {
   const session = await window.ingematSession;
   if (!session.usuario) {
@@ -1121,44 +1405,9 @@ async function initialize() {
       $(id).hidden = true;
   if (state.role === "recepcion") $("btn-vista-evaluaciones").hidden = true;
   state.username = session.usuario.username;
-  const view = document.createElement("div");
-  view.id = "vista-v2";
-  view.className = "vista-content";
-  view.style.display = "none";
+  const view = $("vista-v2");
   view.innerHTML = await (await fetch("/pages/v2-panel.html")).text();
-  document.querySelector("body > .container")?.append(view);
-  if (!view.isConnected) document.querySelector(".container").append(view);
-  const nav = document.querySelector(".nav-links");
-  nav.addEventListener("click", (e) => {
-    const b = e.target.closest("button");
-    if (
-      b &&
-      !["btn-vista-v2", "btn-vista-guia", "btn-vista-whatsapp"].includes(b.id)
-    )
-      document.querySelector(".hero-header").hidden = false;
-  });
-  for (const [id, text] of [
-    ["btn-vista-v2", "SIMULACROS"],
-    ["btn-vista-guia", "GUÍA"],
-  ]) {
-    const button = document.createElement("button");
-    button.id = id;
-    button.className = "nav-button";
-    button.textContent = text;
-    nav.insertBefore(button, $("btn-logout"));
-    button.onclick = () =>
-      tab(
-        id === "btn-vista-guia"
-          ? "guide"
-          : ["admin", "corrector", "docente"].includes(state.role)
-            ? "exams"
-            : "attendance",
-      ).catch((e) => message(e.message, true));
-  }
-  $("btn-vista-evaluaciones").textContent = "TAREAS Y REPORTES";
-  $("btn-vista-whatsapp").onclick = () =>
-    tab("notifications").catch((e) => message(e.message, true));
-  $("btn-vista-whatsapp").hidden = state.role !== "admin";
+  document.body.append($("v2-dialog"));
   $("v2-attendance-date").value = today();
   for (const el of view.querySelectorAll("[data-admin]"))
     el.hidden = state.role !== "admin";
@@ -1202,6 +1451,47 @@ async function initialize() {
         e.target.close();
     }
   });
+  bind("wizard-next", "click", () => showWizardStep(wizardStep + 1));
+  bind("wizard-back", "click", () => showWizardStep(wizardStep - 1, false));
+  for (const button of document.querySelectorAll("[data-wizard-step]"))
+    button.onclick = () =>
+      showWizardStep(
+        Number(button.dataset.wizardStep),
+        Number(button.dataset.wizardStep) > wizardStep,
+      );
+  $("v2-exam-editor").elements.total.addEventListener(
+    "change",
+    syncSimpleTotal,
+  );
+  $("v2-exam-editor").addEventListener(
+    "invalid",
+    (event) => {
+      const pane = event.target.closest("[data-wizard-pane]");
+      if (pane) showWizardStep(Number(pane.dataset.wizardPane), false);
+      for (
+        let parent = event.target.parentElement;
+        parent && parent !== pane;
+        parent = parent.parentElement
+      )
+        if (parent.tagName === "DETAILS") parent.open = true;
+    },
+    true,
+  );
+  $("v2-exam-editor").addEventListener("input", (event) => {
+    const key = event.target.name;
+    if (["correct", "wrong", "blank"].includes(key)) {
+      for (const field of $("v2-sections").querySelectorAll(
+        `[data-course-${key}]`,
+      ))
+        if (Number(field.value) === state.defaultScoring[key])
+          field.value = event.target.value;
+      state.defaultScoring[key] = Number(event.target.value);
+    }
+    updateWizardFeedback();
+  });
+  $("v2-exam-editor").addEventListener("change", () => {
+    updateWizardFeedback();
+  });
   bind("v2-guide-search", "input", renderGuides);
   bind("v2-guide-category", "change", renderGuides);
   bind("v2-contact-search", "input", renderContacts);
@@ -1212,6 +1502,10 @@ async function initialize() {
     await loadCycles();
     await loadStudents();
     await loadExams(state.selected?.id);
+  });
+  bind("v2-manual-replace", "change", () => {
+    $("v2-replace-reason").hidden = !$("v2-manual-replace").checked;
+    $("v2-manual-reason").required = $("v2-manual-replace").checked;
   });
   bind("v2-exam-select", "change", (e) => selectExam(e.target.value));
   bind("v2-result-area", "change", loadResults);
@@ -1226,7 +1520,25 @@ async function initialize() {
     f.scrollIntoView({ behavior: "smooth", block: "start" });
   });
   bind("v2-preset", "change", (e) => {
-    if (e.target.value !== "custom") preset(e.target.value);
+    const value = e.target.value;
+    if (value === "custom") {
+      state.currentPreset = value;
+      return;
+    }
+    captureSections();
+    const hasWork =
+      $("v2-keys").value.trim() ||
+      state.sections.length > 1 ||
+      state.sections.some((s) => s.name !== "General");
+    if (hasWork) {
+      state.pendingPreset = value;
+      $("v2-format-confirm").hidden = false;
+    } else preset(value);
+  });
+  bind("v2-format-apply", "click", () => preset(state.pendingPreset));
+  bind("v2-format-keep", "click", () => {
+    $("v2-preset").value = state.currentPreset;
+    $("v2-format-confirm").hidden = true;
   });
   bind("v2-edit", "click", () => {
     const e = state.selected;
@@ -1252,6 +1564,7 @@ async function initialize() {
   });
   bind("v2-add-area", "click", () => {
     captureSections();
+    captureAreas();
     state.areas.push({
       code: String.fromCharCode(65 + state.areas.length),
       name: "Nueva área",
@@ -1263,10 +1576,15 @@ async function initialize() {
   bind("v2-add-section", "click", () => {
     captureSections();
     state.sections.push({ name: "Nuevo curso", questions: [], rules: {} });
+    state.expandedCourse = state.sections.length - 1;
     renderSections();
   });
-  bind("v2-cancel-edit", "click", () => ($("v2-exam-editor").hidden = true));
-  bind("v2-exam-editor", "submit", async () => {
+  bind("v2-cancel-edit", "click", () => {
+    $("v2-exam-editor").hidden = true;
+    $("v2-exam-editor").closest(".v2-panel").classList.remove("is-editing");
+  });
+  bind("v2-exam-editor", "submit", async (event) => {
+    const prepare = event.submitter?.id === "wizard-prepare";
     const payload = collectEditor(),
       id = state.editor;
     const e = await api(
@@ -1274,9 +1592,12 @@ async function initialize() {
       json(payload, id ? "PUT" : "POST"),
     );
     state.editor = e.id;
+    if (prepare) await api(`/api/v2/exams/${e.id}/ready`, json({}));
     await loadExams(e.id);
     message(
-      "Borrador guardado. Valida el examen cuando completes todas las claves y reglas.",
+      prepare
+        ? "Examen validado. Ya puedes imprimir e importar cartillas."
+        : "Borrador guardado. Valida el examen cuando completes todas las claves y reglas.",
     );
   });
   bind("v2-ready", "click", async () => {
@@ -1467,39 +1788,8 @@ async function initialize() {
     message("Estructura cargada. Revísala y guarda un nuevo examen.");
   });
   bind("v2-revise", "click", reviseKeysDialog);
-  const summary = await api("/api/v2/summary");
-  const stats = document.createElement("div");
-  stats.className = "v2-stats";
-  stats.innerHTML = [
-    [summary.usuarios, "Usuarios"],
-    [summary.asistencias, "Ingresos de hoy"],
-    [summary.evaluaciones, "Evaluaciones"],
-    [summary.imports, "Lotes pendientes"],
-  ]
-    .map(
-      ([n, label]) =>
-        `<div class="v2-stat"><strong>${n}</strong><span>${label}</span></div>`,
-    )
-    .join("");
-  $("vista-principal").prepend(stats);
-  if (session.usuario.mustChangePassword) {
-    const warning = document.createElement("div");
-    warning.className = "v2-notice warning";
-    warning.textContent =
-      "Tu contraseña es temporal. Cámbiala en Inicio antes de continuar con la operación diaria.";
-    $("vista-principal").prepend(warning);
-  }
-  const guideButton = document.createElement("button");
-  guideButton.className = "v2-button secondary";
-  guideButton.textContent = "Abrir guía completa · 34 tutoriales";
-  guideButton.onclick = () => tab("guide");
-  $("vista-principal").prepend(guideButton);
   state.poll = setInterval(() => {
-    if (
-      state.tab === "imports" &&
-      !document.hidden &&
-      $("vista-v2").style.display !== "none"
-    )
+    if (state.tab === "imports" && !document.hidden && !$("vista-v2").hidden)
       loadBatches().catch(() => {});
   }, 4000);
   renderGuides();
@@ -1546,7 +1836,12 @@ function reviseKeysDialog() {
     );
   });
 }
-initialize().catch((error) => {
-  console.error(error);
-  if ($("v2-message")) message(error.message, true);
-});
+export const v2Ready = initialize();
+export async function openV2Panel(name) {
+  await v2Ready;
+  return tab(name);
+}
+export async function openV2Guide(id) {
+  await v2Ready;
+  return openGuide(id);
+}

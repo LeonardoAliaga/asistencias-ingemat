@@ -28,6 +28,67 @@ for (const [code, name, area] of [
     randomUUID(),
     area,
   );
+db.prepare(
+  "INSERT INTO usuarios(codigo,nombre,apellido,rol,turno,ciclo,uid,area) VALUES(?,?,?,?,?,?,?,?)",
+).run(
+  "DEMO003",
+  "MARÍA FERNANDA",
+  "FERNÁNDEZ DE LA CRUZ",
+  "estudiante",
+  "tarde",
+  "ANUAL",
+  randomUUID(),
+  "B",
+);
+db.prepare(
+  "INSERT INTO usuarios(codigo,nombre,apellido,rol,uid) VALUES(?,?,?,?,?)",
+).run("DOC001", "CARLOS", "PROFESOR DEMO", "docente", randomUUID());
+db.prepare("INSERT INTO secciones_biblioteca(nombre) VALUES(?)").run(
+  "MATEMÁTICA",
+);
+db.prepare(
+  "INSERT INTO libros(id,codigo,titulo,categoria,editorial) VALUES(?,?,?,?,?)",
+).run(
+  randomUUID(),
+  "MAT-001",
+  "Álgebra: teoría y problemas de admisión",
+  "MATEMÁTICA",
+  "Editorial de demostración",
+);
+const auth = require("../src/services/auth.service");
+for (const role of ["corrector", "docente", "recepcion"])
+  db.prepare(
+    "INSERT INTO accounts(username,password_hash,role,must_change_password) VALUES(?,?,?,0)",
+  ).run(role, auth.hashPassword("Browser-test-only-2026"), role);
+const exams = require("../src/services/evaluations.service"),
+  req = { session: { username: "admin" } },
+  { businessDate } = require("../src/utils/time"),
+  fixture = exams.saveExam(
+    {
+      titulo: "SIMULACRO DE DEMOSTRACIÓN",
+      ciclo: "ANUAL",
+      fecha: businessDate(),
+      definition: {
+        totalQuestions: 100,
+        keys: Object.fromEntries(
+          Array.from({ length: 100 }, (_, i) => [i + 1, "A"]),
+        ),
+      },
+    },
+    req,
+  );
+exams.readyExam(fixture.id, req);
+exams.saveGrade(
+  fixture.id,
+  {
+    codigoEstudiante: "DEMO001",
+    area: "GENERAL",
+    respuestas: Object.fromEntries(
+      Array.from({ length: 100 }, (_, i) => [i + 1, "A"]),
+    ),
+  },
+  req,
+);
 const server = app.listen(
   Number(process.env.UI_TEST_PORT || 3017),
   "127.0.0.1",

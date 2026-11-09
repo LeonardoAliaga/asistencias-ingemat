@@ -15,7 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const fileInput = document.getElementById("carousel-upload-input");
   const uploadNameInput = document.getElementById("carousel-upload-name"); // <-- AÑADIDO
   const previewContainer = document.getElementById(
-    "carousel-preview-container"
+    "carousel-preview-container",
   );
   const previewImage = document.getElementById("carousel-preview");
   const previewDims = document.getElementById("carousel-preview-dims");
@@ -124,7 +124,7 @@ document.addEventListener("DOMContentLoaded", () => {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
-          }
+          },
         );
         const data = await res.json();
         if (data.exito) {
@@ -153,7 +153,7 @@ document.addEventListener("DOMContentLoaded", () => {
     list.innerHTML = "";
     if (!ciclos.length) {
       list.innerHTML =
-        "<p style='color: #999; text-align: center;'>No hay ciclos agregados.</p>";
+        '<p class="v2-empty">No hay ciclos publicados. Usa Agregar ciclo para preparar el primero.</p>';
       return;
     }
     ciclos.sort((a, b) => (a.orden || 0) - (b.orden || 0));
@@ -180,8 +180,8 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
         <div class="ciclo-admin-body">
           <p class="ciclo-desc">${(c.descripcion || "").substring(0, 100)}${
-        (c.descripcion || "").length > 100 ? "..." : ""
-      }</p>
+            (c.descripcion || "").length > 100 ? "..." : ""
+          }</p>
           <div class="ciclo-benefits-preview">
             ${
               c.beneficios && c.beneficios.length > 0
@@ -195,7 +195,7 @@ document.addEventListener("DOMContentLoaded", () => {
             ${
               current.price
                 ? `<strong>S/ ${current.price}</strong>`
-                : '<span style="color: #999;">Sin precio</span>'
+                : '<span class="help">Sin precio</span>'
             }
             ${
               prev
@@ -223,7 +223,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const slug = ev.currentTarget.getAttribute("data-edit");
         const ciclo = ciclos.find((x) => x.slug === slug);
         if (ciclo) openForm(ciclo);
-      })
+      }),
     );
     list.querySelectorAll("[data-delete]").forEach((b) =>
       b.addEventListener("click", async (ev) => {
@@ -232,7 +232,7 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
           const res = await fetch(
             "/api/ciclos-visual/" + encodeURIComponent(slug),
-            { method: "DELETE" }
+            { method: "DELETE" },
           );
           const data = await res.json();
           if (data.exito) loadList();
@@ -241,7 +241,7 @@ document.addEventListener("DOMContentLoaded", () => {
           console.error(err);
           alert("Error eliminando");
         }
-      })
+      }),
     );
   }
 
@@ -270,13 +270,13 @@ document.addEventListener("DOMContentLoaded", () => {
       uploadBtn.disabled = true;
       showCarouselMessage(
         `Resolución incorrecta. Se requiere ${targetWidth}x${targetHeight}.`,
-        true
+        true,
       );
     } else if (!name) {
       uploadBtn.disabled = true;
       showCarouselMessage(
         "Por favor, introduce un nombre para el archivo.",
-        true
+        true,
       );
     }
   }
@@ -415,6 +415,10 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // --- Carga inicial de ambas listas ---
-  loadList();
-  loadCarouselImages();
+  window.ingematSession.then((session) => {
+    if (session.usuario?.role === "admin") {
+      loadList();
+      loadCarouselImages();
+    }
+  });
 });

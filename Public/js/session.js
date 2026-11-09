@@ -62,14 +62,38 @@
     Object.defineProperty(Element.prototype, "innerHTML", {
       ...descriptor,
       set(value) {
-        descriptor.set.call(
-          this,
-          window.DOMPurify.sanitize(String(value), {
-            ADD_ATTR: ["target", "aria-label"],
-            FORBID_TAGS: ["iframe", "script", "object", "embed"],
-            FORBID_ATTR: ["srcdoc"],
-          }),
-        );
+        const options = {
+          ADD_ATTR: ["target", "aria-label"],
+          FORBID_TAGS: ["iframe", "script", "object", "embed"],
+          FORBID_ATTR: ["srcdoc"],
+        };
+        // HTML parsers discard isolated table rows. Sanitize them inside their
+        // real context so that rows, cells and their actions stay associated.
+        const contexts = {
+          TABLE: ["table"],
+          THEAD: ["table", "thead"],
+          TBODY: ["table", "tbody"],
+          TFOOT: ["table", "tfoot"],
+          TR: ["table", "tbody", "tr"],
+          COLGROUP: ["table", "colgroup"],
+        };
+        const context = contexts[this.tagName];
+        let clean;
+        if (context) {
+          const wrapped =
+            context.map((tag) => `<${tag}>`).join("") +
+            String(value) +
+            [...context]
+              .reverse()
+              .map((tag) => `</${tag}>`)
+              .join("");
+          const fragment = window.DOMPurify.sanitize(wrapped, {
+            ...options,
+            RETURN_DOM: true,
+          });
+          clean = fragment.querySelector(context.join(" > "))?.innerHTML || "";
+        } else clean = window.DOMPurify.sanitize(String(value), options);
+        descriptor.set.call(this, clean);
       },
     });
   }

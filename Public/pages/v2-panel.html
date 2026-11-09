@@ -1,213 +1,369 @@
 <div class="v2-shell">
-  <header class="v2-heading">
-    <div>
-      <p class="v2-eyebrow">INGEMAT · GESTIÓN ACADÉMICA</p>
-      <h2 id="v2-title">Simulacros</h2>
-      <p id="v2-description">
-        Configura el examen una vez. Lee, revisa y califica con las mismas
-        reglas.
-      </p>
-    </div>
-    <button class="v2-button secondary" data-guide="primer-inicio">
-      Cómo empezar
-    </button>
-  </header>
-  <div id="v2-message" role="status" aria-live="polite" hidden></div>
-  <nav class="v2-tabs" aria-label="Herramientas académicas">
-    <button data-v2-tab="exams" aria-selected="true">Simulacros</button
-    ><button data-v2-tab="imports">Lotes OMR</button
-    ><button data-v2-tab="attendance">Asistencias</button
-    ><button data-v2-tab="contacts">Contactos y áreas</button
-    ><button data-v2-tab="notifications" data-admin>Comunicación</button
-    ><button data-v2-tab="settings" data-admin>Cuentas y respaldo</button
-    ><button data-v2-tab="guide">Guía y tutoriales</button>
-  </nav>
-  <section data-v2-panel="exams" class="v2-panel">
+  <div aria-live="polite" hidden="" id="v2-message" role="status"></div>
+  <section class="v2-panel" data-v2-panel="exams">
     <div class="v2-toolbar">
       <label
         >Examen<select id="v2-exam-select">
           <option value="">Selecciona una evaluación</option>
         </select></label
-      ><button id="v2-new" class="v2-button">Nuevo examen</button
-      ><button id="v2-reload" class="v2-button secondary">Actualizar</button
-      ><button data-guide="simulacro-120" class="v2-link">
+      ><button class="v2-button" id="v2-new">Nuevo examen</button
+      ><button class="v2-button secondary" id="v2-reload">Actualizar</button
+      ><button class="v2-link" data-guide="simulacro-120">
         Guía de áreas y cursos
       </button>
     </div>
-    <div id="v2-exam-summary" class="v2-notice">
+    <div class="v2-notice" id="v2-exam-summary">
       Selecciona un examen para imprimir cartillas, cargar respuestas o
       consultar resultados.
     </div>
-    <div id="v2-exam-actions" class="v2-toolbar" hidden>
-      <button id="v2-edit" class="v2-button secondary">Editar borrador</button
-      ><button id="v2-ready" class="v2-button">Validar y preparar</button
-      ><button id="v2-publish" class="v2-button">Publicar resultados</button
-      ><button id="v2-revise" class="v2-button secondary">Revisar claves</button
-      ><button id="v2-archive" class="v2-button danger">Archivar</button
-      ><button id="v2-notify" class="v2-button secondary" data-admin>
+    <div class="v2-toolbar" hidden="" id="v2-exam-actions">
+      <button class="v2-button secondary" id="v2-edit">Editar borrador</button
+      ><button class="v2-button" id="v2-ready">Validar y preparar</button
+      ><button class="v2-button" id="v2-publish">Publicar resultados</button
+      ><button class="v2-button secondary" id="v2-revise">Revisar claves</button
+      ><button class="v2-button danger" id="v2-archive">Archivar</button
+      ><button class="v2-button secondary" data-admin="" id="v2-notify">
         Notificar resultados
       </button>
     </div>
-    <form id="v2-exam-editor" class="v2-card" hidden>
-      <div class="v2-card-title">
+    <form class="v2-card exam-wizard" hidden="" id="v2-exam-editor">
+      <div class="wizard-heading">
         <h3>Diseñar simulacro</h3>
-        <button type="button" data-guide="simulacro-100" class="v2-link">
+        <button class="v2-link" data-guide="simulacro-100" type="button">
           Tutorial paso a paso
         </button>
-      </div>
-      <div class="v2-form-grid">
-        <label
-          >Título<input
-            name="titulo"
-            required
-            maxlength="180"
-            placeholder="Simulacro de admisión · semana 1" /></label
-        ><label>Ciclo<select name="ciclo" required></select></label
-        ><label>Fecha<input name="fecha" type="date" required /></label
-        ><label
-          >Formato<select id="v2-preset">
-            <option value="100">Estándar de 100 preguntas</option>
-            <option value="120">Estándar de 120 preguntas</option>
-            <option value="areas">
-              Por áreas · 120 impresas / 100 evaluables
-            </option>
-            <option value="custom">Personalizado</option>
-          </select></label
-        ><label
-          >Preguntas del cuadernillo<input
-            name="total"
-            type="number"
-            min="1"
-            max="200"
-            value="100"
-            required /></label
-        ><label
-          >Puntos por correcta<input
-            name="correct"
-            type="number"
-            step=".001"
-            value="20"
-            required /></label
-        ><label
-          >Penalización por incorrecta<input
-            name="wrong"
-            type="number"
-            min="0"
-            step=".001"
-            value="1.125"
-            required /></label
-        ><label
-          >Puntos por blanco<input
-            name="blank"
-            type="number"
-            step=".001"
-            value="0"
-            required
-        /></label>
-      </div>
-      <h4>1. Perfiles de postulación</h4>
-      <p class="v2-help">
-        La cantidad evaluable puede ser diferente para cada área. Los códigos
-        deben coincidir con los asignados a tus estudiantes.
-      </p>
-      <div id="v2-areas"></div>
-      <button id="v2-add-area" type="button" class="v2-button secondary">
-        Agregar área
-      </button>
-      <h4>2. Cursos y distribución de preguntas</h4>
-      <p class="v2-help">
-        Cada pregunta pertenece a un curso. Para cada área indica los números
-        aplicables. Ejemplo: 1-10,15,18-20. En «Elegir cupo» el estudiante elige
-        qué responder, hasta el límite definido.
-      </p>
-      <div id="v2-sections"></div>
-      <button id="v2-add-section" type="button" class="v2-button secondary">
-        Agregar curso
-      </button>
-      <button id="v2-apply-scoring" type="button" class="v2-button secondary">
-        Aplicar puntajes generales a todos los cursos
-      </button>
-      <h4>3. Claves oficiales</h4>
-      <label
-        >Alternativas del cuadernillo<textarea
-          id="v2-keys"
-          rows="5"
-          placeholder="1,A&#10;2,C&#10;3,B/D"
-        ></textarea>
-      </label>
-      <p class="v2-help">
-        Puedes pegar una secuencia A B C… o líneas número,alternativa. B/D
-        acepta ambas alternativas. La clave debe cubrir todo el cuadernillo
-        antes de validar.
-      </p>
-      <details>
-        <summary>Excepciones de puntaje y versiones del cuadernillo</summary>
-        <div class="v2-form-grid">
-          <label
-            >Preguntas sin penalización<input
-              id="v2-no-penalty"
-              placeholder="Ej.: 1-10" /></label
-          ><label
-            >Preguntas anuladas<input
-              id="v2-void"
-              placeholder="Ej.: 42,67" /></label
-          ><label
-            >Regla de anulación<select id="v2-void-policy">
-              <option value="credit">Otorgar puntos</option>
-              <option value="exclude">Excluir del puntaje</option>
-            </select></label
-          >
-        </div>
-        <label
-          >Puntos por alternativa (número,A,B,C,D,E)<textarea
-            id="v2-option-scores"
-            rows="3"
-            placeholder="15,20,15,10,5,0"
-          ></textarea></label
-        ><label
-          >Versiones (código: orden de preguntas originales)<textarea
-            id="v2-forms"
-            rows="3"
-            placeholder="A:1-100&#10;B:51-100,1-50"
-          ></textarea>
-        </label>
-        <p class="v2-help">
-          Una versión modifica el orden de las preguntas y conserva las
-          alternativas. Deja vacío para usar A en el orden original.
-        </p>
-      </details>
-      <div class="v2-toolbar">
-        <button class="v2-button" type="submit">Guardar borrador</button
-        ><button
-          class="v2-button secondary"
-          id="v2-save-template"
-          type="button"
-        >
-          Guardar como plantilla</button
-        ><button
-          class="v2-button secondary"
-          id="v2-export-structure"
-          type="button"
-        >
-          Exportar estructura</button
-        ><label class="v2-file-label"
-          >Importar estructura<input
-            id="v2-import-structure"
-            type="file"
-            accept="application/json,.json" /></label
-        ><select id="v2-template-select" aria-label="Cargar plantilla">
-          <option value="">Cargar una plantilla guardada</option></select
-        ><button type="button" id="v2-cancel-edit" class="v2-link">
+        <button class="v2-link" id="v2-cancel-edit" type="button">
           Cerrar editor
         </button>
       </div>
+      <nav aria-label="Pasos del simulacro" class="wizard-steps">
+        <button
+          aria-current="step"
+          class="wizard-step"
+          data-wizard-step="0"
+          type="button"
+        >
+          <span class="wizard-number">1</span><span>Datos</span></button
+        ><button
+          aria-current="false"
+          class="wizard-step"
+          data-wizard-step="1"
+          type="button"
+        >
+          <span class="wizard-number">2</span
+          ><span>Cursos y áreas</span></button
+        ><button
+          aria-current="false"
+          class="wizard-step"
+          data-wizard-step="2"
+          type="button"
+        >
+          <span class="wizard-number">3</span><span>Claves</span></button
+        ><button
+          aria-current="false"
+          class="wizard-step"
+          data-wizard-step="3"
+          type="button"
+        >
+          <span class="wizard-number">4</span><span>Revisión</span>
+        </button>
+      </nav>
+      <div class="wizard-pane" data-wizard-pane="0">
+        <h3>Empieza por los datos del examen</h3>
+        <p class="v2-help">
+          Elige un formato. La distribución por cursos y las claves se completan
+          en los siguientes pasos.
+        </p>
+        <div class="v2-form-grid">
+          <label
+            >Título<input
+              maxlength="180"
+              name="titulo"
+              placeholder="Simulacro de admisión · semana 1"
+              required="" /></label
+          ><label>Ciclo<select name="ciclo" required=""></select></label
+          ><label>Fecha<input name="fecha" required="" type="date" /></label
+          ><label
+            >Formato<select id="v2-preset">
+              <option value="100">Estándar de 100 preguntas</option>
+              <option value="120">Estándar de 120 preguntas</option>
+              <option value="areas">
+                Por áreas · 120 impresas / 100 evaluables
+              </option>
+              <option value="custom">Personalizado</option>
+            </select></label
+          ><label
+            >Preguntas del cuadernillo<input
+              max="200"
+              min="1"
+              name="total"
+              required=""
+              type="number"
+              value="100"
+          /></label>
+        </div>
+        <div id="v2-format-confirm" class="v2-notice warning" hidden>
+          <p>
+            Aplicar este formato reemplazará los cursos, áreas y claves que
+            estás editando.
+          </p>
+          <div class="v2-toolbar">
+            <button id="v2-format-apply" class="v2-button" type="button">
+              Aplicar formato</button
+            ><button
+              id="v2-format-keep"
+              class="v2-button secondary"
+              type="button"
+            >
+              Conservar mi configuración
+            </button>
+          </div>
+        </div>
+        <details>
+          <summary>Puntajes del simulacro</summary>
+          <div class="v2-form-grid">
+            <label
+              >Puntos por correcta<input
+                name="correct"
+                required=""
+                step=".001"
+                type="number"
+                value="20" /></label
+            ><label
+              >Penalización por incorrecta<input
+                min="0"
+                name="wrong"
+                required=""
+                step=".001"
+                type="number"
+                value="1.125" /></label
+            ><label
+              >Puntos por blanco<input
+                name="blank"
+                required=""
+                step=".001"
+                type="number"
+                value="0"
+            /></label>
+          </div>
+        </details>
+      </div>
+      <div class="wizard-pane" data-wizard-pane="1" hidden="">
+        <h3>Distribuye las preguntas por curso</h3>
+        <p class="v2-help">
+          Abre un curso para editarlo. Las preguntas deben cubrir el cuadernillo
+          completo, sin repetirse.
+        </p>
+        <details id="wizard-areas">
+          <summary>Áreas y cantidad evaluable</summary>
+          <p class="v2-help">
+            La cantidad evaluable puede ser diferente para cada área. Los
+            códigos deben coincidir con los asignados a tus estudiantes.
+          </p>
+          <div id="v2-areas"></div>
+          <button class="v2-button secondary" id="v2-add-area" type="button">
+            Agregar área
+          </button>
+        </details>
+        <p class="v2-help">
+          Cada pregunta pertenece a un curso. Para cada área indica los números
+          aplicables. Ejemplo: 1-10,15,18-20. En «Elegir cupo» el estudiante
+          elige qué responder, hasta el límite definido.
+        </p>
+        <div id="v2-sections"></div>
+        <button class="v2-button secondary" id="v2-add-section" type="button">
+          Agregar curso
+        </button>
+        <details>
+          <summary>Ajustes de puntaje para todos los cursos</summary>
+          <button
+            class="v2-button secondary"
+            id="v2-apply-scoring"
+            type="button"
+          >
+            Aplicar puntajes generales a todos los cursos
+          </button>
+        </details>
+
+        <div
+          class="structure-summary"
+          id="v2-structure-summary"
+          role="status"
+        ></div>
+      </div>
+      <div class="wizard-pane" data-wizard-pane="2" hidden="">
+        <h3>Carga la clave de respuestas</h3>
+        <p class="v2-help">
+          Pega las alternativas en orden o usa una línea por pregunta. Puedes
+          guardar el borrador y completar las claves después.
+        </p>
+        <p class="v2-help" id="v2-keys-count" role="status"></p>
+        <label
+          >Alternativas del cuadernillo<textarea
+            id="v2-keys"
+            placeholder="1,A
+2,C
+3,B/D"
+            rows="5"
+          ></textarea>
+        </label>
+        <p class="v2-help">
+          Puedes pegar una secuencia A B C… o líneas número,alternativa. B/D
+          acepta ambas alternativas. La clave debe cubrir todo el cuadernillo
+          antes de validar.
+        </p>
+        <details>
+          <summary>Excepciones de puntaje y versiones del cuadernillo</summary>
+          <div class="v2-form-grid">
+            <label
+              >Preguntas sin penalización<input
+                id="v2-no-penalty"
+                placeholder="Ej.: 1-10" /></label
+            ><label
+              >Preguntas anuladas<input
+                id="v2-void"
+                placeholder="Ej.: 42,67" /></label
+            ><label
+              >Regla de anulación<select id="v2-void-policy">
+                <option value="credit">Otorgar puntos</option>
+                <option value="exclude">Excluir del puntaje</option>
+              </select></label
+            >
+          </div>
+          <label
+            >Puntos por alternativa (número,A,B,C,D,E)<textarea
+              id="v2-option-scores"
+              placeholder="15,20,15,10,5,0"
+              rows="3"
+            ></textarea></label
+          ><label
+            >Versiones (código: orden de preguntas originales)<textarea
+              id="v2-forms"
+              placeholder="A:1-100
+B:51-100,1-50"
+              rows="3"
+            ></textarea>
+          </label>
+          <p class="v2-help">
+            Una versión modifica el orden de las preguntas y conserva las
+            alternativas. Deja vacío para usar A en el orden original.
+          </p>
+        </details>
+      </div>
+      <div class="wizard-pane" data-wizard-pane="3" hidden="">
+        <h3>Revisa antes de preparar</h3>
+        <p class="v2-help">
+          Comprueba cantidades, cursos y claves. Una vez validado, el examen
+          estará listo para imprimir y calificar.
+        </p>
+        <div id="v2-wizard-review"></div>
+      </div>
+      <details class="wizard-optional">
+        <summary>
+          Reutilizar una plantilla o un archivo de configuración
+        </summary>
+        <div class="v2-toolbar">
+          <button
+            class="v2-button secondary"
+            id="v2-save-template"
+            type="button"
+          >
+            Guardar como plantilla</button
+          ><button
+            class="v2-button secondary"
+            id="v2-export-structure"
+            type="button"
+          >
+            Exportar estructura</button
+          ><label class="v2-file-label"
+            >Importar estructura<input
+              accept="application/json,.json"
+              id="v2-import-structure"
+              type="file" /></label
+          ><select aria-label="Cargar plantilla" id="v2-template-select">
+            <option value="">Cargar una plantilla guardada</option>
+          </select>
+        </div>
+      </details>
+      <footer class="wizard-footer">
+        <button
+          class="v2-button secondary"
+          hidden=""
+          id="wizard-back"
+          type="button"
+        >
+          Anterior</button
+        ><span class="help" id="wizard-progress">Paso 1 de 4</span>
+        <div>
+          <button class="v2-button" id="wizard-next" type="button">
+            Continuar <i class="bi bi-arrow-right"></i></button
+          ><button
+            class="v2-button secondary"
+            hidden=""
+            id="wizard-save"
+            type="submit"
+          >
+            Guardar borrador</button
+          ><button
+            class="v2-button"
+            hidden=""
+            id="wizard-prepare"
+            type="submit"
+          >
+            Guardar y validar
+          </button>
+        </div>
+      </footer>
     </form>
-    <div id="v2-exam-workspace" hidden>
-      <div class="v2-two-columns">
+    <div hidden="" id="v2-exam-workspace">
+      <div aria-label="Trabajo del simulacro" class="local-tabs" role="tablist">
+        <button
+          aria-selected="true"
+          data-local-tab="exam-results"
+          role="tab"
+          type="button"
+        >
+          Resultados</button
+        ><button
+          aria-selected="false"
+          data-local-tab="exam-sheets"
+          role="tab"
+          type="button"
+        >
+          Imprimir cartillas</button
+        ><button
+          aria-selected="false"
+          data-local-tab="exam-manual"
+          id="v2-manual-tab"
+          role="tab"
+          type="button"
+        >
+          Ingreso manual
+        </button>
+      </div>
+
+      <div data-local-panel="exam-results">
+        <div class="v2-card">
+          <div class="v2-card-title">
+            <h3>Resultados y cursos</h3>
+            <div class="v2-toolbar">
+              <label
+                >Área<select id="v2-result-area">
+                  <option value="">Todas las áreas</option>
+                </select></label
+              ><a class="v2-button secondary" href="#" id="v2-ranking-excel"
+                >Descargar ranking Excel</a
+              >
+            </div>
+          </div>
+          <div id="v2-results"></div>
+        </div>
+      </div>
+      <div data-local-panel="exam-sheets" hidden="">
         <div class="v2-card">
           <div class="v2-card-title">
             <h3>Cartillas personalizadas</h3>
-            <button data-guide="imprimir-cartillas" class="v2-link">
+            <button class="v2-link" data-guide="imprimir-cartillas">
               Tutorial
             </button>
           </div>
@@ -220,21 +376,23 @@
               <option value="">Todo el ciclo</option>
             </select></label
           ><label>Versión<select id="v2-sheet-form"></select></label
-          ><button id="v2-print" class="v2-button">
+          ><button class="v2-button" id="v2-print">
             Descargar PDF de cartillas</button
-          ><button id="v2-scan-open" class="v2-button secondary">
+          ><button class="v2-button secondary" id="v2-scan-open">
             Cargar lote escaneado
           </button>
         </div>
-        <form id="v2-manual" class="v2-card">
+      </div>
+      <div data-local-panel="exam-manual" hidden="">
+        <form class="v2-card" id="v2-manual">
           <div class="v2-card-title">
             <h3>Calificación manual</h3>
-            <button type="button" data-guide="manual" class="v2-link">
+            <button class="v2-link" data-guide="manual" type="button">
               Tutorial
             </button>
           </div>
           <label
-            >Estudiante<select id="v2-manual-student" required></select
+            >Estudiante<select id="v2-manual-student" required=""></select
           ></label>
           <div class="v2-form-grid">
             <label>Área<select id="v2-manual-area"></select></label
@@ -243,56 +401,49 @@
           <label
             >Respuestas<textarea
               id="v2-manual-answers"
+              placeholder="1,A
+2,-
+3,A/B"
+              required=""
               rows="4"
-              placeholder="1,A&#10;2,-&#10;3,A/B"
-              required
-            ></textarea></label
-          ><label class="v2-checkbox"
-            ><input type="checkbox" id="v2-manual-replace" /> Corregir una
-            calificación existente</label
-          ><label
-            >Motivo si corriges<input
-              id="v2-manual-reason"
-              placeholder="Explica qué estás corrigiendo" /></label
-          ><button class="v2-button" type="submit">Calificar y guardar</button>
+            ></textarea>
+          </label>
+          <details>
+            <summary>Corregir una calificación anterior</summary>
+            <label class="v2-checkbox"
+              ><input id="v2-manual-replace" type="checkbox" /> Corregir una
+              calificación existente</label
+            ><label hidden="" id="v2-replace-reason"
+              >Motivo si corriges<input
+                id="v2-manual-reason"
+                placeholder="Explica qué estás corrigiendo"
+            /></label>
+          </details>
+          <button class="v2-button" type="submit">Calificar y guardar</button>
         </form>
-      </div>
-      <div class="v2-card">
-        <div class="v2-card-title">
-          <h3>Resultados y cursos</h3>
-          <div class="v2-toolbar">
-            <label
-              >Área<select id="v2-result-area">
-                <option value="">Todas las áreas</option>
-              </select></label
-            ><a id="v2-ranking-excel" class="v2-button secondary" href="#"
-              >Descargar ranking Excel</a
-            >
-          </div>
-        </div>
-        <div id="v2-results"></div>
       </div>
     </div>
   </section>
-  <section data-v2-panel="imports" class="v2-panel" hidden>
+  <section class="v2-panel" data-v2-panel="imports" hidden="">
     <div class="v2-notice">
       <strong>Escanea en lotes y revisa las excepciones.</strong> Usa PDF a 300
       ppp con alimentador automático. También puedes cargar fotos JPG o PNG de
       las cartillas v2.
-      <button data-guide="escanear-lote" class="v2-link">
+      <button class="v2-link" data-guide="escanear-lote">
         Ver el tutorial completo
       </button>
     </div>
-    <form id="v2-scan-form" class="v2-card">
+    <form class="v2-card" id="v2-scan-form">
       <h3>Cargar cartillas</h3>
-      <label>Examen listo<select id="v2-import-exam" required></select></label
+      <label
+        >Examen listo<select id="v2-import-exam" required=""></select></label
       ><label
         >PDF o imágenes<input
-          id="v2-scan-files"
-          type="file"
           accept=".pdf,.jpg,.jpeg,.png"
-          multiple
-          required
+          id="v2-scan-files"
+          multiple=""
+          required=""
+          type="file"
       /></label>
       <p class="v2-help">
         Máximo 10 archivos de 20 MB y 100 páginas por lote. La lectura se
@@ -307,14 +458,14 @@
           Las columnas son codigo,area,version,1,2,… y deben cubrir todo el
           cuadernillo. INGEMAT aplica sus reglas al importar.
         </p>
-        <a id="v2-csv-template" class="v2-button secondary" href="#"
+        <a class="v2-button secondary" href="#" id="v2-csv-template"
           >Descargar plantilla CSV</a
         ><label
           >CSV UTF-8<input
-            id="v2-csv-file"
-            type="file"
             accept=".csv,text/csv"
-            required /></label
+            id="v2-csv-file"
+            required=""
+            type="file" /></label
         ><button class="v2-button" type="submit">
           Validar y previsualizar CSV
         </button>
@@ -323,51 +474,69 @@
     <div class="v2-card">
       <div class="v2-card-title">
         <h3>Lotes recientes</h3>
-        <button id="v2-refresh-batches" class="v2-button secondary">
+        <button class="v2-button secondary" id="v2-refresh-batches">
           Actualizar
         </button>
       </div>
       <div id="v2-batches"></div>
     </div>
-    <div id="v2-batch-detail" class="v2-card" hidden></div>
+    <div class="v2-card" hidden="" id="v2-batch-detail"></div>
   </section>
-  <section data-v2-panel="attendance" class="v2-panel" hidden>
+  <section class="v2-panel" data-v2-panel="attendance" hidden="">
+    <div class="section-toolbar">
+      <strong>Registros de asistencia</strong
+      ><a class="button secondary" data-route="archives" href="#archives"
+        >Archivos históricos</a
+      ><a class="button secondary" href="/" rel="noopener" target="_blank"
+        >Abrir recepción</a
+      >
+    </div>
     <div class="v2-toolbar">
       <label>Fecha<input id="v2-attendance-date" type="date" /></label
       ><label
         >Ciclo<select id="v2-attendance-cycle">
           <option value="">Todos los ciclos</option>
         </select></label
-      ><button id="v2-attendance-load" class="v2-button">Consultar</button
-      ><a id="v2-attendance-export" class="v2-button secondary" href="#"
+      ><button class="v2-button" id="v2-attendance-load">Consultar</button
+      ><a class="v2-button secondary" href="#" id="v2-attendance-export"
         >Exportar Excel</a
-      ><button data-guide="asistencia" class="v2-link">
+      ><button class="v2-link" data-guide="asistencia">
         Tutorial de recepción
       </button>
     </div>
     <div class="v2-notice">
-      Los nuevos ingresos se guardan en la base de datos. Los Excel anteriores
-      se conservan en Archivos, en Inicio.
+      Consulta ingresos por fecha y ciclo. Para justificar una tardanza, abre el
+      registro correspondiente.
     </div>
-    <div id="v2-attendance" class="v2-card"></div>
+    <div class="v2-card" id="v2-attendance"></div>
+    <details class="v2-card" data-admin="">
+      <summary>Configurar un punto de recepción</summary>
+      <p>
+        Vincula el navegador del punto de asistencia con un código de un solo
+        acceso visible. Rotarlo desvincula los equipos anteriores.
+      </p>
+      <button class="v2-button secondary" id="v2-kiosk">
+        Generar código de recepción</button
+      ><output class="v2-secret" hidden="" id="v2-kiosk-output"></output>
+    </details>
   </section>
-  <section data-v2-panel="contacts" class="v2-panel" hidden>
+  <section class="v2-panel" data-v2-panel="contacts" hidden="">
     <div class="v2-toolbar">
       <label
         >Buscar estudiante<input
           id="v2-contact-search"
-          type="search"
-          placeholder="Nombre, código o ciclo" /></label
-      ><button data-guide="whatsapp-contactos" class="v2-link">
+          placeholder="Nombre, código o ciclo"
+          type="search" /></label
+      ><button class="v2-link" data-guide="whatsapp-contactos">
         Cómo configurar apoderados
       </button>
     </div>
     <div id="v2-contacts"></div>
   </section>
-  <section data-v2-panel="notifications" class="v2-panel" hidden>
-    <div id="v2-cloud-status" class="v2-notice"></div>
+  <section class="v2-panel" data-v2-panel="notifications" hidden="">
+    <div class="v2-notice" id="v2-cloud-status"></div>
     <div class="v2-two-columns">
-      <form id="v2-cloud-config" class="v2-card">
+      <form class="v2-card" id="v2-cloud-config">
         <h3>WhatsApp Business Platform</h3>
         <p>
           Conexión oficial para avisos individuales. Las credenciales se
@@ -389,7 +558,7 @@
             name="resultsTemplate"
             placeholder="resultado_simulacro" /></label
         ><button class="v2-button" type="submit">Guardar configuración</button
-        ><button type="button" data-guide="whatsapp-configurar" class="v2-link">
+        ><button class="v2-link" data-guide="whatsapp-configurar" type="button">
           Guía completa de conexión
         </button>
       </form>
@@ -404,9 +573,9 @@
           La conexión está orientada a apoderados con autorización. Los grupos
           tradicionales del salón no se trasladan a esta integración.
         </p>
-        <button data-guide="whatsapp-grupos" class="v2-link">
+        <button class="v2-link" data-guide="whatsapp-grupos">
           Opciones para grupos</button
-        ><button data-guide="whatsapp-estados" class="v2-link">
+        ><button class="v2-link" data-guide="whatsapp-estados">
           Entender los estados
         </button>
       </div>
@@ -414,76 +583,83 @@
     <div class="v2-card">
       <div class="v2-card-title">
         <h3>Avisos y entregas</h3>
-        <button id="v2-refresh-notifications" class="v2-button secondary">
+        <button class="v2-button secondary" id="v2-refresh-notifications">
           Actualizar
         </button>
       </div>
       <div id="v2-outbox"></div>
     </div>
   </section>
-  <section data-v2-panel="settings" class="v2-panel" hidden>
-    <div class="v2-two-columns">
-      <form id="v2-account-form" class="v2-card">
-        <h3>Crear cuenta de operador</h3>
-        <label
-          >Usuario<input
-            name="username"
-            minlength="3"
-            maxlength="40"
-            required
-            autocomplete="off" /></label
-        ><label
-          >Contraseña temporal<input
-            name="password"
-            type="password"
-            minlength="12"
-            required
-            autocomplete="new-password" /></label
-        ><label
-          >Rol<select name="role">
-            <option value="corrector">Corrección</option>
-            <option value="docente">Docencia</option>
-            <option value="recepcion">Recepción</option>
-            <option value="admin">Administración</option>
-          </select></label
-        ><button class="v2-button" type="submit">Crear cuenta</button
-        ><button type="button" data-guide="roles" class="v2-link">
-          Ver permisos y tutorial
-        </button>
-      </form>
+  <section class="v2-panel" data-v2-panel="settings" hidden="">
+    <div aria-label="Administración" class="local-tabs" role="tablist">
+      <button aria-selected="true" data-local-tab="operators" role="tab">
+        Operadores</button
+      ><button aria-selected="false" data-local-tab="backups" role="tab">
+        Copias de seguridad</button
+      ><button aria-selected="false" data-local-tab="audit" role="tab">
+        Actividad y auditoría
+      </button>
+    </div>
+    <div data-local-panel="operators">
+      <div class="v2-two-columns">
+        <form class="v2-card" id="v2-account-form">
+          <h3>Crear cuenta de operador</h3>
+          <label
+            >Usuario<input
+              autocomplete="off"
+              maxlength="40"
+              minlength="3"
+              name="username"
+              required="" /></label
+          ><label
+            >Contraseña temporal<input
+              autocomplete="new-password"
+              minlength="12"
+              name="password"
+              required=""
+              type="password" /></label
+          ><label
+            >Rol<select name="role">
+              <option value="corrector">Corrección</option>
+              <option value="docente">Docencia</option>
+              <option value="recepcion">Recepción</option>
+              <option value="admin">Administración</option>
+            </select></label
+          ><button class="v2-button" type="submit">Crear cuenta</button
+          ><button class="v2-link" data-guide="roles" type="button">
+            Ver permisos y tutorial
+          </button>
+        </form>
+        <div class="v2-card">
+          <h3>Cuentas existentes</h3>
+          <div id="v2-accounts"></div>
+        </div>
+      </div>
+    </div>
+    <div data-local-panel="backups" hidden="">
       <div class="v2-card">
-        <h3>Recepción y copias de seguridad</h3>
-        <p>
-          Vincula el navegador del punto de asistencia con un código de un solo
-          acceso visible. Rotarlo desvincula los equipos anteriores.
-        </p>
-        <button id="v2-kiosk" class="v2-button secondary">
-          Generar código de recepción</button
-        ><output id="v2-kiosk-output" class="v2-secret" hidden></output>
-        <hr />
+        <h3>Copias de seguridad</h3>
         <p>
           Crea una copia consistente de la base de datos antes de actualizar o
           modificar datos importantes.
         </p>
-        <button id="v2-backup" class="v2-button">
+        <button class="v2-button" id="v2-backup">
           Crear copia de seguridad
         </button>
         <div id="v2-backup-result"></div>
-        <button data-guide="backup" class="v2-link">
+        <button class="v2-link" data-guide="backup">
           Cómo restaurar y comprobar una copia
         </button>
       </div>
     </div>
-    <div class="v2-card">
-      <h3>Cuentas existentes</h3>
-      <div id="v2-accounts"></div>
-    </div>
-    <div class="v2-card">
-      <h3>Auditoría reciente</h3>
-      <div id="v2-audit"></div>
+    <div data-local-panel="audit" hidden="">
+      <div class="v2-card">
+        <h3>Auditoría reciente</h3>
+        <div id="v2-audit"></div>
+      </div>
     </div>
   </section>
-  <section data-v2-panel="guide" class="v2-panel" hidden>
+  <section class="v2-panel" data-v2-panel="guide" hidden="">
     <div class="v2-guide-hero">
       <p class="v2-eyebrow">CENTRO DE AYUDA</p>
       <h3>Todo lo que necesitas para operar INGEMAT</h3>
@@ -491,8 +667,8 @@
       <label
         >Buscar un tutorial<input
           id="v2-guide-search"
-          type="search"
           placeholder="Ej.: 120 preguntas, escáner, apoderado, justificar…"
+          type="search"
       /></label>
     </div>
     <div class="v2-toolbar">
@@ -502,17 +678,17 @@
         </select></label
       ><span id="v2-guide-count"></span>
     </div>
-    <div id="v2-guide-list" class="v2-guide-grid"></div>
+    <div class="v2-guide-grid" id="v2-guide-list"></div>
   </section>
 </div>
-<dialog id="v2-dialog" class="v2-dialog">
+<dialog aria-labelledby="v2-dialog-title" class="v2-dialog" id="v2-dialog">
   <div class="v2-card-title">
     <h3 id="v2-dialog-title"></h3>
     <button
+      aria-label="Cerrar ventana"
+      class="v2-button secondary"
       id="v2-dialog-close"
       type="button"
-      class="v2-button secondary"
-      aria-label="Cerrar ventana"
     >
       Cerrar
     </button>

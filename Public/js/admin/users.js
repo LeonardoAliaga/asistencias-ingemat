@@ -20,36 +20,22 @@ function getFullNameClient(u = {}) {
 /**
  * Crea la estructura HTML para los elementos de lista de usuarios.
  */
+const escapeUser = (value) =>
+  String(value ?? "").replace(
+    /[&<>"']/g,
+    (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        c
+      ],
+  );
 function crearListaUsuarios(usuarios, esDocente = false) {
   return usuarios
     .map((u) => {
-      const diasAsistencia = u.dias_asistencia
-        ? u.dias_asistencia.join(", ")
-        : "";
-
-      // Mostrar código y nombre; omitimos mostrar el turno al lado del nombre
-      // Añadimos TRES botones: eliminar, carnet y editar
-      return `
-            <li style="position:relative;padding-right:110px;">
-              <div style="display:flex;flex-direction:column;">
-                <span><strong>${u.codigo}</strong> - ${getFullNameClient(
-                  u,
-                )}</span>
-                <small style="color:#666">${diasAsistencia}</small>
-              </div>
-              <div style="position:absolute;right:5px;top:8px;display:flex;gap:8px;">
-                <span class="btn-edit-usuario" title="Editar usuario" style="display:none;cursor:pointer;color:#007bff;">
-                  <i class="bi bi-pencil-fill"></i>
-                </span>
-                <span class="btn-barcode" title="Generar carnet" style="display:none;cursor:pointer;color:#0b5;">
-                  <i class="bi bi-person-badge"></i>
-                </span>
-                <span class="btn-eliminar" title="Eliminar usuario" style="display:none;cursor:pointer;color:red;">
-                  <i class="bi bi-x-circle-fill"></i>
-                </span>
-              </div>
-            </li>
-          `;
+      const name = escapeUser(getFullNameClient(u));
+      const details = [!esDocente && u.turno, ...(u.dias_asistencia || [])]
+        .filter(Boolean)
+        .join(" · ");
+      return `<li class="person-row"><div class="person-identity"><span><strong>${escapeUser(u.codigo)}</strong> · ${name}</span><small>${escapeUser(details)}</small></div><div class="person-actions"><button type="button" class="btn-edit-usuario" title="Editar usuario" aria-label="Editar a ${name}"><i class="bi bi-pencil" aria-hidden="true"></i></button><button type="button" class="btn-barcode" title="Generar carnet" aria-label="Carnet de ${name}"><i class="bi bi-person-badge" aria-hidden="true"></i></button><button type="button" class="btn-eliminar" title="Eliminar usuario" aria-label="Eliminar a ${name}"><i class="bi bi-trash" aria-hidden="true"></i></button></div></li>`;
     })
     .join("");
 }
@@ -59,24 +45,7 @@ function crearListaUsuarios(usuarios, esDocente = false) {
  */
 function agregarEventosEliminar() {
   document.querySelectorAll(".btn-eliminar").forEach((btn) => {
-    // Los botones están dentro de un contenedor absoluto, manejamos el hover en el LI
     const li = btn.closest("li");
-    if (li) {
-      li.onmouseenter = () => {
-        const bc = li.querySelector(".btn-barcode");
-        const ed = li.querySelector(".btn-edit-usuario"); // <-- Mostrar botón editar
-        if (bc) bc.style.display = "inline";
-        if (ed) ed.style.display = "inline"; // <-- Mostrar botón editar
-        btn.style.display = "inline";
-      };
-      li.onmouseleave = () => {
-        const bc = li.querySelector(".btn-barcode");
-        const ed = li.querySelector(".btn-edit-usuario"); // <-- Ocultar botón editar
-        if (bc) bc.style.display = "none";
-        if (ed) ed.style.display = "none"; // <-- Ocultar botón editar
-        btn.style.display = "none";
-      };
-    }
     btn.onclick = async function (e) {
       e.stopPropagation();
       const nombreCompleto = li.textContent.trim();
@@ -667,7 +636,7 @@ export async function cargarUsuarios(forceReload = false) {
       usuariosCompletaDiv.innerHTML += `
         <div class="accordion-item">
           <button class="accordion-header active" data-target="ciclo-docentes">
-            <h3>DOCENTES (${docentes.length} Usuarios)</h3>
+            <span>Docentes (${docentes.length})</span>
             <i class="bi bi-chevron-down"></i>
           </button>
           <div id="ciclo-docentes" class="accordion-content show">
@@ -701,12 +670,12 @@ export async function cargarUsuarios(forceReload = false) {
 
       usuariosCompletaDiv.innerHTML += `
           <div class="accordion-item">
-            <button class="accordion-header ${isActive}" data-target="ciclo-${ciclo}">
-              <h3>CICLO ${ciclo.toUpperCase()} (${count} Alumnos)</h3>
+            <button class="accordion-header ${isActive}" data-target="ciclo-${escapeUser(ciclo)}">
+              <span>${escapeUser(ciclo)} (${count} estudiantes)</span>
               <i class="bi bi-chevron-down"></i>
             </button>
-            <div id="ciclo-${ciclo}" class="accordion-content ${show}">
-              <div class="turno-tabs" data-ciclo="${ciclo}">
+            <div id="ciclo-${escapeUser(ciclo)}" class="accordion-content ${show}">
+              <div class="turno-tabs" data-ciclo="${escapeUser(ciclo)}">
                 <button class="turno-tab active" data-turno="mañana">Mañana (${
                   grupo.filter((u) => u.turno === "mañana").length
                 })</button>
@@ -734,7 +703,9 @@ export async function cargarUsuarios(forceReload = false) {
     initAccordion();
   }
 
-  // --- (Vista Docentes (Dashboard) ELIMINADA) ---
+  if (!usuariosCompletaDiv.children.length)
+    usuariosCompletaDiv.innerHTML =
+      '<div class="v2-empty">Todavía no hay estudiantes o docentes. Usa Nuevo usuario para registrar el primero.</div>';
 
   agregarEventosEliminar();
   agregarEventosBarcode();
