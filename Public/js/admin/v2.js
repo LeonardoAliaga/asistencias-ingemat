@@ -1,3 +1,4 @@
+import { mountScanCamera } from "./scan-camera.js";
 import { mountKeyEditor } from "./key-editor.js";
 const $ = (id) => document.getElementById(id);
 const esc = (s) =>
@@ -61,10 +62,13 @@ async function api(url, options) {
   } catch {
     throw new Error("El servidor no devolvió una respuesta válida.");
   }
-  if (!response.ok)
-    throw new Error(
+  if (!response.ok) {
+    const error = new Error(
       value.mensaje || `No se pudo completar (${response.status}).`,
     );
+    error.status = response.status;
+    throw error;
+  }
   return value;
 }
 function message(text, error = false) {
@@ -196,6 +200,7 @@ async function loadExams(selected) {
       .filter((e) => e.definition && ["listo", "publicado"].includes(e.estado))
       .map((e) => `<option value="${esc(e.id)}">${esc(e.titulo)}</option>`)
       .join("");
+  state.camera?.syncExam();
   if (selected) {
     $("v2-exam-select").value = selected;
     await selectExam(selected);
@@ -1812,6 +1817,14 @@ async function initialize() {
     message(
       `Calificación guardada: ${data.resultado.puntajeTotal} puntos; ${data.resultado.correctas} correctas, ${data.resultado.incorrectas} errores y ${data.resultado.enBlanco} blancos.`,
     );
+  });
+  state.camera = mountScanCamera({
+    api,
+    escape: esc,
+    onUploaded: async (batch) => {
+      state.batch = { id: batch.id };
+      await loadBatches();
+    },
   });
   bind("v2-scan-form", "submit", async () => {
     const id = $("v2-import-exam").value,

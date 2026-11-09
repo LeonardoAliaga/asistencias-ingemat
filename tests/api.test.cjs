@@ -17,12 +17,18 @@ async function client() {
   let csrf = "";
   const call = async (url, body, method = "GET") => {
     const headers = { Cookie: [...jar].map(([k, v]) => `${k}=${v}`).join(";") };
-    if (body !== undefined) headers["Content-Type"] = "application/json";
+    if (body !== undefined && !(body instanceof FormData))
+      headers["Content-Type"] = "application/json";
     if (method !== "GET") headers["x-csrf-token"] = csrf;
     const r = await fetch(base + url, {
       method,
       headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body:
+        body === undefined
+          ? undefined
+          : body instanceof FormData
+            ? body
+            : JSON.stringify(body),
       redirect: "manual",
     });
     for (const line of r.headers.getSetCookie()) {
@@ -782,4 +788,72 @@ test("built-in repaso template coexists with saved templates without modifying e
     ready.data.error || ready.data.mensaje || JSON.stringify(ready.data),
     /Falta la clave/,
   );
+});
+
+test("camera uploads are idempotent per operator and reject cross-exam receipt reuse", async () => {
+  const preset =
+    require("../src/services/exam-presets.service").listPresets()[0].definition;
+  preset.keys = Object.fromEntries(
+    Array.from({ length: 120 }, (_, i) => [i + 1, "A"]),
+  );
+  const created = await admin(
+    "/api/v2/exams",
+    {
+      titulo: "CÁMARA HTTP",
+      ciclo: "ANUAL",
+      fecha: "2026-11-09",
+      definition: preset,
+    },
+    "POST",
+  );
+  assert.equal(created.status, 201);
+  const id = created.data.id;
+  assert.equal(
+    (await admin(`/api/v2/exams/${id}/ready`, {}, "POST")).status,
+    200,
+  );
+  const requestId = require("node:crypto").randomUUID();
+  function upload(token = requestId) {
+    const data = new FormData();
+    data.append("requestId", token);
+    data.append(
+      "files",
+      new Blob(
+        ["synthetic upload; decoding covered in OMR integration tests"],
+        { type: "image/jpeg" },
+      ),
+      "captura-1.jpg",
+    );
+    return data;
+  }
+  const first = await admin(`/api/v2/exams/${id}/scan`, upload(), "POST");
+  assert.equal(first.status, 202);
+  const retry = await admin(`/api/v2/exams/${id}/scan`, upload(), "POST");
+  assert.equal(retry.status, 202);
+  assert.equal(first.data.id, retry.data.id);
+  assert.equal(
+    db
+      .prepare("SELECT COUNT(*) n FROM import_batches WHERE evaluation_id=?")
+      .get(id).n,
+    1,
+  );
+  assert.equal(
+    db
+      .prepare("SELECT COUNT(*) n FROM scan_requests WHERE request_id=?")
+      .get(requestId).n,
+    1,
+  );
+  assert.equal(
+    (await admin(`/api/v2/exams/${exam.id}/scan`, upload(), "POST")).status,
+    409,
+  );
+  assert.equal(
+    (await admin(`/api/v2/exams/${id}/scan`, upload("bad-key"), "POST")).status,
+    400,
+  );
+  assert.equal(
+    (await guest(`/api/v2/exams/${id}/scan`, upload(), "POST")).status,
+    401,
+  );
+  assert.deepEqual(fs.readdirSync(path.join(dir, "temp")), []);
 });

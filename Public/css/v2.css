@@ -1571,3 +1571,76 @@ body[data-account-role="docente"] .btn-delete-seccion {
     order: -1;
   }
 }
+
+.camera-card {
+  display: grid;
+  gap: 16px;
+}
+.camera-stage {
+  position: relative;
+  background: #101a28;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.camera-stage video {
+  display: block;
+  width: 100%;
+  max-height: 65svh;
+  object-fit: contain;
+}
+.camera-guide {
+  pointer-events: none;
+  position: absolute;
+  inset: 8%;
+  border: 2px dashed #fff;
+  border-radius: 6px;
+  box-shadow: 0 0 0 1px #172b4d;
+}
+#camera-live {
+  display: grid;
+  gap: 12px;
+}
+.camera-native {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+.camera-photos {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 12px;
+}
+.camera-photos li {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  gap: 16px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.camera-photos img {
+  object-fit: contain;
+  border: 1px solid var(--line);
+  background: #f5f7fb;
+}
+.camera-photos li > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.camera-photos a {
+  display: inline-block;
+}
+@media (max-width: 600px) {
+  .camera-photos li {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+  .camera-card .v2-toolbar > button {
+    flex: 1 1 auto;
+  }
+  .camera-card .v2-card-title {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+}

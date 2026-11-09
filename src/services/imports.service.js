@@ -97,6 +97,26 @@ function createCSV(id, text, req) {
   return batch(batchId);
 }
 function createScan(id, files, req) {
+  const requestId = req.body?.requestId;
+  if (requestId !== undefined) {
+    if (
+      typeof requestId !== "string" ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        requestId,
+      )
+    )
+      throw new AppError("Identificador de captura inválido.");
+    const previous = db
+      .prepare(
+        "SELECT evaluation_id,batch_id FROM scan_requests WHERE actor=? AND request_id=?",
+      )
+      .get(req.session.username, requestId);
+    if (previous) {
+      if (previous.evaluation_id !== id)
+        throw new AppError("Este envío pertenece a otro examen.", 409);
+      return batch(previous.batch_id);
+    }
+  }
   const exam = getExam(id);
   if (!exam.definition || !["listo", "publicado"].includes(exam.estado))
     throw new AppError("Valida el examen antes de escanear.");
@@ -118,16 +138,24 @@ function createScan(id, files, req) {
         name: path.basename(file.originalname).slice(0, 120),
       });
     }
-    db.prepare(
-      "INSERT INTO import_batches(id,evaluation_id,revision,source,files,actor) VALUES(?,?,?,'omr',?,?)",
-    ).run(
-      batchId,
-      id,
-      exam.revision,
-      JSON.stringify(moved),
-      req.session.username,
-    );
-    audit(req, "cargar_cartillas", "lote", batchId, { archivos: files.length });
+    db.transaction(() => {
+      db.prepare(
+        "INSERT INTO import_batches(id,evaluation_id,revision,source,files,actor) VALUES(?,?,?,'omr',?,?)",
+      ).run(
+        batchId,
+        id,
+        exam.revision,
+        JSON.stringify(moved),
+        req.session.username,
+      );
+      if (requestId)
+        db.prepare(
+          "INSERT INTO scan_requests(actor,request_id,evaluation_id,batch_id) VALUES(?,?,?,?)",
+        ).run(req.session.username, requestId, id, batchId);
+      audit(req, "cargar_cartillas", "lote", batchId, {
+        archivos: files.length,
+      });
+    })();
     return batch(batchId);
   } catch (error) {
     fs.rmSync(dir, { recursive: true, force: true });

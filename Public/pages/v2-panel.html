@@ -465,8 +465,100 @@ B:51-100,1-50"
         Máximo 10 archivos de 20 MB y 100 páginas por lote. La lectura se
         procesa en segundo plano.
       </p>
-      <button class="v2-button" type="submit">Procesar lote</button>
+      <div class="v2-toolbar">
+        <button class="v2-button" type="submit">Procesar lote</button
+        ><button id="v2-camera-open" class="v2-button secondary" type="button">
+          <i class="bi bi-camera" aria-hidden="true"></i> Usar cámara
+        </button>
+      </div>
     </form>
+    <section
+      class="v2-card camera-card"
+      id="v2-camera"
+      hidden
+      aria-labelledby="camera-title"
+    >
+      <div class="v2-card-title">
+        <h3 id="camera-title">Capturar cartillas con cámara</h3>
+        <button type="button" class="v2-link" id="camera-close">
+          Apagar cámara
+        </button>
+      </div>
+      <p>
+        Coloca la cartilla plana y deja visibles el QR y los cuatro marcadores.
+        Acerca la cámara sin cortar las esquinas; usa luz uniforme. Para hojas
+        A4 horizontales, girar el celular puede mejorar el encuadre.
+      </p>
+      <p
+        class="v2-help"
+        id="camera-status"
+        role="status"
+        aria-live="polite"
+      ></p>
+      <div id="camera-live" hidden>
+        <div class="camera-stage">
+          <video
+            id="camera-video"
+            autoplay
+            muted
+            playsinline
+            aria-label="Vista previa de la cámara"
+          ></video>
+          <div class="camera-guide" aria-hidden="true"></div>
+        </div>
+        <p class="v2-help">
+          El marco es una guía de encuadre. Se guarda la foto completa; la
+          identificación y corrección de perspectiva se realizan al procesar el
+          lote.
+        </p>
+        <div class="v2-toolbar">
+          <button type="button" class="v2-button" id="camera-capture">
+            Capturar cartilla</button
+          ><button
+            type="button"
+            class="v2-button secondary"
+            id="camera-torch"
+            hidden
+            aria-pressed="false"
+          >
+            Linterna
+          </button>
+        </div>
+        <details>
+          <summary>Elegir cámara</summary>
+          <label>Cámara disponible<select id="camera-device"></select></label>
+        </details>
+      </div>
+      <div class="v2-toolbar">
+        <button type="button" class="v2-button secondary" id="camera-start">
+          Encender cámara</button
+        ><label class="camera-native"
+          >Tomar foto con la cámara del dispositivo<input
+            id="camera-native"
+            type="file"
+            accept="image/*"
+            capture="environment"
+        /></label>
+      </div>
+      <p class="v2-help">
+        La cámara en directo requiere HTTPS (o localhost en esta computadora).
+        Si no se abre, usa la cámara del dispositivo o carga las imágenes
+        arriba.
+      </p>
+      <div id="camera-queue" class="camera-queue"></div>
+      <div class="v2-toolbar">
+        <button type="button" class="v2-button" id="camera-send" disabled>
+          Procesar capturas</button
+        ><button type="button" class="v2-link" id="camera-clear" disabled>
+          Vaciar capturas
+        </button>
+      </div>
+      <p class="v2-help">
+        Hasta 10 fotos por lote. Se conservan en esta pestaña hasta enviarlas;
+        recargar o cerrar la página descarta las fotos pendientes. Las notas
+        solo se guardan al revisar y confirmar el lote.
+      </p>
+    </section>
     <details class="v2-card">
       <summary>Importar respuestas CSV de otro lector</summary>
       <form id="v2-csv-form">

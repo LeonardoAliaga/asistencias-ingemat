@@ -75,7 +75,7 @@ La base de datos es `DATA_DIR/ingemat.db`; el valor predeterminado es `./data`. 
 4. En **Claves**, selecciona las alternativas con botones A–E: avance automático, progreso por curso, navegación a pendientes y selección de varias respuestas aceptadas. También puedes pegar una secuencia de letras sin números. Las penalizaciones, excepciones y versiones están en opciones desplegables.
 5. En Revisión puedes **Guardar borrador** con claves pendientes o **Guardar y validar** cuando esté completo. Después la estructura se conserva.
 6. Asigna las áreas a los alumnos. En la pestaña **Imprimir cartillas** descarga las hojas personalizadas con QR. Un cuadernillo de 120 preguntas imprime las 120, aunque solo se evalúen 100 por alumno.
-7. Carga PDF multipágina o imágenes en **Lectura de cartillas**, o importa CSV. Revisa las incidencias y confirma el lote.
+7. En **Lectura de cartillas**, carga PDF/imágenes, importa CSV o usa **Usar cámara** para fotografiar hasta 10 hojas y procesarlas juntas. La cámara directa desde el celular requiere HTTPS; también hay captura con la cámara nativa. Revisa las incidencias y confirma el lote. Consulta [captura con cámara](docs/CAMARA.md).
 8. Comprueba resultados, desglose por curso y ranking; publica y, opcionalmente, programa los avisos individuales.
 
 Una marca doble confirmada se califica como incorrecta. Una marca dudosa impide calificar hasta su revisión. Las preguntas fuera del perfil no cuentan como blancos. En «Elegir cupo» no se seleccionan las mejores respuestas si el alumno excede el máximo: se solicita revisión.

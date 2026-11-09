@@ -204,14 +204,17 @@ Ruta recomendada para ahorrar trabajo repetitivo.
 
 ## Fotografiar cartillas con celular
 
-Alternativa para pocos alumnos o para repetir una hoja problemática.
+Captura varias hojas desde la cámara de la app y envíalas juntas al lector OMR.
 
-1. **Usa la cartilla v2.** Las fichas anteriores no tienen los marcadores ni el QR del nuevo lector.
-2. **Coloca la hoja plana.** Usa luz uniforme, evita sombras y reflejos y mantén visibles las cuatro esquinas.
-3. **Toma una foto nítida.** Incluye toda la hoja. No envíes una captura comprimida de mensajería.
-4. **Carga PNG o JPG.** En Lectura de cartillas selecciona las fotos desde el dispositivo.
-5. **Revisa el resultado.** Una foto dudosa no debe aceptarse por intuición: repítela o revisa las marcas junto a la imagen.
-6. **Compara el tiempo total.** Para varios salones el alimentador automático suele reducir más la manipulación que fotografiar una hoja a la vez.
+1. **Elige el examen.** Abre Lectura de cartillas, selecciona un examen listo y pulsa Usar cámara. Acepta el permiso del navegador. La cámara en directo necesita HTTPS; localhost solo sirve en la misma computadora. Una IP local por HTTP no habilita la cámara en directo del celular.
+2. **Encuadra toda la cartilla.** Coloca la hoja plana, usa luz uniforme y mantén visibles el QR y los cuatro marcadores. El marco es una guía visual; la app conserva toda la foto y corrige la perspectiva al procesar. La cámara trasera se solicita de forma preferente; puedes cambiarla en Elegir cámara o activar la linterna si está disponible.
+3. **Captura y revisa.** Pulsa Capturar cartilla. Revisa la miniatura o ábrela para ampliar. Los avisos de luz, contraste, resolución y posible desenfoque son orientativos; no garantizan una lectura correcta. Quita y repite una foto si no está nítida. Puedes guardar la foto en el dispositivo.
+4. **Completa el grupo.** Captura hasta 10 hojas. El examen queda fijado mientras haya fotos pendientes. Si el navegador no abre la cámara, usa Tomar foto con la cámara del dispositivo. No recargues la página: las capturas solo se conservan en esta pestaña hasta enviarlas.
+5. **Procesa y revisa el lote.** Pulsa Procesar capturas. Si se corta la conexión, reintenta el mismo envío: conserva un identificador para evitar crear dos lotes. Espera Listo o Revisar, comprueba el alumno, el área y las marcas y confirma la importación. La fotografía por sí sola no guarda notas.
+6. **Continúa o apaga.** Tras enviar puedes capturar el siguiente grupo. Apagar cámara libera el dispositivo y conserva las fotos pendientes. Salir de la vista o cambiar a otra aplicación también pausa la cámara. Para salones completos sigue disponible el escáner con alimentador automático.
+
+- La lectura automática requiere cartillas generadas por esta app, con QR firmado y marcadores. Prueba un lote físico antes de usarlo para un salón completo.
+- La cámara nunca solicita audio. Las fotos solo se envían al servidor de la academia cuando pulsas Procesar capturas.
 
 ## Resolver marcas dobles, dudosas y hojas no reconocidas
 

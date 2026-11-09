@@ -48,6 +48,7 @@ function createApp() {
             "data:",
           ],
           imgSrc: ["'self'", "data:", "blob:"],
+          mediaSrc: ["'self'", "blob:"],
           frameSrc: ["'self'", "https://www.google.com"],
           connectSrc: ["'self'"],
           workerSrc: ["'self'", "blob:"],
