@@ -94,7 +94,7 @@ function bind(id, event, fn) {
 function table(headers, rows) {
   if (!rows.length)
     return '<div class="v2-empty">Todavía no hay registros para esta selección.</div>';
-  return `<div class="v2-table-scroll"><table class="v2-table"><thead><tr>${headers.map((h) => `<th scope="col">${esc(h)}</th>`).join("")}</tr></thead><tbody>${rows.map((cells) => `<tr>${cells.map((c) => `<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+  return `<div class="v2-table-scroll" tabindex="0" role="region" aria-label="Tabla de registros"><table class="v2-table"><thead><tr>${headers.map((h) => `<th scope="col">${esc(h)}</th>`).join("")}</tr></thead><tbody>${rows.map((cells) => `<tr>${cells.map((c) => `<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
 }
 const statuses = {
   borrador: "Borrador",
@@ -274,6 +274,7 @@ async function selectExam(id) {
     `/api/evaluaciones/${encodeURIComponent(e.id)}/excel`;
   $("v2-manual").hidden = !canWrite;
   $("v2-manual-tab").hidden = !canWrite;
+  $("v2-scan-open").hidden = !canWrite;
   $("v2-replace-reason").hidden = true;
   $("v2-print").disabled =
     !canWrite || !["listo", "publicado"].includes(e.estado);
@@ -517,6 +518,8 @@ function captureSections() {
 }
 
 function renderAreas() {
+  $("wizard-areas").querySelector("summary").textContent =
+    `Áreas y cantidad evaluable · ${state.areas.length} perfil${state.areas.length === 1 ? "" : "es"}`;
   const area = $("v2-areas");
   area.innerHTML =
     state.areas
@@ -564,16 +567,24 @@ function renderSections() {
             selection: "fixed",
             quota: 0,
           };
-          return `<div class="v2-form-grid v2-rule" data-rule-area="${esc(a.code)}"><label>Área ${esc(a.code)} · preguntas<input data-rule-questions value="${esc(rule._range ?? compact(rule.questions))}" placeholder="Ej.: 1-10,15"></label><label>Modo<select data-rule-selection><option value="fixed" ${rule.selection === "fixed" ? "selected" : ""}>Preguntas fijas</option><option value="choose" ${rule.selection === "choose" ? "selected" : ""}>Elegir un cupo</option></select></label><label>Cupo<input data-rule-quota type="number" min="0" max="${total}" value="${rule.quota ?? rule.questions?.length ?? 0}"></label></div>`;
+          return `<div class="v2-form-grid v2-rule" data-rule-area="${esc(a.code)}" ${state.areas.length > 1 && a !== state.areas[0] ? "hidden" : ""}><label>Área ${esc(a.code)} · preguntas<input data-rule-questions value="${esc(rule._range ?? compact(rule.questions))}" placeholder="Ej.: 1-10,15"></label><label>Modo<select data-rule-selection><option value="fixed" ${rule.selection === "fixed" ? "selected" : ""}>Preguntas fijas</option><option value="choose" ${rule.selection === "choose" ? "selected" : ""}>Elegir un cupo</option></select></label><label>Cupo<input data-rule-quota type="number" min="0" max="${total}" value="${rule.quota ?? rule.questions?.length ?? 0}"></label></div>`;
         })
         .join("");
-      return `<details class="v2-section-editor" ${state.sections.length === 1 || state.expandedCourse === i ? "open" : ""}><summary><span class="course-number">${i + 1}</span><span class="course-caption"><strong>${esc(course.name || "Nuevo curso")}</strong><small>${esc(compact(course.questions)) || "Completa la distribución"}</small></span><i class="bi bi-chevron-down" aria-hidden="true"></i></summary><div class="course-fields"><div class="v2-form-grid"><label>Nombre del curso<input data-course-name value="${esc(course.name)}" maxlength="100" required placeholder="Ej.: Aritmética"></label><label>Preguntas del curso<input data-course-range value="${esc(course._range ?? compact(course.questions))}" required placeholder="Ej.: 1-20"></label></div>${state.areas.length === 1 ? `<details><summary>Selección de preguntas para este perfil</summary>${rules}<p class="v2-help">En preguntas fijas se utiliza el rango del curso. Elige un cupo si el alumno debe responder solo una parte.</p></details>` : `<div class="stack"><p class="v2-help">Define qué preguntas corresponden a cada área.</p>${rules}</div>`}<details><summary>Puntajes especiales para este curso</summary><div class="course-scoring">${["correct", "wrong", "blank"].map((key, j) => `<label>${["Correcta", "Penalización", "Blanco"][j]}<input data-course-${key} type="number" step=".001" ${key === "wrong" ? 'min="0"' : ""} value="${course.scoring?.[key] ?? Number(form.elements[key].value)}"></label>`).join("")}</div></details><button type="button" class="v2-link" data-remove-section="${i}">Quitar este curso</button></div></details>`;
+      return `<details class="v2-section-editor" ${state.sections.length === 1 || state.expandedCourse === i ? "open" : ""}><summary><span class="course-number">${i + 1}</span><span class="course-caption"><strong>${esc(course.name || "Nuevo curso")}</strong><small>${esc(compact(course.questions)) || "Completa la distribución"}</small></span><i class="bi bi-chevron-down" aria-hidden="true"></i></summary><div class="course-fields"><div class="v2-form-grid"><label>Nombre del curso<input data-course-name value="${esc(course.name)}" maxlength="100" required placeholder="Ej.: Aritmética"></label><label>Preguntas del curso<input data-course-range value="${esc(course._range ?? compact(course.questions))}" required placeholder="Ej.: 1-20"></label></div>${state.areas.length === 1 ? `<details><summary>Selección de preguntas para este perfil</summary>${rules}<p class="v2-help">En preguntas fijas se utiliza el rango del curso. Elige un cupo si el alumno debe responder solo una parte.</p></details>` : `<div class="stack"><label>Configurar área de postulación<select data-course-area>${state.areas.map((a) => `<option value="${esc(a.code)}">${esc(a.code)} · ${esc(a.name)}</option>`).join("")}</select></label><p class="v2-help">Configura un perfil a la vez. El resumen comprueba las cantidades de todas las áreas.</p>${rules}</div>`}<details><summary>Puntajes especiales para este curso</summary><div class="course-scoring">${["correct", "wrong", "blank"].map((key, j) => `<label>${["Correcta", "Penalización", "Blanco"][j]}<input data-course-${key} type="number" step=".001" ${key === "wrong" ? 'min="0"' : ""} value="${course.scoring?.[key] ?? Number(form.elements[key].value)}"></label>`).join("")}</div></details><button type="button" class="v2-link" data-remove-section="${i}">Quitar este curso</button></div></details>`;
     })
     .join("");
+  for (const picker of $("v2-sections").querySelectorAll("[data-course-area]"))
+    picker.onchange = () => {
+      for (const rule of picker
+        .closest(".v2-section-editor")
+        .querySelectorAll("[data-rule-area]"))
+        rule.hidden = rule.dataset.ruleArea !== picker.value;
+    };
   for (const row of $("v2-sections").querySelectorAll("[data-rule-area]")) {
     const select = row.querySelector("[data-rule-selection]"),
       quota = row.querySelector("[data-rule-quota]");
     const updateRule = () => {
+      row.classList.toggle("is-fixed", select.value === "fixed");
       quota.disabled = select.value === "fixed";
       quota.closest("label").hidden = select.value === "fixed";
       row.querySelector("[data-rule-questions]").closest("label").hidden =
@@ -637,7 +648,7 @@ function setEditor(def, id = null) {
       [n, ...["A", "B", "C", "D", "E"].map((o) => k.optionScores[o])].join(","),
     )
     .join("\n");
-  $("wizard-areas").open = def.areas.length > 1;
+  $("wizard-areas").open = false;
   $("v2-forms").value = Object.entries(def.forms || {})
     .map(([n, m]) => `${n}:${compact(m)}`)
     .join("\n");
@@ -1270,21 +1281,26 @@ function updateWizardFeedback() {
             `${s.name}, área ${a.code}: el cupo supera las preguntas disponibles.`,
           );
       }
+    const areaIssues = new Map();
     const totals = def.areas.map((a) => {
       const assigned = def.sections.reduce(
         (sum, s) => sum + (s.rules[a.code]?.quota || 0),
         0,
       );
-      if (assigned !== a.requiredQuestions)
-        issues.push(
-          `Área ${a.code}: ${assigned} preguntas asignadas de ${a.requiredQuestions} esperadas.`,
-        );
+      if (assigned !== a.requiredQuestions) {
+        const key = `${assigned} de ${a.requiredQuestions} preguntas asignadas`;
+        areaIssues.set(key, [...(areaIssues.get(key) || []), a.code]);
+      }
       return { ...a, assigned };
     });
+    for (const [text, codes] of areaIssues)
+      issues.push(
+        `Área${codes.length > 1 ? "s" : ""} ${codes.join(", ")}: ${text}.`,
+      );
     feedback.classList.toggle("error", issues.length > 0);
     feedback.textContent = issues.length
       ? issues.join(" ")
-      : `Distribución completa: ${total} preguntas en ${def.sections.length} curso${def.sections.length === 1 ? "" : "s"}. ${totals.map((a) => `Área ${a.code}: ${a.assigned} evaluables`).join(" · ")}`;
+      : `Distribución completa: ${total} preguntas en ${def.sections.length} curso${def.sections.length === 1 ? "" : "s"}. ${def.areas.length} perfil${def.areas.length === 1 ? "" : "es"} con las cantidades correctas.`;
     for (const el of $("v2-sections").querySelectorAll(".v2-section-editor")) {
       el.querySelector(".course-caption strong").textContent =
         el.querySelector("[data-course-name]").value || "Nuevo curso";
@@ -1376,6 +1392,7 @@ function syncSimpleTotal() {
   }
   state.lastTotal = total;
   $("v2-preset").value = "custom";
+  state.currentPreset = "custom";
   updateWizardFeedback();
 }
 

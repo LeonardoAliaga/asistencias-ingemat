@@ -274,7 +274,7 @@ function renderCatalogoLibros(libros) {
               </button>
             </div>
           </td>
-          <td class="text-center"><span style="color:#475569; font-size:0.85rem;">${l.editorial || '<i style="color:#94a3b8;">-</i>'}</span></td>
+          <td class="text-center"><span style="color:#475569; font-size:0.85rem;">${l.editorial || '<i style="color:#596b82;">-</i>'}</span></td>
           <td class="text-center"><span style="background:#f1f5f9; padding:3px 8px; border-radius:4px; font-weight:600; font-size:0.8rem;">${l.seccion}</span></td>
           <td class="text-center ${statusClass}">${l.estado.toUpperCase()}</td>
           <td class="text-center">
@@ -608,8 +608,8 @@ async function cargarPrestamosAdmin() {
           <td class="text-center">
             ${
               isPrestado
-                ? `<button class="btn-marcar-devuelto btn-form-submit" data-id="${p.id}" style="padding: 5px 10px; font-size: 0.8rem; background: #059669;"><i class="bi bi-check2-circle"></i> Devolver</button>`
-                : `<span style="color:#059669; font-weight:600; font-size:0.85rem;"><i class="bi bi-check-all"></i> Concluido</span>`
+                ? `<button class="btn-marcar-devuelto btn-form-submit" data-id="${p.id}" style="padding: 5px 10px; font-size: 0.8rem; background: #187454;"><i class="bi bi-check2-circle"></i> Devolver</button>`
+                : `<span style="color:#187454; font-weight:600; font-size:0.85rem;"><i class="bi bi-check-all"></i> Concluido</span>`
             }
           </td>
         </tr>

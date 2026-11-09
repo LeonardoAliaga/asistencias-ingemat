@@ -17,7 +17,7 @@ Este cambio es una versión mayor. La rama de trabajo es `feat/ingemat-v2`; `mai
 3. Los registros existentes se conservan. El importador de JSON se ejecuta una vez, sin sobrescribir tablas ya pobladas ni contraseñas. Un JSON inválido detiene el proceso para que se corrija; no se marca como importado silenciosamente.
 4. Accede con `admin`, cambia la contraseña temporal y crea cuentas individuales.
 5. Revisa número de usuarios, calificaciones y tareas. Los antiguos simulacros quedan como históricos, con sus resultados disponibles. Las reglas por curso no se inventan para recalificarlos.
-6. Los ingresos nuevos se guardan en SQLite. Los Excel antiguos se consultan desde Inicio. No se convierten automáticamente en registros nominales porque el formato anterior identifica filas por nombre y puede haber homónimos; permanecen disponibles como archivos históricos.
+6. Los ingresos nuevos se guardan en SQLite. Los Excel antiguos se consultan en Asistencia → Archivos históricos. No se convierten automáticamente en registros nominales porque el formato anterior identifica filas por nombre y puede haber homónimos; permanecen disponibles como archivos históricos.
 7. Genera un código de recepción y vincula los navegadores que registrarán asistencia. Rotarlo desvincula los equipos anteriores.
 8. Completa áreas y contactos. Crea un examen pequeño, imprime una hoja y comprueba el ciclo completo antes de una evaluación real.
 

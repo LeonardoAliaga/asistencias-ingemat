@@ -350,7 +350,7 @@
         },
         {
           "title": "Configura la matriz de áreas",
-          "text": "En cada curso define las preguntas aplicables al área. Usa rangos como 1-10,15,18-20. Las preguntas no aplicables no se cuentan como blancos."
+          "text": "En cada curso usa Configurar área de postulación para elegir un perfil y define sus preguntas. Cambia de área para completar las demás. Usa rangos como 1-10,15,18-20. Las preguntas no aplicables no se cuentan como blancos."
         },
         {
           "title": "Comprueba los totales",

@@ -76,7 +76,7 @@ const routes = {
     description:
       "Carga un lote, revisa las incidencias y confirma sus calificaciones.",
     guide: "escanear-lote",
-    roles: academic,
+    roles: ["admin", "corrector"],
     v2: true,
   },
   tests: {

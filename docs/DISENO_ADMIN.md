@@ -4,32 +4,32 @@ El panel organiza el trabajo por propósito. Resumen contiene indicadores y acce
 
 ## Mapa de navegación
 
-| Espacio | Contenido |
-| --- | --- |
-| Resumen | Indicadores, accesos rápidos y acceso a los tutoriales |
-| Asistencia | Fecha, ciclo, registros, justificaciones, exportación y vinculación de recepción |
-| Archivos históricos | Excel anteriores, accesibles desde Asistencia |
-| Estudiantes y docentes | Directorio con búsqueda por nombre/código, altas, edición y carnets |
-| Apoderados y áreas | Área de postulación y contactos autorizados |
-| Simulacros | Asistente de diseño y pestañas de Resultados, Imprimir cartillas e Ingreso manual |
-| Lectura de cartillas | Carga de lotes, revisión OMR e importación CSV |
-| Tests y prácticas | Creación y calificación con nota directa |
-| Tareas | Registro por curso, ciclo y semana; historial de entregas |
-| Reportes | Por estudiante, consolidado semanal y ranking histórico |
-| Biblioteca | Estantería, catálogo y préstamos/devoluciones |
-| Comunicación | WhatsApp oficial, configuración y seguimiento de entregas |
-| Ciclos y horarios | Ciclos académicos, entrada y tolerancia por turno |
-| Página pública | Ciclos visibles e imágenes de ingresantes |
-| Cuentas y respaldo | Operadores, copias de seguridad y actividad/auditoría |
-| Mi cuenta | Cambio de contraseña, accesible desde el perfil superior |
-| Guía y tutoriales | 34 tutoriales, búsqueda, categorías y ayuda contextual |
+| Espacio                | Contenido                                                                         |
+| ---------------------- | --------------------------------------------------------------------------------- |
+| Resumen                | Indicadores, accesos rápidos y acceso a los tutoriales                            |
+| Asistencia             | Fecha, ciclo, registros, justificaciones, exportación y vinculación de recepción  |
+| Archivos históricos    | Excel anteriores, accesibles desde Asistencia                                     |
+| Estudiantes y docentes | Directorio con búsqueda por nombre/código, altas, edición y carnets               |
+| Apoderados y áreas     | Área de postulación y contactos autorizados                                       |
+| Simulacros             | Asistente de diseño y pestañas de Resultados, Imprimir cartillas e Ingreso manual |
+| Lectura de cartillas   | Carga de lotes, revisión OMR e importación CSV                                    |
+| Tests y prácticas      | Creación y calificación con nota directa                                          |
+| Tareas                 | Registro por curso, ciclo y semana; historial de entregas                         |
+| Reportes               | Por estudiante, consolidado semanal y ranking histórico                           |
+| Biblioteca             | Estantería, catálogo y préstamos/devoluciones                                     |
+| Comunicación           | WhatsApp oficial, configuración y seguimiento de entregas                         |
+| Ciclos y horarios      | Ciclos académicos, entrada y tolerancia por turno                                 |
+| Página pública         | Ciclos visibles e imágenes de ingresantes                                         |
+| Cuentas y respaldo     | Operadores, copias de seguridad y actividad/auditoría                             |
+| Mi cuenta              | Cambio de contraseña, accesible desde el perfil superior                          |
+| Guía y tutoriales      | 34 tutoriales, búsqueda, categorías y ayuda contextual                            |
 
 El menú y las acciones respetan los roles existentes. La autorización de las operaciones sigue comprobándose en el servidor.
 
 ## Configuración progresiva de simulacros
 
 1. **Datos:** título, ciclo, fecha y formato. Los puntajes generales permanecen plegados.
-2. **Cursos y áreas:** cursos desplegables, rangos y reglas por perfil. El resumen muestra preguntas sin asignar, repeticiones y diferencias en los cupos. Para un solo perfil con preguntas fijas se reutiliza el rango del curso.
+2. **Cursos y áreas:** cursos desplegables, rangos y un selector para editar un perfil a la vez. El resumen muestra preguntas sin asignar, repeticiones y diferencias en los cupos. Para un solo perfil con preguntas fijas se reutiliza el rango del curso.
 3. **Claves:** entrada de alternativas con contador. Anulaciones, puntajes por alternativa y versiones están dentro de opciones avanzadas.
 4. **Revisión:** cantidades por área y cobertura de la clave. Se distingue guardar un borrador con claves pendientes de guardar y validar un examen completo.
 
@@ -52,16 +52,16 @@ En un examen guardado, las tareas de consultar resultados, imprimir y cargar res
 
 WCAG establece criterios de accesibilidad. Carbon y Material son sistemas de diseño, empleados como referencias de organización y coherencia visual; no son una norma obligatoria para dashboards.
 
-| Fuente primaria | Criterio aplicado |
-| --- | --- |
-| [Carbon: navegación global](https://www.carbondesignsystem.com/building-blocks/core/patterns/global-header) y [panel lateral](https://www.carbondesignsystem.com/building-blocks/core/components/ui-shell-left-panel/specifications) | Separación de navegación global, contenido de la sección y estados de selección/foco |
-| [Carbon: espaciado](https://www.carbondesignsystem.com/building-blocks/foundations/spacing/overview) | Escala consistente de separación y relleno |
-| [Carbon: tablas de datos](https://www.carbondesignsystem.com/building-blocks/core/components/data-table/guidelines) | Filtros y acciones próximos a los registros que afectan |
-| [Material 3: fundamentos](https://m3.material.io/foundations/) | Jerarquía, composición y consistencia de componentes |
-| [WCAG 2.2: reflow, 1.4.10](https://www.w3.org/WAI/WCAG22/Understanding/reflow.html) | Adaptación a 320 px CSS; tablas con desplazamiento propio |
-| [WCAG 2.2: contraste, 1.4.3](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html) | Contraste de texto normal de al menos 4.5:1; corrección de textos secundarios detectados |
-| [WCAG 2.2: foco no oculto, 2.4.11](https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum.html) | Foco visible, margen de desplazamiento bajo la cabecera y gestión de ventanas |
-| [WCAG 2.2: tamaño de objetivos, 2.5.8](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html) | Objetivos de interacción con espacio suficiente; controles principales de 42–44 px. El mínimo AA es 24 px con las excepciones descritas en el criterio, no 44 px |
+| Fuente primaria                                                                                                                                                                                                                      | Criterio aplicado                                                                                                                                                |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Carbon: navegación global](https://www.carbondesignsystem.com/building-blocks/core/patterns/global-header) y [panel lateral](https://www.carbondesignsystem.com/building-blocks/core/components/ui-shell-left-panel/specifications) | Separación de navegación global, contenido de la sección y estados de selección/foco                                                                             |
+| [Carbon: espaciado](https://www.carbondesignsystem.com/building-blocks/foundations/spacing/overview)                                                                                                                                 | Escala consistente de separación y relleno                                                                                                                       |
+| [Carbon: tablas de datos](https://www.carbondesignsystem.com/building-blocks/core/components/data-table/guidelines)                                                                                                                  | Filtros y acciones próximos a los registros que afectan                                                                                                          |
+| [Material 3: fundamentos](https://m3.material.io/foundations/)                                                                                                                                                                       | Jerarquía, composición y consistencia de componentes                                                                                                             |
+| [WCAG 2.2: reflow, 1.4.10](https://www.w3.org/WAI/WCAG22/Understanding/reflow.html)                                                                                                                                                  | Adaptación a 320 px CSS; tablas con desplazamiento propio                                                                                                        |
+| [WCAG 2.2: contraste, 1.4.3](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html)                                                                                                                                      | Contraste de texto normal de al menos 4.5:1; corrección de textos secundarios detectados                                                                         |
+| [WCAG 2.2: foco no oculto, 2.4.11](https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum.html)                                                                                                                      | Foco visible, margen de desplazamiento bajo la cabecera y gestión de ventanas                                                                                    |
+| [WCAG 2.2: tamaño de objetivos, 2.5.8](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html)                                                                                                                         | Objetivos de interacción con espacio suficiente; controles principales de 42–44 px. El mínimo AA es 24 px con las excepciones descritas en el criterio, no 44 px |
 
 ## Verificación y límites
 

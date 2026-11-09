@@ -6,7 +6,9 @@ import { copyCanvasToClipboard } from "./eval-utils.js";
 // Función para limpiar/resetear la vista del ranking
 export function limpiarSeleccionRanking() {
   const inputSearch = document.getElementById("eval-ranking-search-input");
-  const resultsContainer = document.getElementById("eval-ranking-search-results");
+  const resultsContainer = document.getElementById(
+    "eval-ranking-search-results",
+  );
   const evalSelect = document.getElementById("eval-select-ranking");
   const filtroAreaSelect = document.getElementById("eval-ranking-filtro-area");
   const noSelectionBox = document.getElementById("eval-ranking-no-selection");
@@ -25,10 +27,21 @@ export function limpiarSeleccionRanking() {
   if (actionsBox) actionsBox.style.display = "none";
 }
 
+const escapeRanking = (value) =>
+  String(value ?? "").replace(
+    /[&<>"']/g,
+    (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        c
+      ],
+  );
+
 // Ranking y Podio Top 3 con Buscador Inteligente
 export function setupRankingSearch() {
   const inputSearch = document.getElementById("eval-ranking-search-input");
-  const resultsContainer = document.getElementById("eval-ranking-search-results");
+  const resultsContainer = document.getElementById(
+    "eval-ranking-search-results",
+  );
   const evalSelect = document.getElementById("eval-select-ranking");
   const filtroAreaSelect = document.getElementById("eval-ranking-filtro-area");
   const noSelectionBox = document.getElementById("eval-ranking-no-selection");
@@ -45,9 +58,10 @@ export function setupRankingSearch() {
     currentRankingEvalId = evalId;
 
     try {
-      const url = areaFiltro && areaFiltro !== "TODOS" 
-        ? `/api/evaluaciones/${evalId}/ranking?area=${areaFiltro}` 
-        : `/api/evaluaciones/${evalId}/ranking`;
+      const url =
+        areaFiltro && areaFiltro !== "TODOS"
+          ? `/api/evaluaciones/${evalId}/ranking?area=${areaFiltro}`
+          : `/api/evaluaciones/${evalId}/ranking`;
 
       const res = await fetch(url);
       const data = await res.json();
@@ -83,7 +97,9 @@ export function setupRankingSearch() {
     evalSelect.addEventListener("change", () => {
       const evalId = evalSelect.value;
       if (evalId) {
-        const found = evalState.globalEvaluaciones.find((e) => String(e.id) === String(evalId));
+        const found = evalState.globalEvaluaciones.find(
+          (e) => String(e.id) === String(evalId),
+        );
         if (found && inputSearch) {
           inputSearch.value = `${found.titulo} (${found.ciclo}) - ${found.fecha}`;
         }
@@ -107,7 +123,9 @@ export function setupRankingSearch() {
         const tit = (e.titulo || "").toLowerCase();
         const cic = (e.ciclo || "").toLowerCase();
         const fec = (e.fecha || "").toLowerCase();
-        return tit.includes(query) || cic.includes(query) || fec.includes(query);
+        return (
+          tit.includes(query) || cic.includes(query) || fec.includes(query)
+        );
       });
 
       if (matches.length === 0) {
@@ -120,8 +138,10 @@ export function setupRankingSearch() {
       resultsContainer.innerHTML = matches
         .map((e) => {
           let badge = `<span style="background:#e0f2fe; color:#0369a1; padding:2px 7px; border-radius:4px; font-size:0.75rem; font-weight:700;">${e.numPreguntas} preg.</span>`;
-          if (e.tipo === "test") badge = `<span style="background:#dcfce7; color:#166534; padding:2px 7px; border-radius:4px; font-size:0.75rem; font-weight:700;">Test Manual</span>`;
-          else if (e.tipo === "simulacro_areas") badge = `<span style="background:#fef3c7; color:#b45309; padding:2px 7px; border-radius:4px; font-size:0.75rem; font-weight:700;">Áreas A-E</span>`;
+          if (e.tipo === "test")
+            badge = `<span style="background:#dcfce7; color:#166534; padding:2px 7px; border-radius:4px; font-size:0.75rem; font-weight:700;">Test Manual</span>`;
+          else if (e.tipo === "simulacro_areas")
+            badge = `<span style="background:#fef3c7; color:#b45309; padding:2px 7px; border-radius:4px; font-size:0.75rem; font-weight:700;">Áreas A-E</span>`;
 
           return `
             <div class="student-autocomplete-item" data-id="${e.id}" style="padding:8px 12px; cursor:pointer; border-bottom:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center;">
@@ -136,23 +156,30 @@ export function setupRankingSearch() {
         .join("");
       resultsContainer.style.display = "block";
 
-      resultsContainer.querySelectorAll(".student-autocomplete-item").forEach((item) => {
-        item.addEventListener("click", () => {
-          const evalId = item.getAttribute("data-id");
-          const found = evalState.globalEvaluaciones.find((e) => String(e.id) === String(evalId));
-          if (found) {
-            inputSearch.value = `${found.titulo} (${found.ciclo}) - ${found.fecha}`;
-            if (evalSelect) evalSelect.value = evalId;
-            if (filtroAreaSelect) filtroAreaSelect.value = "TODOS";
-            resultsContainer.style.display = "none";
-            cargarExamenSeleccionado(evalId);
-          }
+      resultsContainer
+        .querySelectorAll(".student-autocomplete-item")
+        .forEach((item) => {
+          item.addEventListener("click", () => {
+            const evalId = item.getAttribute("data-id");
+            const found = evalState.globalEvaluaciones.find(
+              (e) => String(e.id) === String(evalId),
+            );
+            if (found) {
+              inputSearch.value = `${found.titulo} (${found.ciclo}) - ${found.fecha}`;
+              if (evalSelect) evalSelect.value = evalId;
+              if (filtroAreaSelect) filtroAreaSelect.value = "TODOS";
+              resultsContainer.style.display = "none";
+              cargarExamenSeleccionado(evalId);
+            }
+          });
         });
-      });
     });
 
     document.addEventListener("click", (e) => {
-      if (!inputSearch.contains(e.target) && !resultsContainer.contains(e.target)) {
+      if (
+        !inputSearch.contains(e.target) &&
+        !resultsContainer.contains(e.target)
+      ) {
         resultsContainer.style.display = "none";
       }
     });
@@ -168,9 +195,10 @@ export function renderRankingView(evalObj, ranking, areaFiltro = "TODOS") {
 
   if (btnExcel) {
     btnExcel.onclick = () => {
-      const url = areaFiltro && areaFiltro !== "TODOS" 
-        ? `/api/evaluaciones/${evalObj.id}/excel?area=${areaFiltro}` 
-        : `/api/evaluaciones/${evalObj.id}/excel`;
+      const url =
+        areaFiltro && areaFiltro !== "TODOS"
+          ? `/api/evaluaciones/${evalObj.id}/excel?area=${areaFiltro}`
+          : `/api/evaluaciones/${evalObj.id}/excel`;
       window.location.href = url;
     };
   }
@@ -190,71 +218,37 @@ export function renderRankingView(evalObj, ranking, areaFiltro = "TODOS") {
     summaryHeader.innerHTML = `
       <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
         <div>
-          <b style="color:#0f172a; font-size:1.05rem;">📌 ${evalObj.titulo}</b> 
+          <b style="color:#0f172a; font-size:1.05rem;">📌 ${evalObj.titulo}</b>
           <span style="background:#f1f5f9; padding:2px 8px; border-radius:4px; font-size:0.8rem; font-weight:700; color:#475569;">Ciclo: ${evalObj.ciclo}</span>
           ${subFiltroTexto}
         </div>
         <div style="font-size:0.88rem; color:#64748b;">
-          <span>📅 Fecha: <b>${evalObj.fecha}</b></span> &nbsp;|&nbsp; 
-          <span>📊 ${evalObj.tipo === 'test' ? 'Calificación directa' : `Preguntas: <b>${evalObj.numPreguntas}</b>`}</span> &nbsp;|&nbsp; 
+          <span>📅 Fecha: <b>${evalObj.fecha}</b></span> &nbsp;|&nbsp;
+          <span>📊 ${evalObj.tipo === "test" ? "Calificación directa" : `Preguntas: <b>${evalObj.numPreguntas}</b>`}</span> &nbsp;|&nbsp;
           <span>👥 Participantes: <b style="color:#b72107;">${ranking.length}</b></span>
         </div>
       </div>
     `;
   }
 
-  // Cuadritos de Mérito Top 3
+  // Use the recorded position, including shared positions in a tie.
   if (podiumContainer) {
-    if (ranking.length === 0) {
-      podiumContainer.innerHTML =
-        '<p class="text-center" style="grid-column:1/-1;"><i>Aún no hay respuestas registradas para esta evaluación.</i></p>';
-    } else {
-      const top1 = ranking[0];
-      const top2 = ranking[1];
-      const top3 = ranking[2];
-
-      let html = "";
-      if (top1) {
-        html += `
-          <div class="podium-card rank-1">
-            <div class="podium-medal">🥇</div>
-            <div style="font-size:0.75rem; font-weight:800; color:#854d0e;">1ER PUESTO</div>
-            <div class="podium-name">${top1.nombreEstudiante}</div>
-            <div style="font-size:0.8rem; color:#475569;">${top1.ciclo || evalObj.ciclo}</div>
-            <div class="podium-score">${top1.puntajeTotal} pts</div>
-          </div>
-        `;
-      }
-      if (top2) {
-        html += `
-          <div class="podium-card rank-2">
-            <div class="podium-medal">🥈</div>
-            <div style="font-size:0.75rem; font-weight:800; color:#475569;">2DO PUESTO</div>
-            <div class="podium-name">${top2.nombreEstudiante}</div>
-            <div style="font-size:0.8rem; color:#475569;">${top2.ciclo || evalObj.ciclo}</div>
-            <div class="podium-score">${top2.puntajeTotal} pts</div>
-          </div>
-        `;
-      }
-      if (top3) {
-        html += `
-          <div class="podium-card rank-3">
-            <div class="podium-medal">🥉</div>
-            <div style="font-size:0.75rem; font-weight:800; color:#9a3412;">3ER PUESTO</div>
-            <div class="podium-name">${top3.nombreEstudiante}</div>
-            <div style="font-size:0.8rem; color:#475569;">${top3.ciclo || evalObj.ciclo}</div>
-            <div class="podium-score">${top3.puntajeTotal} pts</div>
-          </div>
-        `;
-      }
-      podiumContainer.innerHTML = html;
-    }
+    podiumContainer.innerHTML = ranking.length
+      ? ranking
+          .slice(0, 3)
+          .map(
+            (r) =>
+              `<div class="podium-card rank-${r.posicion}"><i class="bi bi-award podium-medal" aria-hidden="true"></i><span>Puesto #${r.posicion}</span><strong class="podium-name">${escapeRanking(r.nombreEstudiante)}</strong><small>${escapeRanking(r.ciclo || evalObj.ciclo)}</small><strong class="podium-score">${r.puntajeTotal} pts</strong></div>`,
+          )
+          .join("")
+      : '<p class="v2-empty">Todavía no hay participantes calificados.</p>';
   }
 
   // Tabla General Completa
   if (tbody) {
     if (ranking.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" class="text-center"><i>No hay participantes en esta evaluación aún.</i></td></tr>';
+      tbody.innerHTML =
+        '<tr><td colspan="6" class="text-center"><i>No hay participantes en esta evaluación aún.</i></td></tr>';
     } else {
       let html = "";
       ranking.forEach((r) => {
@@ -272,15 +266,17 @@ export function renderRankingView(evalObj, ranking, areaFiltro = "TODOS") {
           bgStyle = 'style="background:#ffedd5;"';
         }
 
-        const areaBadge = r.area ? `<span style="background:#e0f2fe; color:#0369a1; padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:700; margin-left:6px;">Área ${r.area}</span>` : "";
+        const areaBadge = r.area
+          ? `<span style="background:#e0f2fe; color:#0369a1; padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:700; margin-left:6px;">Área ${r.area}</span>`
+          : "";
 
         html += `
           <tr ${bgStyle}>
             <td class="text-center">${badge}</td>
             <td class="text-left" style="font-weight:600; color:#0f172a;">${r.nombreEstudiante} ${areaBadge}</td>
-            <td class="text-center" style="color:#166534; font-weight:700;">${evalObj.tipo === 'test' ? '-' : r.correctas}</td>
-            <td class="text-center" style="color:#dc2626; font-weight:700;">${evalObj.tipo === 'test' ? '-' : r.incorrectas}</td>
-            <td class="text-center" style="color:#64748b;">${evalObj.tipo === 'test' ? '-' : r.enBlanco}</td>
+            <td class="text-center" style="color:#166534; font-weight:700;">${evalObj.tipo === "test" ? "-" : r.correctas}</td>
+            <td class="text-center" style="color:#dc2626; font-weight:700;">${evalObj.tipo === "test" ? "-" : r.incorrectas}</td>
+            <td class="text-center" style="color:#64748b;">${evalObj.tipo === "test" ? "-" : r.enBlanco}</td>
             <td class="text-center" style="font-weight:800; color:#b72107; font-size:1.05rem;">${r.puntajeTotal} pts</td>
           </tr>
         `;
@@ -291,9 +287,15 @@ export function renderRankingView(evalObj, ranking, areaFiltro = "TODOS") {
 }
 
 // Generador de Imagen de Tabla General de Ranking para Copiar al Portapapeles
-export function copiarRankingAlPortapapeles(evalObj, ranking, areaFiltro = "TODOS") {
+export function copiarRankingAlPortapapeles(
+  evalObj,
+  ranking,
+  areaFiltro = "TODOS",
+) {
   if (ranking.length === 0) {
-    alert("⚠️ No hay participantes registrados en esta evaluación para generar la imagen.");
+    alert(
+      "⚠️ No hay participantes registrados en esta evaluación para generar la imagen.",
+    );
     return;
   }
 
@@ -335,7 +337,7 @@ export function copiarRankingAlPortapapeles(evalObj, ranking, areaFiltro = "TODO
   ctx.fillText(
     `Examen: ${evalObj.titulo.toUpperCase()} | Ciclo: ${evalObj.ciclo} | Fecha: ${evalObj.fecha} | Total Evaluados: ${ranking.length}`,
     550,
-    138
+    138,
   );
 
   // Tabla - Fila de Encabezado
@@ -412,15 +414,27 @@ export function copiarRankingAlPortapapeles(evalObj, ranking, areaFiltro = "TODO
     ctx.textAlign = "center";
     ctx.fillStyle = "#166534";
     ctx.font = "bold 15px 'Segoe UI', sans-serif";
-    ctx.fillText(evalObj.tipo === "test" ? "-" : String(r.correctas), 650, currentY + 26);
+    ctx.fillText(
+      evalObj.tipo === "test" ? "-" : String(r.correctas),
+      650,
+      currentY + 26,
+    );
 
     ctx.fillStyle = "#DC2626";
     ctx.font = "bold 15px 'Segoe UI', sans-serif";
-    ctx.fillText(evalObj.tipo === "test" ? "-" : String(r.incorrectas), 770, currentY + 26);
+    ctx.fillText(
+      evalObj.tipo === "test" ? "-" : String(r.incorrectas),
+      770,
+      currentY + 26,
+    );
 
     ctx.fillStyle = "#64748B";
     ctx.font = "15px 'Segoe UI', sans-serif";
-    ctx.fillText(evalObj.tipo === "test" ? "-" : String(r.enBlanco), 890, currentY + 26);
+    ctx.fillText(
+      evalObj.tipo === "test" ? "-" : String(r.enBlanco),
+      890,
+      currentY + 26,
+    );
 
     ctx.fillStyle = "#B72107";
     ctx.font = "bold 16px 'Segoe UI', sans-serif";
@@ -436,14 +450,15 @@ export function copiarRankingAlPortapapeles(evalObj, ranking, areaFiltro = "TODO
   ctx.fillText(
     "¡Felicitaciones a nuestros estudiantes! • INGEMAT La Mejor Preparación Preuniversitaria",
     550,
-    currentY + 40
+    currentY + 40,
   );
 
-  const sufijo = areaFiltro && areaFiltro !== "TODOS" ? `_Area_${areaFiltro}` : "";
+  const sufijo =
+    areaFiltro && areaFiltro !== "TODOS" ? `_Area_${areaFiltro}` : "";
   const filename = `Ranking_${evalObj.titulo.replace(/[^a-zA-Z0-9]/g, "_")}${sufijo}.png`;
   copyCanvasToClipboard(
     canvas,
     filename,
-    `¡Imagen del Ranking (${areaFiltro && areaFiltro !== "TODOS" ? 'Área ' + areaFiltro : 'General'}) de "${evalObj.titulo}" copiada con éxito al portapapeles!`
+    `¡Imagen del Ranking (${areaFiltro && areaFiltro !== "TODOS" ? "Área " + areaFiltro : "General"}) de "${evalObj.titulo}" copiada con éxito al portapapeles!`,
   );
 }

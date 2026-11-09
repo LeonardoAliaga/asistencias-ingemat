@@ -120,7 +120,7 @@ El número impreso y el número evaluado son conceptos diferentes.
 
 1. **Elige formato por áreas.** En Simulacros pulsa Nuevo examen. En Datos elige Por áreas: 120 impresas / 100 evaluables. Continúa a Cursos y áreas; despliega Áreas y cantidad evaluable para ajustar códigos, nombres y cantidades según tu reglamento y pulsa Aplicar perfiles a los cursos.
 2. **Asigna cursos.** Abre cada curso para definir su nombre y números; distribuye las 120 preguntas, sin huecos ni repeticiones. Los otros cursos pueden permanecer plegados.
-3. **Configura la matriz de áreas.** En cada curso define las preguntas aplicables al área. Usa rangos como 1-10,15,18-20. Las preguntas no aplicables no se cuentan como blancos.
+3. **Configura la matriz de áreas.** En cada curso usa Configurar área de postulación para elegir un perfil y define sus preguntas. Cambia de área para completar las demás. Usa rangos como 1-10,15,18-20. Las preguntas no aplicables no se cuentan como blancos.
 4. **Comprueba los totales.** El resumen inferior de Cursos y áreas muestra las cantidades asignadas a cada perfil. Su suma debe coincidir exactamente con la cantidad evaluable; corrige las diferencias antes de continuar.
 5. **Carga la clave del cuadernillo.** Incluye las 120 claves. La selección por área es independiente de la clave.
 6. **Asigna áreas a estudiantes.** En Apoderados y áreas registra el perfil de cada postulante antes de imprimir.

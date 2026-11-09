@@ -16,7 +16,8 @@
   dialog.style.cssText =
     "padding:25px;border:1px solid #cad5e2;border-radius:12px;margin:auto;max-width:480px;width:90%";
   dialog.innerHTML =
-    '<form id="kiosk-pair-form"><h2 style="font-size:21px">Activar recepción</h2><p>Un administrador debe generar el código en Cuentas y respaldo. Esta vinculación permite registrar ingresos en este navegador.</p><label for="kiosk-pair-token">Código de vinculación</label><input id="kiosk-pair-token" type="password" autocomplete="off" required style="display:block;padding:10px;margin:12px 0;width:100%"><p id="kiosk-pair-error" role="status"></p><button type="submit" style="padding:10px">Vincular</button><button type="button" id="kiosk-pair-close" style="padding:10px">Cerrar</button></form>';
+    '<form id="kiosk-pair-form"><h2 id="kiosk-pair-title" style="font-size:21px">Activar recepción</h2><p>Un administrador debe generar el código en Asistencia, dentro de Vincular un punto de recepción. Esta vinculación permite registrar ingresos en este navegador.</p><label for="kiosk-pair-token">Código de vinculación</label><input id="kiosk-pair-token" type="password" autocomplete="off" required style="display:block;padding:10px;margin:12px 0;width:100%"><p id="kiosk-pair-error" role="status"></p><button type="submit" style="padding:10px">Vincular</button><button type="button" id="kiosk-pair-close" style="padding:10px">Cerrar</button></form>';
+  dialog.setAttribute("aria-labelledby", "kiosk-pair-title");
   document.body.append(dialog);
   button.onclick = () => dialog.showModal();
   document.getElementById("kiosk-pair-close").onclick = () => dialog.close();

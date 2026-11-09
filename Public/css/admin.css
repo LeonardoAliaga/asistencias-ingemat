@@ -1173,3 +1173,34 @@ dialog .table-scroll {
   text-align: center;
   font-size: 12px;
 }
+
+.modal {
+  align-items: flex-start;
+  justify-content: center;
+}
+.modal-content {
+  flex-shrink: 0;
+}
+.modal-content > .form-row:first-child {
+  padding-right: 48px;
+  margin-bottom: 24px;
+}
+#modal-editar-libro .modal-content {
+  width: min(640px, 100%);
+}
+.close-btn {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  line-height: 1;
+}
+.admin-app form button[type="submit"]:not(.v2-button) {
+  background: var(--red);
+  color: white;
+  border-color: var(--red);
+}
+.admin-app form button[type="submit"]:not(.v2-button):hover {
+  background: var(--red2);
+}

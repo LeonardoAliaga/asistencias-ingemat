@@ -459,7 +459,7 @@
                   type="text"
                 />
                 <button type="submit">
-                  <i class="bi bi-plus-circle-fill"></i> AGREGAR CICLO
+                  <i class="bi bi-plus-circle-fill"></i> Agregar ciclo
                 </button>
               </form>
               <div id="msg-ciclos"></div>
@@ -584,7 +584,7 @@
                 </div>
                 <p class="schedule-summary" id="summary-tarde"></p>
                 <button type="submit">
-                  <i class="bi bi-save-fill"></i> GUARDAR HORARIOS
+                  <i class="bi bi-save-fill"></i> Guardar horarios
                 </button>
               </form>
               <div id="msg-horarios"></div>
@@ -1092,12 +1092,9 @@
             <div class="academic-content" id="eval-panel-reporte-alumno">
               <div class="eval-card-box">
                 <div>
-                  <label
-                    ><i class="bi bi-search"></i> Buscador Inteligente de
-                    Estudiante:</label
-                  >
+                  <label><i class="bi bi-search"></i> Buscar estudiante:</label>
                   <div class="form-row">
-                    <div class="relative">
+                    <div class="relative field">
                       <input
                         aria-label="Escribe nombre o código del alumno..."
                         autocomplete="off"
@@ -1204,13 +1201,12 @@
               <div class="eval-card-box">
                 <div>
                   <div class="form-row">
-                    <div class="relative">
+                    <div class="relative field">
                       <label
-                        ><i class="bi bi-search"></i> Buscador Inteligente de
-                        Evaluaciones:</label
+                        ><i class="bi bi-search"></i> Buscar evaluación:</label
                       >
                       <div class="form-row">
-                        <div class="relative">
+                        <div class="relative field">
                           <input
                             aria-label="Escribe título, ciclo o fecha (ej: Álgebra, UNI, 2026)..."
                             autocomplete="off"
@@ -1225,13 +1221,13 @@
                           ></div>
                         </div>
                         <select
-                          aria-label="eval select ranking"
+                          aria-label="Seleccionar evaluación"
                           id="eval-select-ranking"
                         >
                           <option value="">-- O elige de la lista --</option>
                         </select>
                         <select
-                          aria-label="eval ranking filtro area"
+                          aria-label="Filtrar por área"
                           id="eval-ranking-filtro-area"
                           style="display: none"
                         >
@@ -1276,7 +1272,12 @@
                   <div class="top-podium-container" id="eval-top-podium">
                     <p class="text-center"><i>Cargando podio de honor...</i></p>
                   </div>
-                  <div class="table-scroll">
+                  <div
+                    aria-label="Tabla de registros"
+                    class="table-scroll"
+                    role="region"
+                    tabindex="0"
+                  >
                     <table class="three-col-table">
                       <thead>
                         <tr>
@@ -1390,9 +1391,7 @@
             </div>
             <div class="bib-subpanel" id="bib-panel-estantes">
               <div class="form-row">
-                <h3>
-                  <i class="bi bi-bookshelf"></i> Estante Dinámico por Secciones
-                </h3>
+                <h3><i class="bi bi-bookshelf"></i> Catálogo por sección</h3>
                 <input
                   aria-label="Buscar libro o código en estante..."
                   id="admin-book-search"
@@ -1493,7 +1492,12 @@
                       type="text"
                     />
                   </div>
-                  <div class="table-scroll">
+                  <div
+                    aria-label="Tabla de registros"
+                    class="table-scroll"
+                    role="region"
+                    tabindex="0"
+                  >
                     <table class="three-col-table">
                       <thead>
                         <tr>
@@ -1517,7 +1521,6 @@
                 </div>
               </div>
             </div>
-
             <div
               class="bib-subpanel"
               id="bib-panel-prestamos"
@@ -1554,7 +1557,12 @@
                     />
                   </div>
                 </div>
-                <div class="table-scroll">
+                <div
+                  aria-label="Tabla de registros"
+                  class="table-scroll"
+                  role="region"
+                  tabindex="0"
+                >
                   <table class="three-col-table">
                     <thead>
                       <tr>
@@ -1676,7 +1684,7 @@
               <button class="day-btn" data-day="D" type="button">D</button>
             </div>
           </div>
-          <button type="submit"><i class="bi bi-check-lg"></i> AGREGAR</button>
+          <button type="submit"><i class="bi bi-check-lg"></i> Agregar</button>
           <div id="msg-agregar-usuario"></div>
         </form>
       </section>

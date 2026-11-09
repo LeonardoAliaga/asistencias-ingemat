@@ -183,17 +183,24 @@ test("wizard validates area quotas, preserves step data and prepares a 120-quest
   await page.click("#wizard-next");
   await expect(page.locator('[data-wizard-pane="1"]')).toBeVisible();
   await expect(page.locator("#v2-structure-summary")).toContainText(
-    "Área A: 0 preguntas",
+    "0 de 100 preguntas asignadas",
   );
   await page.locator("[data-course-name]").fill("Matemática");
   await page.locator("[data-course-range]").fill("1-60");
-  for (const row of await page.locator("[data-rule-area]").all())
+  for (const row of await page.locator("[data-rule-area]").all()) {
+    await page
+      .locator("[data-course-area]")
+      .selectOption(await row.getAttribute("data-rule-area"));
     await row.locator("[data-rule-questions]").fill("1-60");
+  }
   await page.click("#v2-add-section");
   const science = page.locator(".v2-section-editor").last();
   await science.locator("[data-course-name]").fill("Ciencias");
   await science.locator("[data-course-range]").fill("61-120");
   for (const row of await science.locator("[data-rule-area]").all()) {
+    await science
+      .locator("[data-course-area]")
+      .selectOption(await row.getAttribute("data-rule-area"));
     await row.locator("[data-rule-questions]").fill("61-120");
     await row.locator("[data-rule-selection]").selectOption("choose");
     await row.locator("[data-rule-quota]").fill("40");
@@ -388,4 +395,100 @@ test("admin pages and dialogs pass automated WCAG A/AA checks", async ({
     .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
     .analyze();
   expect(result.violations, "tutorial dialog").toEqual([]);
+});
+
+test("direct grades and tasks stay in their own sections and appear in student reports", async ({
+  page,
+}) => {
+  await login(page);
+  await navigate(page, "tests");
+  await page.fill("#eval-titulo-input", "PRÁCTICA UI");
+  await page.selectOption("#eval-ciclo-select", "ANUAL");
+  await page.click("#form-crear-evaluacion button[type=submit]");
+  await expect(page.locator("#evaluaciones-list-container")).toContainText(
+    "PRÁCTICA UI",
+  );
+  const option = page
+    .locator("#eval-select-respuesta option")
+    .filter({ hasText: "PRÁCTICA UI" });
+  await page.selectOption(
+    "#eval-select-respuesta",
+    await option.getAttribute("value"),
+  );
+  await page.fill("#eval-student-search", "DEMO002");
+  await page.locator("#eval-student-results [data-code=DEMO002]").click();
+  await expect(
+    page.locator("#eval-respuestas-estudiante-container"),
+  ).toBeHidden();
+  await page.fill("#eval-nota-directa-input", "17.5");
+  await page.click("#form-registrar-respuestas-estudiante button[type=submit]");
+  await expect(page.locator("#msg-respuesta-estudiante")).toContainText(
+    "Calificación registrada",
+  );
+  await navigate(page, "tasks");
+  await page.selectOption("#tarea-curso-select", "ÁLGEBRA");
+  await page.selectOption("#tarea-ciclo-select", "ANUAL");
+  await page.selectOption("#tarea-tipo-eval-select", "vigesimal");
+  await page.fill("#tarea-student-search", "DEMO002");
+  await page.locator("#tarea-student-results [data-code=DEMO002]").click();
+  await page.fill("#tarea-nota-vigesimal", "18");
+  await page.click("#form-registrar-tareas button[type=submit]");
+  await expect(
+    page.locator("#tareas-list-container tr").filter({ hasText: "DEMO002" }),
+  ).toContainText("18 / 20");
+  await page.setViewportSize({ width: 320, height: 900 });
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth),
+  ).toBeLessThanOrEqual(320);
+  await navigate(page, "reports");
+  await page.fill("#reporte-student-search", "DEMO002");
+  await page.locator("#reporte-student-results [data-code=DEMO002]").click();
+  await expect(page.locator("#alumno-reporte-dashboard")).toContainText(
+    "PRÁCTICA UI",
+  );
+  await expect(page.locator("#alumno-reporte-dashboard")).toContainText(
+    "ÁLGEBRA",
+  );
+  let audit = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
+    .analyze();
+  expect(audit.violations, "populated student report").toEqual([]);
+
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth),
+  ).toBeLessThanOrEqual(320);
+  await page.click('[data-local-tab="history"]');
+  const ranking = page
+    .locator("#eval-select-ranking option")
+    .filter({ hasText: "PRÁCTICA UI" });
+  await page.selectOption(
+    "#eval-select-ranking",
+    await ranking.getAttribute("value"),
+  );
+  await expect(page.locator("#tabla-ranking-body")).toContainText("LUIS DEMO");
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth),
+  ).toBeLessThanOrEqual(320);
+  audit = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
+    .analyze();
+  expect(audit.violations, "populated ranking").toEqual([]);
+});
+
+test("table sanitization preserves cells and removes executable markup", async ({
+  page,
+}) => {
+  await login(page);
+  const result = await page.evaluate(() => {
+    const tbody = document.createElement("tbody");
+    tbody.innerHTML =
+      '<tr><td>Una fila</td><td><img src=x onerror="window.bad=true"><button>Editar</button></td></tr>';
+    return {
+      rows: tbody.querySelectorAll("tr").length,
+      cells: tbody.querySelectorAll("td").length,
+      buttons: tbody.querySelectorAll("button").length,
+      safe: !tbody.innerHTML.includes("onerror") && !window.bad,
+    };
+  });
+  expect(result).toEqual({ rows: 1, cells: 2, buttons: 1, safe: true });
 });
