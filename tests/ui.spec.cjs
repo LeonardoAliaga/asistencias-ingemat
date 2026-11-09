@@ -37,6 +37,7 @@ test("create, validate and grade an exam from the dashboard", async ({
   await navigate(page, "exams");
   await page.click("#v2-new");
   await expect(page.locator("#v2-exam-editor")).toBeVisible();
+  await page.selectOption("#v2-preset", "100");
   await page.fill("#v2-exam-editor [name=titulo]", "SIMULACRO UI");
   await page.selectOption("#v2-exam-editor [name=ciclo]", "ANUAL");
   await nextStep(page, 1);
@@ -292,6 +293,7 @@ for (const width of [320, 390, 768, 1024, 1440])
     await expect(page.locator("#v2-exam-editor")).toBeVisible();
     await page.fill('[name="titulo"]', "CUSTOM UI");
     await page.selectOption('[name="ciclo"]', "ANUAL");
+    await page.selectOption("#v2-preset", "100");
     await page.fill('[name="total"]', "10");
     await nextStep(page, 1);
     await expect(page.locator("[data-course-range]")).toHaveValue("1-10");
@@ -569,4 +571,69 @@ test("empty attendance exports explain the selection and leave the button availa
   );
   await expect(page.locator("#v2-attendance-image")).toBeEnabled();
   expect(errors).toEqual([]);
+});
+
+test("new exam defaults to the PDF distribution, saves without keys and validates with keys", async ({
+  page,
+}) => {
+  await login(page);
+  await navigate(page, "exams");
+  await page.click("#v2-new");
+  await expect(page.locator("#v2-preset")).toHaveValue("repaso-unmsm");
+  await expect(page.locator('[name="total"]')).toHaveValue("120");
+  await expect(page.locator("#v2-preset-source")).toBeVisible();
+  await page.fill('[name="titulo"]', "REPASO PDF UI");
+  await page.selectOption('[name="ciclo"]', "ANUAL");
+  await nextStep(page, 1);
+  await expect(page.locator(".v2-section-editor")).toHaveCount(19);
+  await expect(page.locator("#v2-structure-summary")).toContainText(
+    "Distribución completa",
+  );
+  await expect(page.locator("[data-course-name]").nth(11)).toHaveValue(
+    "Historia del Perú",
+  );
+  const course = page.locator(".v2-section-editor").nth(3);
+  await course.locator("summary").first().click();
+  await course.locator("[data-course-area]").selectOption("E");
+  await expect(
+    course.locator('[data-rule-area="E"] [data-rule-questions]'),
+  ).toHaveValue("31-32");
+  await nextStep(page, 2);
+  await expect(page.locator("#v2-keys")).toHaveValue("");
+  await nextStep(page, 3);
+  await expect(page.locator("#wizard-prepare")).toBeDisabled();
+  await page.click("#wizard-save");
+  await expect(page.locator("#v2-message")).toContainText("Borrador guardado");
+  await page.click("#v2-edit");
+  await nextStep(page, 1);
+  await nextStep(page, 2);
+  await page.fill("#v2-keys", Array(120).fill("A").join(" "));
+  await nextStep(page, 3);
+  await page.click("#wizard-prepare");
+  await expect(page.locator("#v2-message")).toContainText("validado");
+});
+
+test("switching formats protects edits but does not interrupt an untouched default", async ({
+  page,
+}) => {
+  await login(page);
+  await navigate(page, "exams");
+  await page.click("#v2-new");
+  await page.selectOption("#v2-preset", "100");
+  await expect(page.locator("#v2-format-confirm")).toBeHidden();
+  await expect(page.locator('[name="total"]')).toHaveValue("100");
+  await page.fill('[name="titulo"]', "Formato editable");
+  await page.selectOption('[name="ciclo"]', "ANUAL");
+  await nextStep(page, 1);
+  await page.fill("[data-course-name]", "Mi curso");
+  await page.click("#wizard-back");
+  await page.selectOption("#v2-preset", "repaso-unmsm");
+  await expect(page.locator("#v2-format-confirm")).toBeVisible();
+  await page.click("#v2-format-keep");
+  await expect(page.locator("#v2-preset")).toHaveValue("100");
+  await page.selectOption("#v2-preset", "repaso-unmsm");
+  await page.click("#v2-format-apply");
+  await expect(page.locator('[name="total"]')).toHaveValue("120");
+  await nextStep(page, 1);
+  await expect(page.locator(".v2-section-editor")).toHaveCount(19);
 });

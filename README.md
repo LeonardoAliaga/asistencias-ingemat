@@ -70,7 +70,7 @@ La base de datos es `DATA_DIR/ingemat.db`; el valor predeterminado es `./data`. 
 ## Simulacros
 
 1. En **Simulacros → Nuevo examen**, sigue el asistente: **Datos → Cursos y áreas → Claves → Revisión**. Empieza por título, ciclo, fecha y formato.
-2. Distribuye todas las preguntas en cursos, sin huecos ni solapamientos.
+2. La plantilla predeterminada **Repaso UNMSM** ya distribuye los 19 cursos y las áreas A–E según los PDF de la academia: 120 impresas y 100 evaluables por área. Consulta [rangos y cantidades](docs/PLANTILLA_REPASO.md). Puedes editarla o elegir un formato estándar vacío. Los exámenes existentes se conservan.
 3. Para cada área y curso define preguntas fijas o un conjunto elegible y cupo. La suma tiene que coincidir con el total evaluable del perfil.
 4. Carga todas las claves, penalizaciones, excepciones y versiones A/B si las hay.
 5. En Revisión puedes **Guardar borrador** con claves pendientes o **Guardar y validar** cuando esté completo. Después la estructura se conserva.

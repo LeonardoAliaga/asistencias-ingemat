@@ -85,6 +85,9 @@
           ><label>Fecha<input name="fecha" required="" type="date" /></label
           ><label
             >Formato<select id="v2-preset">
+              <option value="repaso-unmsm">
+                Repaso UNMSM · predeterminada
+              </option>
               <option value="100">Estándar de 100 preguntas</option>
               <option value="120">Estándar de 120 preguntas</option>
               <option value="areas">
@@ -102,6 +105,11 @@
               value="100"
           /></label>
         </div>
+        <p id="v2-preset-source" class="v2-help" hidden>
+          Basada en los PDF de repaso de la academia: 120 preguntas impresas,
+          100 evaluables por cada área A–E y 19 cursos. Puedes editar la
+          distribución. Las claves se cargan por separado.
+        </p>
         <div id="v2-format-confirm" class="v2-notice warning" hidden>
           <p>
             Aplicar este formato reemplazará los cursos, áreas y claves que

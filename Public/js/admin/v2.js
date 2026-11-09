@@ -206,7 +206,10 @@ async function loadTemplates() {
   $("v2-template-select").innerHTML =
     '<option value="">Cargar plantilla guardada</option>' +
     state.templates
-      .map((t) => `<option value="${esc(t.id)}">${esc(t.name)}</option>`)
+      .map(
+        (t) =>
+          `<option value="${esc(t.id)}">${t.builtIn ? "Predeterminada · " : ""}${esc(t.name)}</option>`,
+      )
       .join("");
 }
 async function selectExam(id) {
@@ -535,11 +538,13 @@ function renderAreas() {
         captureSections();
         captureAreas();
         state.areas.splice(Number(b.dataset.removeArea), 1);
+        state.definitionDirty = true;
         renderAreas();
         renderSections();
       }),
   );
   $("v2-apply-areas").onclick = () => {
+    state.definitionDirty = true;
     try {
       captureSections();
       captureAreas();
@@ -602,12 +607,15 @@ function renderSections() {
     button.onclick = () => {
       captureSections();
       state.sections.splice(Number(button.dataset.removeSection), 1);
+      state.definitionDirty = true;
       renderSections();
     };
   if ($("v2-wizard-review")) updateWizardFeedback();
 }
 function setEditor(def, id = null) {
   state.editor = id;
+  state.definitionDirty = false;
+  $("v2-preset-source").hidden = true;
   const f = $("v2-exam-editor");
   f.hidden = false;
   f.closest(".v2-panel").classList.add("is-editing");
@@ -668,6 +676,23 @@ function setEditor(def, id = null) {
 }
 function preset(value) {
   const editorId = state.editor;
+  const builtIn = state.templates.find(
+    (t) => t.builtIn && t.presetId === value,
+  );
+  if (builtIn) {
+    setEditor(builtIn.definition, editorId);
+    state.currentPreset = value;
+    $("v2-preset").value = value;
+    $("v2-preset-source").hidden = false;
+    return;
+  }
+  if (value === "repaso-unmsm") {
+    message(
+      "No se pudo cargar la plantilla. Recarga la página para intentarlo de nuevo.",
+      true,
+    );
+    return;
+  }
   const total = value === "areas" ? 120 : value === "120" ? 120 : 100,
     areas =
       value === "areas"
@@ -1553,6 +1578,12 @@ async function initialize() {
     true,
   );
   $("v2-exam-editor").addEventListener("input", (event) => {
+    if (
+      !event.target.matches(
+        '[name="titulo"], [name="ciclo"], [name="fecha"], #v2-preset, #v2-template-select, [data-course-area]',
+      )
+    )
+      state.definitionDirty = true;
     const key = event.target.name;
     if (["correct", "wrong", "blank"].includes(key)) {
       for (const field of $("v2-sections").querySelectorAll(
@@ -1564,7 +1595,13 @@ async function initialize() {
     }
     updateWizardFeedback();
   });
-  $("v2-exam-editor").addEventListener("change", () => {
+  $("v2-exam-editor").addEventListener("change", (event) => {
+    if (
+      !event.target.matches(
+        '[name="titulo"], [name="ciclo"], [name="fecha"], #v2-preset, #v2-template-select, [data-course-area]',
+      )
+    )
+      state.definitionDirty = true;
     updateWizardFeedback();
   });
   bind("v2-guide-search", "input", renderGuides);
@@ -1598,7 +1635,7 @@ async function initialize() {
     const f = $("v2-exam-editor");
     f.reset();
     f.elements.fecha.value = today();
-    preset("100");
+    preset("repaso-unmsm");
     f.scrollIntoView({ behavior: "smooth", block: "start" });
   });
   bind("v2-preset", "change", (e) => {
@@ -1609,9 +1646,9 @@ async function initialize() {
     }
     captureSections();
     const hasWork =
-      $("v2-keys").value.trim() ||
-      state.sections.length > 1 ||
-      state.sections.some((s) => s.name !== "General");
+      state.definitionDirty ||
+      state.editor != null ||
+      $("v2-keys").value.trim();
     if (hasWork) {
       state.pendingPreset = value;
       $("v2-format-confirm").hidden = false;
@@ -1632,6 +1669,7 @@ async function initialize() {
     f.scrollIntoView({ behavior: "smooth" });
   });
   bind("v2-apply-scoring", "click", () => {
+    state.definitionDirty = true;
     const f = $("v2-exam-editor");
     for (const course of $("v2-sections").querySelectorAll(
       ".v2-section-editor",
@@ -1645,6 +1683,7 @@ async function initialize() {
     );
   });
   bind("v2-add-area", "click", () => {
+    state.definitionDirty = true;
     captureSections();
     captureAreas();
     state.areas.push({
@@ -1656,6 +1695,7 @@ async function initialize() {
     renderSections();
   });
   bind("v2-add-section", "click", () => {
+    state.definitionDirty = true;
     captureSections();
     state.sections.push({ name: "Nuevo curso", questions: [], rules: {} });
     state.expandedCourse = state.sections.length - 1;
@@ -1846,7 +1886,14 @@ async function initialize() {
   });
   bind("v2-template-select", "change", (e) => {
     const t = state.templates.find((t) => t.id === e.target.value);
-    if (t) setEditor(t.definition);
+    if (t) {
+      setEditor(t.definition);
+      if (t.builtIn) {
+        state.currentPreset = t.presetId;
+        $("v2-preset").value = t.presetId;
+        $("v2-preset-source").hidden = false;
+      }
+    }
   });
   bind("v2-export-structure", "click", () => {
     const blob = new Blob(

@@ -733,3 +733,53 @@ test("attendance PNG export requires an operator, applies filters and returns th
     404,
   );
 });
+
+test("built-in repaso template coexists with saved templates without modifying existing exams", async () => {
+  const beforeTemplates = db
+    .prepare("SELECT * FROM exam_templates ORDER BY id")
+    .all();
+  const beforeExams = db
+    .prepare("SELECT id,definition FROM evaluaciones ORDER BY id")
+    .all();
+  assert.equal((await guest("/api/v2/templates")).status, 401);
+  const response = await admin("/api/v2/templates");
+  assert.equal(response.status, 200);
+  const preset = response.data.find((t) => t.id === "builtin:repaso-unmsm");
+  assert.equal(preset.isDefault, true);
+  assert.equal(preset.definition.sections.length, 19);
+  assert.deepEqual(
+    db.prepare("SELECT * FROM exam_templates ORDER BY id").all(),
+    beforeTemplates,
+  );
+  assert.deepEqual(
+    db.prepare("SELECT id,definition FROM evaluaciones ORDER BY id").all(),
+    beforeExams,
+  );
+  const saved = await admin(
+    "/api/v2/templates",
+    { name: "Repaso adaptado", definition: preset.definition },
+    "POST",
+  );
+  assert.equal(saved.status, 201, JSON.stringify(saved.data));
+  const templates = (await admin("/api/v2/templates")).data;
+  assert.ok(templates.some((t) => t.name === "Repaso adaptado" && !t.builtIn));
+  assert.equal(templates.filter((t) => t.isDefault).length, 1);
+  const draft = await admin(
+    "/api/v2/exams",
+    {
+      titulo: "Repaso sin claves",
+      ciclo: "ANUAL",
+      fecha: "2026-11-09",
+      definition: preset.definition,
+    },
+    "POST",
+  );
+  assert.equal(draft.status, 201, JSON.stringify(draft.data));
+  assert.equal(draft.data.definition.totalQuestions, 120);
+  const ready = await admin(`/api/v2/exams/${draft.data.id}/ready`, {}, "POST");
+  assert.equal(ready.status, 400);
+  assert.match(
+    ready.data.error || ready.data.mensaje || JSON.stringify(ready.data),
+    /Falta la clave/,
+  );
+});

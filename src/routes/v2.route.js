@@ -10,6 +10,7 @@ const {
   requirePermission,
 } = require("../middleware/auth.middleware");
 const auth = require("../services/auth.service");
+const { listPresets } = require("../services/exam-presets.service");
 const evaluations = require("../services/evaluations.service");
 const imports = require("../services/imports.service");
 const notifications = require("../services/notifications.service");
@@ -459,12 +460,13 @@ router.post("/imports/:id/commit", write, (req, res) =>
   }),
 );
 router.get("/templates", read, (req, res) =>
-  res.json(
-    db
+  res.json([
+    ...listPresets(),
+    ...db
       .prepare("SELECT * FROM exam_templates ORDER BY name")
       .all()
       .map((t) => ({ ...t, definition: JSON.parse(t.definition) })),
-  ),
+  ]),
 );
 router.post("/templates", write, (req, res) => {
   const name = String(req.body.name || "").trim();

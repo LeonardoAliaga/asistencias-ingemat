@@ -122,16 +122,17 @@ Sigue cuatro pasos: Datos, Cursos y áreas, Claves y Revisión.
 
 El número impreso y el número evaluado son conceptos diferentes.
 
-1. **Elige formato por áreas.** En Simulacros pulsa Nuevo examen. En Datos elige Por áreas: 120 impresas / 100 evaluables. Continúa a Cursos y áreas; despliega Áreas y cantidad evaluable para ajustar códigos, nombres y cantidades según tu reglamento y pulsa Aplicar perfiles a los cursos.
-2. **Asigna cursos.** Abre cada curso para definir su nombre y números; distribuye las 120 preguntas, sin huecos ni repeticiones. Los otros cursos pueden permanecer plegados.
-3. **Configura la matriz de áreas.** En cada curso usa Configurar área de postulación para elegir un perfil y define sus preguntas. Cambia de área para completar las demás. Usa rangos como 1-10,15,18-20. Las preguntas no aplicables no se cuentan como blancos.
+1. **Elige formato por áreas.** En Simulacros pulsa Nuevo examen. Repaso UNMSM es el formato predeterminado: carga la distribución de los PDF de la academia, con 120 preguntas impresas y 100 evaluables para cada área A–E. Completa título, ciclo y fecha.
+2. **Asigna cursos.** Continúa a Cursos y áreas. Los 19 cursos ya tienen sus rangos; Historia del Perú e Historia Universal están separadas. Abre un curso para revisar o editar, manteniendo los demás plegados.
+3. **Configura la matriz de áreas.** En cada curso usa Configurar área de postulación para revisar A–E. La plantilla usa preguntas fijas según los cuadros del cuadernillo. Las preguntas fuera del perfil no cuentan como blancos. Si usas otro material, ajusta los rangos antes de validar.
 4. **Comprueba los totales.** El resumen inferior de Cursos y áreas muestra las cantidades asignadas a cada perfil. Su suma debe coincidir exactamente con la cantidad evaluable; corrige las diferencias antes de continuar.
 5. **Carga la clave del cuadernillo.** Incluye las 120 claves. La selección por área es independiente de la clave.
 6. **Asigna áreas a estudiantes.** En Apoderados y áreas registra el perfil de cada postulante antes de imprimir.
 7. **Valida y descarga cartillas.** La cartilla contiene 120 filas aunque la nota de un alumno utilice solo 100.
 8. **Revisa por curso y área.** Los resultados muestran aciertos, errores, blancos, anuladas y puntaje por curso. El ranking comparte puesto cuando hay empate.
 
-- Las distribuciones de demostración no representan un reglamento oficial. Configura las reglas reales de tu academia.
+- Esta plantilla reproduce el material proporcionado por la academia; revisa su vigencia para cada examen. No contiene claves de respuesta.
+- Para empezar desde cero elige Por áreas en Datos y define cursos y rangos. Los formatos estándar evalúan todas las preguntas con un perfil GENERAL.
 
 ## Preguntas fijas frente a elegir un cupo dentro de un curso
 
@@ -170,7 +171,7 @@ Relaciona el orden impreso con las preguntas originales.
 
 Guarda cursos y matriz de áreas como una plantilla.
 
-1. **Prepara el diseño.** Completa perfiles, cursos, puntajes y cantidades.
+1. **Prepara el diseño.** Nuevo examen carga Repaso UNMSM con cursos y matriz de áreas de los PDF de la academia. Puedes editarla o comenzar con un formato estándar. Revisa los puntajes y agrega las claves propias de cada examen.
 2. **Guarda una plantilla.** En el editor abre Reutilizar una plantilla o un archivo de configuración. Usa Guardar como plantilla y escribe un nombre identificable. Puedes guardar una estructura con claves pendientes.
 3. **Crea el siguiente examen.** Crea un nuevo examen y despliega Reutilizar una plantilla o un archivo de configuración. Selecciona la plantilla, cambia título, ciclo y fecha y pega las nuevas claves.
 4. **Revisa las reglas.** No asumas que el formato del examen anterior sigue vigente.
