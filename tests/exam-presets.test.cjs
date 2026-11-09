@@ -100,7 +100,7 @@ test("each area grades 100 applicable questions and ignores all 20 outside its p
     assert.equal(
       grade(d, Object.fromEntries(seq(1, 120).map((q) => [q, "B"])), area.code)
         .puntajeTotal,
-      -112.5,
+      -101.25,
     );
   }
 });
@@ -113,4 +113,31 @@ test("editing a returned preset never mutates future defaults", () => {
     10,
   );
   assert.deepEqual(listPresets()[0].definition.keys[1].answers, []);
+});
+
+test("attitudinal keys award correct answers only, while other courses keep their penalty in every area", () => {
+  const d = listPresets()[0].definition;
+  d.keys = Object.fromEntries(seq(1, 120).map((q) => [q, "A"]));
+  assert.deepEqual(d.sections[0].scoring, { correct: 20, wrong: 0, blank: 0 });
+  assert.ok(d.sections.slice(1).every((s) => s.scoring.wrong === 1.125));
+  for (const { code } of d.areas) {
+    const good = grade(
+      d,
+      Object.fromEntries(seq(1, 10).map((q) => [q, "A"])),
+      code,
+    );
+    assert.equal(good.puntajeTotal, 200);
+    const wrong = Object.fromEntries(seq(1, 10).map((q) => [q, "B"]));
+    assert.equal(grade(d, wrong, code).puntajeTotal, 0);
+    assert.equal(grade(d, {}, code).puntajeTotal, 0);
+    wrong[11] = "B";
+    assert.equal(grade(d, wrong, code).puntajeTotal, -1.125);
+    const double = grade(
+      d,
+      { 1: { status: "multiple", options: ["A", "B"] } },
+      code,
+    );
+    assert.equal(double.puntajeTotal, 0);
+    assert.equal(double.correctas, 0);
+  }
 });

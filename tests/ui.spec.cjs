@@ -592,6 +592,18 @@ test("new exam defaults to the PDF distribution, saves without keys and validate
   await page.fill('[name="titulo"]', "REPASO PDF UI");
   await page.selectOption('[name="ciclo"]', "ANUAL");
   await nextStep(page, 1);
+  await expect(
+    page.locator(".v2-section-editor").first().locator("[data-course-wrong]"),
+  ).toHaveValue("0");
+  await expect(
+    page.locator(".v2-section-editor").first().locator("[data-course-correct]"),
+  ).toHaveValue("20");
+  await expect(
+    page.locator(".v2-section-editor").first().locator("[data-course-blank]"),
+  ).toHaveValue("0");
+  await expect(
+    page.locator(".v2-section-editor").nth(1).locator("[data-course-wrong]"),
+  ).toHaveValue("1.125");
   await expect(page.locator(".v2-section-editor")).toHaveCount(19);
   await expect(page.locator("#v2-structure-summary")).toContainText(
     "Distribución completa",
@@ -613,6 +625,18 @@ test("new exam defaults to the PDF distribution, saves without keys and validate
   await expect(page.locator("#v2-message")).toContainText("Borrador guardado");
   await page.click("#v2-edit");
   await nextStep(page, 1);
+  await expect(
+    page.locator(".v2-section-editor").first().locator("[data-course-wrong]"),
+  ).toHaveValue("0");
+  await expect(
+    page.locator(".v2-section-editor").first().locator("[data-course-correct]"),
+  ).toHaveValue("20");
+  await expect(
+    page.locator(".v2-section-editor").first().locator("[data-course-blank]"),
+  ).toHaveValue("0");
+  await expect(
+    page.locator(".v2-section-editor").nth(1).locator("[data-course-wrong]"),
+  ).toHaveValue("1.125");
   await nextStep(page, 2);
   await pasteKeys(page, Array(120).fill("A").join(" "));
   await nextStep(page, 3);

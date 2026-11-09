@@ -426,7 +426,7 @@
       "steps": [
         {
           "title": "Sin descuento",
-          "text": "Introduce los números en Preguntas sin penalización. Una respuesta incorrecta conserva cero puntos para esas preguntas."
+          "text": "En la plantilla Repaso UNMSM, las actitudinales (1–10) ya tienen correcta +20, incorrecta 0 y blanco 0: solo suman los aciertos. Los otros cursos mantienen su penalización. Revisa el curso en Cursos y áreas → Puntajes especiales para este curso. Para excepciones adicionales puedes usar Preguntas sin penalización."
         },
         {
           "title": "Anular una pregunta",

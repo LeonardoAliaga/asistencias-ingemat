@@ -40,9 +40,11 @@ Los paréntesis indican cantidades. Historia del Perú e Historia Universal apar
 1. Abre Simulacros → Nuevo examen. La plantilla Repaso UNMSM se carga automáticamente.
 2. Completa título, ciclo y fecha. En Cursos y áreas revisa los 19 cursos y los totales de A–E.
 3. Carga las 120 claves del examen. Los PDF no incluyen un solucionario y la plantilla no inventa respuestas. Si la sección actitudinal usa puntajes por alternativa, configúralos antes de validar.
-4. Los valores iniciales de las portadas son correcta +20, incorrecta −1.125 y blanco 0. Puedes ajustarlos y configurar excepciones.
+4. Las preguntas actitudinales (1–10) solo suman por respuesta correcta: +20 por acierto, 0 por error y 0 por blanco. Esta regla fue ajustada por indicación de la academia. Los demás cursos mantienen +20 por correcta, −1.125 por incorrecta y 0 por blanco. Puedes revisar estas reglas en Puntajes especiales para este curso.
 5. Guarda como borrador o valida cuando las claves/reglas estén completas. Asigna el área de cada alumno antes de imprimir cartillas.
 
 Puedes cambiar al formato Estándar de 100, Estándar de 120, Por áreas sin distribución precargada o Personalizado. Si ya modificaste la estructura, el asistente pide confirmar antes de reemplazarla. Las configuraciones de exámenes existentes y las plantillas guardadas se conservan.
+
+El cambio se aplica al cargar la plantilla predeterminada para un examen nuevo; los exámenes y plantillas ya guardados conservan sus reglas.
 
 La definición mantenida está en `src/content/exam-presets.json`; el servicio la valida como borrador y devuelve copias independientes. No se insertan datos ni se modifican exámenes durante una actualización.

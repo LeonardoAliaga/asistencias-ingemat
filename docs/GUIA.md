@@ -149,7 +149,7 @@ Evita calificar preguntas que no corresponden o seleccionar las mejores respuest
 
 Aplica excepciones de puntaje de forma explícita.
 
-1. **Sin descuento.** Introduce los números en Preguntas sin penalización. Una respuesta incorrecta conserva cero puntos para esas preguntas.
+1. **Sin descuento.** En la plantilla Repaso UNMSM, las actitudinales (1–10) ya tienen correcta +20, incorrecta 0 y blanco 0: solo suman los aciertos. Los otros cursos mantienen su penalización. Revisa el curso en Cursos y áreas → Puntajes especiales para este curso. Para excepciones adicionales puedes usar Preguntas sin penalización.
 2. **Anular una pregunta.** Indica los números anulados y elige Otorgar puntos o Excluir del puntaje. El resultado registra la anulación por separado.
 3. **Puntaje por alternativa.** En el bloque de puntajes por alternativa pega número,A,B,C,D,E; por ejemplo 15,20,15,10,5,0. Esta regla sirve cuando todas las alternativas tienen un valor propio.
 4. **Configura el blanco.** El puntaje por blanco pertenece a la regla del curso. Una marca doble sigue siendo inválida.

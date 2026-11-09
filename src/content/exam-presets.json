@@ -68,6 +68,11 @@
               "questions": "1-10",
               "selection": "fixed"
             }
+          },
+          "scoring": {
+            "correct": 20,
+            "wrong": 0,
+            "blank": 0
           }
         },
         {
