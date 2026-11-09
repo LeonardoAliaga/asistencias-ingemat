@@ -808,67 +808,7 @@ test("prepared exam revisions use visual keys and recalculate stored results", a
 });
 
 // A real canvas-backed MediaStream gives deterministic photo content without a webcam.
-async function cameraSource(page, mode = "ready") {
-  await page.addInitScript((mode) => {
-    window.__cameraStreams = [];
-    window.__cameraRequests = [];
-    window.__torch = [];
-    window.__paintCamera = (number = 1) => {
-      const canvas = window.__cameraCanvas,
-        c = canvas.getContext("2d");
-      c.fillStyle = "white";
-      c.fillRect(0, 0, canvas.width, canvas.height);
-      c.fillStyle = "black";
-      c.font = "70px sans-serif";
-      c.fillText(`Cartilla de prueba ${number}`, 140, 140);
-      for (let i = 0; i < 40; i++)
-        c.strokeRect(
-          120 + (i % 10) * 100,
-          250 + Math.floor(i / 10) * 100,
-          30,
-          30,
-        );
-    };
-    Object.defineProperty(window, "ImageCapture", {
-      configurable: true,
-      value: undefined,
-    });
-    Object.defineProperty(navigator.mediaDevices, "getUserMedia", {
-      configurable: true,
-      value: async (constraints) => {
-        window.__cameraRequests.push(constraints);
-        if (mode === "denied")
-          throw new DOMException("denied", "NotAllowedError");
-        if (mode === "late")
-          await new Promise((resolve) => (window.__grantCamera = resolve));
-        const canvas = document.createElement("canvas");
-        canvas.width = 1600;
-        canvas.height = 1132;
-        window.__cameraCanvas = canvas;
-        window.__paintCamera();
-        const stream = canvas.captureStream(15),
-          track = stream.getVideoTracks()[0];
-        track.getCapabilities = () => ({ torch: true });
-        track.getSettings = () => ({
-          deviceId: constraints.video.deviceId?.exact || "back-camera",
-        });
-        track.applyConstraints = async (settings) => {
-          window.__torch.push(settings);
-        };
-        window.__cameraStreams.push(stream);
-        return stream;
-      },
-    });
-    Object.defineProperty(navigator.mediaDevices, "enumerateDevices", {
-      configurable: true,
-      value: async () => [
-        { kind: "videoinput", deviceId: "back-camera", label: "Trasera" },
-        { kind: "videoinput", deviceId: "other-camera", label: "Otra cámara" },
-      ],
-    });
-  }, mode);
-}
-async function selectCameraExam(page) {
+async function selectScannerExam(page) {
   await login(page);
   await navigate(page, "imports");
   const option = page
@@ -878,168 +818,6 @@ async function selectCameraExam(page) {
   await page.selectOption("#v2-import-exam", id);
   return id;
 }
-async function nativePhoto(page) {
-  const bytes = await page.evaluate(() => {
-    const canvas = document.createElement("canvas");
-    canvas.width = 1600;
-    canvas.height = 1132;
-    const c = canvas.getContext("2d");
-    c.fillStyle = "white";
-    c.fillRect(0, 0, 1600, 1132);
-    c.fillStyle = "black";
-    c.font = "60px sans-serif";
-    c.fillText("FOTO NATIVA SINTÉTICA", 100, 200);
-    return canvas.toDataURL("image/png").split(",")[1];
-  });
-  await page.setInputFiles("#camera-native", {
-    name: "foto.png",
-    mimeType: "image/png",
-    buffer: Buffer.from(bytes, "base64"),
-  });
-  await expect(page.locator(".camera-photos li")).toHaveCount(1);
-}
-
-test("camera captures a batch, controls devices/torch, stops on navigation and uploads real JPEGs", async ({
-  page,
-}) => {
-  await cameraSource(page);
-  const id = await selectCameraExam(page);
-  await page.click("#v2-camera-open");
-  await expect(page.locator("#camera-status")).toContainText("Cámara lista");
-  expect(await page.evaluate(() => window.__cameraRequests[0].audio)).toBe(
-    false,
-  );
-  expect(
-    await page.evaluate(
-      () => window.__cameraRequests[0].video.facingMode.ideal,
-    ),
-  ).toBe("environment");
-  await page.click("#camera-torch");
-  await expect(page.locator("#camera-torch")).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
-  await page.click("#camera-capture");
-  await expect(page.locator(".camera-photos li")).toHaveCount(1);
-  await expect(page.locator("#v2-import-exam")).toBeDisabled();
-  await page.evaluate(() => window.__paintCamera(2));
-  await page.click("#camera-capture");
-  await expect(page.locator(".camera-photos li")).toHaveCount(2);
-  await navigate(page, "people");
-  expect(
-    await page.evaluate(() =>
-      window.__cameraStreams.every((s) =>
-        s.getTracks().every((t) => t.readyState === "ended"),
-      ),
-    ),
-  ).toBe(true);
-  await navigate(page, "imports");
-  await expect(page.locator(".camera-photos li")).toHaveCount(2);
-  await page.click("#camera-start");
-  await expect(page.locator("#camera-status")).toContainText("Cámara lista");
-  await page.locator("#camera-live details summary").click();
-  await page.selectOption("#camera-device", "other-camera");
-  await expect
-    .poll(() =>
-      page.evaluate(() => window.__cameraRequests.at(-1).video.deviceId?.exact),
-    )
-    .toBe("other-camera");
-  await expect(page.locator("#camera-status")).toContainText("Cámara lista");
-  const sent = page.waitForResponse(
-    (r) => r.url().endsWith(`/api/v2/exams/${id}/scan`) && r.status() === 202,
-  );
-  await page.click("#camera-send");
-  const batch = await (await sent).json();
-  expect(batch.files).toHaveLength(2);
-  expect(batch.files.every((f) => f.name.endsWith(".jpg"))).toBe(true);
-  await expect(page.locator("#camera-status")).toContainText("Lote recibido");
-  await expect(page.locator(".camera-photos li")).toHaveCount(0);
-  await expect(page.locator("#v2-import-exam")).toBeEnabled();
-  await page.click("#camera-close");
-});
-
-test("denied camera falls back to native photos and uncertain uploads retry without duplicate batches", async ({
-  page,
-}) => {
-  await cameraSource(page, "denied");
-  const id = await selectCameraExam(page);
-  await page.click("#v2-camera-open");
-  await expect(page.locator("#camera-status")).toContainText(
-    "No se concedió acceso",
-  );
-  await nativePhoto(page);
-  let received,
-    count = 0;
-  const path = `**/api/v2/exams/${id}/scan`;
-  await page.route(path, async (route) => {
-    const result = await route.fetch();
-    const data = await result.json();
-    count++;
-    if (count === 1) {
-      received = data.id;
-      await route.abort("failed");
-    } else {
-      expect(data.id).toBe(received);
-      await route.fulfill({ response: result });
-    }
-  });
-  await page.click("#camera-send");
-  await expect(page.locator("#camera-status")).toContainText(
-    "Reintenta el mismo envío",
-  );
-  await expect(page.locator("#camera-clear")).toBeDisabled();
-  await expect(page.locator("#camera-native")).toBeDisabled();
-  await page.click("#camera-send");
-  await expect(page.locator("#camera-status")).toContainText("Lote recibido");
-  expect(count).toBe(2);
-  await expect(page.locator(".camera-photos li")).toHaveCount(0);
-});
-
-test("native photos detect exact duplicates, show quality guidance and can be removed", async ({
-  page,
-}) => {
-  await cameraSource(page, "denied");
-  await selectCameraExam(page);
-  await page.click("#v2-camera-open");
-  await nativePhoto(page);
-  await nativePhoto(page);
-  await expect(page.locator("#camera-status")).toContainText(
-    "ya está en la bandeja",
-  );
-  await expect(page.locator(".camera-photos li")).toHaveCount(1);
-  await page
-    .getByRole("button", { name: "Quitar captura 1", exact: true })
-    .click();
-  await expect(page.locator("#v2-import-exam")).toBeEnabled();
-  await expect(page.locator("#camera-send")).toBeDisabled();
-});
-
-test("cancelled camera permission releases late streams and mobile capture is accessible", async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 390, height: 900 });
-  await cameraSource(page, "late");
-  await selectCameraExam(page);
-  await page.click("#v2-camera-open");
-  await expect(page.locator("#camera-status")).toContainText("Solicitando");
-  await page.click("#camera-close");
-  await page.evaluate(() => window.__grantCamera());
-  await expect
-    .poll(() =>
-      page.evaluate(() => window.__cameraStreams[0]?.getTracks()[0].readyState),
-    )
-    .toBe("ended");
-  await expect(page.locator("#camera-live")).toBeHidden();
-  await nativePhoto(page);
-  expect(
-    await page.evaluate(() => document.documentElement.scrollWidth),
-  ).toBeLessThanOrEqual(390);
-  const result = await new AxeBuilder({ page })
-    .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
-    .analyze();
-  expect(result.violations).toEqual([]);
-  await page.click("#camera-clear");
-});
 
 test("printing offers quarter duplex and half single-sided with quantity and print guidance", async ({
   page,
@@ -1099,7 +877,7 @@ test("printing offers quarter duplex and half single-sided with quantity and pri
 test("identity review preserves leading zeros and submits code/area with an audit reason", async ({
   page,
 }) => {
-  const examId = await selectCameraExam(page);
+  const examId = await selectScannerExam(page);
   const batch = {
     id: "identity-ui",
     created_at: "2026-11-09 12:00:00",
@@ -1367,3 +1145,219 @@ for (const width of [390, 768, 950]) {
     expect(violations).toEqual([]);
   });
 }
+
+async function scannerFixture(
+  page,
+  { loseScan = false, loseImport = false, initiallyScanning = false } = {},
+) {
+  let jobs = [],
+    batch,
+    scanPosts = 0,
+    physicalScans = 0,
+    importPosts = 0,
+    imports = 0,
+    hideJobs = false;
+  const scanIds = [],
+    importIds = [];
+  await page.route("**/api/v2/scanner/**", async (route) => {
+    const url = new URL(route.request().url()),
+      method = route.request().method(),
+      body = method === "POST" ? route.request().postDataJSON() : null;
+    let result;
+    if (url.pathname.endsWith("/devices"))
+      result = {
+        driver: url.searchParams.get("driver"),
+        devices: ["Brother MFC-T920DW"],
+      };
+    else if (url.pathname.endsWith("/jobs") && method === "GET")
+      result = {
+        busy: jobs.some((j) => j.status === "scanning"),
+        jobs: hideJobs ? [] : jobs.filter((j) => j.status !== "imported"),
+      };
+    else if (url.pathname.endsWith("/jobs") && method === "POST") {
+      scanPosts++;
+      scanIds.push(body.requestId);
+      let job = jobs.find((j) => j.id === body.requestId);
+      if (!job) {
+        physicalScans++;
+        job = {
+          id: body.requestId,
+          examId: body.examId,
+          status: initiallyScanning ? "scanning" : "ready",
+          source: body.source,
+          pageSize: body.pageSize,
+          bytes: 1024,
+          fileUrl: `/api/v2/scanner/jobs/${body.requestId}/file`,
+        };
+        jobs.push(job);
+      }
+      if (loseScan && scanPosts === 1) {
+        hideJobs = true;
+        await route.abort("failed");
+        return;
+      }
+      hideJobs = false;
+      result = job;
+    } else if (url.pathname.endsWith("/cancel")) {
+      const id = url.pathname.split("/").at(-2);
+      const job = jobs.find((j) => j.id === id);
+      job.status = "cancelled";
+      result = job;
+    } else if (method === "DELETE") {
+      jobs = jobs.filter((j) => j.id !== url.pathname.split("/").at(-1));
+      result = { exito: true };
+    } else if (url.pathname.endsWith("/import")) {
+      importPosts++;
+      importIds.push(body.requestId);
+      if (!batch) {
+        imports++;
+        batch = {
+          id: "scanner-test-batch",
+          source: "omr",
+          status: "queued",
+          evaluation_id: body.examId,
+          created_at: "2026-11-09T12:00:00Z",
+          result: {},
+          files: [],
+        };
+        jobs.forEach((j) => (j.status = "imported"));
+      }
+      if (loseImport && importPosts === 1) {
+        await route.abort("failed");
+        return;
+      }
+      result = batch;
+    } else throw Error("Unexpected scanner route " + url.pathname);
+    await route.fulfill({
+      status: method === "POST" ? 202 : 200,
+      contentType: "application/json",
+      body: JSON.stringify(result),
+    });
+  });
+  await page.route(/\/api\/v2\/imports(?:\/|$|\?)/, async (route) => {
+    const list = new URL(route.request().url()).pathname === "/api/v2/imports";
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify(list ? (batch ? [batch] : []) : batch),
+    });
+  });
+  return {
+    counts: () => ({
+      scanPosts,
+      physicalScans,
+      importPosts,
+      imports,
+      scanIds,
+      importIds,
+    }),
+  };
+}
+
+test("NAPS2 replaces cartilla camera and adds multiple scans to one reviewed OMR batch", async ({
+  page,
+}) => {
+  const fixture = await scannerFixture(page);
+  await selectScannerExam(page);
+  await expect(
+    page.locator("#v2-camera, #camera-video, #camera-native"),
+  ).toHaveCount(0);
+  await page.click("#scanner-discover");
+  await expect(page.locator("#scanner-device")).toHaveValue(
+    "Brother MFC-T920DW",
+  );
+  await page.click("#scanner-start");
+  await expect(page.locator(".scanner-captures li")).toHaveCount(1);
+  await expect(page.getByRole("link", { name: "Ver PDF 1" })).toHaveAttribute(
+    "href",
+    /\/file$/,
+  );
+  await page.click("#scanner-start");
+  await expect(page.locator(".scanner-captures li")).toHaveCount(2);
+  await navigate(page, "people");
+  await navigate(page, "imports");
+  await expect(page.locator(".scanner-captures li")).toHaveCount(2);
+  await page.click("#scanner-process");
+  await expect(page.locator("#scanner-status")).toContainText("Lote recibido");
+  await expect(page.locator(".scanner-captures li")).toHaveCount(0);
+  await expect(page.locator("#v2-batch-detail")).toContainText(
+    "Procesando en segundo plano",
+  );
+  expect(fixture.counts().physicalScans).toBe(2);
+  expect(fixture.counts().imports).toBe(1);
+});
+
+test("NAPS2 connection failures explain setup and allow retry with TWAIN", async ({
+  page,
+}) => {
+  await scannerFixture(page);
+  await page.route("**/api/v2/scanner/devices?driver=wia", (route) =>
+    route.fulfill({
+      status: 503,
+      contentType: "application/json",
+      body: JSON.stringify({
+        mensaje:
+          "No se pudo iniciar NAPS2 (ENOENT). Instala NAPS2 o configura NAPS2_BIN.",
+      }),
+    }),
+  );
+  await selectScannerExam(page);
+  await page.click("#scanner-discover");
+  await expect(page.locator("#scanner-status")).toContainText("NAPS2_BIN");
+  await page.selectOption("#scanner-driver", "twain");
+  await page.click("#scanner-discover");
+  await expect(page.locator("#scanner-start")).toBeEnabled();
+});
+
+test("uncertain scanner commands survive reload and recover the same scan and OMR receipt", async ({
+  page,
+}) => {
+  const fixture = await scannerFixture(page, {
+    loseScan: true,
+    loseImport: true,
+  });
+  await selectScannerExam(page);
+  await page.click("#scanner-discover");
+  await page.click("#scanner-start");
+  await expect(page.locator("#scanner-start")).toHaveText(
+    "Verificar captura pendiente",
+  );
+  await page.reload();
+  await expect(page.locator("body")).toHaveAttribute("data-ready", "true");
+  await navigate(page, "imports");
+  await page.click("#scanner-start");
+  await expect(page.locator(".scanner-captures li")).toHaveCount(1);
+  await page.click("#scanner-process");
+  await expect(page.locator("#scanner-process")).toHaveText(
+    "Verificar envío pendiente",
+  );
+  await expect(page.locator("#v2-import-exam")).toBeDisabled();
+  await page.click("#scanner-process");
+  await expect(page.locator("#scanner-status")).toContainText("Lote recibido");
+  const count = fixture.counts();
+  expect(count.physicalScans).toBe(1);
+  expect(count.imports).toBe(1);
+  expect(new Set(count.scanIds).size).toBe(1);
+  expect(new Set(count.importIds).size).toBe(1);
+});
+
+test("scanner cancellation and mobile panel remain accessible without camera permission", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await scannerFixture(page, { initiallyScanning: true });
+  await selectScannerExam(page);
+  await page.click("#scanner-discover");
+  await page.click("#scanner-start");
+  await expect(page.locator("#v2-import-exam")).toBeDisabled();
+  await page.getByRole("button", { name: "Cancelar escaneo" }).click();
+  await expect(page.locator(".scanner-captures li")).toContainText("Cancelada");
+  await page.getByRole("button", { name: "Quitar captura 1" }).click();
+  await expect(page.locator(".scanner-captures li")).toHaveCount(0);
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth),
+  ).toBeLessThanOrEqual(390);
+  const result = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
+    .analyze();
+  expect(result.violations).toEqual([]);
+});

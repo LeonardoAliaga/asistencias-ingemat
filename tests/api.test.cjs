@@ -305,6 +305,17 @@ test("operator permissions and guide coverage are enforced", async () => {
     "POST",
   );
   assert.equal((await teacher("/api/v2/accounts")).status, 403);
+  assert.equal((await guest("/api/v2/scanner/devices")).status, 401);
+  assert.equal((await teacher("/api/v2/scanner/devices")).status, 403);
+  assert.equal((await teacher("/api/v2/scanner/jobs", {}, "POST")).status, 403);
+  assert.equal(
+    (await teacher("/api/v2/scanner/jobs/unknown/file")).status,
+    403,
+  );
+  assert.equal(
+    (await admin("/api/v2/scanner/devices?driver=invalid")).status,
+    400,
+  );
   assert.equal((await teacher("/api/v2/notifications")).status, 403);
   assert.equal((await teacher("/api/v2/exams", {}, "POST")).status, 403);
   assert.equal(
@@ -822,7 +833,7 @@ test("built-in repaso template coexists with saved templates without modifying e
   );
 });
 
-test("camera uploads are idempotent per operator and reject cross-exam receipt reuse", async () => {
+test("scan uploads are idempotent per operator and reject cross-exam receipt reuse", async () => {
   const preset =
     require("../src/services/exam-presets.service").listPresets()[0].definition;
   preset.keys = Object.fromEntries(

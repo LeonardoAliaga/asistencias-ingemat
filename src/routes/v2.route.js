@@ -13,6 +13,8 @@ const auth = require("../services/auth.service");
 const { listPresets } = require("../services/exam-presets.service");
 const evaluations = require("../services/evaluations.service");
 const imports = require("../services/imports.service");
+const scanner = require("../services/scanner.service").createScannerService();
+scanner.recover();
 const notifications = require("../services/notifications.service");
 const attendance = require("../services/attendance.service");
 const { normalizeDefinition } = require("../services/grading.service");
@@ -116,7 +118,7 @@ router.post("/backup", requireAdmin, (req, res) => {
     exito: true,
     filename,
     mensaje:
-      "Copia consistente creada. Incluye también la carpeta imports y la clave de sesión en tu respaldo protegido.",
+      "Copia consistente creada. Incluye también las carpetas imports y scanner y la clave de sesión en tu respaldo protegido.",
   });
 });
 router.get("/backups/:name", requireAdmin, (req, res) => {
@@ -394,6 +396,27 @@ router.post(
     }
   },
 );
+router.get("/scanner/devices", write, async (req, res) =>
+  res.json(await scanner.discover(req.query.driver || "wia")),
+);
+router.get("/scanner/jobs", write, (req, res) =>
+  res.json(scanner.list(String(req.query.examId || ""), req)),
+);
+router.post("/scanner/jobs", write, (req, res) =>
+  res.status(202).json(scanner.start(req.body, req)),
+);
+router.post("/scanner/jobs/:id/cancel", write, (req, res) =>
+  res.json(scanner.cancel(req.params.id, req)),
+);
+router.delete("/scanner/jobs/:id", write, (req, res) =>
+  res.json(scanner.discard(req.params.id, req)),
+);
+router.get("/scanner/jobs/:id/file", write, (req, res) =>
+  res.type("pdf").sendFile(scanner.download(req.params.id, req)),
+);
+router.post("/scanner/import", write, (req, res) =>
+  res.status(202).json(scanner.processCaptures(req.body, req)),
+);
 router.get("/imports", read, (req, res) =>
   res.json(
     db
@@ -530,4 +553,5 @@ router.post("/notifications/:id/retry", requireAdmin, (req, res) => {
   audit(req, "reintentar_aviso", "notificacion", row.id);
   res.json({ exito: true });
 });
+router.scanner = scanner;
 module.exports = router;

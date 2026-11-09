@@ -75,7 +75,7 @@ La base de datos es `DATA_DIR/ingemat.db`; el valor predeterminado es `./data`. 
 4. En **Claves**, selecciona las alternativas con botones A–E: avance automático, progreso por curso, navegación a pendientes y selección de varias respuestas aceptadas. También puedes pegar una secuencia de letras sin números. Las penalizaciones, excepciones y versiones están en opciones desplegables.
 5. En Revisión puedes **Guardar borrador** con claves pendientes o **Guardar y validar** cuando esté completo. Después la estructura se conserva.
 6. Asigna las áreas a los alumnos. En **Imprimir cartillas** elige cuarto de A4 horizontal a doble cara (cuatro cartillas por hoja) o media A4 horizontal a una cara (dos por hoja), e indica cuántas cartillas necesitas. Incluyen logo, campos de identificación, código de ocho dígitos con círculos y preguntas por curso. Se conserva el formato anterior personalizado. Consulta [impresión e identificación](docs/CARTILLAS.md).
-7. En **Lectura de cartillas**, carga PDF/imágenes, importa CSV o usa **Usar cámara** para fotografiar hasta 10 hojas y procesarlas juntas. La cámara directa desde el celular requiere HTTPS; también hay captura con la cámara nativa. Revisa las incidencias y confirma el lote. Consulta [captura con cámara](docs/CAMARA.md).
+7. En **Lectura de cartillas**, usa **Escanear con NAPS2** para añadir capturas desde el cristal o el alimentador de la PC del servidor; también puedes cargar PDF/imágenes ya escaneadas o importar CSV. Las capturas se conservan por operador y examen y se procesan juntas. Revisa las incidencias y confirma el lote. Consulta [conexión y uso de NAPS2](docs/ESCANER.md).
 8. Comprueba resultados, desglose por curso y ranking; publica y, opcionalmente, programa los avisos individuales.
 
 Una marca doble confirmada se califica como incorrecta. Una marca dudosa impide calificar hasta su revisión. Las preguntas fuera del perfil no cuentan como blancos. En «Elegir cupo» no se seleccionan las mejores respuestas si el alumno excede el máximo: se solicita revisión.
@@ -132,7 +132,7 @@ No se han realizado envíos reales ni se han configurado cuentas externas durant
 
 ## Copias y recuperación
 
-**Cuentas y respaldo → Crear copia de seguridad** crea una instantánea consistente de SQLite. Guarda también `data/imports`, los Excel históricos y la clave `session-secret.key` (o el `SESSION_SECRET` original) para que los QR ya impresos sigan validándose. Respalda `.env` por separado y en privado.
+**Cuentas y respaldo → Crear copia de seguridad** crea una instantánea consistente de SQLite. Guarda también `data/imports` y `data/scanner` (capturas pendientes), los Excel históricos y la clave `session-secret.key` (o el `SESSION_SECRET` original) para que los QR ya impresos sigan validándose. Respalda `.env` por separado y en privado.
 
 Restauración: detén la app, conserva una copia del estado actual, restaura la instantánea como `ingemat.db` en un directorio de datos nuevo, restaura sus archivos y secreto, configura `DATA_DIR`/`RECORDS_DIR`, arranca y verifica el historial. No mezcles un `.db` restaurado con archivos `-wal`/`-shm` de otra ejecución: usa un directorio nuevo con la aplicación detenida.
 
@@ -143,6 +143,19 @@ node scripts/reset-password.cjs admin
 ```
 
 El programa pide la contraseña sin mostrarla y revoca las sesiones anteriores. Las cuentas y cambios quedan en la auditoría.
+
+## Conectar un escáner con NAPS2
+
+Instala NAPS2 y el controlador WIA/TWAIN del escáner en la computadora que ejecuta Node. INGEMAT busca `NAPS2.Console.exe` en las carpetas habituales de Windows. Para una ubicación personalizada configura `NAPS2_BIN` en `.env` y reinicia el proceso. Comprueba los dispositivos sin iniciar una captura:
+
+```sh
+npm run scanner:doctor
+npm run scanner:doctor -- twain
+```
+
+El panel permite elegir WIA/TWAIN, dispositivo, cristal/alimentador y área A4/A5. Usa 300 ppp en grises, sin OCR. La Brother MFC-T920DW escanea una cara y admite hasta 20 hojas en el alimentador; los cuartos recortados quedan fuera de su tamaño mínimo y se colocan sobre el cristal. La integración controla el escáner instalado en el servidor, no un equipo conectado a otro navegador. Véase [guía de escáner](docs/ESCANER.md).
+
+La captura de cartillas con cámara se retiró. Para actualizar esa instalación, `git pull --ff-only` elimina los archivos retirados y `npm prune` limpia paquetes ajenos al manifiesto. Conserva `.venv`, Python y `src/omr/requirements.txt`: el lector sigue reconociendo los archivos de NAPS2. El lector de carnets de recepción se mantiene.
 
 ## Diagnosticar Python y OMR
 

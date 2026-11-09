@@ -535,7 +535,7 @@
         },
         {
           "title": "Conserva los QR y revisa la lectura",
-          "text": "Cada cartilla tiene QR único. No fotocopies una sola para varios alumnos; genera la cantidad necesaria. El QR nuevo vincula examen, versión y cara; el alumno se identifica por los círculos del código. Puedes escanear la A4 completa, recortar las cartillas o fotografiarlas; para cuarto incluye ambas caras en el mismo lote. Un código o área dudoso queda pendiente de revisión, nunca se adivina."
+          "text": "Cada cartilla tiene QR único. No fotocopies una sola para varios alumnos; genera la cantidad necesaria. El QR nuevo vincula examen, versión y cara; el alumno se identifica por los círculos del código. Puedes escanear la A4 completa o las cartillas recortadas en el cristal; para cuarto incluye ambas caras en el mismo lote. Un código o área dudoso queda pendiente de revisión, nunca se adivina."
         }
       ],
       "tips": [
@@ -585,39 +585,39 @@
       "tips": []
     },
     {
-      "id": "escanear-celular",
+      "id": "escanear-naps2",
       "category": "Lectura OMR",
-      "title": "Fotografiar cartillas con celular",
-      "summary": "Captura varias hojas desde la cámara de la app y envíalas juntas al lector OMR.",
+      "title": "Escanear desde NAPS2",
+      "summary": "Añade capturas desde el cristal o el alimentador y envíalas juntas al lector OMR.",
       "steps": [
         {
-          "title": "Elige el examen",
-          "text": "Abre Lectura de cartillas, selecciona un examen listo y pulsa Usar cámara. Acepta el permiso del navegador. La cámara en directo necesita HTTPS; localhost solo sirve en la misma computadora. Una IP local por HTTP no habilita la cámara en directo del celular."
+          "title": "Instala y prueba el escáner",
+          "text": "En la computadora que ejecuta INGEMAT instala NAPS2 y el controlador de escáner Brother. Comprueba una captura desde NAPS2. Si la instalación está fuera de las carpetas habituales, define NAPS2_BIN con la ruta de NAPS2.Console.exe y reinicia INGEMAT. El comando npm run scanner:doctor busca equipos sin iniciar un escaneo."
         },
         {
-          "title": "Encuadra toda la cartilla",
-          "text": "Coloca la hoja plana, usa luz uniforme y mantén visibles el QR y los cuatro marcadores. El marco es una guía visual; la app conserva toda la foto y corrige la perspectiva al procesar. La cámara trasera se solicita de forma preferente; puedes cambiarla en Elegir cámara o activar la linterna si está disponible."
+          "title": "Conecta y selecciona",
+          "text": "Abre Lectura de cartillas y selecciona un examen listo. Pulsa Buscar escáneres. Se usa WIA inicialmente; si el equipo no aparece, selecciona TWAIN y vuelve a buscar. El escáner debe estar accesible desde la PC del servidor, aunque abras el panel desde otro dispositivo."
         },
         {
-          "title": "Captura y revisa",
-          "text": "Pulsa Capturar cartilla. Revisa la miniatura o ábrela para ampliar. Los avisos de luz, contraste, resolución y posible desenfoque son orientativos; no garantizan una lectura correcta. Quita y repite una foto si no está nítida. Puedes guardar la foto en el dispositivo."
+          "title": "Prepara el papel",
+          "text": "Para Brother MFC-T920DW usa Cristal con los cuartos recortados; su alimentador requiere al menos 148 × 148 mm. Elige A4 para el área completa del cristal o A5 para media hoja. El alimentador admite hasta 20 hojas y escanea una cara; para los cuartos debes voltear manualmente y capturar ambos lados. Se fija 300 ppp en escala de grises."
         },
         {
-          "title": "Completa el grupo",
-          "text": "Captura hasta 10 hojas. El examen queda fijado mientras haya fotos pendientes. Si el navegador no abre la cámara, usa Tomar foto con la cámara del dispositivo. No recargues la página: las capturas solo se conservan en esta pestaña hasta enviarlas."
+          "title": "Escanea y añade",
+          "text": "Pulsa Escanear y añadir y espera a que aparezca Lista para procesar. Abre Ver PDF para comprobar que están el QR y los cuatro marcadores. Cambia o voltea el papel y repite; la bandeja conserva hasta diez capturas listas por examen y operador, incluso al recargar. Puedes cancelar un escaneo o quitar una captura terminada."
         },
         {
-          "title": "Procesa y revisa el lote",
-          "text": "Pulsa Procesar capturas. Si se corta la conexión, reintenta el mismo envío: conserva un identificador para evitar crear dos lotes. Espera Listo o Revisar, comprueba el alumno, el área y las marcas y confirma la importación. La fotografía por sí sola no guarda notas."
+          "title": "Recupera una conexión interrumpida",
+          "text": "Si se pierde la respuesta, pulsa Verificar captura pendiente o Verificar envío pendiente. Se reutiliza el mismo identificador y no se repite una orden ya recibida. Si se reinicia el servidor durante la captura se marca Fallida; comprueba el escáner y solicita una nueva captura manualmente."
         },
         {
-          "title": "Continúa o apaga",
-          "text": "Tras enviar puedes capturar el siguiente grupo. Apagar cámara libera el dispositivo y conserva las fotos pendientes. Salir de la vista o cambiar a otra aplicación también pausa la cámara. Para salones completos sigue disponible el escáner con alimentador automático."
+          "title": "Procesa y confirma",
+          "text": "Pulsa Procesar capturas para crear un único lote OMR. Espera el resultado en Lotes recientes, corrige las incidencias y confirma la importación. Los archivos originales del lote se conservan; las notas solo se guardan tras esa confirmación."
         }
       ],
       "tips": [
-        "La lectura automática requiere cartillas generadas por esta app, con QR firmado y marcadores. Prueba un lote físico antes de usarlo para un salón completo.",
-        "La cámara nunca solicita audio. Las fotos solo se envían al servidor de la academia cuando pulsas Procesar capturas."
+        "Una sesión individual de NAPS2 genera un PDF de hasta 20 MB. Divide las pilas grandes; el lector admite hasta 100 caras de cartilla por lote.",
+        "También puedes cargar PDF, PNG o JPG escaneados previamente desde el apartado de archivos."
       ]
     },
     {
@@ -1092,7 +1092,7 @@
         },
         {
           "title": "Incluye archivos asociados",
-          "text": "Copia también data/imports, los Excel históricos de Registros y session-secret.key. Esta clave permite validar los QR ya impresos."
+          "text": "Copia también data/imports y data/scanner (capturas pendientes), los Excel históricos de Registros y session-secret.key. Esta clave permite validar los QR ya impresos."
         },
         {
           "title": "Guarda la configuración en privado",

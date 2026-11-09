@@ -49,6 +49,9 @@ db.exec(fs.readFileSync(path.join(__dirname, "migrations/002-v2.sql"), "utf8"));
 db.exec(
   fs.readFileSync(path.join(__dirname, "migrations/003-camera.sql"), "utf8"),
 );
+db.exec(
+  fs.readFileSync(path.join(__dirname, "migrations/004-scanner.sql"), "utf8"),
+);
 addColumn("outbox", "contact_id", "TEXT DEFAULT NULL");
 const uuid = require("node:crypto").randomUUID;
 for (const row of db

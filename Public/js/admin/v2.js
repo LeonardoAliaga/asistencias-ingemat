@@ -1,4 +1,4 @@
-import { mountScanCamera } from "./scan-camera.js";
+import { mountScanner } from "./scanner.js";
 import { mountKeyEditor } from "./key-editor.js";
 const $ = (id) => document.getElementById(id);
 const esc = (s) =>
@@ -142,7 +142,10 @@ async function tab(name) {
   for (const b of document.querySelectorAll("[data-v2-tab]"))
     b.setAttribute("aria-selected", String(b.dataset.v2Tab === name));
 
-  if (name === "imports") await loadBatches();
+  if (name === "imports") {
+    await loadBatches();
+    await state.scanner?.refresh();
+  }
   if (name === "attendance") await loadAttendance();
   if (name === "contacts") {
     await loadStudents();
@@ -187,6 +190,7 @@ async function loadStudents() {
   state.students = await api("/api/v2/students");
 }
 async function loadExams(selected) {
+  const importSelection = $("v2-import-exam").value;
   state.exams = await api("/api/v2/exams");
   const options =
     '<option value="">Selecciona una evaluación</option>' +
@@ -203,7 +207,9 @@ async function loadExams(selected) {
       .filter((e) => e.definition && ["listo", "publicado"].includes(e.estado))
       .map((e) => `<option value="${esc(e.id)}">${esc(e.titulo)}</option>`)
       .join("");
-  state.camera?.syncExam();
+  if ([...$("v2-import-exam").options].some((o) => o.value === importSelection))
+    $("v2-import-exam").value = importSelection;
+  void state.scanner?.refresh();
   if (selected) {
     $("v2-exam-select").value = selected;
     await selectExam(selected);
@@ -2035,9 +2041,10 @@ async function initialize() {
       `Calificación guardada: ${data.resultado.puntajeTotal} puntos; ${data.resultado.correctas} correctas, ${data.resultado.incorrectas} errores y ${data.resultado.enBlanco} blancos.`,
     );
   });
-  state.camera = mountScanCamera({
+  state.scanner = mountScanner({
     api,
     escape: esc,
+    username: session.usuario.username,
     onUploaded: async (batch) => {
       state.batch = { id: batch.id };
       await loadBatches();

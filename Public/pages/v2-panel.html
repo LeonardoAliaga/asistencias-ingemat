@@ -471,123 +471,106 @@ B:51-100,1-50"
   </section>
   <section class="v2-panel" data-v2-panel="imports" hidden="">
     <div class="v2-notice">
-      <strong>Escanea en lotes y revisa las excepciones.</strong> Usa PDF a 300
-      ppp con alimentador automático. También puedes cargar fotos JPG o PNG de
-      las cartillas v2.
-      <button class="v2-link" data-guide="escanear-lote">
-        Ver el tutorial completo
+      <strong>Escanea y revisa antes de guardar notas.</strong> Usa el cristal
+      para cartillas de un cuarto de hoja; para media hoja o A4 puedes usar el
+      alimentador. Incluye ambas caras de cada cartilla de cuarto en el mismo
+      lote.
+      <button class="v2-link" data-guide="escanear-naps2">
+        Tutorial de escáner
       </button>
     </div>
-    <form class="v2-card" id="v2-scan-form">
-      <h3>Cargar cartillas</h3>
-      <label
-        >Examen listo<select id="v2-import-exam" required=""></select></label
-      ><label
-        >PDF o imágenes<input
-          accept=".pdf,.jpg,.jpeg,.png"
-          id="v2-scan-files"
-          multiple=""
-          required=""
-          type="file"
-      /></label>
-      <p class="v2-help">
-        Máximo 10 archivos de 20 MB y 100 páginas por lote. La lectura se
-        procesa en segundo plano.
-      </p>
-      <div class="v2-toolbar">
-        <button class="v2-button" type="submit">Procesar lote</button
-        ><button id="v2-camera-open" class="v2-button secondary" type="button">
-          <i class="bi bi-camera" aria-hidden="true"></i> Usar cámara
-        </button>
-      </div>
-    </form>
+    <div class="v2-card">
+      <label>Examen listo<select id="v2-import-exam" required></select></label>
+    </div>
     <section
-      class="v2-card camera-card"
-      id="v2-camera"
-      hidden
-      aria-labelledby="camera-title"
+      class="v2-card scanner-card"
+      id="v2-scanner"
+      aria-labelledby="scanner-title"
     >
       <div class="v2-card-title">
-        <h3 id="camera-title">Capturar cartillas con cámara</h3>
-        <button type="button" class="v2-link" id="camera-close">
-          Apagar cámara
-        </button>
-      </div>
-      <p>
-        Coloca la cartilla plana y deja visibles el QR y los cuatro marcadores.
-        Acerca la cámara sin cortar las esquinas; usa luz uniforme. Para hojas
-        A4 horizontales, girar el celular puede mejorar el encuadre.
-      </p>
-      <p
-        class="v2-help"
-        id="camera-status"
-        role="status"
-        aria-live="polite"
-      ></p>
-      <div id="camera-live" hidden>
-        <div class="camera-stage">
-          <video
-            id="camera-video"
-            autoplay
-            muted
-            playsinline
-            aria-label="Vista previa de la cámara"
-          ></video>
-          <div class="camera-guide" aria-hidden="true"></div>
-        </div>
-        <p class="v2-help">
-          El marco es una guía de encuadre. Se guarda la foto completa; la
-          identificación y corrección de perspectiva se realizan al procesar el
-          lote.
-        </p>
-        <div class="v2-toolbar">
-          <button type="button" class="v2-button" id="camera-capture">
-            Capturar cartilla</button
-          ><button
-            type="button"
-            class="v2-button secondary"
-            id="camera-torch"
-            hidden
-            aria-pressed="false"
-          >
-            Linterna
-          </button>
-        </div>
-        <details>
-          <summary>Elegir cámara</summary>
-          <label>Cámara disponible<select id="camera-device"></select></label>
-        </details>
-      </div>
-      <div class="v2-toolbar">
-        <button type="button" class="v2-button secondary" id="camera-start">
-          Encender cámara</button
-        ><label class="camera-native"
-          >Tomar foto con la cámara del dispositivo<input
-            id="camera-native"
-            type="file"
-            accept="image/*"
-            capture="environment"
-        /></label>
-      </div>
-      <p class="v2-help">
-        La cámara en directo requiere HTTPS (o localhost en esta computadora).
-        Si no se abre, usa la cámara del dispositivo o carga las imágenes
-        arriba.
-      </p>
-      <div id="camera-queue" class="camera-queue"></div>
-      <div class="v2-toolbar">
-        <button type="button" class="v2-button" id="camera-send" disabled>
-          Procesar capturas</button
-        ><button type="button" class="v2-link" id="camera-clear" disabled>
-          Vaciar capturas
+        <h3 id="scanner-title">Escanear con NAPS2</h3>
+        <button type="button" class="v2-link" data-guide="escanear-naps2">
+          Ayuda de conexión
         </button>
       </div>
       <p class="v2-help">
-        Hasta 10 fotos por lote. Se conservan en esta pestaña hasta enviarlas;
-        recargar o cerrar la página descarta las fotos pendientes. Las notas
-        solo se guardan al revisar y confirmar el lote.
+        NAPS2 y el controlador Brother deben estar instalados en la computadora
+        donde se ejecuta INGEMAT. Puedes continuar añadiendo hojas al terminar
+        cada captura.
       </p>
+      <div class="v2-form-grid">
+        <label
+          >Controlador<select id="scanner-driver">
+            <option value="wia">WIA · Windows</option>
+            <option value="twain">TWAIN · alternativa</option>
+          </select></label
+        ><label
+          >Escáner<select id="scanner-device">
+            <option value="">Busca los escáneres disponibles</option>
+          </select></label
+        >
+      </div>
+      <button class="v2-button secondary" type="button" id="scanner-discover">
+        Buscar escáneres
+      </button>
+      <div class="v2-form-grid">
+        <label
+          >Origen<select id="scanner-source">
+            <option value="glass">
+              Cristal · colocar y voltear manualmente
+            </option>
+            <option value="feeder">Alimentador · una cara</option>
+          </select></label
+        ><label
+          >Área de escaneo<select id="scanner-size">
+            <option value="a4">
+              A4 · hoja completa o cartillas sobre el cristal
+            </option>
+            <option value="a5">Media hoja · A5</option>
+          </select></label
+        >
+      </div>
+      <p class="v2-help">
+        Brother MFC-T920DW: alimentador de hasta 20 hojas, sin escaneo dúplex
+        automático. El cuarto recortado es demasiado pequeño para su
+        alimentador. Se usa 300 ppp en escala de grises.
+      </p>
+      <div class="v2-toolbar">
+        <button class="v2-button" type="button" id="scanner-start" disabled>
+          Escanear y añadir</button
+        ><button
+          class="v2-button secondary"
+          type="button"
+          id="scanner-process"
+          disabled
+        >
+          Procesar capturas
+        </button>
+      </div>
+      <p id="scanner-status" role="status" aria-live="polite" class="v2-help">
+        Busca el escáner para empezar. Las capturas se conservan al salir de
+        esta sección.
+      </p>
+      <div id="scanner-queue"></div>
     </section>
+    <details class="v2-card">
+      <summary>Cargar PDF o imágenes ya escaneadas</summary>
+      <form id="v2-scan-form">
+        <label
+          >PDF o imágenes<input
+            accept=".pdf,.jpg,.jpeg,.png"
+            id="v2-scan-files"
+            multiple
+            required
+            type="file"
+        /></label>
+        <p class="v2-help">
+          Hasta 10 archivos de 20 MB. El lector admite hasta 100 caras de
+          cartilla por lote.
+        </p>
+        <button class="v2-button" type="submit">Procesar archivos</button>
+      </form>
+    </details>
     <details class="v2-card">
       <summary>Importar respuestas CSV de otro lector</summary>
       <form id="v2-csv-form">

@@ -288,6 +288,7 @@ if (require.main === module) {
   void require("./src/services/omr-runtime.service").checkRuntime();
   const shutdown = () => {
     workers.stop();
+    require("./src/routes/v2.route").scanner.stop();
     server.close(() => {
       db.close();
       process.exit(0);

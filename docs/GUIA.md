@@ -186,7 +186,7 @@ Cuarto de A4 a doble cara o media A4 a una cara, siempre con cartillas horizonta
 3. **Elige tamaño y cantidad.** Cuarto de A4 horizontal, doble cara coloca cuatro cartillas en una hoja A4 horizontal; frente y reverso se vinculan por QR y su posición se ajusta al borde de volteo elegido. Media A4 horizontal, una cara coloca dos cartillas en una hoja A4 vertical y contiene todas las respuestas en el frente. Indica la cantidad de cartillas, no la cantidad de hojas; los espacios sobrantes quedan vacíos. En media hoja caben las 120 preguntas en esa única cara; cuarto las reparte entre frente y reverso.
 4. **Imprime al 100%.** El PDF ya incluye varias cartillas por hoja. No actives dos o cuatro páginas por hoja ni ajustar al papel. Para cuarto usa doble cara, borde corto por defecto; para media desactiva la doble cara. La pantalla indica orientación, hojas y páginas. Las preferencias del PDF son una sugerencia: comprueba el diálogo y haz una impresión de prueba.
 5. **Explica cómo completar.** El alumno escribe y marca el mismo código, rellena un círculo por columna y una sola área. Rellena las respuestas según el área del examen. Las preguntas aparecen en pequeños bloques por curso; cont. indica que el mismo curso continúa en otra columna o cara. No dibujes sobre marcadores o QR.
-6. **Conserva los QR y revisa la lectura.** Cada cartilla tiene QR único. No fotocopies una sola para varios alumnos; genera la cantidad necesaria. El QR nuevo vincula examen, versión y cara; el alumno se identifica por los círculos del código. Puedes escanear la A4 completa, recortar las cartillas o fotografiarlas; para cuarto incluye ambas caras en el mismo lote. Un código o área dudoso queda pendiente de revisión, nunca se adivina.
+6. **Conserva los QR y revisa la lectura.** Cada cartilla tiene QR único. No fotocopies una sola para varios alumnos; genera la cantidad necesaria. El QR nuevo vincula examen, versión y cara; el alumno se identifica por los círculos del código. Puedes escanear la A4 completa o las cartillas recortadas en el cristal; para cuarto incluye ambas caras en el mismo lote. Un código o área dudoso queda pendiente de revisión, nunca se adivina.
 
 - El formato anterior QR por estudiante permanece disponible para cartillas A4 personalizadas y cuadernillos de más de 120 preguntas. Sus impresiones existentes siguen siendo legibles.
 - La disposición compacta admite hasta cinco áreas de un carácter o un único perfil general. Antes de imprimir un salón completo, prueba papel, márgenes y calidad de lectura.
@@ -204,19 +204,19 @@ Ruta recomendada para ahorrar trabajo repetitivo.
 7. **Comprueba la previsualización.** Revisa estudiante, área y puntaje antes de confirmar la importación.
 8. **Confirma el lote.** Las notas se guardan juntas. Si un error impide calificar, el lote no se importa parcialmente.
 
-## Fotografiar cartillas con celular
+## Escanear desde NAPS2
 
-Captura varias hojas desde la cámara de la app y envíalas juntas al lector OMR.
+Añade capturas desde el cristal o el alimentador y envíalas juntas al lector OMR.
 
-1. **Elige el examen.** Abre Lectura de cartillas, selecciona un examen listo y pulsa Usar cámara. Acepta el permiso del navegador. La cámara en directo necesita HTTPS; localhost solo sirve en la misma computadora. Una IP local por HTTP no habilita la cámara en directo del celular.
-2. **Encuadra toda la cartilla.** Coloca la hoja plana, usa luz uniforme y mantén visibles el QR y los cuatro marcadores. El marco es una guía visual; la app conserva toda la foto y corrige la perspectiva al procesar. La cámara trasera se solicita de forma preferente; puedes cambiarla en Elegir cámara o activar la linterna si está disponible.
-3. **Captura y revisa.** Pulsa Capturar cartilla. Revisa la miniatura o ábrela para ampliar. Los avisos de luz, contraste, resolución y posible desenfoque son orientativos; no garantizan una lectura correcta. Quita y repite una foto si no está nítida. Puedes guardar la foto en el dispositivo.
-4. **Completa el grupo.** Captura hasta 10 hojas. El examen queda fijado mientras haya fotos pendientes. Si el navegador no abre la cámara, usa Tomar foto con la cámara del dispositivo. No recargues la página: las capturas solo se conservan en esta pestaña hasta enviarlas.
-5. **Procesa y revisa el lote.** Pulsa Procesar capturas. Si se corta la conexión, reintenta el mismo envío: conserva un identificador para evitar crear dos lotes. Espera Listo o Revisar, comprueba el alumno, el área y las marcas y confirma la importación. La fotografía por sí sola no guarda notas.
-6. **Continúa o apaga.** Tras enviar puedes capturar el siguiente grupo. Apagar cámara libera el dispositivo y conserva las fotos pendientes. Salir de la vista o cambiar a otra aplicación también pausa la cámara. Para salones completos sigue disponible el escáner con alimentador automático.
+1. **Instala y prueba el escáner.** En la computadora que ejecuta INGEMAT instala NAPS2 y el controlador de escáner Brother. Comprueba una captura desde NAPS2. Si la instalación está fuera de las carpetas habituales, define NAPS2_BIN con la ruta de NAPS2.Console.exe y reinicia INGEMAT. El comando npm run scanner:doctor busca equipos sin iniciar un escaneo.
+2. **Conecta y selecciona.** Abre Lectura de cartillas y selecciona un examen listo. Pulsa Buscar escáneres. Se usa WIA inicialmente; si el equipo no aparece, selecciona TWAIN y vuelve a buscar. El escáner debe estar accesible desde la PC del servidor, aunque abras el panel desde otro dispositivo.
+3. **Prepara el papel.** Para Brother MFC-T920DW usa Cristal con los cuartos recortados; su alimentador requiere al menos 148 × 148 mm. Elige A4 para el área completa del cristal o A5 para media hoja. El alimentador admite hasta 20 hojas y escanea una cara; para los cuartos debes voltear manualmente y capturar ambos lados. Se fija 300 ppp en escala de grises.
+4. **Escanea y añade.** Pulsa Escanear y añadir y espera a que aparezca Lista para procesar. Abre Ver PDF para comprobar que están el QR y los cuatro marcadores. Cambia o voltea el papel y repite; la bandeja conserva hasta diez capturas listas por examen y operador, incluso al recargar. Puedes cancelar un escaneo o quitar una captura terminada.
+5. **Recupera una conexión interrumpida.** Si se pierde la respuesta, pulsa Verificar captura pendiente o Verificar envío pendiente. Se reutiliza el mismo identificador y no se repite una orden ya recibida. Si se reinicia el servidor durante la captura se marca Fallida; comprueba el escáner y solicita una nueva captura manualmente.
+6. **Procesa y confirma.** Pulsa Procesar capturas para crear un único lote OMR. Espera el resultado en Lotes recientes, corrige las incidencias y confirma la importación. Los archivos originales del lote se conservan; las notas solo se guardan tras esa confirmación.
 
-- La lectura automática requiere cartillas generadas por esta app, con QR firmado y marcadores. Prueba un lote físico antes de usarlo para un salón completo.
-- La cámara nunca solicita audio. Las fotos solo se envían al servidor de la academia cuando pulsas Procesar capturas.
+- Una sesión individual de NAPS2 genera un PDF de hasta 20 MB. Divide las pilas grandes; el lector admite hasta 100 caras de cartilla por lote.
+- También puedes cargar PDF, PNG o JPG escaneados previamente desde el apartado de archivos.
 
 ## Resolver marcas dobles, dudosas y hojas no reconocidas
 
@@ -379,7 +379,7 @@ Protege la información y prueba una restauración antes de necesitarla.
 
 1. **Crea una copia consistente.** En Cuentas y respaldo abre Copias de seguridad y pulsa Crear copia de seguridad. Se utiliza una instantánea de SQLite compatible con WAL.
 2. **Descarga la copia.** Guárdala en un destino protegido fuera del equipo de recepción.
-3. **Incluye archivos asociados.** Copia también data/imports, los Excel históricos de Registros y session-secret.key. Esta clave permite validar los QR ya impresos.
+3. **Incluye archivos asociados.** Copia también data/imports y data/scanner (capturas pendientes), los Excel históricos de Registros y session-secret.key. Esta clave permite validar los QR ya impresos.
 4. **Guarda la configuración en privado.** Respalda .env por un canal seguro. Nunca lo subas a GitHub.
 5. **Prueba en una instalación separada.** Detén esa copia de prueba, restaura el respaldo y comprueba usuarios, notas, asistencias e imágenes.
 6. **No sobrescribas una app activa.** Para restaurar la instalación real sigue el procedimiento del README y conserva primero la versión que vas a reemplazar.
