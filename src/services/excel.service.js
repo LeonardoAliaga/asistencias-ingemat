@@ -26,7 +26,7 @@ async function guardarRegistro(
   usuario,
   fechaStr,
   horaStr,
-  isJustified = false
+  isJustified = false,
 ) {
   const excelInfo = determineExcelInfo(fechaStr, usuario);
   if (!excelInfo) {
@@ -56,7 +56,7 @@ async function guardarRegistro(
       if (!hoja) {
         // La hoja para este turno/rol no existe aún, crearla
         console.log(
-          `📄 Creando nueva hoja "${sheetName}" en archivo existente.`
+          `📄 Creando nueva hoja "${sheetName}" en archivo existente.`,
         );
         hoja = workbook.addWorksheet(sheetName);
         isNewSheet = true;
@@ -81,8 +81,8 @@ async function guardarRegistro(
         if (columnIndex === -1) {
           console.error(
             `❌ Error Crítico: Columna de fecha "${nombreColumnaFecha}" no existe en la hoja "${sheetName}" del archivo ${path.basename(
-              filePath
-            )}. Registro fallido.`
+              filePath,
+            )}. Registro fallido.`,
           );
           return false;
         }
@@ -92,8 +92,8 @@ async function guardarRegistro(
       // Crear archivo y hoja nuevos
       console.log(
         `💾 Creando nuevo archivo: ${path.basename(
-          filePath
-        )} con hoja "${sheetName}"`
+          filePath,
+        )} con hoja "${sheetName}"`,
       );
       hoja = workbook.addWorksheet(sheetName);
       isNewSheet = true;
@@ -102,7 +102,7 @@ async function guardarRegistro(
     // Si la hoja es nueva, generar su estructura inicial
     if (isNewSheet) {
       console.log(
-        `🏗️ Generando estructura para la nueva hoja "${sheetName}"...`
+        `🏗️ Generando estructura para la nueva hoja "${sheetName}"...`,
       );
       if (sheetName === "Mañana" || sheetName === "Tarde") {
         const turno = sheetName.toLowerCase(); // 'mañana' o 'tarde'
@@ -111,7 +111,7 @@ async function guardarRegistro(
         generateTeacherSheetStructure(hoja, nombreColumnaFecha, diaAbbr);
       } else {
         console.warn(
-          `⚠️ No se generó estructura para hoja con nombre inesperado: ${sheetName}`
+          `⚠️ No se generó estructura para hoja con nombre inesperado: ${sheetName}`,
         );
       }
       setColumnWidths(hoja); // Establecer anchos para la nueva hoja
@@ -122,7 +122,7 @@ async function guardarRegistro(
       hoja,
       usuario,
       horaStr,
-      isJustified
+      isJustified,
     );
 
     if (actualizado) {
@@ -130,8 +130,8 @@ async function guardarRegistro(
       await workbook.xlsx.writeFile(filePath);
       console.log(
         `💾 Cambios guardados en ${path.basename(
-          filePath
-        )} (Hoja: ${sheetName})`
+          filePath,
+        )} (Hoja: ${sheetName})`,
       );
       return true;
     } else {
@@ -141,8 +141,8 @@ async function guardarRegistro(
   } catch (err) {
     console.error(
       `❌ ERROR en guardarRegistro (${path.basename(
-        filePath || "N/A"
-      )}, Hoja: ${sheetName || "N/A"}):`
+        filePath || "N/A",
+      )}, Hoja: ${sheetName || "N/A"}):`,
     );
     console.error(err);
     return false;

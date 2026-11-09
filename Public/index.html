@@ -4,27 +4,26 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="shortcut icon" href="img/Logo 1x1 b&w.jpg" type="image/x-icon" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap"
-      rel="stylesheet"
-    />
+
+
+
     <link rel="stylesheet" href="css/index.css" />
     <link rel="stylesheet" href="css/index-responsive.css" />
     <link
       rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+      href="/vendor/bootstrap-icons/bootstrap-icons.css"
     />
     <script
-      src="https://unpkg.com/html5-qrcode"
+      src="/vendor/html5-qrcode.min.js"
       type="text/javascript"
     ></script>
     <title>Ingemat - Grupo de Estudio Preuniversitario</title>
+    <script src="/vendor/purify.min.js"></script>
+    <script src="/js/session.js"></script>
   </head>
   <body>
     <nav class="navbar" id="navbar">
-      <a href="#"><img src="img/Logo 1x4 b&w.svg" alt="Ingemat Logo" /></a>
+      <a href="#"><img id="navbar-logo" src="img/Logo 1x4 b&w.svg" alt="Ingemat Logo" /></a>
       <ul>
         <li>
           <a href="#" id="btn-inicio" onclick="toggle()">Inicio</a>
@@ -229,6 +228,7 @@
       </div>
     </footer>
 
+    <script src="js/kiosk.js"></script>
     <script src="js/asistencias.js"></script>
     <script src="js/inicio.js"></script>
     <script src="js/navbar.js"></script>

@@ -12,7 +12,9 @@ router.get("/", (req, res) => {
     res.json(data);
   } catch (err) {
     console.error("Ciclos Route: Error al obtener datos de ciclos:", err);
-    res.status(500).json({ ciclos: ["SEMESTRAL", "ANUAL", "SABATINO", "DOMINGOS"] });
+    res
+      .status(500)
+      .json({ ciclos: ["SEMESTRAL", "ANUAL", "SABATINO", "DOMINGOS"] });
   }
 });
 
@@ -20,20 +22,26 @@ router.get("/", (req, res) => {
 router.post("/", requireAdmin, (req, res) => {
   const { nombre } = req.body;
   if (!nombre || typeof nombre !== "string" || nombre.trim().length === 0) {
-    return res.status(400).json({ mensaje: "El nombre del ciclo no puede estar vacío." });
+    return res
+      .status(400)
+      .json({ mensaje: "El nombre del ciclo no puede estar vacío." });
   }
 
   const nombreMayus = nombre.trim().toUpperCase();
 
   try {
-    const existe = db.prepare("SELECT id FROM ciclos WHERE UPPER(nombre) = ?").get(nombreMayus);
+    const existe = db
+      .prepare("SELECT id FROM ciclos WHERE UPPER(nombre) = ?")
+      .get(nombreMayus);
     if (existe) {
       return res.status(409).json({ mensaje: "El ciclo ya existe." });
     }
 
     db.prepare("INSERT INTO ciclos (nombre) VALUES (?)").run(nombreMayus);
     console.log(`Ciclos Route: Ciclo '${nombreMayus}' agregado a SQLite.`);
-    res.status(201).json({ exito: true, mensaje: `Ciclo '${nombreMayus}' agregado.` });
+    res
+      .status(201)
+      .json({ exito: true, mensaje: `Ciclo '${nombreMayus}' agregado.` });
   } catch (err) {
     res.status(500).json({ exito: false, mensaje: err.message });
   }
@@ -43,8 +51,24 @@ router.post("/", requireAdmin, (req, res) => {
 router.delete("/:ciclo", requireAdmin, (req, res) => {
   const cicloABorrar = String(req.params.ciclo).trim().toUpperCase();
 
+  if (
+    db
+      .prepare(
+        "SELECT 1 FROM usuarios WHERE UPPER(ciclo)=? UNION ALL SELECT 1 FROM evaluaciones WHERE UPPER(ciclo)=? UNION ALL SELECT 1 FROM tareas WHERE UPPER(ciclo)=? LIMIT 1",
+      )
+      .get(cicloABorrar, cicloABorrar, cicloABorrar)
+  )
+    return res
+      .status(409)
+      .json({
+        exito: false,
+        mensaje:
+          "El ciclo tiene usuarios o historial académico. Conserva su registro y crea otro ciclo si corresponde.",
+      });
   try {
-    const info = db.prepare("DELETE FROM ciclos WHERE UPPER(nombre) = ?").run(cicloABorrar);
+    const info = db
+      .prepare("DELETE FROM ciclos WHERE UPPER(nombre) = ?")
+      .run(cicloABorrar);
     if (info.changes === 0) {
       return res.status(404).json({ mensaje: "Ciclo no encontrado." });
     }

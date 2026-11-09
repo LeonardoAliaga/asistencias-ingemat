@@ -1,0 +1,29 @@
+name: Validación INGEMAT v2
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  academic-and-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: src/omr/requirements.txt
+      - run: npm ci
+      - run: python -m pip install -r src/omr/requirements.txt
+      - run: npm run check
+      - run: npm test
+      - run: npm run test:omr
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:ui
+      - run: npm audit --omit=dev --audit-level=high

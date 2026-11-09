@@ -14,11 +14,19 @@ function obtenerHorarios() {
     };
 
     rows.forEach((r) => {
-      const cicloKey = r.ciclo.toUpperCase();
-      defaultHorarios.ciclos[cicloKey] = {
-        mañana: { entrada: r.manana_entrada || "08:30", tolerancia: r.manana_tolerancia || "08:35" },
-        tarde: { entrada: r.tarde_entrada || "15:00", tolerancia: r.tarde_tolerancia || "15:15" },
+      const cicloKey = String(r.ciclo).trim().toUpperCase();
+      const horario = {
+        mañana: {
+          entrada: r.manana_entrada || "08:30",
+          tolerancia: r.manana_tolerancia || "08:35",
+        },
+        tarde: {
+          entrada: r.tarde_entrada || "15:00",
+          tolerancia: r.tarde_tolerancia || "15:15",
+        },
       };
+      if (cicloKey === "DEFAULT") defaultHorarios.default = horario;
+      else defaultHorarios.ciclos[cicloKey] = horario;
     });
 
     return defaultHorarios;
@@ -99,7 +107,11 @@ function estadoAsistencia(cicloUsuario, turno, horaStr) {
   let horariosTurno;
   const cicloKey = (cicloUsuario || "").toUpperCase();
 
-  if (cicloKey && horariosConfig.ciclos[cicloKey] && horariosConfig.ciclos[cicloKey][turno]) {
+  if (
+    cicloKey &&
+    horariosConfig.ciclos[cicloKey] &&
+    horariosConfig.ciclos[cicloKey][turno]
+  ) {
     horariosTurno = horariosConfig.ciclos[cicloKey][turno];
   } else {
     horariosTurno = horariosConfig.default[turno];
@@ -116,7 +128,7 @@ function estadoAsistencia(cicloUsuario, turno, horaStr) {
     return "tarde";
   }
 
-  if (horaNum < hEntrada) return "puntual";
+  if (horaNum <= hEntrada) return "puntual";
   if (horaNum <= hTol) return "tolerancia";
   return "tarde";
 }

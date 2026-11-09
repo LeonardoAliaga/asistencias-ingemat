@@ -33,8 +33,8 @@ function crearListaUsuarios(usuarios, esDocente = false) {
             <li style="position:relative;padding-right:110px;">
               <div style="display:flex;flex-direction:column;">
                 <span><strong>${u.codigo}</strong> - ${getFullNameClient(
-        u
-      )}</span>
+                  u,
+                )}</span>
                 <small style="color:#666">${diasAsistencia}</small>
               </div>
               <div style="position:absolute;right:5px;top:8px;display:flex;gap:8px;">
@@ -88,7 +88,14 @@ function agregarEventosEliminar() {
         const codigo = li.querySelector("strong")
           ? li.querySelector("strong").textContent.trim()
           : li.textContent.split(" - ")[0].trim();
-        await fetch(`/api/usuarios/${codigo}`, { method: "DELETE" });
+        const response = await fetch(`/api/usuarios/${codigo}`, {
+          method: "DELETE",
+        });
+        const result = await response.json();
+        if (!response.ok) {
+          alert(result.mensaje || "No se pudo eliminar el usuario.");
+          return;
+        }
         cargarUsuarios(true); // Recargar ambas vistas
       }
     };
@@ -149,7 +156,7 @@ function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
     x + width,
     y + height,
     x + width - radius.br,
-    y + height
+    y + height,
   );
   ctx.lineTo(x + radius.bl, y + height);
   ctx.quadraticCurveTo(x, y + height, x, y + height - radius.bl);
@@ -269,7 +276,7 @@ function mostrarBarcodeModal(codigo) {
       ctx.fillText(
         `${(user.ciclo || "").toString().toUpperCase()} - ${user.turno || ""}`,
         28,
-        y
+        y,
       );
       y += 34;
     }
@@ -432,7 +439,7 @@ function abrirModalEditar(codigo) {
 
   // Marcar días de asistencia
   const diasContainer = document.getElementById(
-    "edit-dias-asistencia-selector"
+    "edit-dias-asistencia-selector",
   );
   diasContainer.querySelectorAll(".day-btn").forEach((btn) => {
     const day = btn.getAttribute("data-day");
@@ -498,7 +505,7 @@ function initAutocomplete() {
 
   if (!input || !hiddenInput || !resultsContainer) {
     console.error(
-      "Faltan elementos del autocompletado (input, hidden, o results)."
+      "Faltan elementos del autocompletado (input, hidden, o results).",
     );
     return;
   }
@@ -710,12 +717,12 @@ export async function cargarUsuarios(forceReload = false) {
               <div class="turno-content">
                 <div class="turno-panel" data-turno="mañana" style="display:block;">
                   <ul>${crearListaUsuarios(
-                    grupo.filter((u) => u.turno === "mañana")
+                    grupo.filter((u) => u.turno === "mañana"),
                   )}</ul>
                 </div>
                 <div class="turno-panel" data-turno="tarde" style="display:none;">
                   <ul>${crearListaUsuarios(
-                    grupo.filter((u) => u.turno === "tarde")
+                    grupo.filter((u) => u.turno === "tarde"),
                   )}</ul>
                 </div>
               </div>
@@ -733,7 +740,7 @@ export async function cargarUsuarios(forceReload = false) {
   agregarEventosBarcode();
   agregarEventosEditar(); // <-- AÑADIDO
   initTurnoTabs();
-  initExportUI()
+  initExportUI();
 }
 
 /**
@@ -968,7 +975,7 @@ export function initUserFormEvents() {
         const turno = document.getElementById("edit-turno");
         const ciclo = document.getElementById("edit-ciclo");
         const diasSelector = document.getElementById(
-          "edit-dias-asistencia-selector"
+          "edit-dias-asistencia-selector",
         );
 
         if (turno) turno.disabled = !esEstudiante;
@@ -1037,125 +1044,127 @@ function initTurnoTabs() {
 // --- LÓGICA DE EXPORTACIÓN (UI) ---
 
 function initExportUI() {
-    const selectGrupo = document.getElementById('export-select-grupo');
-    const selectTurno = document.getElementById('export-select-turno');
-    const btnPdf = document.getElementById('btn-descargar-pdf');
-    const btnZip = document.getElementById('btn-descargar-zip');
-    const lblPdf = document.getElementById('pdf-count-label');
-    const lblZip = document.getElementById('zip-count-label');
+  const selectGrupo = document.getElementById("export-select-grupo");
+  const selectTurno = document.getElementById("export-select-turno");
+  const btnPdf = document.getElementById("btn-descargar-pdf");
+  const btnZip = document.getElementById("btn-descargar-zip");
+  const lblPdf = document.getElementById("pdf-count-label");
+  const lblZip = document.getElementById("zip-count-label");
 
-    if (!selectGrupo || !selectTurno) return;
+  if (!selectGrupo || !selectTurno) return;
 
-    // 1. Llenar el select de grupos con los ciclos disponibles
-    while (selectGrupo.options.length > 2) {
-        selectGrupo.remove(2);
-    }
-    
-    // Obtenemos ciclos únicos de allUserOptions
-    const ciclosSet = new Set();
-    allUserOptions.forEach(u => {
-        if(u.ciclo && u.rol === 'estudiante') ciclosSet.add(u.ciclo);
+  // 1. Llenar el select de grupos con los ciclos disponibles
+  while (selectGrupo.options.length > 2) {
+    selectGrupo.remove(2);
+  }
+
+  // Obtenemos ciclos únicos de allUserOptions
+  const ciclosSet = new Set();
+  allUserOptions.forEach((u) => {
+    if (u.ciclo && u.rol === "estudiante") ciclosSet.add(u.ciclo);
+  });
+
+  Array.from(ciclosSet)
+    .sort()
+    .forEach((ciclo) => {
+      const opt = document.createElement("option");
+      opt.value = ciclo;
+      opt.textContent = `CICLO ${ciclo}`;
+      selectGrupo.appendChild(opt);
     });
-    
-    Array.from(ciclosSet).sort().forEach(ciclo => {
-        const opt = document.createElement('option');
-        opt.value = ciclo;
-        opt.textContent = `CICLO ${ciclo}`;
-        selectGrupo.appendChild(opt);
-    });
 
-    // 2. Evento cambio de grupo
-    selectGrupo.onchange = () => {
-        const grupo = selectGrupo.value;
-        
-        // Resetear turno a la opción por defecto (valor "")
-        selectTurno.value = "";
-        
-        if (grupo === 'docentes') {
-            selectTurno.disabled = true; 
-            actualizarBotonesExportacion('docentes', null);
-        } else if (grupo === "") {
-            selectTurno.disabled = true;
-            disableExportButtons();
-        } else {
-            // Es un ciclo, habilitar turno
-            selectTurno.disabled = false;
-            // CAMBIO: Ahora pasamos "" como turno para indicar "todos los del ciclo"
-            actualizarBotonesExportacion(grupo, ""); 
-        }
-    };
+  // 2. Evento cambio de grupo
+  selectGrupo.onchange = () => {
+    const grupo = selectGrupo.value;
 
-    // 3. Evento cambio de turno
-    selectTurno.onchange = () => {
-        const grupo = selectGrupo.value;
-        const turno = selectTurno.value;
-        
-        if (grupo) {
-            // Si turno es "" (opción por defecto), la función traerá a todos
-            actualizarBotonesExportacion(grupo, turno);
-        } else {
-            disableExportButtons();
-        }
-    };
+    // Resetear turno a la opción por defecto (valor "")
+    selectTurno.value = "";
 
-    // Helper para contar usuarios y habilitar botones
-    function actualizarBotonesExportacion(grupo, turno) {
-        let filtrados = [];
+    if (grupo === "docentes") {
+      selectTurno.disabled = true;
+      actualizarBotonesExportacion("docentes", null);
+    } else if (grupo === "") {
+      selectTurno.disabled = true;
+      disableExportButtons();
+    } else {
+      // Es un ciclo, habilitar turno
+      selectTurno.disabled = false;
+      // CAMBIO: Ahora pasamos "" como turno para indicar "todos los del ciclo"
+      actualizarBotonesExportacion(grupo, "");
+    }
+  };
 
-        if (grupo === 'docentes') {
-            filtrados = allUserOptions.filter(u => u.rol === 'docente');
-        } else {
-            // Es alumno
-            filtrados = allUserOptions.filter(u => {
-                const esDelCiclo = u.rol === 'estudiante' && u.ciclo === grupo;
-                // Si turno tiene valor, filtramos por él. Si es "" o null, aceptamos cualquiera.
-                const coincideTurno = turno ? u.turno === turno : true;
-                return esDelCiclo && coincideTurno;
-            });
-        }
+  // 3. Evento cambio de turno
+  selectTurno.onchange = () => {
+    const grupo = selectGrupo.value;
+    const turno = selectTurno.value;
 
-        const count = filtrados.length;
+    if (grupo) {
+      // Si turno es "" (opción por defecto), la función traerá a todos
+      actualizarBotonesExportacion(grupo, turno);
+    } else {
+      disableExportButtons();
+    }
+  };
 
-        if (count > 0) {
-            btnPdf.disabled = false;
-            btnZip.disabled = false;
-            
-            // Texto dinámico para el usuario
-            let extraInfo = "";
-            if (grupo !== 'docentes') {
-                extraInfo = turno ? ` (${turno})` : " (Todos)";
-            }
-            
-            lblPdf.textContent = `(${count} usuarios)${extraInfo}`;
-            lblZip.textContent = `(${count} imágenes)`;
-            
-            // Guardamos los datos para usarlos al hacer clic
-            btnPdf.dataset.filtroGrupo = grupo;
-            btnPdf.dataset.filtroTurno = turno || ""; // Guardamos vacío si es todos
-            btnZip.dataset.filtroGrupo = grupo;
-            btnZip.dataset.filtroTurno = turno || "";
-        } else {
-            disableExportButtons();
-            lblPdf.textContent = "(0 usuarios)";
-            lblZip.textContent = "(Sin resultados)";
-        }
+  // Helper para contar usuarios y habilitar botones
+  function actualizarBotonesExportacion(grupo, turno) {
+    let filtrados = [];
+
+    if (grupo === "docentes") {
+      filtrados = allUserOptions.filter((u) => u.rol === "docente");
+    } else {
+      // Es alumno
+      filtrados = allUserOptions.filter((u) => {
+        const esDelCiclo = u.rol === "estudiante" && u.ciclo === grupo;
+        // Si turno tiene valor, filtramos por él. Si es "" o null, aceptamos cualquiera.
+        const coincideTurno = turno ? u.turno === turno : true;
+        return esDelCiclo && coincideTurno;
+      });
     }
 
-    function disableExportButtons() {
-        btnPdf.disabled = true;
-        btnZip.disabled = true;
-        lblPdf.textContent = "(Selecciona filtros)";
-        lblZip.textContent = "(Selecciona filtros)";
+    const count = filtrados.length;
+
+    if (count > 0) {
+      btnPdf.disabled = false;
+      btnZip.disabled = false;
+
+      // Texto dinámico para el usuario
+      let extraInfo = "";
+      if (grupo !== "docentes") {
+        extraInfo = turno ? ` (${turno})` : " (Todos)";
+      }
+
+      lblPdf.textContent = `(${count} usuarios)${extraInfo}`;
+      lblZip.textContent = `(${count} imágenes)`;
+
+      // Guardamos los datos para usarlos al hacer clic
+      btnPdf.dataset.filtroGrupo = grupo;
+      btnPdf.dataset.filtroTurno = turno || ""; // Guardamos vacío si es todos
+      btnZip.dataset.filtroGrupo = grupo;
+      btnZip.dataset.filtroTurno = turno || "";
+    } else {
+      disableExportButtons();
+      lblPdf.textContent = "(0 usuarios)";
+      lblZip.textContent = "(Sin resultados)";
     }
+  }
 
-    // 4. Listeners de los botones
-    btnPdf.onclick = function() {
-        procesarDescarga('pdf');
-    };
+  function disableExportButtons() {
+    btnPdf.disabled = true;
+    btnZip.disabled = true;
+    lblPdf.textContent = "(Selecciona filtros)";
+    lblZip.textContent = "(Selecciona filtros)";
+  }
 
-    btnZip.onclick = function() {
-        procesarDescarga('zip');
-    };
+  // 4. Listeners de los botones
+  btnPdf.onclick = function () {
+    procesarDescarga("pdf");
+  };
+
+  btnZip.onclick = function () {
+    procesarDescarga("zip");
+  };
 }
 
 // ==========================================
@@ -1166,7 +1175,10 @@ function initExportUI() {
  * Función principal que orquesta la descarga.
  */
 async function procesarDescarga(tipo) {
-  const btn = tipo === 'pdf' ? document.getElementById('btn-descargar-pdf') : document.getElementById('btn-descargar-zip');
+  const btn =
+    tipo === "pdf"
+      ? document.getElementById("btn-descargar-pdf")
+      : document.getElementById("btn-descargar-zip");
   if (!btn || btn.disabled) return;
 
   // 1. Obtener filtros del botón
@@ -1175,21 +1187,21 @@ async function procesarDescarga(tipo) {
 
   // 2. Filtrar usuarios (Lógica actualizada)
   let usuariosAProcesar = [];
-  if (grupo === 'docentes') {
-    usuariosAProcesar = allUserOptions.filter(u => u.rol === 'docente');
+  if (grupo === "docentes") {
+    usuariosAProcesar = allUserOptions.filter((u) => u.rol === "docente");
   } else {
-    usuariosAProcesar = allUserOptions.filter(u => {
-        const esDelCiclo = u.rol === 'estudiante' && u.ciclo === grupo;
-        const coincideTurno = turno ? u.turno === turno : true;
-        return esDelCiclo && coincideTurno;
+    usuariosAProcesar = allUserOptions.filter((u) => {
+      const esDelCiclo = u.rol === "estudiante" && u.ciclo === grupo;
+      const coincideTurno = turno ? u.turno === turno : true;
+      return esDelCiclo && coincideTurno;
     });
   }
 
   // Ordenar alfabéticamente para que el PDF salga ordenado
   usuariosAProcesar.sort((a, b) => {
-      const nameA = `${a.apellido} ${a.nombre}`;
-      const nameB = `${b.apellido} ${b.nombre}`;
-      return nameA.localeCompare(nameB);
+    const nameA = `${a.apellido} ${a.nombre}`;
+    const nameB = `${b.apellido} ${b.nombre}`;
+    return nameA.localeCompare(nameB);
   });
 
   if (usuariosAProcesar.length === 0) {
@@ -1198,9 +1210,9 @@ async function procesarDescarga(tipo) {
   }
 
   // 3. Preparar UI
-  document.getElementById('export-progress-area').style.display = 'block';
+  document.getElementById("export-progress-area").style.display = "block";
   bloquearBotonesExport(true);
-  
+
   try {
     // 4. Cargar recursos previos (Logo) una sola vez
     actualizarProgreso(0, "Cargando recursos...");
@@ -1209,8 +1221,8 @@ async function procesarDescarga(tipo) {
     // 5. Inicializar contenedores
     let zip = null;
     let pdfDoc = null;
-    
-    if (tipo === 'zip') {
+
+    if (tipo === "zip") {
       // @ts-ignore
       zip = new JSZip();
     } else {
@@ -1220,54 +1232,60 @@ async function procesarDescarga(tipo) {
     }
 
     // Configuración PDF
-    const cardW_mm = 54; 
+    const cardW_mm = 54;
     const cardH_mm = 85.6;
-    const marginX = 18; 
-    const marginY = 15; 
-    const gapX = 10;    
-    const gapY = 10;    
-    let col = 0, row = 0;
+    const marginX = 18;
+    const marginY = 15;
+    const gapX = 10;
+    const gapY = 10;
+    let col = 0,
+      row = 0;
 
     // Canvas temporal
-    const canvasTemp = document.createElement('canvas');
+    const canvasTemp = document.createElement("canvas");
     canvasTemp.width = 320;
     canvasTemp.height = 480;
-    const ctx = canvasTemp.getContext('2d');
+    const ctx = canvasTemp.getContext("2d");
 
     // 6. Bucle de Generación
     const total = usuariosAProcesar.length;
-    
+
     for (let i = 0; i < total; i++) {
       const usuario = usuariosAProcesar[i];
-      
+
       // Actualizar UI
       if (i % 5 === 0) {
-        actualizarProgreso(Math.round((i / total) * 100), `Procesando: ${usuario.nombre} (${i+1}/${total})`);
-        await new Promise(r => setTimeout(r, 0)); 
+        actualizarProgreso(
+          Math.round((i / total) * 100),
+          `Procesando: ${usuario.nombre} (${i + 1}/${total})`,
+        );
+        await new Promise((r) => setTimeout(r, 0));
       }
 
       // Dibujar
       dibujarCarnetEnContexto(ctx, usuario, logoImg, 320, 480);
       const imgData = canvasTemp.toDataURL("image/png");
 
-      if (tipo === 'zip') {
-        const cleanName = getFullNameClient(usuario).replace(/[^a-z0-9 ]/gi, '_');
+      if (tipo === "zip") {
+        const cleanName = getFullNameClient(usuario).replace(
+          /[^a-z0-9 ]/gi,
+          "_",
+        );
         // Incluimos el turno en el nombre del archivo si se descargan todos
-        const sufijo = (!turno && usuario.turno) ? `_${usuario.turno}` : "";
+        const sufijo = !turno && usuario.turno ? `_${usuario.turno}` : "";
         const fileName = `${usuario.codigo} - ${cleanName}${sufijo}.png`;
-        zip.file(fileName, imgData.split(',')[1], {base64: true});
-      
+        zip.file(fileName, imgData.split(",")[1], { base64: true });
       } else {
-        const xPos = marginX + (col * (cardW_mm + gapX));
-        const yPos = marginY + (row * (cardH_mm + gapY));
+        const xPos = marginX + col * (cardW_mm + gapX);
+        const yPos = marginY + row * (cardH_mm + gapY);
 
-        pdfDoc.addImage(imgData, 'PNG', xPos, yPos, cardW_mm, cardH_mm);
+        pdfDoc.addImage(imgData, "PNG", xPos, yPos, cardW_mm, cardH_mm);
 
         col++;
-        if (col >= 3) { 
+        if (col >= 3) {
           col = 0;
           row++;
-          if (row >= 3) { 
+          if (row >= 3) {
             if (i < total - 1) {
               pdfDoc.addPage();
               col = 0;
@@ -1280,15 +1298,16 @@ async function procesarDescarga(tipo) {
 
     // 7. Finalizar
     actualizarProgreso(95, "Generando archivo final...");
-    
-    const timestamp = new Date().toISOString().slice(0,10);
+
+    const timestamp = new Date().toISOString().slice(0, 10);
     // Ajuste de nombre para reflejar si son todos
-    const nombreTurno = turno ? turno : 'Todos';
-    const nombreGrupo = grupo === 'docentes' ? 'Docentes' : `Ciclo_${grupo}_${nombreTurno}`;
+    const nombreTurno = turno ? turno : "Todos";
+    const nombreGrupo =
+      grupo === "docentes" ? "Docentes" : `Ciclo_${grupo}_${nombreTurno}`;
     const nombreArchivoBase = `Carnets_${nombreGrupo}_${timestamp}`;
 
-    if (tipo === 'zip') {
-      const content = await zip.generateAsync({type:"blob"});
+    if (tipo === "zip") {
+      const content = await zip.generateAsync({ type: "blob" });
       downloadBlob(content, `${nombreArchivoBase}.zip`);
     } else {
       pdfDoc.save(`${nombreArchivoBase}.pdf`);
@@ -1296,38 +1315,37 @@ async function procesarDescarga(tipo) {
 
     actualizarProgreso(100, "¡Listo!");
     setTimeout(() => {
-      document.getElementById('export-progress-area').style.display = 'none';
+      document.getElementById("export-progress-area").style.display = "none";
       bloquearBotonesExport(false);
     }, 2000);
-
   } catch (err) {
     console.error(err);
     alert("Error: " + err.message);
     bloquearBotonesExport(false);
-    document.getElementById('export-progress-area').style.display = 'none';
+    document.getElementById("export-progress-area").style.display = "none";
   }
 }
 
 // --- HELPERS PARA EL PROCESO ---
 
 function bloquearBotonesExport(estado) {
-  document.getElementById('btn-descargar-pdf').disabled = estado;
-  document.getElementById('btn-descargar-zip').disabled = estado;
+  document.getElementById("btn-descargar-pdf").disabled = estado;
+  document.getElementById("btn-descargar-zip").disabled = estado;
 }
 
 function actualizarProgreso(porcentaje, texto) {
-  const bar = document.getElementById('export-progress-bar');
-  const txt = document.getElementById('export-status-msg');
-  const pct = document.getElementById('export-percent');
-  if(bar) bar.style.width = `${porcentaje}%`;
-  if(txt) txt.textContent = texto;
-  if(pct) pct.textContent = `${porcentaje}%`;
+  const bar = document.getElementById("export-progress-bar");
+  const txt = document.getElementById("export-status-msg");
+  const pct = document.getElementById("export-percent");
+  if (bar) bar.style.width = `${porcentaje}%`;
+  if (txt) txt.textContent = texto;
+  if (pct) pct.textContent = `${porcentaje}%`;
 }
 
 function cargarImagenPromesa(src) {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.crossOrigin = "Anonymous"; 
+    img.crossOrigin = "Anonymous";
     img.onload = () => resolve(img);
     img.onerror = (e) => reject(new Error(`Error imagen: ${src}`));
     img.src = src;
@@ -1336,7 +1354,7 @@ function cargarImagenPromesa(src) {
 
 function downloadBlob(blob, filename) {
   const url = window.URL.createObjectURL(blob);
-  const a = document.createElement('a');
+  const a = document.createElement("a");
   a.href = url;
   a.download = filename;
   document.body.appendChild(a);
@@ -1349,7 +1367,7 @@ function downloadBlob(blob, filename) {
  * Lógica pura de dibujo
  */
 function dibujarCarnetEnContexto(ctx, user, logoImg, W, H) {
-  const primary = "#0A2240"; 
+  const primary = "#0A2240";
   const bg = "#FFFFFF";
 
   ctx.clearRect(0, 0, W, H);
@@ -1396,21 +1414,25 @@ function dibujarCarnetEnContexto(ctx, user, logoImg, W, H) {
     ctx.fillStyle = isRole ? "#333" : primary;
     ctx.font = isRole ? "bold 13px Arial" : "bold 18px Arial";
     let valStr = value ? value.toUpperCase() : "-";
-    if (valStr.length > 22) valStr = valStr.substring(0,22) + "...";
+    if (valStr.length > 22) valStr = valStr.substring(0, 22) + "...";
     ctx.fillText(valStr, 28, y);
     y += isRole ? 34 : 28;
   };
 
   drawField("NOMBRE:", user.nombre);
-  
-  y += 6; 
+
+  y += 6;
   drawField("APELLIDO:", user.apellido);
   y += 6;
 
   if (user.rol === "docente") {
     drawField("CARGO:", "DOCENTE", true);
   } else {
-    drawField("CICLO Y TURNO:", `${(user.ciclo || "").toString().toUpperCase()} - ${user.turno || ""}`, true);
+    drawField(
+      "CICLO Y TURNO:",
+      `${(user.ciclo || "").toString().toUpperCase()} - ${user.turno || ""}`,
+      true,
+    );
   }
 
   // Divider
@@ -1443,7 +1465,7 @@ function dibujarCarnetEnContexto(ctx, user, logoImg, W, H) {
       fontSize: 18,
       height: 90,
       margin: 6,
-      background: "#f8f9fb" 
+      background: "#f8f9fb",
     });
     const barcodeX = Math.round((W - barcodeCanvas.width) / 2);
     ctx.drawImage(barcodeCanvas, barcodeX, y);
@@ -1474,12 +1496,12 @@ export async function generarCarnetBase64(usuario) {
     console.warn("Logo no cargó, generando sin logo.");
   }
 
-  const canvas = document.createElement('canvas');
-  const W = 320; 
+  const canvas = document.createElement("canvas");
+  const W = 320;
   const H = 480;
   canvas.width = W;
   canvas.height = H;
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext("2d");
 
   // Reutilizamos la función de dibujo interna
   dibujarCarnetEnContexto(ctx, usuario, logoImg, W, H);

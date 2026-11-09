@@ -7,15 +7,19 @@
     <link rel="stylesheet" href="../css/admin-forms.css" />
     <link
       rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+      href="/vendor/bootstrap-icons/bootstrap-icons.css"
     />
-  </head>
+    <script src="/vendor/purify.min.js"></script>
+    <script src="/js/session.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1" /><link rel="stylesheet" href="/css/v2.css" /></head>
   <body>
     <div class="container-login">
       <img src="../img/Logo 1x4 b&w.svg" alt="Logo ingemat" />
       <h2>Acceso al panel de administración</h2>
       <form id="login-form">
-        <input
+        <label for="username">Usuario</label><input type="text" id="username" value="admin" autocomplete="username" required />
+        <label for="password">Contraseña</label><input
+          autocomplete="current-password"
           type="password"
           id="password"
           placeholder="Contraseña"
@@ -32,7 +36,7 @@
         const res = await fetch("/admin/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ password: pass }),
+          body: JSON.stringify({ username: document.getElementById("username").value, password: pass }),
         });
         const data = await res.json();
         if (data.exito) {

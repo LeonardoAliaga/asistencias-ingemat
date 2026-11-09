@@ -4,12 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Administrar Asistencia INGEMAT</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap"
-      rel="stylesheet"
-    />
+
+
+
     <link rel="stylesheet" href="../css/admin.css" />
     <link rel="stylesheet" href="../css/admin-forms.css" />
     <link rel="stylesheet" href="../css/admin-views.css" />
@@ -18,14 +15,16 @@
     <link rel="stylesheet" href="../css/admin-whatsapp.css" />
     <link rel="stylesheet" href="../css/admin-whatsapp-rules.css" />
     <link rel="stylesheet" href="../css/admin-responsive.css" />
+    <link rel="stylesheet" href="/css/v2.css" />
     <link
       rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+      href="/vendor/bootstrap-icons/bootstrap-icons.css"
     />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.1/qrcode.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="/vendor/JsBarcode.all.min.js"></script>
+    <script src="/vendor/jszip.min.js"></script>
+    <script src="/vendor/jspdf.umd.min.js"></script>
+    <script src="/vendor/purify.min.js"></script>
+    <script src="/js/session.js"></script>
   </head>
   <body>
     <nav class="navbar">
@@ -305,10 +304,10 @@
 
           <section id="gestion-acceso-section">
             <h2><i class="bi bi-key-fill"></i> GESTIÓN DE ACCESO</h2>
-            <form id="form-password">
+            <form id="form-password"><label for="actual-password">Contraseña actual</label><input type="password" id="actual-password" autocomplete="current-password" required />
               <input
                 type="password"
-                id="nueva-password"
+                id="nueva-password" minlength="12" autocomplete="new-password"
                 placeholder="Nueva contraseña"
                 required
               />
@@ -783,7 +782,7 @@
         <span class="close-btn" id="close-image-modal">&times;</span>
         <h2><i class="bi bi-card-image"></i> GENERAR IMAGEN DE TABLA</h2>
         <h3 id="image-modal-filename" style="margin-bottom: 15px; color: #555; font-size: 1rem;"></h3>
-        
+
         <div class="image-modal-filters">
           <div class="filter-group">
             <label for="image-modal-ciclo"><i class="bi bi-journal-bookmark-fill"></i> Ciclo:</label>
@@ -1761,8 +1760,9 @@
         </div>
       </dialog>
 
-    <script async src="https://docs.opencv.org/4.8.0/opencv.js" id="opencv-js"></script>
+
     <script type="module" src="../js/admin.js"></script>
+    <script type="module" src="/js/admin/v2.js"></script>
     <script src="../js/admin-info.js"></script>
   </body>
 </html>

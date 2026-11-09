@@ -1,12 +1,16 @@
 // Public/js/admin/biblioteca-admin.js
 
+let bibliotecaInitialized = false;
 export function initBibliotecaAdmin() {
   const vistaBib = document.getElementById("vista-biblioteca");
   if (!vistaBib) return;
 
-  setupSubtabs();
-  setupSeccionesYLibros();
-  setupControlPrestamos();
+  if (!bibliotecaInitialized) {
+    setupSubtabs();
+    setupSeccionesYLibros();
+    setupControlPrestamos();
+    bibliotecaInitialized = true;
+  }
   cargarTodoBibliotecaAdmin();
 }
 
@@ -70,13 +74,29 @@ function ordenarLibrosColeccion(libros, sortKey = "titulo_asc") {
   const lista = [...libros];
   switch (sortKey) {
     case "titulo_asc":
-      return lista.sort((a, b) => (a.titulo || "").localeCompare(b.titulo || "", "es", { sensitivity: "base" }));
+      return lista.sort((a, b) =>
+        (a.titulo || "").localeCompare(b.titulo || "", "es", {
+          sensitivity: "base",
+        }),
+      );
     case "titulo_desc":
-      return lista.sort((a, b) => (b.titulo || "").localeCompare(a.titulo || "", "es", { sensitivity: "base" }));
+      return lista.sort((a, b) =>
+        (b.titulo || "").localeCompare(a.titulo || "", "es", {
+          sensitivity: "base",
+        }),
+      );
     case "codigo_asc":
-      return lista.sort((a, b) => (a.codigo || "").localeCompare(b.codigo || "", undefined, { numeric: true }));
+      return lista.sort((a, b) =>
+        (a.codigo || "").localeCompare(b.codigo || "", undefined, {
+          numeric: true,
+        }),
+      );
     case "codigo_desc":
-      return lista.sort((a, b) => (b.codigo || "").localeCompare(a.codigo || "", undefined, { numeric: true }));
+      return lista.sort((a, b) =>
+        (b.codigo || "").localeCompare(a.codigo || "", undefined, {
+          numeric: true,
+        }),
+      );
     case "disponible":
       return lista.sort((a, b) => {
         if (a.estado === "disponible" && b.estado !== "disponible") return -1;
@@ -106,7 +126,7 @@ function renderAdminBookshelf(secciones, libros) {
         (!searchTerm ||
           (l.titulo && l.titulo.toLowerCase().includes(searchTerm)) ||
           (l.codigo && l.codigo.toLowerCase().includes(searchTerm)) ||
-          (l.editorial && l.editorial.toLowerCase().includes(searchTerm)))
+          (l.editorial && l.editorial.toLowerCase().includes(searchTerm))),
     );
 
     // Ocultar la sección si hay búsqueda activa y no hay libros que coincidan
@@ -205,7 +225,9 @@ function renderAdminBookshelf(secciones, libros) {
 
   if (searchInput && !searchInput.dataset.listener) {
     searchInput.dataset.listener = "true";
-    searchInput.addEventListener("input", () => renderAdminBookshelf(secciones, libros));
+    searchInput.addEventListener("input", () =>
+      renderAdminBookshelf(secciones, libros),
+    );
   }
 }
 
@@ -225,13 +247,15 @@ function renderCatalogoLibros(libros) {
         l.titulo.toLowerCase().includes(searchTerm) ||
         l.codigo.toLowerCase().includes(searchTerm) ||
         l.seccion.toLowerCase().includes(searchTerm) ||
-        (l.editorial && l.editorial.toLowerCase().includes(searchTerm))
+        (l.editorial && l.editorial.toLowerCase().includes(searchTerm)),
     );
   }
 
   if (librosFiltrados.length === 0) {
     tbody.innerHTML = `<tr><td colspan="6" class="text-center"><i>${
-      searchTerm ? `No se encontraron libros en el catálogo que coincidan con "${searchTerm}".` : "No hay libros registrados en el catálogo."
+      searchTerm
+        ? `No se encontraron libros en el catálogo que coincidan con "${searchTerm}".`
+        : "No hay libros registrados en el catálogo."
     }</i></td></tr>`;
   } else {
     let html = "";
@@ -267,7 +291,9 @@ function renderCatalogoLibros(libros) {
   tbody.querySelectorAll(".btn-edit-libro").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       const id = e.currentTarget.getAttribute("data-id");
-      const libro = (adminLibrosCache || []).find((l) => String(l.id) === String(id));
+      const libro = (adminLibrosCache || []).find(
+        (l) => String(l.id) === String(id),
+      );
       if (libro) {
         abrirModalEditarLibro(libro);
       }
@@ -286,7 +312,9 @@ function renderCatalogoLibros(libros) {
 
   if (searchInput && !searchInput.dataset.listener) {
     searchInput.dataset.listener = "true";
-    searchInput.addEventListener("input", () => renderCatalogoLibros(adminLibrosCache));
+    searchInput.addEventListener("input", () =>
+      renderCatalogoLibros(adminLibrosCache),
+    );
   }
 }
 
@@ -329,7 +357,8 @@ function setupSeccionesYLibros() {
     btnAddSec.addEventListener("click", async () => {
       const val = inputSec.value.trim();
       if (!val) {
-        if (msgSec) msgSec.innerHTML = `<span style="color:red;">Ingrese un nombre para la sección.</span>`;
+        if (msgSec)
+          msgSec.innerHTML = `<span style="color:red;">Ingrese un nombre para la sección.</span>`;
         return;
       }
       try {
@@ -340,14 +369,17 @@ function setupSeccionesYLibros() {
         });
         const data = await res.json();
         if (data.exito) {
-          if (msgSec) msgSec.innerHTML = `<span style="color:green;">✅ ${data.mensaje}</span>`;
+          if (msgSec)
+            msgSec.innerHTML = `<span style="color:green;">✅ ${data.mensaje}</span>`;
           inputSec.value = "";
           cargarTodoBibliotecaAdmin();
         } else {
-          if (msgSec) msgSec.innerHTML = `<span style="color:red;">❌ ${data.mensaje}</span>`;
+          if (msgSec)
+            msgSec.innerHTML = `<span style="color:red;">❌ ${data.mensaje}</span>`;
         }
       } catch (err) {
-        if (msgSec) msgSec.innerHTML = `<span style="color:red;">Error: ${err.message}</span>`;
+        if (msgSec)
+          msgSec.innerHTML = `<span style="color:red;">Error: ${err.message}</span>`;
       }
     });
   }
@@ -361,7 +393,8 @@ function setupSeccionesYLibros() {
       const titulo = document.getElementById("libro-titulo-input")?.value;
       const codigo = document.getElementById("libro-codigo-input")?.value;
       const seccion = document.getElementById("libro-seccion-select")?.value;
-      const editorial = document.getElementById("libro-editorial-input")?.value || "";
+      const editorial =
+        document.getElementById("libro-editorial-input")?.value || "";
 
       try {
         const res = await fetch("/api/biblioteca/libro", {
@@ -371,14 +404,17 @@ function setupSeccionesYLibros() {
         });
         const data = await res.json();
         if (data.exito) {
-          if (msgLibro) msgLibro.innerHTML = `<span style="color:green;">✅ ${data.mensaje}</span>`;
+          if (msgLibro)
+            msgLibro.innerHTML = `<span style="color:green;">✅ ${data.mensaje}</span>`;
           formLibro.reset();
           cargarTodoBibliotecaAdmin();
         } else {
-          if (msgLibro) msgLibro.innerHTML = `<span style="color:red;">❌ ${data.mensaje}</span>`;
+          if (msgLibro)
+            msgLibro.innerHTML = `<span style="color:red;">❌ ${data.mensaje}</span>`;
         }
       } catch (err) {
-        if (msgLibro) msgLibro.innerHTML = `<span style="color:red;">Error: ${err.message}</span>`;
+        if (msgLibro)
+          msgLibro.innerHTML = `<span style="color:red;">Error: ${err.message}</span>`;
       }
     });
   }
@@ -414,32 +450,40 @@ function setupModalEdicionLibro() {
       const titulo = document.getElementById("edit-libro-titulo")?.value;
       const codigo = document.getElementById("edit-libro-codigo")?.value;
       const seccion = document.getElementById("edit-libro-seccion")?.value;
-      const editorial = document.getElementById("edit-libro-editorial")?.value || "";
+      const editorial =
+        document.getElementById("edit-libro-editorial")?.value || "";
 
       if (!id || !titulo || !codigo || !seccion) {
-        if (msgEdit) msgEdit.innerHTML = `<span style="color:red;">Complete los campos obligatorios.</span>`;
+        if (msgEdit)
+          msgEdit.innerHTML = `<span style="color:red;">Complete los campos obligatorios.</span>`;
         return;
       }
 
       try {
-        const res = await fetch(`/api/biblioteca/libro/${encodeURIComponent(id)}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ titulo, codigo, seccion, editorial }),
-        });
+        const res = await fetch(
+          `/api/biblioteca/libro/${encodeURIComponent(id)}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ titulo, codigo, seccion, editorial }),
+          },
+        );
 
         const data = await res.json();
         if (data.exito) {
-          if (msgEdit) msgEdit.innerHTML = `<span style="color:green;">✅ ${data.mensaje}</span>`;
+          if (msgEdit)
+            msgEdit.innerHTML = `<span style="color:green;">✅ ${data.mensaje}</span>`;
           setTimeout(() => {
             cerrarModal();
             cargarTodoBibliotecaAdmin();
           }, 600);
         } else {
-          if (msgEdit) msgEdit.innerHTML = `<span style="color:red;">❌ ${data.mensaje}</span>`;
+          if (msgEdit)
+            msgEdit.innerHTML = `<span style="color:red;">❌ ${data.mensaje}</span>`;
         }
       } catch (err) {
-        if (msgEdit) msgEdit.innerHTML = `<span style="color:red;">Error: ${err.message}</span>`;
+        if (msgEdit)
+          msgEdit.innerHTML = `<span style="color:red;">Error: ${err.message}</span>`;
       }
     });
   }
@@ -463,9 +507,12 @@ function abrirModalEditarLibro(libro) {
 
 async function eliminarSeccion(nombre) {
   try {
-    const res = await fetch(`/api/biblioteca/seccion/${encodeURIComponent(nombre)}`, {
-      method: "DELETE",
-    });
+    const res = await fetch(
+      `/api/biblioteca/seccion/${encodeURIComponent(nombre)}`,
+      {
+        method: "DELETE",
+      },
+    );
     const data = await res.json();
     if (data.exito) {
       cargarTodoBibliotecaAdmin();
@@ -498,7 +545,8 @@ function setupControlPrestamos() {
   const filterEstado = document.getElementById("filter-prestamos-estado");
   const searchInput = document.getElementById("search-prestamos");
 
-  if (filterEstado) filterEstado.addEventListener("change", cargarPrestamosAdmin);
+  if (filterEstado)
+    filterEstado.addEventListener("change", cargarPrestamosAdmin);
   if (searchInput) searchInput.addEventListener("input", cargarPrestamosAdmin);
 }
 
@@ -515,8 +563,11 @@ async function cargarPrestamosAdmin() {
       return;
     }
 
-    const filterEstado = document.getElementById("filter-prestamos-estado")?.value || "todos";
-    const searchTerm = document.getElementById("search-prestamos")?.value.trim().toLowerCase() || "";
+    const filterEstado =
+      document.getElementById("filter-prestamos-estado")?.value || "todos";
+    const searchTerm =
+      document.getElementById("search-prestamos")?.value.trim().toLowerCase() ||
+      "";
 
     let prestamos = data.prestamos;
 
@@ -530,7 +581,7 @@ async function cargarPrestamosAdmin() {
           p.nombreUsuario.toLowerCase().includes(searchTerm) ||
           p.codigoUsuario.toLowerCase().includes(searchTerm) ||
           p.tituloLibro.toLowerCase().includes(searchTerm) ||
-          p.codigoLibro.toLowerCase().includes(searchTerm)
+          p.codigoLibro.toLowerCase().includes(searchTerm),
       );
     }
 

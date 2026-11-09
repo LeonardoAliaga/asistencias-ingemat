@@ -1,7 +1,7 @@
 // src/services/excel/excel.helpers.js
 const path = require("path");
 
-const registrosPath = path.join(__dirname, "../../../Registros");
+const { recordsDir: registrosPath } = require("../../config");
 
 /**
  * Determina la ruta del archivo Excel único para el día y el nombre de la hoja destino.
@@ -21,7 +21,7 @@ function determineExcelInfo(fechaStr, usuario) {
       sheetName = "Tarde"; // Nombre de la hoja para turno tarde
     } else {
       console.warn(
-        `⚠️ Turno desconocido para estudiante ${usuario.codigo}: ${usuario.turno}. Usando hoja 'Otros'.`
+        `⚠️ Turno desconocido para estudiante ${usuario.codigo}: ${usuario.turno}. Usando hoja 'Otros'.`,
       );
       sheetName = "Otros"; // Hoja para casos inesperados
     }
@@ -44,10 +44,14 @@ function determineExcelInfo(fechaStr, usuario) {
 function setColumnWidths(worksheet) {
   worksheet.columns.forEach((col, index) => {
     let defaultWidth = 10; // Ancho por defecto
-    if (index === 0) defaultWidth = 5; // N°
-    else if (index === 1) defaultWidth = 35; // ALUMNO/DOCENTE
-    else if (index === 2) defaultWidth = 10; // TURNO
-    else if (index === 3) defaultWidth = 20; // DÍAS ASISTENCIA
+    if (index === 0)
+      defaultWidth = 5; // N°
+    else if (index === 1)
+      defaultWidth = 35; // ALUMNO/DOCENTE
+    else if (index === 2)
+      defaultWidth = 10; // TURNO
+    else if (index === 3)
+      defaultWidth = 20; // DÍAS ASISTENCIA
     else if (index === 4) defaultWidth = 15; // HORA REGISTRO
 
     col.width = defaultWidth;

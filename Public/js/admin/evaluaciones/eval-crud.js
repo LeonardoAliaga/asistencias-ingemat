@@ -126,7 +126,7 @@ export function setupFormCrearEvaluacion() {
 
   // Establecer fecha por defecto (hoy)
   if (fechaInput && !fechaInput.value) {
-    fechaInput.value = new Date().toISOString().split("T")[0];
+    fechaInput.value = window.ingematToday();
   }
 
   const actualizarCamposPorTipo = () => {
@@ -180,7 +180,7 @@ export function setupFormCrearEvaluacion() {
       const titulo = document.getElementById("eval-titulo-input").value.trim();
       const ciclo = document.getElementById("eval-ciclo-select").value;
       const tipo = tipoSelect ? tipoSelect.value : "simulacro_estandar";
-      const fecha = fechaInput ? fechaInput.value : new Date().toISOString().split("T")[0];
+      const fecha = fechaInput ? fechaInput.value : window.ingematToday();
 
       let numPreguntas = 100;
       let totalPreguntasCuadernillo = 100;
@@ -196,20 +196,20 @@ export function setupFormCrearEvaluacion() {
         totalPreguntasCuadernillo = parseInt(document.getElementById("eval-total-preguntas-areas")?.value, 10) || 120;
         numPreguntas = parseInt(document.getElementById("eval-num-preguntas-areas")?.value, 10) || 100;
         puntajeCorrecta = parseFloat(document.getElementById("eval-pts-correcta")?.value) || 20;
-        puntajeIncorrecta = parseFloat(document.getElementById("eval-pts-incorrecta")?.value) || 1.125;
+        puntajeIncorrecta = Number(document.getElementById("eval-pts-incorrecta")?.value ?? 1.125);
       } else {
         // simulacro_estandar: Lee el input de preguntas a responder
         numPreguntas = parseInt(document.getElementById("eval-num-preguntas")?.value, 10) || 100;
         totalPreguntasCuadernillo = numPreguntas;
         puntajeCorrecta = parseFloat(document.getElementById("eval-pts-correcta")?.value) || 20;
-        puntajeIncorrecta = parseFloat(document.getElementById("eval-pts-incorrecta")?.value) || 1.125;
+        puntajeIncorrecta = Number(document.getElementById("eval-pts-incorrecta")?.value ?? 1.125);
       }
 
       let claveRespuestas = {};
       let preguntasPorArea = {};
 
       if (tipo !== "test") {
-        claveRespuestas = evalState.modalState.respuestas || {};
+        claveRespuestas = evalState.keyDraft || {};
 
         if (tipo === "simulacro_areas") {
           const areasConfig = evalState.modalState.areasPorPregunta || {};
@@ -264,8 +264,9 @@ export function setupFormCrearEvaluacion() {
         if (data.exito) {
           msg.innerHTML = `<span style="color:green;">✅ ${data.mensaje}</span>`;
           form.reset();
-          if (fechaInput) fechaInput.value = new Date().toISOString().split("T")[0];
+          if (fechaInput) fechaInput.value = window.ingematToday();
           evalState.modalState.respuestas = {};
+          evalState.keyDraft = {};
           evalState.modalState.areasPorPregunta = {};
           evalState.modalState.preguntasSinDescuento = {};
           evalState.modalState.mostrarActitudinales = false;
@@ -423,6 +424,7 @@ export function setupModalClavePopup() {
       }
 
       evalState.modalState.mode = "clave";
+      evalState.modalState.respuestas = structuredClone(evalState.keyDraft || {});
       evalState.modalState.numPreguntas = numPreg;
 
       // Inicializar áreas por defecto si no existen
@@ -465,7 +467,9 @@ export function setupModalClavePopup() {
       evalState.modalState.isAreasMode = false;
       evalState.modalState.numPreguntas = evalObj.totalPreguntasCuadernillo || evalObj.numPreguntas;
 
-      const hasScannedAnswers = evalState.modalState.respuestas && Object.keys(evalState.modalState.respuestas).length > 0;
+      const draft=evalState.responseDraft;
+      const hasScannedAnswers=!!(draft && draft.evalId===evalId && draft.codigo===codigoEst);
+      evalState.modalState.respuestas=hasScannedAnswers?structuredClone(draft.respuestas):{};
 
       let prevReg = null;
       if (codigoEst && Array.isArray(evalObj.respuestasEstudiantes)) {
@@ -530,6 +534,7 @@ export function setupModalClavePopup() {
       const count = Object.keys(evalState.modalState.respuestas).filter((k) => evalState.modalState.respuestas[k]).length;
 
       if (evalState.modalState.mode === "clave") {
+        evalState.keyDraft=structuredClone(evalState.modalState.respuestas);
         const statusEl = document.getElementById("eval-clave-resumen-status");
         const countSinDesc = Object.keys(evalState.modalState.preguntasSinDescuento || {}).filter((k) => evalState.modalState.preguntasSinDescuento[k]).length;
         if (statusEl) {
@@ -537,6 +542,7 @@ export function setupModalClavePopup() {
           statusEl.innerHTML = `<b style="color:#166534;">✅ Clave configurada: ${count} de ${evalState.modalState.numPreguntas} respuestas marcadas en el Pop-Up${actitudinalText}.</b>`;
         }
       } else {
+        evalState.responseDraft={evalId:document.getElementById("eval-select-respuesta").value,codigo:document.getElementById("eval-codigo-estudiante").value.trim().toUpperCase(),respuestas:structuredClone(evalState.modalState.respuestas)};
         const statusEl = document.getElementById("eval-respuestas-estudiante-status");
         if (statusEl) {
           statusEl.innerHTML = `<b style="color:#166534;">✅ Respuestas del estudiante: ${count} de ${evalState.modalState.numPreguntas} alternativas marcadas en el Pop-Up.</b>`;

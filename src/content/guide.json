@@ -1,0 +1,1172 @@
+{
+  "title": "Guía de INGEMAT",
+  "version": "2.0.0",
+  "articles": [
+    {
+      "id": "primer-inicio",
+      "category": "Inicio",
+      "title": "Primer inicio y recorrido del panel",
+      "summary": "Prepara una instalación nueva y conoce dónde está cada función.",
+      "steps": [
+        {
+          "title": "Accede con tu cuenta",
+          "text": "Abre /admin. La primera cuenta se llama admin. La contraseña inicial está en ADMIN_INITIAL_PASSWORD o se muestra una sola vez en la consola del servidor."
+        },
+        {
+          "title": "Cambia la contraseña temporal",
+          "text": "En Inicio, completa Contraseña actual y una nueva de al menos 12 caracteres. No compartas tu cuenta entre operadores."
+        },
+        {
+          "title": "Crea ciclos y horarios",
+          "text": "En Inicio registra primero los ciclos; después establece la entrada y tolerancia para mañana y tarde."
+        },
+        {
+          "title": "Registra usuarios",
+          "text": "Abre Usuarios y crea estudiantes y docentes. El código debe ser único. Los estudiantes necesitan ciclo y turno."
+        },
+        {
+          "title": "Completa áreas y contactos",
+          "text": "En Contactos y áreas asigna el perfil de postulación y los apoderados que recibirán avisos."
+        },
+        {
+          "title": "Vincula recepción",
+          "text": "En Cuentas y respaldo genera un código para cada punto de registro. En la página pública usa Vincular punto de asistencia."
+        },
+        {
+          "title": "Prepara un simulacro de prueba",
+          "text": "Usa un alumno ficticio y un examen pequeño antes del primer lote real. Verifica impresión, lecturas y puntajes."
+        }
+      ],
+      "tips": []
+    },
+    {
+      "id": "roles",
+      "category": "Seguridad",
+      "title": "Crear cuentas y distribuir permisos",
+      "summary": "Separa administración, corrección, docencia y recepción.",
+      "steps": [
+        {
+          "title": "Abre Cuentas y respaldo",
+          "text": "Solo administración puede ver esta sección."
+        },
+        {
+          "title": "Crea una cuenta por persona",
+          "text": "Escribe usuario, contraseña temporal y rol. Entrega la contraseña por un canal privado."
+        },
+        {
+          "title": "Elige el rol apropiado",
+          "text": "Administración configura todo. Corrección administra simulacros y lecturas. Docencia registra tareas y consulta reportes. Recepción registra y justifica asistencias y opera biblioteca."
+        },
+        {
+          "title": "Cambia claves temporales",
+          "text": "Cada persona debe cambiar su contraseña desde Inicio."
+        },
+        {
+          "title": "Revoca un acceso",
+          "text": "Desactiva la cuenta cuando alguien deje de operar el sistema. Sus sesiones anteriores quedarán invalidadas."
+        },
+        {
+          "title": "Consulta la auditoría",
+          "text": "En esta misma sección revisa quién calificó, corrigió, justificó, publicó o cambió la configuración."
+        }
+      ],
+      "tips": []
+    },
+    {
+      "id": "ciclos",
+      "category": "Personas y horarios",
+      "title": "Ciclos, turnos y horarios",
+      "summary": "Organiza aulas y define cómo se calcula la puntualidad.",
+      "steps": [
+        {
+          "title": "Crea el ciclo",
+          "text": "En Inicio, Gestión de ciclos, escribe un nombre claro y único."
+        },
+        {
+          "title": "Selecciona el ciclo en Horarios",
+          "text": "Configura hora de entrada y fin de tolerancia para cada turno."
+        },
+        {
+          "title": "Guarda los cambios",
+          "text": "Llegar exactamente a la hora de entrada cuenta como puntual. Después de entrada y hasta la tolerancia cuenta como tolerancia."
+        },
+        {
+          "title": "Asigna estudiantes",
+          "text": "En Usuarios asigna cada estudiante a su ciclo y turno. El ciclo no es el área de postulación."
+        },
+        {
+          "title": "Revisa antes de eliminar",
+          "text": "No elimines ciclos que siguen en uso. Primero reasigna a los estudiantes y conserva los exámenes históricos."
+        }
+      ],
+      "tips": []
+    },
+    {
+      "id": "usuarios",
+      "category": "Personas y horarios",
+      "title": "Registrar, buscar y editar estudiantes o docentes",
+      "summary": "Mantén códigos e identidad consistentes.",
+      "steps": [
+        {
+          "title": "Abre Usuarios",
+          "text": "Busca primero el código para evitar duplicados."
+        },
+        {
+          "title": "Completa datos",
+          "text": "Ingresa nombre, apellidos, rol y código. Los códigos se guardan en mayúsculas."
+        },
+        {
+          "title": "Configura asistencia",
+          "text": "Para estudiantes elige ciclo, turno y días programados; para docentes define sus días."
+        },
+        {
+          "title": "Guarda y comprueba",
+          "text": "Busca el usuario recién creado y verifica su carnet."
+        },
+        {
+          "title": "Edita con cuidado",
+          "text": "Cambiar un código actualiza las referencias académicas. Los registros conservan sus datos históricos."
+        },
+        {
+          "title": "Conserva el historial",
+          "text": "Si el usuario tiene notas o asistencias no se permite borrarlo. Cambia el ciclo cuando corresponda y conserva sus resultados."
+        }
+      ],
+      "tips": []
+    },
+    {
+      "id": "carnets",
+      "category": "Personas y horarios",
+      "title": "Carnets, códigos de barras y QR",
+      "summary": "Imprime identificaciones para acelerar la recepción.",
+      "steps": [
+        {
+          "title": "Abre Usuarios",
+          "text": "Busca al estudiante y usa las acciones de carnet disponibles."
+        },
+        {
+          "title": "Revisa el código",
+          "text": "El código impreso debe ser el mismo que utiliza la ficha del estudiante."
+        },
+        {
+          "title": "Imprime el carnet",
+          "text": "Usa la opción de impresión o descarga. Conserva margen alrededor del código."
+        },
+        {
+          "title": "Prueba el lector",
+          "text": "Un lector USB funciona como teclado: coloca el foco en el campo de código y escanea."
+        },
+        {
+          "title": "Usa cámara si es necesario",
+          "text": "En la página de asistencia elige el lector con cámara y permite su acceso. Para usar cámara desde otro dispositivo necesitas HTTPS."
+        },
+        {
+          "title": "No confundas las fichas",
+          "text": "El QR del carnet identifica al usuario; el QR de cartillas identifica un examen, versión, revisión y página."
+        }
+      ],
+      "tips": []
+    },
+    {
+      "id": "vincular-kiosco",
+      "category": "Asistencia",
+      "title": "Vincular un punto de asistencia",
+      "summary": "Autoriza un equipo de recepción sin darle acceso a las notas.",
+      "steps": [
+        {
+          "title": "Genera el código",
+          "text": "Una cuenta administradora abre Cuentas y respaldo y pulsa Generar código de recepción."
+        },
+        {
+          "title": "Abre la página pública en recepción",
+          "text": "Usa el botón Vincular punto de asistencia de la esquina inferior e ingresa el código. El navegador conserva una sesión de ocho horas."
+        },
+        {
+          "title": "Registra un código de prueba",
+          "text": "Escanea un carnet o escribe su código y comprueba la hora y el estado."
+        },
+        {
+          "title": "Protege el equipo",
+          "text": "El punto vinculado solo registra asistencias. Las justificaciones requieren una cuenta autorizada."
+        },
+        {
+          "title": "Renueva cuando corresponda",
+          "text": "Si borras las cookies o expira la sesión, vuelve a vincular. Rotar el código invalida los puntos anteriores."
+        }
+      ],
+      "tips": []
+    },
+    {
+      "id": "asistencia",
+      "category": "Asistencia",
+      "title": "Registrar ingresos sin duplicados",
+      "summary": "Usa código, lector USB o cámara.",
+      "steps": [
+        {
+          "title": "Abre el registro",
+          "text": "En la página pública pulsa Asistencias o el lector con cámara. El equipo debe estar vinculado, o debes iniciar sesión con un rol autorizado."
+        },
+        {
+          "title": "Introduce el código",
+          "text": "Escríbelo o usa un lector USB. El sistema identifica por código, no por nombre."
+        },
+        {
+          "title": "Comprueba el resultado",
+          "text": "Revisa nombre, ciclo, turno y hora. La fecha y hora se calculan en America/Lima."
+        },
+        {
+          "title": "Evita registros repetidos",
+          "text": "Una segunda lectura del mismo usuario, fecha y turno informa que ya existe un ingreso."
+        },
+        {
+          "title": "Continúa aunque falle Internet",
+          "text": "La asistencia se guarda en SQLite. Los avisos quedan en cola y se envían cuando la conexión oficial vuelva a estar disponible."
+        },
+        {
+          "title": "Consulta la lista",
+          "text": "En Asistencias filtra por fecha y ciclo; exporta el Excel para compartir el registro."
+        }
+      ],
+      "tips": [
+        "Un aviso en cola no equivale a un mensaje entregado. Consulta Comunicación para comprobar el estado."
+      ]
+    },
+    {
+      "id": "justificaciones",
+      "category": "Asistencia",
+      "title": "Justificar una tardanza",
+      "summary": "Deja un motivo y una persona responsable.",
+      "steps": [
+        {
+          "title": "Inicia sesión",
+          "text": "Usa una cuenta de administración o recepción."
+        },
+        {
+          "title": "Busca el registro",
+          "text": "En Asistencias selecciona la fecha y el ciclo."
+        },
+        {
+          "title": "Pulsa Justificar",
+          "text": "Escribe un motivo de al menos cinco caracteres y confirma."
+        },
+        {
+          "title": "Verifica el cambio",
+          "text": "La fila pasa a justificada y conserva la hora original. La auditoría identifica quién hizo el cambio."
+        },
+        {
+          "title": "Consulta el histórico anterior",
+          "text": "Los Excel de la versión anterior permanecen en Archivos de Inicio; las justificaciones de esos archivos se manejan en su vista previa."
+        }
+      ],
+      "tips": []
+    },
+    {
+      "id": "excel-asistencia",
+      "category": "Asistencia",
+      "title": "Reportes diarios y archivos históricos",
+      "summary": "Distingue los nuevos registros de los Excel anteriores.",
+      "steps": [
+        {
+          "title": "Elige fecha y ciclo",
+          "text": "Abre Asistencias y aplica los filtros."
+        },
+        {
+          "title": "Revisa el listado",
+          "text": "Los nuevos ingresos se leen directamente desde la base de datos."
+        },
+        {
+          "title": "Descarga Excel",
+          "text": "Usa Exportar Excel. El archivo se genera desde los registros almacenados y no se utiliza como base de datos."
+        },
+        {
+          "title": "Consulta archivos antiguos",
+          "text": "En Inicio, Archivos, puedes abrir y descargar los Excel que existían antes de actualizar."
+        },
+        {
+          "title": "Respalda ambos conjuntos",
+          "text": "Incluye la base de datos, las imágenes de lectura y la carpeta Registros en las copias de seguridad."
+        }
+      ],
+      "tips": []
+    },
+    {
+      "id": "simulacro-100",
+      "category": "Simulacros",
+      "title": "Crear un simulacro estándar de 100 preguntas",
+      "summary": "Configura cursos y una clave completa.",
+      "steps": [
+        {
+          "title": "Abre Simulacros",
+          "text": "Pulsa Nuevo examen y elige el formato estándar de 100 preguntas."
+        },
+        {
+          "title": "Completa los datos",
+          "text": "Indica título, ciclo y fecha. El perfil GENERAL evalúa las 100 preguntas."
+        },
+        {
+          "title": "Distribuye los cursos",
+          "text": "Agrega cursos con rangos sin solapamientos; por ejemplo Matemática 1-20, Física 21-30 y los demás hasta 100. Cada pregunta debe pertenecer a un único curso."
+        },
+        {
+          "title": "Configura puntajes",
+          "text": "Indica puntos por correcta, penalización por incorrecta y puntaje por blanco. Cada curso puede tener sus propios valores."
+        },
+        {
+          "title": "Pega las claves",
+          "text": "Escribe una alternativa por pregunta o líneas como 1,A y 2,C. Se necesitan claves para todas las preguntas, salvo las anuladas o con puntajes por alternativa."
+        },
+        {
+          "title": "Guarda el borrador",
+          "text": "Puedes salir y volver a editar sin perder el trabajo guardado."
+        },
+        {
+          "title": "Valida el examen",
+          "text": "Pulsa Validar y preparar. El sistema comprueba cursos, claves y cantidades. Después la estructura queda fijada."
+        },
+        {
+          "title": "Imprime y califica",
+          "text": "Descarga cartillas personalizadas o usa carga manual/CSV. Comprueba resultados antes de publicar."
+        }
+      ],
+      "tips": []
+    },
+    {
+      "id": "simulacro-120",
+      "category": "Simulacros",
+      "title": "Cuadernillo de 120 preguntas con 100 evaluables por área",
+      "summary": "El número impreso y el número evaluado son conceptos diferentes.",
+      "steps": [
+        {
+          "title": "Elige formato por áreas",
+          "text": "Define 120 preguntas impresas. Crea los perfiles con sus códigos, nombres y 100 preguntas evaluables, o la cantidad que establezca tu reglamento."
+        },
+        {
+          "title": "Asigna cursos",
+          "text": "Distribuye las 120 preguntas entre todos los cursos, sin dejar huecos."
+        },
+        {
+          "title": "Configura la matriz de áreas",
+          "text": "En cada curso define las preguntas aplicables al área. Usa rangos como 1-10,15,18-20. Las preguntas no aplicables no se cuentan como blancos."
+        },
+        {
+          "title": "Comprueba los totales",
+          "text": "La suma de los cupos de cada área debe coincidir exactamente con su cantidad evaluable."
+        },
+        {
+          "title": "Carga la clave del cuadernillo",
+          "text": "Incluye las 120 claves. La selección por área es independiente de la clave."
+        },
+        {
+          "title": "Asigna áreas a estudiantes",
+          "text": "En Contactos y áreas registra el perfil de cada postulante antes de imprimir."
+        },
+        {
+          "title": "Valida y descarga cartillas",
+          "text": "La cartilla contiene 120 filas aunque la nota de un alumno utilice solo 100."
+        },
+        {
+          "title": "Revisa por curso y área",
+          "text": "Los resultados muestran aciertos, errores, blancos, anuladas y puntaje por curso. El ranking comparte puesto cuando hay empate."
+        }
+      ],
+      "tips": [
+        "Las distribuciones de demostración no representan un reglamento oficial. Configura las reglas reales de tu academia."
+      ]
+    },
+    {
+      "id": "cupos",
+      "category": "Simulacros",
+      "title": "Preguntas fijas frente a elegir un cupo dentro de un curso",
+      "summary": "Evita calificar preguntas que no corresponden o seleccionar las mejores respuestas.",
+      "steps": [
+        {
+          "title": "Preguntas fijas",
+          "text": "Selecciona Fijas cuando el reglamento indica exactamente qué números debe responder cada área. El cupo coincide con la cantidad seleccionada."
+        },
+        {
+          "title": "Elección dentro del curso",
+          "text": "Selecciona Elegir cupo cuando el alumno puede responder, por ejemplo, 10 de 15 preguntas elegibles."
+        },
+        {
+          "title": "Define elegibles y cupo",
+          "text": "Escribe los números elegibles y la cantidad máxima que se evaluará."
+        },
+        {
+          "title": "Menos respuestas que el cupo",
+          "text": "Los lugares faltantes se cuentan como blancos de ese curso."
+        },
+        {
+          "title": "Más respuestas que el cupo",
+          "text": "La calificación se detiene. Revisa el reglamento y las marcas antes de continuar. Nunca se seleccionan automáticamente las respuestas más favorables."
+        },
+        {
+          "title": "Marcas dobles",
+          "text": "Una marca doble confirmada consume un lugar del cupo y se trata como incorrecta con la penalización que corresponda."
+        }
+      ],
+      "tips": []
+    },
+    {
+      "id": "claves-especiales",
+      "category": "Simulacros",
+      "title": "Preguntas sin descuento, anuladas y actitudinales",
+      "summary": "Aplica excepciones de puntaje de forma explícita.",
+      "steps": [
+        {
+          "title": "Sin descuento",
+          "text": "Introduce los números en Preguntas sin penalización. Una respuesta incorrecta conserva cero puntos para esas preguntas."
+        },
+        {
+          "title": "Anular una pregunta",
+          "text": "Indica los números anulados y elige Otorgar puntos o Excluir del puntaje. El resultado registra la anulación por separado."
+        },
+        {
+          "title": "Puntaje por alternativa",
+          "text": "En el bloque de puntajes por alternativa pega número,A,B,C,D,E; por ejemplo 15,20,15,10,5,0. Esta regla sirve cuando todas las alternativas tienen un valor propio."
+        },
+        {
+          "title": "Configura el blanco",
+          "text": "El puntaje por blanco pertenece a la regla del curso. Una marca doble sigue siendo inválida."
+        },
+        {
+          "title": "Valida antes de usar",
+          "text": "Revisa un ejemplo conocido y compara el desglose por pregunta y por curso con el cálculo manual."
+        }
+      ],
+      "tips": []
+    },
+    {
+      "id": "versiones",
+      "category": "Simulacros",
+      "title": "Versiones A/B de un cuadernillo",
+      "summary": "Relaciona el orden impreso con las preguntas originales.",
+      "steps": [
+        {
+          "title": "Crea la versión principal",
+          "text": "A utiliza el orden original, por ejemplo 1-100."
+        },
+        {
+          "title": "Agrega otra versión",
+          "text": "En Versiones escribe el código y el orden de preguntas originales; por ejemplo B:51-100,1-50."
+        },
+        {
+          "title": "Incluye todos los números una vez",
+          "text": "Cada versión debe contener todas las preguntas del cuadernillo sin duplicados."
+        },
+        {
+          "title": "Imprime la versión correcta",
+          "text": "Elige la versión al descargar cartillas. El QR guarda esa selección."
+        },
+        {
+          "title": "Importa respuestas impresas",
+          "text": "La captura usa los números que ve el estudiante; el motor los transforma al orden original antes de aplicar cursos y claves."
+        }
+      ],
+      "tips": [
+        "Esta versión cambia el orden de preguntas, no el orden de alternativas A-E dentro de una pregunta."
+      ]
+    },
+    {
+      "id": "plantillas",
+      "category": "Simulacros",
+      "title": "Reutilizar formatos sin repetir la configuración",
+      "summary": "Guarda cursos y matriz de áreas como una plantilla.",
+      "steps": [
+        {
+          "title": "Prepara el diseño",
+          "text": "Completa perfiles, cursos, puntajes y cantidades."
+        },
+        {
+          "title": "Guarda una plantilla",
+          "text": "Escribe un nombre identificable. Puedes guardar una estructura con claves aún pendientes."
+        },
+        {
+          "title": "Crea el siguiente examen",
+          "text": "Selecciona la plantilla, cambia título, ciclo y fecha y pega las nuevas claves."
+        },
+        {
+          "title": "Revisa las reglas",
+          "text": "No asumas que el formato del examen anterior sigue vigente."
+        },
+        {
+          "title": "Exporta o importa estructura",
+          "text": "Usa el archivo JSON de estructura para llevar una configuración completa entre instalaciones. El archivo no contiene notas de estudiantes."
+        }
+      ],
+      "tips": []
+    },
+    {
+      "id": "imprimir-cartillas",
+      "category": "Lectura OMR",
+      "title": "Imprimir cartillas personalizadas",
+      "summary": "El QR elimina la selección manual de estudiante, área y versión.",
+      "steps": [
+        {
+          "title": "Valida el examen",
+          "text": "Solo un examen listo o publicado puede generar cartillas."
+        },
+        {
+          "title": "Revisa el padrón",
+          "text": "Cada alumno debe pertenecer al ciclo y tener un área válida. Para un examen general no se requiere un perfil adicional."
+        },
+        {
+          "title": "Elige alcance y versión",
+          "text": "Descarga las cartillas de todo el ciclo o de un código concreto."
+        },
+        {
+          "title": "Imprime A4 horizontal al 100%",
+          "text": "No recortes las esquinas ni el QR. Usa papel blanco y prueba primero una hoja."
+        },
+        {
+          "title": "Comprueba identificación",
+          "text": "La hoja muestra alumno, código, área, versión, revisión y número de página."
+        },
+        {
+          "title": "Explica cómo marcar",
+          "text": "Rellenar una burbuja por pregunta, borrar completamente y no dibujar sobre los marcadores."
+        },
+        {
+          "title": "Conserva todas las páginas",
+          "text": "Los cuadernillos de más de 120 preguntas generan varias páginas y se agrupan por QR."
+        }
+      ],
+      "tips": []
+    },
+    {
+      "id": "escanear-lote",
+      "category": "Lectura OMR",
+      "title": "Escanear un salón completo con alimentador automático",
+      "summary": "Ruta recomendada para ahorrar trabajo repetitivo.",
+      "steps": [
+        {
+          "title": "Prepara el escáner",
+          "text": "Usa alimentador automático (ADF), 300 ppp y PDF multipágina. Empieza con escala de grises y desactiva filtros que borren marcas tenues."
+        },
+        {
+          "title": "Revisa el papel",
+          "text": "Quita grapas, separa hojas pegadas y comprueba que todas tengan QR y cuatro marcadores."
+        },
+        {
+          "title": "Escanea el lote",
+          "text": "No es necesario ordenar por estudiante: las cartillas personalizadas se identifican por QR."
+        },
+        {
+          "title": "Carga los archivos",
+          "text": "En Lotes OMR selecciona el examen y carga PDF, PNG o JPG. Se admiten hasta 10 archivos de 20 MB y 100 páginas por lote."
+        },
+        {
+          "title": "Espera el procesamiento",
+          "text": "El estado pasa de En cola a Procesando, después a Listo o Revisar. Puedes actualizar sin volver a cargar."
+        },
+        {
+          "title": "Resuelve incidencias",
+          "text": "Revisa marcas dobles, tenues, identificadores desconocidos y páginas faltantes."
+        },
+        {
+          "title": "Comprueba la previsualización",
+          "text": "Revisa estudiante, área y puntaje antes de confirmar la importación."
+        },
+        {
+          "title": "Confirma el lote",
+          "text": "Las notas se guardan juntas. Si un error impide calificar, el lote no se importa parcialmente."
+        }
+      ],
+      "tips": []
+    },
+    {
+      "id": "escanear-celular",
+      "category": "Lectura OMR",
+      "title": "Fotografiar cartillas con celular",
+      "summary": "Alternativa para pocos alumnos o para repetir una hoja problemática.",
+      "steps": [
+        {
+          "title": "Usa la cartilla v2",
+          "text": "Las fichas anteriores no tienen los marcadores ni el QR del nuevo lector."
+        },
+        {
+          "title": "Coloca la hoja plana",
+          "text": "Usa luz uniforme, evita sombras y reflejos y mantén visibles las cuatro esquinas."
+        },
+        {
+          "title": "Toma una foto nítida",
+          "text": "Incluye toda la hoja. No envíes una captura comprimida de mensajería."
+        },
+        {
+          "title": "Carga PNG o JPG",
+          "text": "En Lotes OMR selecciona las fotos desde el dispositivo."
+        },
+        {
+          "title": "Revisa el resultado",
+          "text": "Una foto dudosa no debe aceptarse por intuición: repítela o revisa las marcas junto a la imagen."
+        },
+        {
+          "title": "Compara el tiempo total",
+          "text": "Para varios salones el alimentador automático suele reducir más la manipulación que fotografiar una hoja a la vez."
+        }
+      ],
+      "tips": []
+    },
+    {
+      "id": "revisar-omr",
+      "category": "Lectura OMR",
+      "title": "Resolver marcas dobles, dudosas y hojas no reconocidas",
+      "summary": "Corrige la lectura sin perder su evidencia original.",
+      "steps": [
+        {
+          "title": "Abre el lote",
+          "text": "Las incidencias se muestran junto al archivo y la página correspondiente."
+        },
+        {
+          "title": "Abre Revisar",
+          "text": "Compara las alternativas detectadas con la imagen normalizada."
+        },
+        {
+          "title": "Resuelve cada duda",
+          "text": "Elige A-E, blanco o confirma una marca doble inválida. No conviertas una marca tenue en blanco sin inspeccionarla."
+        },
+        {
+          "title": "Escribe un motivo",
+          "text": "La revisión conserva las respuestas detectadas inicialmente y registra al operador."
+        },
+        {
+          "title": "Excluye páginas ilegibles",
+          "text": "Si el QR no se puede reconocer, excluye esa página con motivo y vuelve a escanear la cartilla. No asignes un estudiante por suposición."
+        },
+        {
+          "title": "Comprueba páginas y duplicados",
+          "text": "No se permite importar dos veces la misma página. Un alumno con varias páginas necesita el conjunto completo."
+        },
+        {
+          "title": "Confirma cuando esté listo",
+          "text": "Una lectura dudosa pendiente impide cerrar el lote. Las marcas dobles confirmadas se califican conforme a la regla del examen."
+        }
+      ],
+      "tips": []
+    },
+    {
+      "id": "importar-csv",
+      "category": "Calificación",
+      "title": "Importar respuestas desde CSV u otro lector OMR",
+      "summary": "Aprovecha lectores externos conservando el motor de calificación de INGEMAT.",
+      "steps": [
+        {
+          "title": "Descarga la plantilla",
+          "text": "Selecciona el examen y pulsa Plantilla CSV."
+        },
+        {
+          "title": "Conserva las columnas",
+          "text": "Usa codigo,area,version y todas las preguntas 1,2,... hasta el final del cuadernillo."
+        },
+        {
+          "title": "Completa respuestas",
+          "text": "Cada celda contiene A-E. Un blanco se deja vacío. Una marca doble usa A B o A/B según el formato exportado que adaptes."
+        },
+        {
+          "title": "Exporta UTF-8",
+          "text": "El separador es coma. Si tu programa usa punto y coma, conviértelo antes de cargarlo."
+        },
+        {
+          "title": "Carga y previsualiza",
+          "text": "El sistema verifica alumnos, ciclos, áreas, versiones y códigos repetidos."
+        },
+        {
+          "title": "Confirma la importación",
+          "text": "No se toma la nota de otro programa: INGEMAT recalcula desde las respuestas para aplicar sus reglas por área."
+        }
+      ],
+      "tips": []
+    },
+    {
+      "id": "manual",
+      "category": "Calificación",
+      "title": "Registrar o corregir respuestas manualmente",
+      "summary": "También sirve como alternativa cuando una hoja no se puede escanear.",
+      "steps": [
+        {
+          "title": "Selecciona el examen y estudiante",
+          "text": "Debe estar listo y el alumno debe pertenecer al ciclo."
+        },
+        {
+          "title": "Confirma área y versión",
+          "text": "Estos datos determinan qué preguntas se evalúan."
+        },
+        {
+          "title": "Pega las respuestas",
+          "text": "Puedes escribir una secuencia o líneas 1,A; 2,-; 3,A/B. El guion representa blanco."
+        },
+        {
+          "title": "Guarda y comprueba",
+          "text": "Pulsa Calificar y guardar. Comprueba el resultado y el desglose por curso antes de publicar."
+        },
+        {
+          "title": "Corrige un registro existente",
+          "text": "Activa Reemplazar calificación y explica el motivo. El registro anterior queda en el historial. Si ya estaba publicado, vuelve a Listo. Comprueba y publica de nuevo; los avisos pendientes de la nota anterior se cancelan."
+        },
+        {
+          "title": "Consulta la trazabilidad",
+          "text": "La revisión de claves, el operador, la fecha y el origen de la captura acompañan la nota."
+        }
+      ],
+      "tips": []
+    },
+    {
+      "id": "recalcular",
+      "category": "Calificación",
+      "title": "Corregir una clave y recalcular todas las notas",
+      "summary": "Las revisiones no borran el resultado anterior.",
+      "steps": [
+        {
+          "title": "Abre el examen",
+          "text": "Selecciona Revisar claves."
+        },
+        {
+          "title": "Carga la clave corregida",
+          "text": "Puedes cambiar alternativas, anular preguntas o configurar puntajes por alternativa."
+        },
+        {
+          "title": "Escribe un motivo",
+          "text": "Por ejemplo: Corrección de clave oficial en pregunta 42."
+        },
+        {
+          "title": "Confirma el recálculo",
+          "text": "Se crea una revisión y se recalifican todas las respuestas guardadas en una transacción."
+        },
+        {
+          "title": "Revisa diferencias",
+          "text": "Comprueba los resultados por alumno y curso. El historial conserva las notas previas."
+        },
+        {
+          "title": "Publica otra vez",
+          "text": "La revisión vuelve a estado Listo. Publica cuando termines de verificar."
+        },
+        {
+          "title": "Gestiona avisos anteriores",
+          "text": "Los avisos pendientes de las notas anteriores se cancelan. Los mensajes ya entregados no se pueden retirar. Publica la revisión correcta y genera sus nuevos avisos conscientemente."
+        }
+      ],
+      "tips": []
+    },
+    {
+      "id": "publicar",
+      "category": "Calificación",
+      "title": "Ranking, publicación y avisos de resultados",
+      "summary": "Revisa antes de comunicar.",
+      "steps": [
+        {
+          "title": "Consulta resultados",
+          "text": "Filtra por área y revisa el desglose por curso."
+        },
+        {
+          "title": "Interpreta empates",
+          "text": "Dos estudiantes con el mismo puntaje comparten puesto. El orden secundario por código solo facilita la consulta."
+        },
+        {
+          "title": "Exporta el cuadro",
+          "text": "Usa el Excel de ranking o los reportes individuales de Tareas y reportes."
+        },
+        {
+          "title": "Publica",
+          "text": "Pulsa Publicar cuando hayas comprobado claves y lecturas. Publicar no envía mensajes automáticamente."
+        },
+        {
+          "title": "Envía avisos si corresponde",
+          "text": "Con WhatsApp configurado y contactos autorizados, pulsa Notificar resultados. El envío queda en cola."
+        },
+        {
+          "title": "Comprueba entregas",
+          "text": "Comunicación distingue aceptado por Meta, enviado, entregado, leído y fallido."
+        }
+      ],
+      "tips": []
+    },
+    {
+      "id": "tareas",
+      "category": "Tareas y reportes",
+      "title": "Registrar tareas, notas vigesimales y entregas",
+      "summary": "Consolida el trabajo semanal por curso.",
+      "steps": [
+        {
+          "title": "Abre Tareas y reportes",
+          "text": "Selecciona la pestaña de Tareas."
+        },
+        {
+          "title": "Elige curso y ciclo",
+          "text": "Indica la semana académica de sábado a viernes y el tipo de evaluación."
+        },
+        {
+          "title": "Agrega estudiantes",
+          "text": "Usa la búsqueda por nombre o código y registra nota o estado de entrega."
+        },
+        {
+          "title": "Verifica la lista",
+          "text": "Revisa antes de guardar. No uses una nota cero para representar un registro que aún no has evaluado."
+        },
+        {
+          "title": "Guarda el grupo",
+          "text": "El sistema conserva los registros por curso, ciclo y semana."
+        },
+        {
+          "title": "Exporta el consolidado",
+          "text": "Selecciona ciclo y semana para descargar el resumen. Revisa los NO PRESENTÓ, que incluyen alumnos sin registro individual."
+        }
+      ],
+      "tips": []
+    },
+    {
+      "id": "reporte-alumno",
+      "category": "Tareas y reportes",
+      "title": "Reporte individual y consolidado semanal",
+      "summary": "Consulta simulacros y tareas de un alumno.",
+      "steps": [
+        {
+          "title": "Abre Reporte por alumno",
+          "text": "Usa el buscador en Tareas y reportes."
+        },
+        {
+          "title": "Selecciona al estudiante",
+          "text": "El sistema usa su código para recuperar historial."
+        },
+        {
+          "title": "Filtra la semana",
+          "text": "La semana académica se cuenta de sábado a viernes."
+        },
+        {
+          "title": "Comprueba el contexto",
+          "text": "No compares puntajes brutos entre exámenes con reglas o cantidades diferentes sin revisar sus escalas."
+        },
+        {
+          "title": "Exporta o imprime",
+          "text": "Usa los botones disponibles para imagen, documento o impresión del reporte."
+        },
+        {
+          "title": "Comparte con cuidado",
+          "text": "Elige el contacto autorizado. No publiques notas individuales en un grupo general por defecto."
+        }
+      ],
+      "tips": []
+    },
+    {
+      "id": "biblioteca",
+      "category": "Biblioteca",
+      "title": "Catálogo, secciones, préstamos y devoluciones",
+      "summary": "Administra ejemplares sin perder trazabilidad.",
+      "steps": [
+        {
+          "title": "Crea las secciones",
+          "text": "En Biblioteca, Gestionar libros y secciones, añade categorías."
+        },
+        {
+          "title": "Registra el libro",
+          "text": "Asigna código único, título, sección y editorial."
+        },
+        {
+          "title": "Busca en el estante",
+          "text": "Filtra por título o código y comprueba disponibilidad."
+        },
+        {
+          "title": "Presta el ejemplar",
+          "text": "En Control de préstamos ingresa el código del libro y del estudiante."
+        },
+        {
+          "title": "Registra devolución",
+          "text": "Busca el préstamo activo y confirma el retorno."
+        },
+        {
+          "title": "Comprueba disponibilidad",
+          "text": "El estado vuelve a disponible cuando corresponde. No borres un libro con préstamo activo."
+        },
+        {
+          "title": "Corrige el catálogo",
+          "text": "Usa Editar para corregir título, editorial o sección sin crear códigos duplicados."
+        }
+      ],
+      "tips": []
+    },
+    {
+      "id": "web-publica",
+      "category": "Página pública",
+      "title": "Actualizar ciclos visuales e imágenes de ingresantes",
+      "summary": "Mantén la información pública desde el panel.",
+      "steps": [
+        {
+          "title": "Abre Info / página pública",
+          "text": "Estas opciones requieren administración."
+        },
+        {
+          "title": "Gestiona los ciclos visibles",
+          "text": "Edita los títulos, descripciones y datos del ciclo público."
+        },
+        {
+          "title": "Prepara las imágenes",
+          "text": "El cargador de ingresantes espera PNG o JPG, en el tamaño indicado en pantalla."
+        },
+        {
+          "title": "Previsualiza y sube",
+          "text": "Usa nombres sencillos sin datos personales innecesarios."
+        },
+        {
+          "title": "Comprueba la portada",
+          "text": "Abre la página pública y revisa el orden, legibilidad y recorte en celular."
+        },
+        {
+          "title": "Retira material antiguo",
+          "text": "Elimina únicamente los elementos que ya no deben mostrarse."
+        }
+      ],
+      "tips": []
+    },
+    {
+      "id": "whatsapp-configurar",
+      "category": "WhatsApp oficial",
+      "title": "Configurar WhatsApp Business Platform",
+      "summary": "Sustituye las sesiones de navegador por una integración oficial.",
+      "steps": [
+        {
+          "title": "Prepara la cuenta de Meta",
+          "text": "Necesitas un portafolio empresarial, una WhatsApp Business Account y un número habilitado para Cloud API. Empieza con el número de prueba de Meta."
+        },
+        {
+          "title": "Configura el servidor",
+          "text": "Completa WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_API_VERSION, WHATSAPP_APP_SECRET y WHATSAPP_VERIFY_TOKEN en .env. El token se queda en el servidor."
+        },
+        {
+          "title": "Publica el webhook",
+          "text": "Meta debe acceder por HTTPS a /webhooks/whatsapp. Una instalación solo en localhost necesita un endpoint público o un despliegue con HTTPS."
+        },
+        {
+          "title": "Suscribe eventos de mensajes",
+          "text": "Configura el token de verificación y los eventos de mensajes y estados en Meta. Los POST se validan con la firma del App Secret."
+        },
+        {
+          "title": "Crea las plantillas",
+          "text": "Asistencia: nombre, fecha, hora, estado. Resultados: nombre, examen, puntaje, área. Solicita su aprobación y usa exactamente el código de idioma aprobado."
+        },
+        {
+          "title": "Completa Comunicación",
+          "text": "Introduce nombres de plantillas e idioma. Activa los avisos cuando el estado indique credenciales completas."
+        },
+        {
+          "title": "Registra contactos autorizados",
+          "text": "En Contactos y áreas agrega teléfonos internacionales y registra su autorización para recibir los avisos."
+        },
+        {
+          "title": "Haz una prueba controlada",
+          "text": "Registra un ingreso de un alumno de prueba y comprueba el estado real de entrega antes de usarlo con toda la academia."
+        }
+      ],
+      "tips": [
+        "La API oficial tiene tarifas y reglas de plantillas. Consulta los costos vigentes para Perú. La aplicación no solicita ni muestra tokens en el navegador."
+      ]
+    },
+    {
+      "id": "whatsapp-contactos",
+      "category": "WhatsApp oficial",
+      "title": "Áreas y apoderados que reciben avisos",
+      "summary": "Cada alumno puede tener varios contactos autorizados.",
+      "steps": [
+        {
+          "title": "Busca al estudiante",
+          "text": "Abre Contactos y áreas."
+        },
+        {
+          "title": "Asigna su área",
+          "text": "Debe coincidir con el código configurado en el examen. Guarda antes de imprimir cartillas."
+        },
+        {
+          "title": "Agrega un contacto",
+          "text": "Indica nombre del apoderado y teléfono internacional, por ejemplo +51900111222."
+        },
+        {
+          "title": "Registra autorización",
+          "text": "Activa Autorizó recibir avisos únicamente cuando tengas esa autorización."
+        },
+        {
+          "title": "Revisa destinatarios",
+          "text": "Un contacto sin autorización o desactivado no recibe mensajes."
+        },
+        {
+          "title": "Revoca cuando se solicite",
+          "text": "Usa Revocar. El contacto deja de participar en los siguientes avisos."
+        }
+      ],
+      "tips": []
+    },
+    {
+      "id": "whatsapp-estados",
+      "category": "WhatsApp oficial",
+      "title": "Reintentos, mensajes fallidos y entrega",
+      "summary": "La asistencia y la mensajería tienen estados independientes.",
+      "steps": [
+        {
+          "title": "Abre Comunicación",
+          "text": "La tabla muestra los últimos avisos y su estado."
+        },
+        {
+          "title": "Pendiente / reintento",
+          "text": "El mensaje está en cola. Los errores transitorios reintentan con espera creciente."
+        },
+        {
+          "title": "Aceptado / enviado",
+          "text": "Meta aceptó la solicitud o informó su envío. Todavía no significa que el teléfono lo haya recibido."
+        },
+        {
+          "title": "Entregado / leído",
+          "text": "El webhook confirmó estos estados cuando están disponibles."
+        },
+        {
+          "title": "Fallido",
+          "text": "Revisa error, número, plantilla aprobada, idioma, credenciales y límites del proveedor."
+        },
+        {
+          "title": "Estado desconocido",
+          "text": "Un corte pudo ocurrir después de que Meta aceptara el mensaje. Comprueba que no se entregó antes de reenviar para evitar duplicados."
+        },
+        {
+          "title": "Reintenta conscientemente",
+          "text": "Usa Reintentar después de corregir la causa. Los avisos entregados no se vuelven a enviar desde ese botón."
+        }
+      ],
+      "tips": []
+    },
+    {
+      "id": "whatsapp-grupos",
+      "category": "WhatsApp oficial",
+      "title": "Qué cambia si antes enviabas a grupos",
+      "summary": "La migración oficial no conserva automáticamente los grupos del salón.",
+      "steps": [
+        {
+          "title": "Distingue los productos",
+          "text": "Un grupo normal de WhatsApp Web no es un destinatario individual de Cloud API."
+        },
+        {
+          "title": "Revisa los límites vigentes",
+          "text": "La documentación de Groups API consultada exige Official Business Account y limita los grupos a ocho participantes; no sustituye un salón grande."
+        },
+        {
+          "title": "Usa avisos individuales",
+          "text": "La nueva integración se orienta a apoderados y estudiantes con autorización."
+        },
+        {
+          "title": "Conserva el reporte administrativo",
+          "text": "Descarga el consolidado si necesitas compartirlo manualmente en un grupo existente."
+        },
+        {
+          "title": "Evalúa otro canal si el grupo es obligatorio",
+          "text": "Un canal grupal con API oficial puede estudiarse por separado. No vuelvas a introducir una sesión de navegador pensando que tendrá la estabilidad de Cloud API."
+        }
+      ],
+      "tips": []
+    },
+    {
+      "id": "backup",
+      "category": "Seguridad",
+      "title": "Crear y comprobar copias de seguridad",
+      "summary": "Protege la información y prueba una restauración antes de necesitarla.",
+      "steps": [
+        {
+          "title": "Crea una copia consistente",
+          "text": "En Cuentas y respaldo pulsa Crear copia. Se utiliza una instantánea de SQLite compatible con WAL."
+        },
+        {
+          "title": "Descarga la copia",
+          "text": "Guárdala en un destino protegido fuera del equipo de recepción."
+        },
+        {
+          "title": "Incluye archivos asociados",
+          "text": "Copia también data/imports, los Excel históricos de Registros y session-secret.key. Esta clave permite validar los QR ya impresos."
+        },
+        {
+          "title": "Guarda la configuración en privado",
+          "text": "Respalda .env por un canal seguro. Nunca lo subas a GitHub."
+        },
+        {
+          "title": "Prueba en una instalación separada",
+          "text": "Detén esa copia de prueba, restaura el respaldo y comprueba usuarios, notas, asistencias e imágenes."
+        },
+        {
+          "title": "No sobrescribas una app activa",
+          "text": "Para restaurar la instalación real sigue el procedimiento del README y conserva primero la versión que vas a reemplazar."
+        }
+      ],
+      "tips": []
+    },
+    {
+      "id": "actualizar-v2",
+      "category": "Seguridad",
+      "title": "Actualizar una instalación existente a v2",
+      "summary": "Mantén los datos de trabajo fuera del código fuente.",
+      "steps": [
+        {
+          "title": "Respalda antes de cambiar",
+          "text": "Copia data y Registros con la app detenida o usa el mecanismo de respaldo apropiado."
+        },
+        {
+          "title": "Instala los requisitos",
+          "text": "Usa Node 24 LTS o Node 26 LTS, npm ci y Python con src/omr/requirements.txt. En Windows PYTHON_BIN puede apuntar al ejecutable del entorno virtual."
+        },
+        {
+          "title": "Configura el primer administrador",
+          "text": "Define ADMIN_INITIAL_PASSWORD antes del primer arranque v2; la contraseña anterior en JSON ya no se importa como credencial."
+        },
+        {
+          "title": "Arranca una sola instancia",
+          "text": "La aplicación crea una copia previa a la migración y aplica cambios de esquema. No ejecutes varios procesos de PM2 para esta instalación SQLite."
+        },
+        {
+          "title": "Comprueba el histórico",
+          "text": "Los usuarios, notas y archivos existentes se conservan localmente. Los exámenes anteriores se consultan como históricos y no se recalifican sin estructura v2."
+        },
+        {
+          "title": "Prueba funciones",
+          "text": "Verifica acceso, asistencia, un simulacro pequeño, impresión y lectura antes de comenzar la jornada."
+        },
+        {
+          "title": "Configura WhatsApp de nuevo",
+          "text": "Las sesiones LocalAuth anteriores no se utilizan. Completa Cloud API y los contactos autorizados."
+        }
+      ],
+      "tips": []
+    },
+    {
+      "id": "solucionar",
+      "category": "Ayuda",
+      "title": "Resolver problemas frecuentes",
+      "summary": "Pistas para recuperar el flujo sin perder datos.",
+      "steps": [
+        {
+          "title": "No puedo iniciar sesión",
+          "text": "Comprueba usuario, contraseña y que la cuenta esté activa. Tras muchos intentos espera 15 minutos. La recuperación administrativa está documentada en el README."
+        },
+        {
+          "title": "No puedo registrar un ingreso",
+          "text": "Vincula el punto de asistencia o inicia sesión con permisos. Revisa el código y si ya existe un registro para el turno."
+        },
+        {
+          "title": "El examen no valida",
+          "text": "Comprueba claves faltantes, cursos solapados, huecos y suma de preguntas por cada área."
+        },
+        {
+          "title": "El lector no inicia",
+          "text": "Comprueba Python, PYTHON_BIN y los paquetes de requirements.txt. Prueba el comando npm run test:omr."
+        },
+        {
+          "title": "No reconoce la hoja",
+          "text": "Usa una cartilla v2 completa, 300 ppp, cuatro marcadores visibles y QR nítido. Los formatos antiguos no se leen con la nueva plantilla."
+        },
+        {
+          "title": "El lote tiene incidencias",
+          "text": "Abre Revisar. Resuelve las marcas dudosas, páginas repetidas o faltantes antes de confirmar."
+        },
+        {
+          "title": "No llegan avisos",
+          "text": "Comprueba contactos autorizados, idioma y plantillas aprobadas, estado de credenciales, Internet y webhooks."
+        },
+        {
+          "title": "La sesión cambió",
+          "text": "Actualiza la página e inicia sesión de nuevo. Un cambio de contraseña, desactivación o rotación de recepción puede invalidarla."
+        }
+      ],
+      "tips": []
+    }
+  ]
+}

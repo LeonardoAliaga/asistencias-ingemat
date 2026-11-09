@@ -13,7 +13,9 @@ router.use(requireAdminMiddleware);
 router.get("/:codigo", (req, res) => {
   const { codigo } = req.params;
   try {
-    const row = db.prepare("SELECT valor FROM config_general WHERE clave = ?").get(`note_${codigo}`);
+    const row = db
+      .prepare("SELECT valor FROM config_general WHERE clave = ?")
+      .get(`note_${codigo}`);
     const notas = row ? row.valor : "";
     res.json({ codigo, notas });
   } catch (e) {
@@ -29,7 +31,9 @@ router.post("/:codigo", (req, res) => {
     return res.status(400).json({ mensaje: "Campo 'notas' requerido" });
   }
   try {
-    db.prepare("INSERT OR REPLACE INTO config_general (clave, valor) VALUES (?, ?)").run(`note_${codigo}`, notas);
+    db.prepare(
+      "INSERT OR REPLACE INTO config_general (clave, valor) VALUES (?, ?)",
+    ).run(`note_${codigo}`, notas);
     res.json({ exito: true, mensaje: "Notas guardadas", codigo });
   } catch (e) {
     console.error("Error escribiendo notas en SQLite:", e);

@@ -26,13 +26,13 @@ document.addEventListener("DOMContentLoaded", () => {
     if (isSticky) {
       // Estado STICKY: El logo debe ser Logo 1x4 b&w.svg
       // Comprobamos si el logo actual es el REGULAR antes de cambiar
-      if (logo.src.endsWith(LOGO_REGULAR)) {
+      if (logo?.src.endsWith(LOGO_REGULAR)) {
         logo.src = `./img/${LOGO_STICKY}`;
       }
     } else {
       // Estado REGULAR (no sticky): El logo debe ser tigre2.svg
       // Comprobamos si el logo actual es el STICKY antes de cambiar
-      if (logo.src.endsWith(LOGO_STICKY)) {
+      if (logo?.src.endsWith(LOGO_STICKY)) {
         logo.src = `./img/${LOGO_REGULAR}`;
       }
     }

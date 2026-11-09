@@ -35,8 +35,8 @@ const registrarCodigo = async (codigo, resultadoDiv, inputToRefocus = null) => {
         resultadoDiv.innerHTML = `
           <div style="padding: 10px; letter-spacing: 1px; border-radius: 8px; width: 100%;">
             <span><b>Ciclo:</b> ${data.ciclo} | <b>Turno:</b> ${
-          data.turno
-        }</span>
+              data.turno
+            }</span>
             <br>
             <span>📚 <b>${data.nombre}</b> registrado</span>
             <br>
@@ -195,7 +195,7 @@ document
       await html5QrCode.start(
         { facingMode: "environment" },
         config,
-        onScanSuccess
+        onScanSuccess,
       );
       // Ocultar mensaje de espera si la cámara arranca bien
       // resultadoDiv.innerHTML = "<span>¡Cámara lista!</span>";
@@ -223,6 +223,15 @@ if (btnPrestamoLibros) {
     }
 
     const box = document.querySelector(".box-header");
+    const session = await window.ingematSession;
+    if (
+      !session?.usuario ||
+      !["admin", "recepcion"].includes(session.usuario.role)
+    ) {
+      box.innerHTML =
+        '<h2>Préstamos de biblioteca</h2><p>Una cuenta de recepción o administración debe registrar los préstamos.</p><a class="btn-red" href="/admin">Iniciar sesión</a>';
+      return;
+    }
     box.innerHTML = `
       <img src="./img/Logo 1x1 nb.png" alt="Logo Ingemat" style="width:14rem;"/>
       <h2 style="margin: 10px 0; color: var(--red); font-family: var(--font-heading);">📚 Préstamo de Libros</h2>
@@ -259,7 +268,12 @@ if (btnPrestamoLibros) {
     libroInput.focus();
 
     // Inicializar autocompletado inteligente de libros
-    setupIntelligentBookSearch(libroInput, estudianteInput, previewEl, dropdownEl);
+    setupIntelligentBookSearch(
+      libroInput,
+      estudianteInput,
+      previewEl,
+      dropdownEl,
+    );
 
     const handleRegistrarPrestamo = async () => {
       const codLibro = libroInput.value.trim().toUpperCase();
@@ -276,7 +290,10 @@ if (btnPrestamoLibros) {
         const response = await fetch("/api/biblioteca/prestamo", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ codigoLibro: codLibro, codigoUsuario: codEstudiante }),
+          body: JSON.stringify({
+            codigoLibro: codLibro,
+            codigoUsuario: codEstudiante,
+          }),
         });
 
         const data = await response.json();
@@ -319,7 +336,12 @@ if (btnPrestamoLibros) {
 }
 
 // Búsqueda inteligente / predictiva de libros para préstamos
-async function setupIntelligentBookSearch(libroInput, estudianteInput, previewEl, dropdownEl) {
+async function setupIntelligentBookSearch(
+  libroInput,
+  estudianteInput,
+  previewEl,
+  dropdownEl,
+) {
   if (!libroInput || !dropdownEl) return;
 
   let librosList = [];
@@ -345,7 +367,7 @@ async function setupIntelligentBookSearch(libroInput, estudianteInput, previewEl
           l.codigo.toLowerCase().includes(q) ||
           l.titulo.toLowerCase().includes(q) ||
           (l.editorial && l.editorial.toLowerCase().includes(q)) ||
-          (l.seccion && l.seccion.toLowerCase().includes(q))
+          (l.seccion && l.seccion.toLowerCase().includes(q)),
       );
     }
 
@@ -405,7 +427,9 @@ async function setupIntelligentBookSearch(libroInput, estudianteInput, previewEl
   }
 
   function seleccionarLibro(codigo) {
-    const libro = librosList.find((l) => l.codigo.toUpperCase() === codigo.toUpperCase());
+    const libro = librosList.find(
+      (l) => l.codigo.toUpperCase() === codigo.toUpperCase(),
+    );
     if (libro) {
       libroInput.value = libro.codigo;
       if (previewEl) {
@@ -436,13 +460,17 @@ async function setupIntelligentBookSearch(libroInput, estudianteInput, previewEl
       e.preventDefault();
       if (items.length === 0) return;
       selectedIndex = (selectedIndex + 1) % items.length;
-      items.forEach((it, i) => it.classList.toggle("active", i === selectedIndex));
+      items.forEach((it, i) =>
+        it.classList.toggle("active", i === selectedIndex),
+      );
       items[selectedIndex]?.scrollIntoView({ block: "nearest" });
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       if (items.length === 0) return;
       selectedIndex = (selectedIndex - 1 + items.length) % items.length;
-      items.forEach((it, i) => it.classList.toggle("active", i === selectedIndex));
+      items.forEach((it, i) =>
+        it.classList.toggle("active", i === selectedIndex),
+      );
       items[selectedIndex]?.scrollIntoView({ block: "nearest" });
     } else if (e.key === "Enter" || e.keyCode === 13) {
       if (selectedIndex >= 0 && items[selectedIndex]) {
@@ -473,13 +501,29 @@ function ordenarLibrosPublico(libros, sortKey = "titulo_asc") {
   const lista = [...libros];
   switch (sortKey) {
     case "titulo_asc":
-      return lista.sort((a, b) => (a.titulo || "").localeCompare(b.titulo || "", "es", { sensitivity: "base" }));
+      return lista.sort((a, b) =>
+        (a.titulo || "").localeCompare(b.titulo || "", "es", {
+          sensitivity: "base",
+        }),
+      );
     case "titulo_desc":
-      return lista.sort((a, b) => (b.titulo || "").localeCompare(a.titulo || "", "es", { sensitivity: "base" }));
+      return lista.sort((a, b) =>
+        (b.titulo || "").localeCompare(a.titulo || "", "es", {
+          sensitivity: "base",
+        }),
+      );
     case "codigo_asc":
-      return lista.sort((a, b) => (a.codigo || "").localeCompare(b.codigo || "", undefined, { numeric: true }));
+      return lista.sort((a, b) =>
+        (a.codigo || "").localeCompare(b.codigo || "", undefined, {
+          numeric: true,
+        }),
+      );
     case "codigo_desc":
-      return lista.sort((a, b) => (b.codigo || "").localeCompare(a.codigo || "", undefined, { numeric: true }));
+      return lista.sort((a, b) =>
+        (b.codigo || "").localeCompare(a.codigo || "", undefined, {
+          numeric: true,
+        }),
+      );
     case "disponible":
       return lista.sort((a, b) => {
         if (a.estado === "disponible" && b.estado !== "disponible") return -1;
@@ -499,6 +543,12 @@ async function cargarEstantePublico() {
   if (!container) return;
 
   try {
+    const session = await window.ingematSession;
+    if (!session?.usuario) {
+      container.innerHTML =
+        '<p>El catálogo y los préstamos están disponibles para el personal autorizado. <a href="/admin">Iniciar sesión</a></p>';
+      return;
+    }
     const res = await fetch("/api/biblioteca");
     const data = await res.json();
 
@@ -509,7 +559,9 @@ async function cargarEstantePublico() {
 
     const { secciones, libros } = data;
     const filterInput = document.getElementById("public-book-search");
-    const searchTerm = filterInput ? filterInput.value.trim().toLowerCase() : "";
+    const searchTerm = filterInput
+      ? filterInput.value.trim().toLowerCase()
+      : "";
 
     let html = "";
 
@@ -520,7 +572,7 @@ async function cargarEstantePublico() {
           (!searchTerm ||
             (l.titulo && l.titulo.toLowerCase().includes(searchTerm)) ||
             (l.codigo && l.codigo.toLowerCase().includes(searchTerm)) ||
-            (l.editorial && l.editorial.toLowerCase().includes(searchTerm)))
+            (l.editorial && l.editorial.toLowerCase().includes(searchTerm))),
       );
 
       if (searchTerm && librosSeccion.length === 0) {

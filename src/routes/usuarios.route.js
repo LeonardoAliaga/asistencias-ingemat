@@ -4,14 +4,18 @@ const db = require("../database/db");
 const { normalizarTexto, getCiclosData } = require("../utils/helpers");
 
 const router = express.Router();
+const { randomUUID } = require("node:crypto");
 
 // Helper para leer usuarios desde SQLite
 function readUsuarios() {
-  const rows = db.prepare("SELECT * FROM usuarios ORDER BY apellido ASC, nombre ASC").all();
+  const rows = db
+    .prepare("SELECT * FROM usuarios ORDER BY apellido ASC, nombre ASC")
+    .all();
   return rows.map((u) => {
     const nombre = u.nombre ? String(u.nombre).trim().toUpperCase() : "";
     const apellido = u.apellido ? String(u.apellido).trim().toUpperCase() : "";
-    const nombre_completo = `${apellido}${apellido && nombre ? " " : ""}${nombre}`.trim();
+    const nombre_completo =
+      `${apellido}${apellido && nombre ? " " : ""}${nombre}`.trim();
     let dias_asistencia = ["L", "M", "MI", "J", "V", "S"];
     try {
       dias_asistencia = JSON.parse(u.dias_asistencia || "[]");
@@ -29,6 +33,8 @@ function readUsuarios() {
       turno: u.turno || "",
       ciclo: u.ciclo || "",
       dias_asistencia,
+      area: u.area || "",
+      uid: u.uid,
     };
   });
 }
@@ -59,9 +65,17 @@ router.post("/", (req, res) => {
   }
 
   const codigoNuevo = String(nuevoUsuario.codigo).trim().toUpperCase();
+  if (!/^[A-Z0-9_-]{1,32}$/.test(codigoNuevo))
+    return res.status(400).json({
+      exito: false,
+      mensaje:
+        "El código debe tener de 1 a 32 letras, números, guiones o guiones bajos.",
+    });
 
   // Verificar duplicado
-  const existente = db.prepare("SELECT codigo FROM usuarios WHERE codigo = ?").get(codigoNuevo);
+  const existente = db
+    .prepare("SELECT codigo FROM usuarios WHERE codigo = ?")
+    .get(codigoNuevo);
   if (existente) {
     return res.status(409).json({
       exito: false,
@@ -69,12 +83,12 @@ router.post("/", (req, res) => {
     });
   }
 
-  let turno = nuevoUsuario.turno || "";
+  let turno = String(nuevoUsuario.turno || "").toLowerCase();
   let ciclo = nuevoUsuario.ciclo || "";
   let dias_asistencia = nuevoUsuario.dias_asistencia;
 
   if (nuevoUsuario.rol === "estudiante") {
-    if (!turno || !ciclo) {
+    if (!["mañana", "tarde"].includes(turno) || !ciclo) {
       return res.status(400).json({
         exito: false,
         mensaje: "Turno y ciclo son obligatorios para estudiantes.",
@@ -83,7 +97,7 @@ router.post("/", (req, res) => {
     try {
       const ciclosData = getCiclosData();
       const existe = (ciclosData.ciclos || []).some(
-        (c) => normalizarTexto(c) === normalizarTexto(ciclo)
+        (c) => normalizarTexto(c) === normalizarTexto(ciclo),
       );
       if (!existe) {
         return res.status(400).json({
@@ -103,20 +117,52 @@ router.post("/", (req, res) => {
       dias_asistencia = ["L", "M", "MI", "J", "V", "S"];
     }
   } else {
-    return res.status(400).json({ exito: false, mensaje: "Rol de usuario no válido." });
+    return res
+      .status(400)
+      .json({ exito: false, mensaje: "Rol de usuario no válido." });
   }
 
+  if (
+    !Array.isArray(dias_asistencia) ||
+    dias_asistencia.some(
+      (day) => !["L", "M", "MI", "J", "V", "S", "D"].includes(day),
+    )
+  )
+    return res
+      .status(400)
+      .json({ exito: false, mensaje: "Días de asistencia inválidos." });
   const nombre = String(nuevoUsuario.nombre).trim().toUpperCase();
-  const apellido = (nuevoUsuario.apellido || "").trim().toUpperCase();
+  const apellido = String(nuevoUsuario.apellido || "")
+    .trim()
+    .toUpperCase();
+  if (!nombre || nombre.length > 100 || apellido.length > 100)
+    return res
+      .status(400)
+      .json({ exito: false, mensaje: "Nombre o apellido inválido." });
 
   try {
-    db.prepare(`
-      INSERT INTO usuarios (codigo, nombre, apellido, rol, turno, ciclo, dias_asistencia)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(codigoNuevo, nombre, apellido, nuevoUsuario.rol, turno, ciclo, JSON.stringify(dias_asistencia));
+    db.prepare(
+      `
+      INSERT INTO usuarios (codigo, nombre, apellido, rol, turno, ciclo, dias_asistencia,uid)
+      VALUES (?, ?, ?, ?, ?, ?, ?,?)
+    `,
+    ).run(
+      codigoNuevo,
+      nombre,
+      apellido,
+      nuevoUsuario.rol,
+      turno,
+      ciclo,
+      JSON.stringify(dias_asistencia),
+      randomUUID(),
+    );
 
-    console.log(`Usuarios Route: Usuario '${apellido} ${nombre}' (${nuevoUsuario.rol}) guardado en SQLite.`);
-    res.status(201).json({ exito: true, mensaje: "Usuario agregado correctamente." });
+    console.log(
+      `Usuarios Route: Usuario '${apellido} ${nombre}' (${nuevoUsuario.rol}) guardado en SQLite.`,
+    );
+    res
+      .status(201)
+      .json({ exito: true, mensaje: "Usuario agregado correctamente." });
   } catch (err) {
     res.status(500).json({ exito: false, mensaje: err.message });
   }
@@ -126,47 +172,116 @@ router.post("/", (req, res) => {
 router.put("/:codigo", (req, res) => {
   const originalCodigo = String(req.params.codigo).trim().toUpperCase();
   const updatedUsuario = req.body || {};
-  const nuevoCodigo = String(updatedUsuario.codigo || originalCodigo).trim().toUpperCase();
+  const nuevoCodigo = String(updatedUsuario.codigo || originalCodigo)
+    .trim()
+    .toUpperCase();
+  if (
+    !/^[A-Z0-9_-]{1,32}$/.test(nuevoCodigo) ||
+    !["estudiante", "docente"].includes(updatedUsuario.rol)
+  )
+    return res
+      .status(400)
+      .json({ exito: false, mensaje: "Código o rol inválido." });
 
   if (!updatedUsuario.codigo || !updatedUsuario.nombre || !updatedUsuario.rol) {
-    return res.status(400).json({ exito: false, mensaje: "Faltan datos obligatorios." });
+    return res
+      .status(400)
+      .json({ exito: false, mensaje: "Faltan datos obligatorios." });
   }
 
-  const userExistente = db.prepare("SELECT * FROM usuarios WHERE codigo = ?").get(originalCodigo);
+  const userExistente = db
+    .prepare("SELECT * FROM usuarios WHERE codigo = ?")
+    .get(originalCodigo);
   if (!userExistente) {
-    return res.status(404).json({ exito: false, mensaje: "Usuario original no encontrado." });
+    return res
+      .status(404)
+      .json({ exito: false, mensaje: "Usuario original no encontrado." });
   }
 
   if (originalCodigo !== nuevoCodigo) {
-    const dup = db.prepare("SELECT codigo FROM usuarios WHERE codigo = ?").get(nuevoCodigo);
+    const dup = db
+      .prepare("SELECT codigo FROM usuarios WHERE codigo = ?")
+      .get(nuevoCodigo);
     if (dup) {
-      return res.status(409).json({ exito: false, mensaje: `El nuevo código '${nuevoCodigo}' ya está en uso.` });
+      return res.status(409).json({
+        exito: false,
+        mensaje: `El nuevo código '${nuevoCodigo}' ya está en uso.`,
+      });
     }
   }
 
   const nombre = String(updatedUsuario.nombre).trim().toUpperCase();
-  const apellido = String(updatedUsuario.apellido || "").trim().toUpperCase();
-  let turno = updatedUsuario.turno || userExistente.turno;
+  const apellido = String(updatedUsuario.apellido || "")
+    .trim()
+    .toUpperCase();
+  let turno = String(updatedUsuario.turno || userExistente.turno).toLowerCase();
   let ciclo = updatedUsuario.ciclo || userExistente.ciclo;
-  let dias_asistencia = updatedUsuario.dias_asistencia || JSON.parse(userExistente.dias_asistencia || "[]");
+  if (!nombre || nombre.length > 100 || apellido.length > 100)
+    return res
+      .status(400)
+      .json({ exito: false, mensaje: "Nombre o apellido inválido." });
+  if (
+    updatedUsuario.rol === "estudiante" &&
+    (!["mañana", "tarde"].includes(turno) ||
+      !getCiclosData().ciclos.some(
+        (c) => normalizarTexto(c) === normalizarTexto(ciclo),
+      ))
+  )
+    return res
+      .status(400)
+      .json({ exito: false, mensaje: "Turno o ciclo inválido." });
+  let dias_asistencia =
+    updatedUsuario.dias_asistencia ||
+    JSON.parse(userExistente.dias_asistencia || "[]");
 
   if (updatedUsuario.rol === "docente") {
     turno = "";
     ciclo = "";
   }
+  if (
+    !Array.isArray(dias_asistencia) ||
+    !dias_asistencia.length ||
+    dias_asistencia.some(
+      (day) => !["L", "M", "MI", "J", "V", "S", "D"].includes(day),
+    )
+  )
+    return res
+      .status(400)
+      .json({ exito: false, mensaje: "Días de asistencia inválidos." });
 
   try {
     db.transaction(() => {
       if (originalCodigo !== nuevoCodigo) {
-        db.prepare("DELETE FROM usuarios WHERE codigo = ?").run(originalCodigo);
+        for (const [table, column] of [
+          ["respuestas_evaluacion", "codigoEstudiante"],
+          ["registros_tarea", "codigoEstudiante"],
+          ["prestamos", "estudianteCodigo"],
+          ["omr_sheets", "student_code"],
+          ["attendance", "student_code"],
+          ["grade_history", "student_code"],
+        ])
+          db.prepare(`UPDATE ${table} SET ${column}=? WHERE ${column}=?`).run(
+            nuevoCodigo,
+            originalCodigo,
+          );
       }
-      db.prepare(`
-        INSERT OR REPLACE INTO usuarios (codigo, nombre, apellido, rol, turno, ciclo, dias_asistencia)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).run(nuevoCodigo, nombre, apellido, updatedUsuario.rol, turno, ciclo, JSON.stringify(dias_asistencia));
+      db.prepare(
+        "UPDATE usuarios SET codigo=?,nombre=?,apellido=?,rol=?,turno=?,ciclo=?,dias_asistencia=? WHERE codigo=?",
+      ).run(
+        nuevoCodigo,
+        nombre,
+        apellido,
+        updatedUsuario.rol,
+        turno,
+        ciclo,
+        JSON.stringify(dias_asistencia),
+        originalCodigo,
+      );
     })();
 
-    console.log(`Usuarios Route: Usuario '${originalCodigo}' actualizado a '${nuevoCodigo}' en SQLite.`);
+    console.log(
+      `Usuarios Route: Usuario '${originalCodigo}' actualizado a '${nuevoCodigo}' en SQLite.`,
+    );
     res.json({ exito: true, mensaje: "Usuario actualizado correctamente." });
   } catch (err) {
     res.status(500).json({ exito: false, mensaje: err.message });
@@ -178,11 +293,37 @@ router.delete("/:codigo", (req, res) => {
   const codigoAEliminar = String(req.params.codigo).trim().toUpperCase();
 
   try {
-    const info = db.prepare("DELETE FROM usuarios WHERE codigo = ?").run(codigoAEliminar);
+    const user = db
+      .prepare("SELECT uid FROM usuarios WHERE codigo=?")
+      .get(codigoAEliminar);
+    const history = db
+      .prepare(
+        "SELECT 1 FROM respuestas_evaluacion WHERE codigoEstudiante=? UNION ALL SELECT 1 FROM attendance WHERE user_uid=? UNION ALL SELECT 1 FROM registros_tarea WHERE codigoEstudiante=? UNION ALL SELECT 1 FROM prestamos WHERE estudianteCodigo=? UNION ALL SELECT 1 FROM exam_roster WHERE user_uid=? LIMIT 1",
+      )
+      .get(
+        codigoAEliminar,
+        user?.uid || "",
+        codigoAEliminar,
+        codigoAEliminar,
+        user?.uid || "",
+      );
+    if (history)
+      return res.status(409).json({
+        exito: false,
+        mensaje:
+          "Este usuario tiene historial académico. Conserva su registro y cambia su ciclo si corresponde.",
+      });
+    const info = db
+      .prepare("DELETE FROM usuarios WHERE codigo = ?")
+      .run(codigoAEliminar);
     if (info.changes === 0) {
-      return res.status(404).json({ exito: false, mensaje: "Usuario no encontrado." });
+      return res
+        .status(404)
+        .json({ exito: false, mensaje: "Usuario no encontrado." });
     }
-    console.log(`Usuarios Route: Usuario con código '${codigoAEliminar}' eliminado de SQLite.`);
+    console.log(
+      `Usuarios Route: Usuario con código '${codigoAEliminar}' eliminado de SQLite.`,
+    );
     res.json({ exito: true, mensaje: "Usuario eliminado." });
   } catch (err) {
     res.status(500).json({ exito: false, mensaje: err.message });

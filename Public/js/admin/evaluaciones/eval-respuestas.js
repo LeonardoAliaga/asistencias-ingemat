@@ -22,6 +22,8 @@ export function setupFormRegistrarRespuesta() {
       const evalId = evalSelect.value;
       const evalObj = evalState.globalEvaluaciones.find((e) => e.id === evalId);
 
+      evalState.responseDraft=null;
+      evalState.modalState.respuestas={};
       // Limpiar datos del alumno previamente buscado
       searchInput.value = "";
       if (hiddenCodeInput) hiddenCodeInput.value = "";
@@ -91,7 +93,8 @@ export function setupFormRegistrarRespuesta() {
         }
         requestBody.notaManual = parseFloat(notaVal);
       } else {
-        const respuestas = evalState.modalState.mode === "respuesta_estudiante" ? evalState.modalState.respuestas : {};
+        const draft=evalState.responseDraft;
+        const respuestas=draft&&draft.evalId===evalId&&draft.codigo===codigoEstudiante.toUpperCase()?draft.respuestas:{};
         requestBody.respuestas = respuestas;
         if (isAreas && areaSelect) {
           requestBody.area = areaSelect.value;

@@ -183,7 +183,7 @@ if (formPassword) {
       const res = await fetch("/admin/password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nueva }),
+        body: JSON.stringify({ nueva, actual: document.getElementById("actual-password").value }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.mensaje || `Error ${res.status}`);
@@ -483,7 +483,9 @@ window.onload = async function () {
   // *** CORRECCIÓN: Llamar a initUserFormEvents DESPUÉS de que cargarUsuarios haya terminado ***
   initUserFormEvents();
 
-  mostrarVista("vista-principal", "btn-vista-inicio");
+  if (document.querySelector(".nav-button.active")?.id === "btn-vista-inicio") {
+    mostrarVista("vista-principal", "btn-vista-inicio");
+  }
 
   window.addEventListener("cyclesUpdated", async () => {
     await cargarCiclos();

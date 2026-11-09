@@ -13,12 +13,15 @@ const {
   estiloDocenteRegistrado,
   estiloTardanzaJustificada, // <-- AÑADIDO
 } = require("../services/excel/excel.constants.js");
-const { getExcelData, findSection, generateReportImage } = require("../services/report-generator.js");
-const usuariosPath = path.join(__dirname, "../../data/usuarios.json");
+const {
+  getExcelData,
+  findSection,
+  generateReportImage,
+} = require("../services/report-generator.js");
 // --- FIN IMPORTACIONES ---
 
 const router = express.Router();
-const registrosPath = path.join(__dirname, "../../Registros");
+const { recordsDir: registrosPath } = require("../config");
 
 // Helper para asegurar que la carpeta Registros exista
 function ensureRegistrosDir() {
@@ -56,13 +59,19 @@ router.get("/", (req, res) => {
 router.get("/section-data", async (req, res) => {
   const { archivo, ciclo, turno } = req.query;
   if (!archivo || !ciclo || !turno) {
-    return res.status(400).json({ exito: false, mensaje: "Faltan parámetros: archivo, ciclo, turno" });
+    return res.status(400).json({
+      exito: false,
+      mensaje: "Faltan parámetros: archivo, ciclo, turno",
+    });
   }
   try {
     const allData = await getExcelData(archivo);
     const section = findSection(allData, ciclo, turno);
     if (!section) {
-      return res.status(404).json({ exito: false, mensaje: `No se encontraron registros para ${ciclo} - ${turno}.` });
+      return res.status(404).json({
+        exito: false,
+        mensaje: `No se encontraron registros para ${ciclo} - ${turno}.`,
+      });
     }
 
     const dateHeader =
@@ -87,7 +96,7 @@ router.get("/section-data", async (req, res) => {
     });
   } catch (err) {
     console.error("Excel Route: Error al obtener section-data:", err);
-    res.status(500).json({ exito: false, mensaje: err.message });
+    res.status(err.status || 500).json({ exito: false, mensaje: err.message });
   }
 });
 
@@ -98,15 +107,21 @@ router.get("/report-image", async (req, res) => {
     return res.status(400).send("Faltan parámetros: archivo, ciclo, turno");
   }
   try {
-    const imageBuffer = await generateReportImage(ciclo, turno, archivo, { threeColumns: true });
+    const imageBuffer = await generateReportImage(ciclo, turno, archivo, {
+      threeColumns: true,
+    });
     if (!imageBuffer) {
-      return res.status(404).send("No se encontraron registros para esa sección.");
+      return res
+        .status(404)
+        .send("No se encontraron registros para esa sección.");
     }
     res.set("Content-Type", "image/png");
     res.send(imageBuffer);
   } catch (err) {
     console.error("Excel Route: Error al generar report-image:", err);
-    res.status(500).send("Error al generar la imagen.");
+    res
+      .status(err.status || 500)
+      .send(err.status ? err.message : "Error al generar la imagen.");
   }
 });
 
@@ -120,13 +135,17 @@ router.get("/preview/:archivo", async (req, res) => {
   ) {
     return res.status(400).json({ mensaje: "Nombre de archivo inválido." });
   }
+  if (path.basename(archivo) !== archivo || /[\\\/]/.test(archivo))
+    return res
+      .status(400)
+      .json({ exito: false, mensaje: "Nombre de archivo inválido." });
   const ruta = path.join(registrosPath, archivo);
 
   if (!fs.existsSync(ruta)) {
     return res.status(404).json({ mensaje: "Archivo no encontrado" });
   }
   console.log(
-    `Excel Route: Generando preview para ${archivo} (todas las hojas)`
+    `Excel Route: Generando preview para ${archivo} (todas las hojas)`,
   );
 
   try {
@@ -311,6 +330,8 @@ router.post("/justificar", async (req, res) => {
       .json({ exito: false, mensaje: "Faltan código o fecha." });
   }
 
+  if (!/^\d{2}-\d{2}-\d{4}$/.test(fecha))
+    return res.status(400).json({ exito: false, mensaje: "Fecha inválida." });
   const fileName = `${fecha}.xlsx`;
   const rutaExcel = path.join(registrosPath, fileName);
 
@@ -323,7 +344,9 @@ router.post("/justificar", async (req, res) => {
   try {
     // 1. Encontrar al usuario y su hoja desde SQLite
     const db = require("../database/db");
-    const usuario = db.prepare("SELECT * FROM usuarios WHERE codigo = ?").get(codigo);
+    const usuario = db
+      .prepare("SELECT * FROM usuarios WHERE codigo = ?")
+      .get(codigo);
 
     if (!usuario) {
       return res
@@ -352,7 +375,7 @@ router.post("/justificar", async (req, res) => {
         .json({ exito: false, mensaje: `Hoja ${sheetName} no encontrada.` });
     }
 
-    let filaEncontrada = null;
+    const coincidencias = [];
     hoja.eachRow((row, rowNumber) => {
       let celdaNombre = row.getCell(2).value;
       if (typeof celdaNombre === "object" && celdaNombre?.richText) {
@@ -363,16 +386,24 @@ router.post("/justificar", async (req, res) => {
         normalizarTexto(celdaNombre?.toString() || "") ===
         normalizarTexto(getFullName(usuario))
       ) {
-        filaEncontrada = row;
-        return false; // Detener bucle
+        coincidencias.push(row);
       }
     });
 
+    if (coincidencias.length > 1)
+      return res
+        .status(409)
+        .json({
+          exito: false,
+          mensaje:
+            "El archivo histórico tiene varios alumnos con el mismo nombre. Verifica el archivo manualmente; no es seguro elegir una fila por código.",
+        });
+    const filaEncontrada = coincidencias[0];
     if (!filaEncontrada) {
       return res.status(404).json({
         exito: false,
         mensaje: `Usuario ${getFullName(
-          usuario
+          usuario,
         )} no encontrado en la hoja ${sheetName}.`,
       });
     }
@@ -427,10 +458,14 @@ router.get("/:archivo", (req, res) => {
     !archivo.endsWith(".xlsx")
   ) {
     console.log(
-      `Excel Route: Intento de acceso inválido a archivo: ${archivo}`
+      `Excel Route: Intento de acceso inválido a archivo: ${archivo}`,
     );
     return res.status(400).send("Nombre de archivo inválido.");
   }
+  if (path.basename(archivo) !== archivo || /[\\\/]/.test(archivo))
+    return res
+      .status(400)
+      .json({ exito: false, mensaje: "Nombre de archivo inválido." });
   const ruta = path.join(registrosPath, archivo);
 
   if (!fs.existsSync(ruta)) {
