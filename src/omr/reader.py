@@ -69,48 +69,119 @@ def read_qr(normalized, layout):
             return value
     return ''
 
+def read_options(mask, options):
+    ratios = {}
+    for opt in options:
+        cx, cy = round(opt['x'] * SCALE), round(opt['y'] * SCALE)
+        ring = opt.get('sample') == 'ring'
+        radius = max(2, round(opt['radius'] * SCALE * (.85 if ring else .65)))
+        yy, xx = np.ogrid[-radius:radius+1, -radius:radius+1]
+        circle = xx*xx + yy*yy <= radius*radius
+        if ring:
+            circle &= xx*xx + yy*yy >= (opt['radius'] * SCALE * .65)**2
+        roi = mask[cy-radius:cy+radius+1, cx-radius:cx+radius+1]
+        if roi.shape != circle.shape or not np.any(circle):
+            raise ValueError('Hay círculos fuera del área de lectura.')
+        ratios[opt['option']] = round(float(np.mean(roi[circle] > 0)), 4)
+    marked = [o for o, density in ratios.items() if density >= .50]
+    uncertain = [o for o, density in ratios.items() if .12 < density < .50]
+    state = 'multiple' if len(marked) > 1 else 'uncertain' if uncertain else 'single' if marked else 'blank'
+    return {'status': state, 'options': marked, 'densities': ratios}
+
+def split_cartillas(image):
+    """Find separate marker rectangles on imposed A4s; never mix their corners."""
+    detector = cv2.aruco.ArucoDetector(cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50))
+    corners, ids, _ = detector.detectMarkers(cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))
+    if ids is None or max(list(ids.flatten()).count(i) for i in range(4)) <= 1:
+        return [image], False
+    tags = [(int(i), c[0], np.mean(c[0], axis=0)) for c, i in zip(corners, ids.flatten()) if int(i) in range(4)]
+    used, crops = set(), []
+    for anchor, (identifier, points, center) in enumerate(tags):
+        if identifier != 0:
+            continue
+        right = points[1] - points[0]; right /= np.linalg.norm(right)
+        down = points[3] - points[0]; down /= np.linalg.norm(down)
+        def nearest(kind, axis):
+            choices = []
+            for index, (code, _, pos) in enumerate(tags):
+                vector = pos - center; along = float(np.dot(vector, axis))
+                across = abs(float(vector[0]*axis[1] - vector[1]*axis[0]))
+                if code == kind and index not in used and along > 0 and across < along * .4:
+                    choices.append((np.linalg.norm(vector), index))
+            return min(choices)[1] if choices else None
+        top_right, bottom_left = nearest(1, right), nearest(3, down)
+        if top_right is None or bottom_left is None:
+            continue
+        predicted = tags[top_right][2] + tags[bottom_left][2] - center
+        candidates = [(np.linalg.norm(pos-predicted), i) for i, (code, _, pos) in enumerate(tags) if code == 2 and i not in used]
+        if not candidates:
+            continue
+        distance, bottom_right = min(candidates)
+        if distance > .35 * min(np.linalg.norm(tags[top_right][2]-center), np.linalg.norm(tags[bottom_left][2]-center)):
+            continue
+        selected = [anchor, top_right, bottom_right, bottom_left]
+        polygon = np.float32([tags[i][2] for i in selected])
+        if not cv2.isContourConvex(polygon):
+            continue
+        if any(cv2.pointPolygonTest(polygon, tuple(map(float, pos)), False) >= 0 for i, (_, _, pos) in enumerate(tags) if i not in selected):
+            continue
+        hull = cv2.convexHull(np.concatenate([tags[i][1] for i in selected])).reshape(-1,2)
+        x,y,w,h = cv2.boundingRect(hull)
+        pad = 12; x0,y0 = max(0,x-pad),max(0,y-pad); x1,y1 = min(image.shape[1],x+w+pad),min(image.shape[0],y+h+pad)
+        crop = image[y0:y1,x0:x1].copy()
+        mask = np.zeros(crop.shape[:2], np.uint8)
+        cv2.fillConvexPoly(mask, np.round(hull-[x0,y0]).astype(np.int32), 255)
+        mask = cv2.dilate(mask, np.ones((7,7), np.uint8))
+        crop[mask == 0] = 255
+        crops.append(crop); used.update(selected)
+    return crops, len(used) != len(tags)
+
 def read_page(image, layouts, output):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     detector = cv2.aruco.ArucoDetector(cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50))
     corners, ids, _ = detector.detectMarkers(gray)
     if ids is None:
-        raise ValueError('No se reconocieron los marcadores. Usa una cartilla v2 y evita recortar las esquinas.')
+        raise ValueError('No se reconocieron los marcadores. Usa una cartilla generada por la app y evita recortar las esquinas.')
     detected = list(map(int, ids.flatten()))
     if any(detected.count(i) > 1 for i in range(4)):
         raise ValueError('Se detectaron marcadores repetidos. Escanea una sola cartilla por página.')
     centers = {int(i): np.mean(c[0], axis=0) for c, i in zip(corners, ids.flatten())}
     if not all(i in centers for i in range(4)):
         raise ValueError('Deben verse los cuatro marcadores de la cartilla.')
-    base = layouts[0]
     src = np.float32([centers[i] for i in range(4)])
-    dst = np.float32([[m['x'] * SCALE, m['y'] * SCALE] for m in base['markers']])
-    matrix = cv2.getPerspectiveTransform(src, dst)
-    normalized = cv2.warpPerspective(gray, matrix, (round(base['width'] * SCALE), round(base['height'] * SCALE)), borderValue=255)
-    qr = read_qr(normalized, base)
-    if not qr:
-        raise ValueError('No se pudo leer el QR. Repite el escaneo a 300 ppp sin filtros de limpieza.')
-    try:
-        page = int(qr.split(':')[2])
-        layout = next(l for l in layouts if l['page'] == page)
-    except (ValueError, IndexError, StopIteration):
-        raise ValueError('La página no corresponde al formato de este examen.')
+    normalized = layout = qr = None
+    for version in dict.fromkeys(l.get('version', 2) for l in layouts):
+        base = next(l for l in layouts if l.get('version', 2) == version)
+        dst = np.float32([[m['x'] * SCALE, m['y'] * SCALE] for m in base['markers']])
+        matrix = cv2.getPerspectiveTransform(src, dst)
+        candidate = cv2.warpPerspective(gray, matrix, (round(base['width'] * SCALE), round(base['height'] * SCALE)), borderValue=255)
+        value = read_qr(candidate, base)
+        if not value or not value.startswith(f'v{version}:'):
+            continue
+        try:
+            page = int(value.split(':')[2])
+            layout = next(l for l in layouts if l['page'] == page and l.get('version', 2) == version)
+        except (ValueError, IndexError, StopIteration):
+            continue
+        normalized, qr = candidate, value
+        break
+    if normalized is None:
+        raise ValueError('No se pudo reconocer el QR y formato. Conserva todos los marcadores y usa una imagen nítida.')
     mask = cv2.adaptiveThreshold(normalized, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 51, 15)
-    responses = {}
-    for bubble in layout['bubbles']:
-        ratios = {}
-        for opt in bubble['options']:
-            cx, cy = round(opt['x'] * SCALE), round(opt['y'] * SCALE)
-            radius = max(2, round(opt['radius'] * SCALE * .65))
-            yy, xx = np.ogrid[-radius:radius+1, -radius:radius+1]
-            circle = xx*xx + yy*yy <= radius*radius
-            roi = mask[cy-radius:cy+radius+1, cx-radius:cx+radius+1]
-            ratios[opt['option']] = round(float(np.mean(roi[circle] > 0)), 4)
-        marked = [o for o, density in ratios.items() if density >= .50]
-        uncertain = [o for o, density in ratios.items() if .12 < density < .50]
-        state = 'multiple' if len(marked) > 1 else 'uncertain' if uncertain else 'single' if marked else 'blank'
-        responses[str(bubble['question'])] = {'status': state, 'options': marked, 'densities': ratios}
+    responses = {str(bubble['question']): read_options(mask, bubble['options']) for bubble in layout['bubbles']}
+    identification = None
+    if layout.get('identification'):
+        spec = layout['identification']
+        columns = [read_options(mask, column['options']) for column in spec['columns']]
+        area = read_options(mask, spec['areas']) if spec['areas'] else None
+        identification = {
+            'columns': columns,
+            'code': ''.join(c['options'][0] for c in columns) if all(c['status'] == 'single' for c in columns) else '',
+            'area': spec.get('defaultArea') or (area['options'][0] if area and area['status'] == 'single' else ''),
+            'areaReading': area,
+        }
     cv2.imwrite(str(output), normalized)
-    return {'qr': qr, 'page': page, 'responses': responses, 'imagePath': str(output)}
+    return {'qr': qr, 'page': page, 'layoutVersion': layout.get('version', 2), 'identification': identification, 'responses': responses, 'imagePath': str(output)}
 
 def main(request):
     result = []
@@ -119,12 +190,16 @@ def main(request):
     for file in request['files']:
         try:
             for image in images(file['path']):
-                if len(result) >= MAX_PAGES:
-                    raise ValueError('El lote supera las 100 páginas.')
-                try:
-                    result.append({**read_page(image, request['layouts'], output_dir / f'{len(result)}.png'), 'file': file['name']})
-                except Exception as error:
-                    result.append({'file': file['name'], 'error': str(error)})
+                crops, incomplete = split_cartillas(image)
+                for crop in crops:
+                    if len(result) >= MAX_PAGES:
+                        raise ValueError('El lote supera las 100 caras de cartilla.')
+                    try:
+                        result.append({**read_page(crop, request['layouts'], output_dir / f'{len(result)}.png'), 'file': file['name']})
+                    except Exception as error:
+                        result.append({'file': file['name'], 'error': str(error)})
+                if incomplete:
+                    result.append({'file': file['name'], 'error': 'Hay marcadores sin una cartilla completa. Recorta o fotografía esa cartilla y repite la lectura.'})
         except Exception as error:
             result.append({'file': file['name'], 'error': str(error)})
     return {'pages': result}

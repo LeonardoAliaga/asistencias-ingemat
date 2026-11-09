@@ -378,16 +378,56 @@ B:51-100,1-50"
       <div data-local-panel="exam-sheets" hidden="">
         <div class="v2-card">
           <div class="v2-card-title">
-            <h3>Cartillas personalizadas</h3>
+            <h3>Generar cartillas</h3>
             <button class="v2-link" data-guide="imprimir-cartillas">
               Tutorial
             </button>
           </div>
           <p>
-            El QR identifica al alumno, área, versión y página. Se imprimen
-            todas las preguntas del cuadernillo.
+            El alumno escribe sus datos y marca su código de 8 dígitos y su
+            área. Los QR vinculan las caras con el examen, sin contener nombres.
+            Cada cartilla es única: genera la cantidad necesaria, no fotocopies
+            una sola.
           </p>
           <label
+            >Identificación<select id="v2-sheet-mode">
+              <option value="blank">
+                El alumno completa sus datos y código
+              </option>
+              <option value="personalized">
+                QR por estudiante · formato anterior A4
+              </option>
+            </select></label
+          >
+          <div id="v2-sheet-blank" class="v2-form-grid">
+            <label
+              >Tamaño y caras<select id="v2-sheet-format">
+                <option value="quarter-duplex">
+                  Cuarto de A4 horizontal · doble cara · 4 por hoja
+                </option>
+                <option value="half-single">
+                  Media A4 horizontal · una cara · 2 por hoja
+                </option>
+              </select></label
+            >
+            <label
+              >Cantidad de cartillas<input
+                id="v2-sheet-count"
+                type="number"
+                min="1"
+                max="500"
+                value="4"
+                required
+            /></label>
+            <label id="v2-sheet-edge-label"
+              >Impresión a doble cara<select id="v2-sheet-edge">
+                <option value="short">Voltear por borde corto</option>
+                <option value="long">Voltear por borde largo</option>
+              </select></label
+            >
+          </div>
+          <p id="v2-sheet-instructions" class="v2-help" role="status"></p>
+          <label id="v2-sheet-student-label" hidden
             >Estudiante<select id="v2-sheet-student">
               <option value="">Todo el ciclo</option>
             </select></label

@@ -6,25 +6,42 @@ const { sessionSecret } = require("../config");
 const { layouts } = require("./omr-layout");
 const markers = require("../omr/markers.json");
 const { AppError } = require("../utils/errors");
-function qrPayload(id, page) {
-  const body = `v2:${id}:${page}`;
+function qrPayload(id, page, version = 2) {
+  const body = `v${version}:${id}:${page}`;
   return `${body}:${createHmac("sha256", sessionSecret).update(body).digest("hex").slice(0, 24)}`;
 }
 function resolveQR(value) {
   const match = String(value).match(
-    /^v2:([a-f0-9-]{36}):(\d+):([a-f0-9]{24})$/,
+    /^v([234]):([a-f0-9-]{36}):(\d+):([a-f0-9]{24})$/,
   );
-  if (!match || qrPayload(match[1], Number(match[2])) !== value)
+  if (
+    !match ||
+    qrPayload(match[2], Number(match[3]), Number(match[1])) !== value
+  )
     throw new AppError("El identificador de la cartilla no es válido.");
-  const sheet = db.prepare("SELECT * FROM omr_sheets WHERE id=?").get(match[1]);
+  const sheet = db.prepare("SELECT * FROM omr_sheets WHERE id=?").get(match[2]);
   if (!sheet)
     throw new AppError("La cartilla no está registrada en esta academia.");
-  return { ...sheet, page: Number(match[2]) };
+  if (sheet.layout_version !== Number(match[1]))
+    throw new AppError("Versión de cartilla incompatible.");
+  return { ...sheet, page: Number(match[3]) };
 }
-async function makePDF(exam, students, { form = "A" } = {}) {
+async function makePDF(
+  exam,
+  students,
+  { form = "A", mode = "personalized", ...options } = {},
+) {
   if (!exam.definition || !["listo", "publicado"].includes(exam.estado))
     throw new AppError("Valida el examen antes de imprimir sus cartillas.");
   if (!exam.definition.forms[form]) throw new AppError("Versión desconocida.");
+  if (mode === "blank")
+    return require("./omr-booklet-pdf").makeBookletPDF(
+      exam,
+      { form, ...options },
+      qrPayload,
+    );
+  if (mode !== "personalized")
+    throw new AppError("Modo de cartilla desconocido.");
   if (!students.length || students.length > 500)
     throw new AppError("Selecciona entre 1 y 500 estudiantes.");
   const prepared = students.map((u) => {

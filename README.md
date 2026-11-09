@@ -74,7 +74,7 @@ La base de datos es `DATA_DIR/ingemat.db`; el valor predeterminado es `./data`. 
 3. Para cada área y curso define preguntas fijas o un conjunto elegible y cupo. La suma tiene que coincidir con el total evaluable del perfil.
 4. En **Claves**, selecciona las alternativas con botones A–E: avance automático, progreso por curso, navegación a pendientes y selección de varias respuestas aceptadas. También puedes pegar una secuencia de letras sin números. Las penalizaciones, excepciones y versiones están en opciones desplegables.
 5. En Revisión puedes **Guardar borrador** con claves pendientes o **Guardar y validar** cuando esté completo. Después la estructura se conserva.
-6. Asigna las áreas a los alumnos. En la pestaña **Imprimir cartillas** descarga las hojas personalizadas con QR. Un cuadernillo de 120 preguntas imprime las 120, aunque solo se evalúen 100 por alumno.
+6. Asigna las áreas a los alumnos. En **Imprimir cartillas** elige cuarto de A4 horizontal a doble cara (cuatro cartillas por hoja) o media A4 horizontal a una cara (dos por hoja), e indica cuántas cartillas necesitas. Incluyen logo, campos de identificación, código de ocho dígitos con círculos y preguntas por curso. Se conserva el formato anterior personalizado. Consulta [impresión e identificación](docs/CARTILLAS.md).
 7. En **Lectura de cartillas**, carga PDF/imágenes, importa CSV o usa **Usar cámara** para fotografiar hasta 10 hojas y procesarlas juntas. La cámara directa desde el celular requiere HTTPS; también hay captura con la cámara nativa. Revisa las incidencias y confirma el lote. Consulta [captura con cámara](docs/CAMARA.md).
 8. Comprueba resultados, desglose por curso y ranking; publica y, opcionalmente, programa los avisos individuales.
 

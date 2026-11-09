@@ -6,6 +6,12 @@ const { parse } = require("csv-parse/sync");
 const db = require("../database/db");
 const config = require("../config");
 const { layouts } = require("./omr-layout");
+const { bookletLayouts } = require("./omr-booklet-layout");
+function sheetLayouts(def, version) {
+  return version === 2
+    ? layouts(def.totalQuestions)
+    : bookletLayouts(def, version === 3 ? "quarter-duplex" : "half-single");
+}
 const { resolveQR } = require("./omr-pdf.service");
 const { getExam, saveGrade } = require("./evaluations.service");
 const { grade, normalizeResponse } = require("./grading.service");
@@ -166,6 +172,7 @@ function buildRows(exam, result, currentBatchId) {
   const sheets = new Map();
   let needsReview = false;
   for (const page of result.pages || []) {
+    delete page.warning;
     if (page.excluded) continue;
     if (page.error) {
       needsReview = true;
@@ -176,7 +183,7 @@ function buildRows(exam, result, currentBatchId) {
       if (
         sheet.evaluation_id !== exam.id ||
         sheet.revision > exam.revision ||
-        sheet.layout_version !== 2
+        ![2, 3, 4].includes(sheet.layout_version)
       )
         throw new AppError("Cartilla de otro examen o formato incompatible.");
       if (
@@ -199,12 +206,15 @@ function buildRows(exam, result, currentBatchId) {
       if (group.pages.has(sheet.page))
         throw new AppError("Página duplicada dentro de este lote.");
       if (
-        !layouts(exam.definition.totalQuestions).some(
+        !sheetLayouts(exam.definition, sheet.layout_version).some(
           (l) => l.page === sheet.page,
         )
       )
         throw new AppError("Página desconocida.");
       group.pages.add(sheet.page);
+      if (page.identification)
+        group.identification =
+          page.identificationOverride || page.identification;
       Object.assign(group.respuestas, page.responses);
       sheets.set(sheet.id, group);
       if (
@@ -221,7 +231,10 @@ function buildRows(exam, result, currentBatchId) {
   }
   const rows = [];
   for (const [sheetId, g] of sheets) {
-    const expected = layouts(exam.definition.totalQuestions).length;
+    const expected = sheetLayouts(
+      exam.definition,
+      g.sheet.layout_version,
+    ).length;
     if (g.pages.size !== expected) {
       needsReview = true;
       for (const p of result.pages)
@@ -230,6 +243,41 @@ function buildRows(exam, result, currentBatchId) {
       continue;
     }
     try {
+      if (g.sheet.layout_version !== 2) {
+        const identity = g.identification;
+        if (!identity || !/^\d{8}$/.test(identity.code || ""))
+          throw new AppError(
+            "Revisa la identificación: marca exactamente un dígito en cada una de las 8 columnas.",
+          );
+        const student = db
+          .prepare(
+            "SELECT * FROM usuarios WHERE codigo=? AND rol='estudiante' AND (UPPER(ciclo)=UPPER(?) OR uid IN (SELECT user_uid FROM exam_roster WHERE evaluation_id=?))",
+          )
+          .get(identity.code, exam.ciclo, exam.id);
+        if (!student)
+          throw new AppError(
+            "El código marcado no corresponde a un estudiante del examen. Revisa la identificación.",
+          );
+        if (!exam.definition.areas.some((a) => a.code === identity.area))
+          throw new AppError(
+            "Revisa la identificación: marca una sola área válida.",
+          );
+        if (
+          exam.definition.areas.length > 1 &&
+          student.area &&
+          student.area !== identity.area
+        )
+          throw new AppError(
+            "El área marcada no coincide con el perfil registrado. Revisa la cartilla y el perfil del alumno.",
+          );
+        g.sheet.student_code = identity.code;
+        g.sheet.area = identity.area;
+        for (const p of result.pages)
+          if (p.sheetId === sheetId) {
+            p.codigoEstudiante = identity.code;
+            p.area = identity.area;
+          }
+      }
       const preview = grade(
         exam.definition,
         g.respuestas,
@@ -337,7 +385,21 @@ async function processScanQueue() {
           ...f,
           path: path.resolve(config.dataDir, f.path),
         })),
-        layouts: layouts(exam.definition.totalQuestions),
+        layouts: [
+          ...layouts(exam.definition.totalQuestions),
+          ...(exam.definition.totalQuestions <= 120 &&
+          exam.definition.areas.length <= 5 &&
+          (exam.definition.areas.length === 1 ||
+            exam.definition.areas.every((a) => a.code.length === 1))
+            ? ["quarter-duplex", "half-single"].flatMap((format) => {
+                try {
+                  return bookletLayouts(exam.definition, format);
+                } catch {
+                  return [];
+                }
+              })
+            : []),
+        ],
         outputDir: path.join(root, b.id, "pages"),
       }),
     );
@@ -376,6 +438,25 @@ function reviewPage(id, index, body, req) {
       throw new AppError(
         "Esta página no se puede identificar. Exclúyela y vuelve a escanearla.",
       );
+    if (body.identification !== undefined) {
+      if (!page.identification || ![3, 4].includes(page.layoutVersion))
+        throw new AppError("Esta cara no tiene identificación editable.");
+      const identity = body.identification;
+      if (
+        !identity ||
+        !/^\d{8}$/.test(identity.code || "") ||
+        !getExam(b.evaluation_id).definition.areas.some(
+          (a) => a.code === identity.area,
+        )
+      )
+        throw new AppError("Indica un código de 8 dígitos y un área válida.");
+      page.identificationOverride = {
+        code: identity.code,
+        area: identity.area,
+        actor: req.session.username,
+        reason: body.reason,
+      };
+    }
     const normalized = {};
     for (const q of Object.keys(page.responses)) {
       if (!(q in (body.responses || {})))

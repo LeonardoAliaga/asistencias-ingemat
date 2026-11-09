@@ -177,17 +177,19 @@ Guarda cursos y matriz de áreas como una plantilla.
 4. **Revisa las reglas.** No asumas que el formato del examen anterior sigue vigente.
 5. **Exporta o importa estructura.** Usa el archivo JSON de estructura para llevar una configuración completa entre instalaciones. El archivo no contiene notas de estudiantes.
 
-## Imprimir cartillas personalizadas
+## Generar cartillas por curso y elegir tamaño de impresión
 
-El QR elimina la selección manual de estudiante, área y versión.
+Cuarto de A4 a doble cara o media A4 a una cara, siempre con cartillas horizontales.
 
-1. **Valida el examen.** Solo un examen listo o publicado puede generar cartillas.
-2. **Revisa el padrón.** Cada alumno debe pertenecer al ciclo y tener un área válida. Para un examen general no se requiere un perfil adicional.
-3. **Elige alcance y versión.** En Simulacros selecciona el examen y abre Imprimir cartillas. Elige todo el ciclo o un estudiante concreto y la versión; pulsa Descargar PDF de cartillas.
-4. **Imprime A4 horizontal al 100%.** No recortes las esquinas ni el QR. Usa papel blanco y prueba primero una hoja.
-5. **Comprueba identificación.** La hoja muestra alumno, código, área, versión, revisión y número de página.
-6. **Explica cómo marcar.** Rellenar una burbuja por pregunta, borrar completamente y no dibujar sobre los marcadores.
-7. **Conserva todas las páginas.** Los cuadernillos de más de 120 preguntas generan varias páginas y se agrupan por QR.
+1. **Valida el examen.** Solo un examen listo o publicado puede generar cartillas. La distribución por cursos y preguntas viene de su configuración.
+2. **Elige identificación.** En Simulacros selecciona el examen y abre Imprimir cartillas. La opción El alumno completa sus datos y código deja apellidos, nombres y área para escribir; incluye ocho casillas y ocho columnas de círculos del 0 al 9. Los alumnos necesitan códigos registrados de exactamente ocho dígitos; los ceros iniciales se conservan. Los nombres manuscritos son una referencia visual, no se leen por OCR.
+3. **Elige tamaño y cantidad.** Cuarto de A4 horizontal, doble cara coloca cuatro cartillas en una hoja A4 horizontal; frente y reverso se vinculan por QR y su posición se ajusta al borde de volteo elegido. Media A4 horizontal, una cara coloca dos cartillas en una hoja A4 vertical y contiene todas las respuestas en el frente. Indica la cantidad de cartillas, no la cantidad de hojas; los espacios sobrantes quedan vacíos. En media hoja caben las 120 preguntas en esa única cara; cuarto las reparte entre frente y reverso.
+4. **Imprime al 100%.** El PDF ya incluye varias cartillas por hoja. No actives dos o cuatro páginas por hoja ni ajustar al papel. Para cuarto usa doble cara, borde corto por defecto; para media desactiva la doble cara. La pantalla indica orientación, hojas y páginas. Las preferencias del PDF son una sugerencia: comprueba el diálogo y haz una impresión de prueba.
+5. **Explica cómo completar.** El alumno escribe y marca el mismo código, rellena un círculo por columna y una sola área. Rellena las respuestas según el área del examen. Las preguntas aparecen en pequeños bloques por curso; cont. indica que el mismo curso continúa en otra columna o cara. No dibujes sobre marcadores o QR.
+6. **Conserva los QR y revisa la lectura.** Cada cartilla tiene QR único. No fotocopies una sola para varios alumnos; genera la cantidad necesaria. El QR nuevo vincula examen, versión y cara; el alumno se identifica por los círculos del código. Puedes escanear la A4 completa, recortar las cartillas o fotografiarlas; para cuarto incluye ambas caras en el mismo lote. Un código o área dudoso queda pendiente de revisión, nunca se adivina.
+
+- El formato anterior QR por estudiante permanece disponible para cartillas A4 personalizadas y cuadernillos de más de 120 preguntas. Sus impresiones existentes siguen siendo legibles.
+- La disposición compacta admite hasta cinco áreas de un carácter o un único perfil general. Antes de imprimir un salón completo, prueba papel, márgenes y calidad de lectura.
 
 ## Escanear un salón completo con alimentador automático
 
@@ -227,6 +229,8 @@ Corrige la lectura sin perder su evidencia original.
 5. **Excluye páginas ilegibles.** Si el QR no se puede reconocer, excluye esa página con motivo y vuelve a escanear la cartilla. No asignes un estudiante por suposición.
 6. **Comprueba páginas y duplicados.** No se permite importar dos veces la misma página. Un alumno con varias páginas necesita el conjunto completo.
 7. **Confirma cuando esté listo.** Una lectura dudosa pendiente impide cerrar el lote. Las marcas dobles confirmadas se califican conforme a la regla del examen.
+
+- En una cartilla con código marcado, revisa también la identificación: el código debe existir en el padrón y el área debe ser válida. Si corriges a mano el código o el área, compara con la imagen, indica el motivo y confirma la revisión. El lector original y sus densidades se conservan.
 
 ## Importar respuestas desde CSV u otro lector OMR
 

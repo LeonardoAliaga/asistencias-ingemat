@@ -372,6 +372,10 @@ router.get("/exams/:id/sheets.pdf", write, async (req, res) => {
         .all(exam.ciclo, exam.id);
   const bytes = await makePDF(exam, students, {
     form: String(req.query.form || "A"),
+    mode: String(req.query.mode || "personalized"),
+    format: String(req.query.format || "quarter-duplex"),
+    count: Number(req.query.count ?? 4),
+    edge: String(req.query.edge || "short"),
   });
   audit(req, "imprimir_cartillas", "evaluacion", exam.id, {
     estudiantes: students.length,

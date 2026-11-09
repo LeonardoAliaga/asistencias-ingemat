@@ -914,7 +914,19 @@ function reviewPage(index) {
     `<div class="v2-scan-review"><div>${p.imageUrl ? `<a href="${esc(p.imageUrl)}" target="_blank" rel="noopener"><img src="${esc(p.imageUrl)}" alt="Cartilla escaneada; abrir para ampliar"></a>` : "<p>La página no se pudo identificar. Exclúyela con un motivo y vuelve a escanearla.</p>"}</div><form id="v2-review-form">${
       p.error
         ? `<p class="v2-notice warning">${esc(p.error)}</p>`
-        : `<div class="v2-question-grid">${Object.entries(p.responses)
+        : `${
+            p.identification
+              ? `<div class="v2-notice warning">Comprueba el código y el área contra la cartilla. Una corrección requiere motivo.</div><div class="v2-form-grid"><label>Código de 8 dígitos<input id="v2-review-code" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" required value="${esc((p.identificationOverride || p.identification).code)}"></label><label>Área marcada<select id="v2-review-area" required><option value="">Selecciona un área</option>${
+                  state.exams
+                    .find((e) => e.id === b.evaluation_id)
+                    ?.definition?.areas?.map(
+                      (a) =>
+                        `<option value="${esc(a.code)}">${esc(a.code)}</option>`,
+                    )
+                    .join("") || ""
+                }</select></label></div>`
+              : ""
+          }<div class="v2-question-grid">${Object.entries(p.responses)
             .map(
               ([q, r]) =>
                 `<label class="${["multiple", "uncertain"].includes(r.status) ? "doubt" : ""}">Pregunta ${q}<select data-review-question="${q}"><option value="?" ${r.status === "uncertain" ? "selected" : ""}>Revisar</option><option value="-" ${r.status === "blank" ? "selected" : ""}>Blanco</option>${["A", "B", "C", "D", "E"].map((o) => `<option value="${o}" ${r.status === "single" && r.options[0] === o ? "selected" : ""}>${o}</option>`).join("")}${r.status === "multiple" ? '<option value="MULTIPLE" selected>Marca doble</option>' : ""}</select></label>`,
@@ -922,6 +934,23 @@ function reviewPage(index) {
             .join("")}</div>`
     }<label>Motivo<input id="v2-review-reason" required minlength="5" placeholder="Revisado contra la cartilla física"></label>${p.error ? "" : '<button class="v2-button" type="submit">Confirmar revisión</button>'}<button class="v2-button danger" type="button" id="v2-review-exclude">Excluir esta página</button></form></div>`,
   );
+  if (p.identification)
+    api(`/api/v2/exams/${b.evaluation_id}`)
+      .then((exam) => {
+        const select = $("v2-review-area");
+        if (!select) return;
+        select.innerHTML =
+          '<option value="">Selecciona un área</option>' +
+          exam.definition.areas
+            .map(
+              (a) =>
+                `<option value="${esc(a.code)}">${esc(a.code)} · ${esc(a.name)}</option>`,
+            )
+            .join("");
+        select.value =
+          (p.identificationOverride || p.identification).area || "";
+      })
+      .catch((error) => message(error.message, true));
   const save = async (exclude) => {
     const reason = $("v2-review-reason").value;
     if (reason.trim().length < 5)
@@ -942,7 +971,20 @@ function reviewPage(index) {
     await api(
       `/api/v2/imports/${b.id}/pages/${index}`,
       json(
-        { reviewVersion: b.result.reviewVersion, reason, responses, exclude },
+        {
+          reviewVersion: b.result.reviewVersion,
+          reason,
+          responses,
+          exclude,
+          ...(!exclude && p.identification
+            ? {
+                identification: {
+                  code: $("v2-review-code").value,
+                  area: $("v2-review-area").value,
+                },
+              }
+            : {}),
+        },
         "PATCH",
       ),
     );
@@ -1770,10 +1812,41 @@ async function initialize() {
       `${result.queued} avisos nuevos en cola. Los ya programados no se duplican.`,
     );
   });
+  const printGuidance = () => {
+    const blank = $("v2-sheet-mode").value === "blank",
+      half = $("v2-sheet-format").value === "half-single";
+    $("v2-sheet-blank").hidden = !blank;
+    $("v2-sheet-student-label").hidden = blank;
+    $("v2-sheet-edge-label").hidden = half;
+    const count = Number($("v2-sheet-count").value),
+      sheets = Math.ceil(count / (half ? 2 : 4));
+    $("v2-sheet-instructions").textContent = !blank
+      ? "Formato anterior: A4 horizontal, una cara, al 100%."
+      : half
+        ? `${sheets} hojas A4 verticales, ${sheets} páginas. Cartillas horizontales a media hoja. Imprime una sola cara, al 100%, sin ajustar; no actives dos páginas por hoja.`
+        : `${sheets} hojas A4 horizontales, ${sheets * 2} páginas alternadas frente/reverso. Imprime a doble cara por borde ${$("v2-sheet-edge").value === "short" ? "corto" : "largo"}, al 100%, sin ajustar; el PDF ya contiene cuatro cartillas por cara.`;
+  };
+  for (const id of [
+    "v2-sheet-mode",
+    "v2-sheet-format",
+    "v2-sheet-count",
+    "v2-sheet-edge",
+  ])
+    bind(id, "change", printGuidance);
+  printGuidance();
   bind("v2-print", "click", () => {
     const e = state.selected;
     const q = new URLSearchParams({ form: $("v2-sheet-form").value });
-    if ($("v2-sheet-student").value) q.set("code", $("v2-sheet-student").value);
+    if ($("v2-sheet-mode").value === "blank") {
+      const count = Number($("v2-sheet-count").value);
+      if (!Number.isInteger(count) || count < 1 || count > 500)
+        throw new Error("Indica entre 1 y 500 cartillas.");
+      q.set("mode", "blank");
+      q.set("count", count);
+      q.set("format", $("v2-sheet-format").value);
+      q.set("edge", $("v2-sheet-edge").value);
+    } else if ($("v2-sheet-student").value)
+      q.set("code", $("v2-sheet-student").value);
     window.open(`/api/v2/exams/${e.id}/sheets.pdf?${q}`, "_blank", "noopener");
   });
   window.addEventListener("ingemat:scan", async (e) => {

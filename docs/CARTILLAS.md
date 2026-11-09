@@ -1,0 +1,44 @@
+# Cartillas horizontales con identificación
+
+Las cartillas nuevas incluyen el logo extraído del primer PDF de ejemplo de la academia, campos manuscritos para apellidos, nombres y área y ocho casillas para escribir el código. Debajo hay ocho columnas de diez círculos numerados del 0 al 9. El código debe existir como una cadena de exactamente ocho dígitos en el padrón; no se eliminan ceros iniciales ni se rellenan códigos cortos automáticamente.
+
+| Formato | Cartillas por hoja | Hoja física | Caras | Impresión |
+|---|---:|---|---:|---|
+| Cuarto de A4 horizontal | 4 | A4 horizontal | 2 por cartilla | Doble cara, borde corto por defecto |
+| Media A4 horizontal | 2 | A4 vertical | 1 por cartilla | Una sola cara |
+
+Ambas cartillas son horizontales. En media hoja, la hoja A4 completa es vertical y contiene una cartilla horizontal arriba y otra abajo. El PDF ya hace la imposición: imprime al 100%, sin ajustar y sin volver a activar varias páginas por hoja. La cantidad solicitada es de cartillas. Las posiciones sobrantes quedan vacías en frente y reverso.
+
+Para cuarto se intercalan frente y reverso de cada grupo de cuatro. Borde corto refleja las columnas del reverso; borde largo refleja las filas, por ser una A4 horizontal. El PDF declara preferencias Duplex y PrintScaling, pero los controladores pueden ignorarlas: verifica el diálogo y prueba primero una hoja. Las líneas discontinuas son guías de corte; conserva los cuatro marcadores de cada cartilla. Los marcadores exteriores quedan a más de 5 mm del borde físico.
+
+## Cursos y espacio
+
+El generador coloca las preguntas en bloques con el nombre de su curso. Si un bloque continúa en otra columna o cara lo señala con «cont.». Evita fragmentos finales de una o dos preguntas cuando puede redistribuir el bloque. La misma definición usa el motor de calificación; el papel no cambia las reglas por área.
+
+En la plantilla de repaso, cuarto distribuye 45 preguntas al frente y 75 al reverso; media contiene las 120 en una sola cara. Estas cantidades dependen de cursos y nombres, no son cuotas por área. Cada alumno sigue evaluándose sobre las 100 que le corresponden. Ambos formatos compactos admiten hasta 120 preguntas y hasta cinco áreas de un carácter, o un único perfil general. Si una configuración excepcional no cabe, el generador la rechaza en vez de recortar contenido.
+
+## Qué identifica cada elemento
+
+- **Código marcado:** identifica al estudiante. Se exige exactamente una marca clara en cada columna. Las marcas dobles, dudosas o vacías no se adivinan.
+- **Área marcada:** selecciona el perfil del examen. Debe existir y coincidir con el perfil registrado si ya está asignado. Un único perfil general no requiere marcar un área.
+- **Nombres y área manuscritos:** permiten cotejar físicamente la hoja. No se usa OCR para interpretar escritura a mano.
+- **QR firmado:** contiene versión del formato, un identificador aleatorio de cartilla, cara y firma. Vincula ambas caras al examen, versión del cuadernillo y revisión registrados en el servidor. No contiene nombres ni el código manuscrito. No es un enlace para abrir una página.
+- **Marcadores:** permiten reconocer y corregir perspectiva y rotación; no son respuestas.
+
+Cada cartilla es única. No fotocopies una sola para diferentes alumnos: sus QR iguales se detectarían como duplicados. Genera la cantidad requerida desde la aplicación.
+
+## Lectura y revisión
+
+Puedes cargar PDF de A4 completas con cuatro o dos cartillas, o fotografías de las cartillas ya recortadas. El lector separa los rectángulos por sus marcadores antes de normalizarlos, sin mezclar las esquinas entre alumnos. Una parte incompleta queda como incidencia. La bandeja de cámara admite hasta diez fotos; el lector admite hasta cien caras de cartilla por lote.
+
+En cuarto, incluye frente y reverso en el mismo lote. Se agrupan por identificador único, sin depender del orden del archivo ni del nombre escrito. Si falta una cara, se solicita revisión y no se importa parcialmente el alumno.
+
+Un código desconocido, incompleto o con varias marcas, un área inexistente o incompatible y las lecturas dudosas impiden confirmar el lote. La revisión permite cotejar la imagen y corregir código/área con motivo. Se conservan las lecturas originales, sus densidades y la corrección auditada. Las notas solo se guardan al confirmar el lote. La firma, el examen, la versión y la protección frente a páginas ya importadas se comprueban en el servidor.
+
+El formato A4 anterior personalizado sigue disponible y sus cartillas impresas siguen siendo válidas. Los nuevos diseños usan versiones geométricas independientes (cuarto v3, media v4); no se reinterpretan las coordenadas de las cartillas v2.
+
+## Verificación y piloto
+
+Las pruebas imprimen los PDF reales, verifican los QR de cada posición del anverso/reverso, leen hojas completas, rellenan códigos con ceros iniciales y áreas, generan fotos JPEG con giro y perspectiva y recorren lector → revisión de identidad → confirmación de notas. También comprueban la carga anterior.
+
+Haz una prueba física antes de usar el formato compacto para un salón completo. La legibilidad real depende de impresora, papel, marcas y teléfono. Para grandes lotes sigue siendo preferible el escáner a 300 ppp; no actives filtros que borren trazos tenues.

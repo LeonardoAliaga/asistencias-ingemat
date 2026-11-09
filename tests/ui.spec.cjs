@@ -1025,3 +1025,116 @@ test("cancelled camera permission releases late streams and mobile capture is ac
   expect(result.violations).toEqual([]);
   await page.click("#camera-clear");
 });
+
+test("printing offers quarter duplex and half single-sided with quantity and print guidance", async ({
+  page,
+}) => {
+  await login(page);
+  await navigate(page, "exams");
+  const option = page
+    .locator("#v2-exam-select option")
+    .filter({ hasText: "SIMULACRO DE DEMOSTRACIÓN" });
+  await page.selectOption(
+    "#v2-exam-select",
+    await option.getAttribute("value"),
+  );
+  await page.click('[data-local-tab="exam-sheets"]');
+  await page.fill("#v2-sheet-count", "5");
+  await page.locator("#v2-sheet-count").blur();
+  await expect(page.locator("#v2-sheet-instructions")).toContainText(
+    "2 hojas A4 horizontales, 4 páginas",
+  );
+  await page.evaluate(() => {
+    window.open = (url) => {
+      window.__printedURL = url;
+    };
+  });
+  await page.click("#v2-print");
+  let url = await page.evaluate(() => window.__printedURL);
+  expect(url).toContain("mode=blank");
+  expect(url).toContain("format=quarter-duplex");
+  expect(url).toContain("count=5");
+  const quarter = await page.request.get(url);
+  expect(quarter.status()).toBe(200);
+  expect(
+    (await quarter.body()).toString("latin1").match(/\/Type \/Page\b/g),
+  ).toHaveLength(4);
+  await page.selectOption("#v2-sheet-format", "half-single");
+  await expect(page.locator("#v2-sheet-edge-label")).toBeHidden();
+  await expect(page.locator("#v2-sheet-instructions")).toContainText(
+    "3 hojas A4 verticales, 3 páginas",
+  );
+  await page.click("#v2-print");
+  url = await page.evaluate(() => window.__printedURL);
+  const half = await page.request.get(url);
+  expect(half.status()).toBe(200);
+  expect(
+    (await half.body()).toString("latin1").match(/\/Type \/Page\b/g),
+  ).toHaveLength(3);
+  await page.setViewportSize({ width: 390, height: 900 });
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth),
+  ).toBeLessThanOrEqual(390);
+  const audit = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
+    .analyze();
+  expect(audit.violations).toEqual([]);
+});
+
+test("identity review preserves leading zeros and submits code/area with an audit reason", async ({
+  page,
+}) => {
+  const examId = await selectCameraExam(page);
+  const batch = {
+    id: "identity-ui",
+    created_at: "2026-11-09 12:00:00",
+    evaluation_id: examId,
+    source: "omr",
+    status: "review",
+    files: [],
+    result: {
+      reviewVersion: 1,
+      rows: [],
+      pages: [
+        {
+          page: 1,
+          layoutVersion: 4,
+          file: "foto.jpg",
+          qr: "synthetic",
+          identification: { code: "00123456", area: "GENERAL", columns: [] },
+          responses: { 1: { status: "blank", options: [] } },
+          warning: "Revisar identificación",
+        },
+      ],
+    },
+  };
+  await page.route("**/api/v2/imports", (route) =>
+    route.fulfill({ json: [batch] }),
+  );
+  await page.route("**/api/v2/imports/identity-ui", (route) =>
+    route.fulfill({ json: batch }),
+  );
+  let submitted;
+  await page.route("**/api/v2/imports/identity-ui/pages/0", async (route) => {
+    submitted = route.request().postDataJSON();
+    await route.fulfill({ json: batch });
+  });
+  await page.click("#v2-refresh-batches");
+  await page.click('[data-batch="identity-ui"]');
+  await page.click('[data-review="0"]');
+  await expect(page.locator("#v2-review-code")).toHaveValue("00123456");
+  await expect(page.locator("#v2-review-area")).toHaveValue("GENERAL");
+  await page.fill("#v2-review-code", "00234567");
+  await page.fill(
+    "#v2-review-reason",
+    "Código cotejado con la cartilla física",
+  );
+  await page.click("#v2-review-form button[type=submit]");
+  await expect(page.locator("#v2-dialog")).toBeHidden();
+  expect(submitted.identification).toEqual({
+    code: "00234567",
+    area: "GENERAL",
+  });
+  expect(submitted.reason).toContain("cotejado");
+  expect(submitted.responses[1].status).toBe("blank");
+});
