@@ -28,6 +28,13 @@ async function nextStep(page, number) {
   await expect(page.locator(`[data-wizard-pane="${number}"]`)).toBeVisible();
 }
 
+async function pasteKeys(page, text) {
+  await page.locator("#v2-keys-bulk").evaluate((el) => {
+    el.open = true;
+  });
+  await page.fill("#v2-keys", text);
+}
+
 test("create, validate and grade an exam from the dashboard", async ({
   page,
 }) => {
@@ -42,7 +49,7 @@ test("create, validate and grade an exam from the dashboard", async ({
   await page.selectOption("#v2-exam-editor [name=ciclo]", "ANUAL");
   await nextStep(page, 1);
   await nextStep(page, 2);
-  await page.fill("#v2-keys", Array(100).fill("A").join(" "));
+  await pasteKeys(page, Array(100).fill("A").join(" "));
   await nextStep(page, 3);
   await page.click("#wizard-save");
   await expect(page.locator("#v2-message")).toContainText("Borrador guardado");
@@ -210,18 +217,18 @@ test("wizard validates area quotas, preserves step data and prepares a 120-quest
     "Distribución completa",
   );
   await nextStep(page, 2);
-  await page.fill("#v2-keys", Array(120).fill("A").join(" "));
+  await pasteKeys(page, Array(120).fill("A").join(" "));
   await nextStep(page, 3);
   await expect(page.locator("#wizard-prepare")).toBeEnabled();
   await page.click("#wizard-back");
   await expect(page.locator("#v2-keys")).toHaveValue(
     Array(120).fill("A").join(" "),
   );
-  await page.fill("#v2-keys", Array(119).fill("A").join(" "));
+  await pasteKeys(page, Array(119).fill("A").join(" "));
   await nextStep(page, 3);
   await expect(page.locator("#wizard-prepare")).toBeDisabled();
   await page.click("#wizard-back");
-  await page.fill("#v2-keys", Array(120).fill("A").join(" "));
+  await pasteKeys(page, Array(120).fill("A").join(" "));
   await nextStep(page, 3);
   await page.click("#wizard-prepare");
   await expect(page.locator("#v2-message")).toContainText("Examen validado");
@@ -607,7 +614,7 @@ test("new exam defaults to the PDF distribution, saves without keys and validate
   await page.click("#v2-edit");
   await nextStep(page, 1);
   await nextStep(page, 2);
-  await page.fill("#v2-keys", Array(120).fill("A").join(" "));
+  await pasteKeys(page, Array(120).fill("A").join(" "));
   await nextStep(page, 3);
   await page.click("#wizard-prepare");
   await expect(page.locator("#v2-message")).toContainText("validado");
@@ -636,4 +643,151 @@ test("switching formats protects edits but does not interrupt an untouched defau
   await expect(page.locator('[name="total"]')).toHaveValue("120");
   await nextStep(page, 1);
   await expect(page.locator(".v2-section-editor")).toHaveCount(19);
+});
+
+async function startVisualKeys(page) {
+  await login(page);
+  await navigate(page, "exams");
+  await page.click("#v2-new");
+  await page.fill('[name="titulo"]', "CLAVES VISUALES UI");
+  await page.selectOption('[name="ciclo"]', "ANUAL");
+  await nextStep(page, 1);
+  await nextStep(page, 2);
+  return page.locator("#v2-exam-editor .key-editor");
+}
+
+test("visual keys support clicks, keyboard, course progress, multiple answers and draft persistence", async ({
+  page,
+}) => {
+  const editor = await startVisualKeys(page);
+  await expect(page.locator("#v2-keys")).toBeHidden();
+  await editor.locator('[data-answer="B"]').click();
+  await expect(editor.locator("h4")).toHaveText("Pregunta 2 de 120");
+  await page.keyboard.press("c");
+  await expect(editor.locator("h4")).toHaveText("Pregunta 3 de 120");
+  await expect(
+    editor.locator("[data-key-course] option:checked"),
+  ).toContainText("2/10");
+  await editor.locator("[data-key-multiple]").check();
+  await editor.locator('[data-answer="B"]').click();
+  await editor.locator('[data-answer="D"]').click();
+  await expect(editor.locator("h4")).toHaveText("Pregunta 3 de 120");
+  await expect(editor.locator('[data-answer="B"]')).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(editor.locator('[data-answer="D"]')).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await editor.locator("[data-key-multiple]").uncheck();
+  await editor.locator("[data-key-course]").selectOption("3");
+  await expect(editor.locator("h4")).toHaveText("Pregunta 31 de 120");
+  await editor.locator('[data-answer="E"]').click();
+  await editor.locator('[data-key-question="31"]').click();
+  await editor.locator("[data-key-clear]").click();
+  await expect(editor.locator('[data-key-question="31"]')).toHaveAttribute(
+    "aria-label",
+    "Pregunta 31: pendiente",
+  );
+  await editor.locator('[data-answer="A"]').click();
+  await editor.locator("[data-key-pending]").click();
+  await expect(editor.locator(".key-current-answer")).toHaveText("Sin clave");
+  await expect(page.locator("#v2-keys-count")).toHaveText(
+    "4 de 120 claves ingresadas",
+  );
+  await nextStep(page, 3);
+  await page.click("#wizard-save");
+  await expect(page.locator("#v2-message")).toContainText("Borrador guardado");
+  await page.click("#v2-edit");
+  await nextStep(page, 1);
+  await nextStep(page, 2);
+  await expect(editor.locator('[data-key-question="1"]')).toHaveAttribute(
+    "aria-label",
+    "Pregunta 1: B",
+  );
+  await editor.locator('[data-key-question="3"]').click();
+  await expect(editor.locator('[data-answer="D"]')).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(page.locator("#v2-keys")).toHaveValue("1,B\n2,C\n3,B/D\n31,A");
+});
+
+test("bulk paste synchronizes visual keys, rejects invalid input without losing text, and supports paging", async ({
+  page,
+}) => {
+  const editor = await startVisualKeys(page);
+  await pasteKeys(page, Array(120).fill("C").join(" "));
+  await expect(editor.locator('[data-answer="C"]')).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await editor.locator("[data-key-course]").selectOption("all");
+  await editor.locator('[data-key-page="1"]').click();
+  await expect(editor.locator("h4")).toHaveText("Pregunta 21 de 120");
+  await pasteKeys(page, "1,B\n1,C");
+  await expect(editor).toContainText("repetida");
+  await expect(page.locator("#v2-keys")).toHaveValue("1,B\n1,C");
+  await pasteKeys(page, "121,A");
+  await expect(editor).toContainText("Revisa el texto pegado");
+  await pasteKeys(page, "1,B\n2,C");
+  await editor.locator("[data-key-course]").selectOption("0");
+  await expect(editor.locator('[data-key-question="1"]')).toHaveAttribute(
+    "aria-label",
+    "Pregunta 1: B",
+  );
+  await editor.locator('[data-key-question="1"]').click();
+  await editor.locator("[data-key-auto]").uncheck();
+  await editor.locator('[data-answer="E"]').click();
+  await expect(editor.locator("h4")).toHaveText("Pregunta 1 de 120");
+  await expect(page.locator("#v2-keys")).toHaveValue("1,E\n2,C");
+});
+
+test("visual key editor stays accessible on mobile and advances across course boundaries", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 900 });
+  const editor = await startVisualKeys(page);
+  await editor.locator('[data-key-question="10"]').click();
+  await editor.locator('[data-answer="A"]').click();
+  await expect(editor.locator("h4")).toHaveText("Pregunta 11 de 120");
+  await expect(
+    editor.locator("[data-key-course] option:checked"),
+  ).toContainText("Habilidad Verbal");
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth),
+  ).toBeLessThanOrEqual(320);
+  const result = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
+    .analyze();
+  expect(result.violations).toEqual([]);
+});
+
+test("prepared exam revisions use visual keys and recalculate stored results", async ({
+  page,
+}) => {
+  await login(page);
+  await navigate(page, "exams");
+  const option = page
+    .locator("#v2-exam-select option")
+    .filter({ hasText: "SIMULACRO DE DEMOSTRACIÓN" });
+  await page.selectOption(
+    "#v2-exam-select",
+    await option.getAttribute("value"),
+  );
+  await page.click("#v2-revise");
+  const editor = page.locator("#v2-revise-form .key-editor");
+  await expect(editor.locator('[data-answer="A"]')).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await editor.locator('[data-answer="B"]').click();
+  await page.fill("#v2-revision-reason", "Corrección visual de prueba");
+  await page.click("#v2-revise-form button[type=submit]");
+  await expect(page.locator("#v2-dialog")).toBeHidden();
+  await expect(page.locator("#v2-message")).toContainText(
+    "Nueva revisión aplicada",
+  );
+  await expect(page.locator("#v2-results")).toContainText("1978.875");
 });

@@ -113,7 +113,7 @@ Sigue cuatro pasos: Datos, Cursos y áreas, Claves y Revisión.
 2. **Completa los datos.** Indica título, ciclo y fecha. El perfil GENERAL evalúa las 100 preguntas.
 3. **Distribuye los cursos.** Pulsa Continuar para abrir Cursos y áreas. Edita el curso General o agrega cursos con rangos sin solapamientos: Matemática 1-20, Física 21-30 y los demás hasta 100. Cada pregunta pertenece a un único curso. El resumen inferior indica huecos, repeticiones y cantidades por área.
 4. **Configura puntajes.** Los valores iniciales están en Puntajes del simulacro, dentro de Datos. Abre Puntajes especiales para este curso si un curso necesita valores diferentes. En Ajustes de puntaje para todos los cursos puedes reaplicar los valores generales.
-5. **Pega las claves.** Continúa a Claves. Pega una secuencia A B C… o líneas 1,A y 2,C. El contador indica cuántas claves llevas. Las anulaciones, puntajes por alternativa y versiones están en opciones desplegables.
+5. **Marca las claves con botones.** Continúa a Claves. Selecciona un curso y pulsa A, B, C, D o E para la pregunta indicada; el editor avanza automáticamente. El contador de cada curso muestra tu progreso. Puedes pulsar un número para corregirlo o Ir a una pendiente. Activa Aceptar varias alternativas si una pregunta admite más de una respuesta; después pulsa Siguiente. También puedes escribir las letras A–E con el foco dentro del editor. Para cargar una lista existente abre Pegar una lista de claves y pega A B C… sin números.
 6. **Guarda el borrador.** En Revisión comprueba el resumen. Guardar borrador conserva el trabajo con claves pendientes; después puedes abrir Editar borrador.
 7. **Valida el examen.** Si todas las claves o reglas están completas, usa Guardar y validar. También puedes validar un borrador guardado desde Validar y preparar. Después la estructura queda fijada.
 8. **Imprime y califica.** El examen tiene pestañas separadas: Resultados, Imprimir cartillas e Ingreso manual. Para lectura por lotes abre Lectura de cartillas. Comprueba las notas antes de publicar.
@@ -126,7 +126,7 @@ El número impreso y el número evaluado son conceptos diferentes.
 2. **Asigna cursos.** Continúa a Cursos y áreas. Los 19 cursos ya tienen sus rangos; Historia del Perú e Historia Universal están separadas. Abre un curso para revisar o editar, manteniendo los demás plegados.
 3. **Configura la matriz de áreas.** En cada curso usa Configurar área de postulación para revisar A–E. La plantilla usa preguntas fijas según los cuadros del cuadernillo. Las preguntas fuera del perfil no cuentan como blancos. Si usas otro material, ajusta los rangos antes de validar.
 4. **Comprueba los totales.** El resumen inferior de Cursos y áreas muestra las cantidades asignadas a cada perfil. Su suma debe coincidir exactamente con la cantidad evaluable; corrige las diferencias antes de continuar.
-5. **Carga la clave del cuadernillo.** Incluye las 120 claves. La selección por área es independiente de la clave.
+5. **Carga la clave del cuadernillo.** En Claves marca las alternativas con los botones A–E. El avance automático pasa al siguiente curso cuando completas el actual; usa Curso para saltar a otro y los números para revisar. También puedes abrir Pegar una lista de claves y pegar las 120 alternativas en orden. La clave del cuadernillo es única; el área del alumno determina cuáles se califican.
 6. **Asigna áreas a estudiantes.** En Apoderados y áreas registra el perfil de cada postulante antes de imprimir.
 7. **Valida y descarga cartillas.** La cartilla contiene 120 filas aunque la nota de un alumno utilice solo 100.
 8. **Revisa por curso y área.** Los resultados muestran aciertos, errores, blancos, anuladas y puntaje por curso. El ranking comparte puesto cuando hay empate.
@@ -252,7 +252,7 @@ También sirve como alternativa cuando una hoja no se puede escanear.
 Las revisiones no borran el resultado anterior.
 
 1. **Abre el examen.** Selecciona Revisar claves.
-2. **Carga la clave corregida.** Puedes cambiar alternativas, anular preguntas o configurar puntajes por alternativa.
+2. **Carga la clave corregida.** Usa el mismo editor visual de claves: selecciona el curso, pulsa el número de la pregunta y elige la alternativa corregida. Las otras claves se conservan. Puedes aceptar varias alternativas o indicar preguntas anuladas. Si ya tienes una lista completa corregida, abre Pegar una lista de claves.
 3. **Escribe un motivo.** Por ejemplo: Corrección de clave oficial en pregunta 42.
 4. **Confirma el recálculo.** Se crea una revisión y se recalifican todas las respuestas guardadas en una transacción.
 5. **Revisa diferencias.** Comprueba los resultados por alumno y curso. El historial conserva las notas previas.

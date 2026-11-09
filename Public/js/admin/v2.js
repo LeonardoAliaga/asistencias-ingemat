@@ -1,3 +1,4 @@
+import { mountKeyEditor } from "./key-editor.js";
 const $ = (id) => document.getElementById(id);
 const esc = (s) =>
   String(s ?? "").replace(
@@ -672,6 +673,7 @@ function setEditor(def, id = null) {
           : "custom";
   $("v2-preset").value = state.currentPreset;
   $("v2-format-confirm").hidden = true;
+  state.keyEditor?.reset();
   showWizardStep(0, false);
 }
 function preset(value) {
@@ -1270,6 +1272,7 @@ function showWizardStep(next, validate = true) {
       return;
     }
   }
+  if (next === 2) state.keyEditor?.refresh();
   wizardStep = next;
   for (const pane of document.querySelectorAll("[data-wizard-pane]"))
     pane.hidden = Number(pane.dataset.wizardPane) !== next;
@@ -1577,10 +1580,15 @@ async function initialize() {
     },
     true,
   );
+  state.keyEditor = mountKeyEditor($("v2-keys"), {
+    getDefinition: () => collectEditor({ structureOnly: true }).definition,
+    parse: keyValues,
+    escape: esc,
+  });
   $("v2-exam-editor").addEventListener("input", (event) => {
     if (
       !event.target.matches(
-        '[name="titulo"], [name="ciclo"], [name="fecha"], #v2-preset, #v2-template-select, [data-course-area]',
+        '[name="titulo"], [name="ciclo"], [name="fecha"], #v2-preset, #v2-template-select, [data-course-area], .key-editor select, .key-editor input',
       )
     )
       state.definitionDirty = true;
@@ -1598,7 +1606,7 @@ async function initialize() {
   $("v2-exam-editor").addEventListener("change", (event) => {
     if (
       !event.target.matches(
-        '[name="titulo"], [name="ciclo"], [name="fecha"], #v2-preset, #v2-template-select, [data-course-area]',
+        '[name="titulo"], [name="ciclo"], [name="fecha"], #v2-preset, #v2-template-select, [data-course-area], .key-editor select, .key-editor input',
       )
     )
       state.definitionDirty = true;
@@ -1932,11 +1940,11 @@ function reviseKeysDialog() {
   const e = state.selected;
   showDialog(
     "Revisar claves y recalcular",
-    `<form id="v2-revise-form"><p>Se creará una revisión y se recalificarán todas las respuestas. El resultado anterior se conserva y el examen vuelve a Listo.</p><label>Claves corregidas<textarea id="v2-revision-keys" rows="9" required>${esc(
+    `<form id="v2-revise-form"><p>Se creará una revisión y se recalificarán todas las respuestas. El resultado anterior se conserva y el examen vuelve a Listo.</p><details><summary>Pegar una lista de claves (opcional)</summary><label>Claves corregidas<textarea id="v2-revision-keys" rows="9" required>${esc(
       Object.entries(e.definition.keys)
         .map(([n, k]) => `${n},${k.answers.join("/")}`)
         .join("\n"),
-    )}</textarea></label><label>Preguntas anuladas<input id="v2-revision-void" value="${esc(
+    )}</textarea></label></details><label>Preguntas anuladas<input id="v2-revision-void" value="${esc(
       compact(
         Object.keys(e.definition.keys)
           .filter((q) => e.definition.keys[q].voidPolicy)
@@ -1944,6 +1952,11 @@ function reviseKeysDialog() {
       ),
     )}"></label><label>Regla de anulación<select id="v2-revision-policy"><option value="credit">Otorgar puntos</option><option value="exclude">Excluir del puntaje</option></select></label><label>Motivo<input id="v2-revision-reason" required minlength="5"></label><button type="submit" class="v2-button">Confirmar revisión y recalcular</button></form>`,
   );
+  mountKeyEditor($("v2-revision-keys"), {
+    getDefinition: () => e.definition,
+    parse: keyValues,
+    escape: esc,
+  }).reset();
   bind("v2-revise-form", "submit", async () => {
     const values = keyValues($("v2-revision-keys").value),
       annulled = new Set(expand($("v2-revision-void").value)),

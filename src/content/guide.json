@@ -323,8 +323,8 @@
           "text": "Los valores iniciales están en Puntajes del simulacro, dentro de Datos. Abre Puntajes especiales para este curso si un curso necesita valores diferentes. En Ajustes de puntaje para todos los cursos puedes reaplicar los valores generales."
         },
         {
-          "title": "Pega las claves",
-          "text": "Continúa a Claves. Pega una secuencia A B C… o líneas 1,A y 2,C. El contador indica cuántas claves llevas. Las anulaciones, puntajes por alternativa y versiones están en opciones desplegables."
+          "title": "Marca las claves con botones",
+          "text": "Continúa a Claves. Selecciona un curso y pulsa A, B, C, D o E para la pregunta indicada; el editor avanza automáticamente. El contador de cada curso muestra tu progreso. Puedes pulsar un número para corregirlo o Ir a una pendiente. Activa Aceptar varias alternativas si una pregunta admite más de una respuesta; después pulsa Siguiente. También puedes escribir las letras A–E con el foco dentro del editor. Para cargar una lista existente abre Pegar una lista de claves y pega A B C… sin números."
         },
         {
           "title": "Guarda el borrador",
@@ -365,7 +365,7 @@
         },
         {
           "title": "Carga la clave del cuadernillo",
-          "text": "Incluye las 120 claves. La selección por área es independiente de la clave."
+          "text": "En Claves marca las alternativas con los botones A–E. El avance automático pasa al siguiente curso cuando completas el actual; usa Curso para saltar a otro y los números para revisar. También puedes abrir Pegar una lista de claves y pegar las 120 alternativas en orden. La clave del cuadernillo es única; el área del alumno determina cuáles se califican."
         },
         {
           "title": "Asigna áreas a estudiantes",
@@ -733,7 +733,7 @@
         },
         {
           "title": "Carga la clave corregida",
-          "text": "Puedes cambiar alternativas, anular preguntas o configurar puntajes por alternativa."
+          "text": "Usa el mismo editor visual de claves: selecciona el curso, pulsa el número de la pregunta y elige la alternativa corregida. Las otras claves se conservan. Puedes aceptar varias alternativas o indicar preguntas anuladas. Si ya tienes una lista completa corregida, abre Pegar una lista de claves."
         },
         {
           "title": "Escribe un motivo",

@@ -202,24 +202,32 @@
       <div class="wizard-pane" data-wizard-pane="2" hidden="">
         <h3>Carga la clave de respuestas</h3>
         <p class="v2-help">
-          Pega las alternativas en orden o usa una línea por pregunta. Puedes
-          guardar el borrador y completar las claves después.
+          Selecciona un curso y marca A, B, C, D o E para cada pregunta. El
+          editor avanza solo y muestra las pendientes. Puedes guardar el
+          borrador y continuar después.
         </p>
         <p class="v2-help" id="v2-keys-count" role="status"></p>
-        <label
-          >Alternativas del cuadernillo<textarea
-            id="v2-keys"
-            placeholder="1,A
-2,C
-3,B/D"
-            rows="5"
-          ></textarea>
-        </label>
-        <p class="v2-help">
-          Puedes pegar una secuencia A B C… o líneas número,alternativa. B/D
-          acepta ambas alternativas. La clave debe cubrir todo el cuadernillo
-          antes de validar.
-        </p>
+        <details id="v2-keys-bulk">
+          <summary>Pegar una lista de claves (opcional)</summary>
+          <p class="v2-help">
+            Si ya tienes las respuestas, pega A B C D E… en orden, sin escribir
+            números. Reemplaza la lista completa; revisa el contador y las
+            preguntas en el editor visual. Para corregir preguntas sueltas
+            también se admite una línea por pregunta, como 1,B.
+          </p>
+          <label
+            >Lista de alternativas<textarea
+              id="v2-keys"
+              placeholder="A B C D E…"
+              rows="5"
+              spellcheck="false"
+            ></textarea>
+          </label>
+          <p class="v2-help">
+            B/D acepta ambas alternativas. Las anulaciones y puntajes por
+            alternativa se configuran en las excepciones.
+          </p>
+        </details>
         <details>
           <summary>Excepciones de puntaje y versiones del cuadernillo</summary>
           <div class="v2-form-grid">
