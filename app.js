@@ -284,6 +284,8 @@ if (require.main === module) {
   );
   const workers = require("./src/services/workers");
   workers.start();
+  // Report the actual interpreter and dependencies without blocking attendance.
+  void require("./src/services/omr-runtime.service").checkRuntime();
   const shutdown = () => {
     workers.stop();
     server.close(() => {

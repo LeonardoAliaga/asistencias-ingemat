@@ -403,7 +403,7 @@ Pistas para recuperar el flujo sin perder datos.
 1. **No puedo iniciar sesión.** Comprueba usuario, contraseña y que la cuenta esté activa. Tras muchos intentos espera 15 minutos. La recuperación administrativa está documentada en el README.
 2. **No puedo registrar un ingreso.** Inicia sesión con una cuenta de administración o recepción. Revisa el código y si ya existe un registro para el turno.
 3. **El examen no valida.** Comprueba claves faltantes, cursos solapados, huecos y suma de preguntas por cada área.
-4. **El lector no inicia.** Comprueba Python, PYTHON_BIN y los paquetes de requirements.txt. Prueba el comando npm run test:omr.
+4. **El lector no inicia.** Ejecuta npm run omr:doctor en la carpeta del proyecto. Muestra el Python efectivo y comprueba cada dependencia, incluida ArUco. Revisa las líneas [OMR] de la consola donde arrancaste la app; al procesar un lote muestran el error original, stderr y código de salida. Tras cambiar el .env reinicia la app.
 5. **No reconoce la hoja.** Usa una cartilla v2 completa, 300 ppp, cuatro marcadores visibles y QR nítido. Los formatos antiguos no se leen con la nueva plantilla.
 6. **El lote tiene incidencias.** Abre Revisar. Resuelve las marcas dudosas, páginas repetidas o faltantes antes de confirmar.
 7. **No llegan avisos.** Comprueba contactos autorizados, idioma y plantillas aprobadas, estado de credenciales, Internet y webhooks.

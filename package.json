@@ -8,6 +8,7 @@
     "dev": "node --watch app.js",
     "migrate": "node src/database/migrador.js",
     "test": "node --test --test-concurrency=1 tests/*.test.cjs",
+    "omr:doctor": "node scripts/check-omr.cjs",
     "test:omr": "python3 -m unittest discover -s tests -p \"test_*.py\"",
     "check": "node scripts/check-syntax.cjs",
     "test:ui": "playwright test",

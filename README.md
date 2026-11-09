@@ -144,6 +144,20 @@ node scripts/reset-password.cjs admin
 
 El programa pide la contraseña sin mostrarla y revoca las sesiones anteriores. Las cuentas y cambios quedan en la auditoría.
 
+## Diagnosticar Python y OMR
+
+Al iniciar con `npm start`, la consola muestra un diagnóstico `[OMR]` con el ejecutable efectivo, versión y arquitectura de Python, entorno virtual y estado de OpenCV/ArUco, NumPy, PDFium, Pillow y ZXing. También puedes ejecutarlo por separado:
+
+```sh
+npm run omr:doctor
+```
+
+El diagnóstico usa el mismo `PYTHON_BIN` que la cola de lectura. Una variable de entorno del sistema tiene prioridad sobre el valor del `.env`; revisa la ruta efectiva que muestra el registro. No basta con instalar paquetes en otro Python del equipo.
+
+En cada lote se registran su identificador, comando, carpeta de trabajo, duración y código/señal de salida. Si Python no arranca se conserva el error real (por ejemplo, `ENOENT` o `EACCES`); si falla el lector se muestra su traceback en `stderr`, hasta los últimos 65 536 caracteres. Los errores de lectura de cada cartilla se muestran por número de página. Las respuestas y el contenido del `.env` no se imprimen.
+
+Mira la terminal donde ejecutaste `npm start`. Con PM2 utiliza `pm2 logs ingemat --lines 200`. Tras modificar el `.env` reinicia el proceso; si cambias variables de entorno de PM2 usa `pm2 restart ingemat --update-env`.
+
 ## Verificar
 
 ```sh

@@ -1166,7 +1166,7 @@
         },
         {
           "title": "El lector no inicia",
-          "text": "Comprueba Python, PYTHON_BIN y los paquetes de requirements.txt. Prueba el comando npm run test:omr."
+          "text": "Ejecuta npm run omr:doctor en la carpeta del proyecto. Muestra el Python efectivo y comprueba cada dependencia, incluida ArUco. Revisa las líneas [OMR] de la consola donde arrancaste la app; al procesar un lote muestran el error original, stderr y código de salida. Tras cambiar el .env reinicia la app."
         },
         {
           "title": "No reconoce la hoja",

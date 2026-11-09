@@ -21,6 +21,7 @@ jobs:
           cache-dependency-path: src/omr/requirements.txt
       - run: npm ci
       - run: python -m pip install -r src/omr/requirements.txt
+      - run: npm run omr:doctor
       - run: npm run check
       - run: npm test
       - run: npm run test:omr

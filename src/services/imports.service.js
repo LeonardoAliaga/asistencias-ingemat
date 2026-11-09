@@ -1,12 +1,12 @@
 const fs = require("node:fs");
 const path = require("node:path");
-const { spawn } = require("node:child_process");
 const { randomUUID } = require("node:crypto");
 const { parse } = require("csv-parse/sync");
 const db = require("../database/db");
 const config = require("../config");
 const { layouts } = require("./omr-layout");
 const { bookletLayouts } = require("./omr-booklet-layout");
+const { runReader } = require("./omr-runtime.service");
 function sheetLayouts(def, version) {
   return version === 2
     ? layouts(def.totalQuestions)
@@ -301,56 +301,6 @@ function buildRows(exam, result, currentBatchId) {
   result.rows = rows;
   return needsReview || !rows.length ? "review" : "ready";
 }
-function runReader(requestPath) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(
-      config.python,
-      [path.join(__dirname, "../omr/reader.py"), requestPath],
-      { shell: false, windowsHide: true },
-    );
-    let stdout = "",
-      stderr = "",
-      settled = false;
-    const timeout = setTimeout(() => {
-      child.kill();
-      reject(
-        new Error("El lector superó cinco minutos. Reduce el tamaño del lote."),
-      );
-    }, 300000);
-    child.stdout.on("data", (c) => {
-      stdout += c;
-      if (stdout.length > 8 * 1024 * 1024) {
-        child.kill();
-        reject(new Error("Respuesta del lector demasiado grande."));
-      }
-    });
-    child.stderr.on("data", (c) => {
-      stderr = (stderr + c).slice(-1000);
-    });
-    child.on("error", () => {
-      clearTimeout(timeout);
-      reject(
-        new Error(
-          "No se pudo iniciar Python. Instala los requisitos OMR y configura PYTHON_BIN.",
-        ),
-      );
-    });
-    child.on("close", (code) => {
-      clearTimeout(timeout);
-      if (code !== 0)
-        return reject(
-          new Error(
-            "El lector falló. Comprueba la instalación de Python y los requisitos OMR.",
-          ),
-        );
-      try {
-        resolve(JSON.parse(stdout));
-      } catch {
-        reject(new Error("El lector no devolvió un resultado válido."));
-      }
-    });
-  });
-}
 let busy = false;
 async function processScanQueue() {
   if (busy) return;
@@ -403,13 +353,28 @@ async function processScanQueue() {
         outputDir: path.join(root, b.id, "pages"),
       }),
     );
-    const result = { ...(await runReader(requestPath)), reviewVersion: 1 };
+    const result = {
+      ...(await runReader(requestPath, { batchId: b.id })),
+      reviewVersion: 1,
+    };
     for (const page of result.pages || [])
       if (page.imagePath)
         page.imagePath = path.relative(config.dataDir, page.imagePath);
     const state = buildRows(exam, result, b.id);
     writeResult(b.id, result, state);
+    console.info("[OMR] Lote procesado", {
+      batchId: b.id,
+      status: state,
+      pages: result.pages.length,
+      readyRows: result.rows?.length || 0,
+    });
   } catch (error) {
+    console.error("[OMR] Lote fallido", {
+      batchId: b.id,
+      code: error.code,
+      message: error.message,
+      stack: error.stack,
+    });
     db.prepare(
       "UPDATE import_batches SET status='failed',error=?,updated_at=CURRENT_TIMESTAMP WHERE id=?",
     ).run(error.message, b.id);
