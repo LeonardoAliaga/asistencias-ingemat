@@ -377,16 +377,6 @@
 .v2-contact-row .v2-link {
   margin-left: 8px;
 }
-.v2-secret {
-  display: block;
-  background: #f3f6fb;
-  padding: 16px;
-  border: 1px dashed #c5d2e3;
-  border-radius: 8px;
-  font-size: 13px;
-  overflow-wrap: anywhere;
-  margin-top: 16px;
-}
 .v2-scan-review {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1643,4 +1633,14 @@ body[data-account-role="docente"] .btn-delete-seccion {
     align-items: flex-start;
     flex-wrap: wrap;
   }
+}
+
+.wizard-scoring {
+  border-top: 1px solid var(--line);
+  padding-top: 20px;
+  display: grid;
+  gap: 12px;
+}
+.wizard-steps.is-fixed {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }

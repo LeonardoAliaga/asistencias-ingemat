@@ -10,8 +10,8 @@ process.env.DISABLE_MIGRATION_BACKUP = "1";
 process.env.NODE_ENV = "test";
 const { createApp } = require("../app"),
   db = require("../src/database/db");
-const app = createApp();
 db.prepare("INSERT INTO ciclos(nombre) VALUES(?)").run("ANUAL");
+const app = createApp();
 for (const [code, name, area] of [
   ["DEMO001", "ANA DEMO", "A"],
   ["DEMO002", "LUIS DEMO", "C"],

@@ -52,6 +52,7 @@
   /* background: var(--red); */
   justify-content: space-between;
   flex-wrap: nowrap;
+  align-items: center;
   transition: 0.5s;
   z-index: 1000;
 }
@@ -63,7 +64,7 @@
 
 .navbar.sticky img {
   filter: none;
-  width: 10rem;
+  width: 8.5rem;
 }
 .navbar a {
   z-index: 1000;
@@ -71,9 +72,14 @@
 }
 .navbar img {
   position: relative;
-  filter: invert(100%) sepia(95%) saturate(0%) hue-rotate(143deg)
-    brightness(105%) contrast(108%);
-  width: 14rem;
+  display: block;
+  width: 10rem;
+  height: auto;
+  aspect-ratio: 3587 / 1557;
+  object-fit: contain;
+  background: white;
+  padding: 6px;
+  border-radius: 6px;
   transition: 0.5s;
 }
 .navbar ul {
@@ -211,7 +217,9 @@ input#codigo {
   flex-shrink: 0;
   /* Logos en escala de grises */
   opacity: 0.7;
-  transition: opacity 0.3s, filter 0.3s;
+  transition:
+    opacity 0.3s,
+    filter 0.3s;
 }
 
 .logo-carousel-track img:hover {

@@ -325,8 +325,10 @@ form > button[type="submit"]:hover {
   border-bottom: 1px solid #edf0f5;
 }
 .app-brand img {
-  width: 160px;
-  height: 38px;
+  width: 180px;
+  max-width: 100%;
+  height: auto;
+  aspect-ratio: 3587 / 1557;
   object-fit: contain;
   object-position: left;
 }

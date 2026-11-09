@@ -46,7 +46,7 @@ Para la primera cuenta define `ADMIN_INITIAL_PASSWORD` con al menos 12 caractere
 npm start
 ```
 
-Abre `http://localhost:3001/admin`. La página pública y la recepción están en `/`. Un punto de recepción necesita vincularse con un código generado en **Asistencia → Vincular un punto de recepción**, o utilizar una sesión de operador autorizada.
+Abre `http://localhost:3001/admin`. La página pública y la recepción están en `/`. Para registrar ingresos, inicia sesión en `/admin` con una cuenta de administración o recepción y abre Asistencias en el mismo navegador.
 
 No es necesario ejecutar Node, el navegador o `start.bat` como administrador del sistema operativo. El script inicia únicamente el proceso `ingemat` y no elimina otros procesos de PM2. Para un servidor con PM2:
 
@@ -69,8 +69,8 @@ La base de datos es `DATA_DIR/ingemat.db`; el valor predeterminado es `./data`. 
 
 ## Simulacros
 
-1. En **Simulacros → Nuevo examen**, sigue el asistente: **Datos → Cursos y áreas → Claves → Revisión**. Empieza por título, ciclo, fecha y formato.
-2. La plantilla predeterminada **Repaso UNMSM** ya distribuye los 19 cursos y las áreas A–E según los PDF de la academia: 120 impresas y 100 evaluables por área. Consulta [rangos y cantidades](docs/PLANTILLA_REPASO.md). Puedes editarla o elegir un formato estándar vacío. Los exámenes existentes se conservan.
+1. En **Simulacros → Nuevo examen**, elige en el único selector **Plantilla**. Con **Simulacro tipo UNMSM**, el recorrido es **Datos → Claves → Revisión**; las bases y Personalizado también muestran **Cursos y áreas**. Los puntajes generales están visibles en Datos.
+2. La plantilla predeterminada **Simulacro tipo UNMSM** ya distribuye los 19 cursos y las áreas A–E según los PDF de la academia: 120 impresas y 100 evaluables por área. Consulta [rangos y cantidades](docs/PLANTILLA_REPASO.md). Para crear otra distribución elige una base o Personalizado (configuración limpia). Los exámenes existentes se conservan.
 3. Para cada área y curso define preguntas fijas o un conjunto elegible y cupo. La suma tiene que coincidir con el total evaluable del perfil.
 4. En **Claves**, selecciona las alternativas con botones A–E: avance automático, progreso por curso, navegación a pendientes y selección de varias respuestas aceptadas. También puedes pegar una secuencia de letras sin números. Las penalizaciones, excepciones y versiones están en opciones desplegables.
 5. En Revisión puedes **Guardar borrador** con claves pendientes o **Guardar y validar** cuando esté completo. Después la estructura se conserva.
@@ -80,7 +80,7 @@ La base de datos es `DATA_DIR/ingemat.db`; el valor predeterminado es `./data`. 
 
 Una marca doble confirmada se califica como incorrecta. Una marca dudosa impide calificar hasta su revisión. Las preguntas fuera del perfil no cuentan como blancos. En «Elegir cupo» no se seleccionan las mejores respuestas si el alumno excede el máximo: se solicita revisión.
 
-Las revisiones de claves recalculan las notas en una transacción y conservan el historial. Corregir una nota publicada devuelve el examen a Listo para revisión. Los avisos pendientes de notas anteriores se cancelan; una nueva publicación permite comunicar las notas actualizadas. Las cartillas impresas antes de una corrección de claves siguen siendo legibles porque la estructura no cambia. Si un lote se previsualizó antes de corregir la clave, usa **Actualizar con las claves vigentes** antes de confirmarlo.
+Desde **Revisar claves y reglas** puedes corregir claves y excepciones de puntaje después de registrar respuestas. Al confirmar se recalculan notas y ranking en una transacción y se conserva el historial. El orden de las versiones A/B queda fijado al validar. Corregir una nota publicada devuelve el examen a Listo para revisión. Los avisos pendientes de notas anteriores se cancelan; una nueva publicación permite comunicar las notas actualizadas. Las cartillas impresas antes de una corrección de claves siguen siendo legibles porque la estructura no cambia. Si un lote se previsualizó antes de corregir la clave, usa **Actualizar con las claves vigentes** antes de confirmarlo.
 
 ## Lectura OMR
 
@@ -155,7 +155,7 @@ npm run test:ui
 npm audit --omit=dev
 ```
 
-Los tests usan directorios temporales y datos ficticios; no usan los registros de la academia ni hacen envíos reales. Las pruebas del backend incluyen HTTP, permisos, migración, importación atómica, versiones, cuotas, duplicados y la cola oficial. Las pruebas OMR incluyen PDF real, 120 preguntas, marcas dobles/tenues, perspectiva y segunda página. Las pruebas de navegador cubren creación y calificación, guía, pantalla móvil, formularios heredados, vinculación de recepción y sanitización.
+Los tests usan directorios temporales y datos ficticios; no usan los registros de la academia ni hacen envíos reales. Las pruebas del backend incluyen HTTP, permisos, migración, importación atómica, versiones, cuotas, duplicados y la cola oficial. Las pruebas OMR incluyen PDF real, 120 preguntas, marcas dobles/tenues, perspectiva y segunda página. Las pruebas de navegador cubren creación y calificación, guía, pantalla móvil, formularios heredados, acceso de recepción mediante cuentas y sanitización.
 
 ## Organización
 

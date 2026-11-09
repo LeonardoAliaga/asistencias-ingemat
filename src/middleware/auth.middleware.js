@@ -20,29 +20,15 @@ function requirePermission(permission) {
     requireAuthenticated(req, res, () =>
       hasPermission(req.session.role, permission)
         ? next()
-        : res
-            .status(403)
-            .json({
-              exito: false,
-              mensaje: "Tu cuenta no tiene permiso para esta acción.",
-            }),
+        : res.status(403).json({
+            exito: false,
+            mensaje: "Tu cuenta no tiene permiso para esta acción.",
+          }),
     );
 }
 const requireAdmin = requirePermission("admin");
-function requireKiosk(req, res, next) {
-  if (
-    req.session?.kiosk &&
-    req.session.kioskVersion ===
-      db
-        .prepare("SELECT valor FROM config_general WHERE clave='kiosk_version'")
-        .get()?.valor
-  )
-    return next();
-  return requirePermission("asistencias:write")(req, res, next);
-}
 module.exports = {
   requireAdmin,
   requireAuthenticated,
   requirePermission,
-  requireKiosk,
 };

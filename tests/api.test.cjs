@@ -85,7 +85,7 @@ test("private APIs and direct admin HTML require a session, and writes require C
 });
 test("create cycle, students and validated exam through HTTP", async () => {
   assert.equal(
-    (await admin("/api/ciclos", { nombre: "ANUAL" }, "POST")).status,
+    (await admin("/api/ciclos", { nombre: "INTENSIVO" }, "POST")).status,
     201,
   );
   for (const code of ["T001", "T002", "T003"]) {
@@ -234,29 +234,57 @@ test("contacts need explicit authorization and unknown areas cannot print sheets
   assert.equal(r.status, 200);
   assert.equal(r.headers.get("content-type"), "application/pdf");
 });
-test("kiosk requires pairing, rejects duplicate attendance and cannot justify", async () => {
+test("attendance requires an authorized account, rejects duplicates and removes pairing endpoints", async () => {
   assert.equal(
     (await guest("/api/registrar", { codigo: "T001" }, "POST")).status,
     401,
   );
-  const token = (await admin("/api/v2/kiosk-token", {}, "POST")).data.token;
-  assert.equal((await guest("/api/kiosk/pair", { token }, "POST")).status, 200);
   assert.equal(
-    (await guest("/api/registrar", { codigo: "T001" }, "POST")).status,
+    (await guest("/api/kiosk/pair", { token: "retired" }, "POST")).status,
+    404,
+  );
+  assert.equal((await admin("/api/v2/kiosk-token", {}, "POST")).status, 404);
+  assert.equal(
+    Object.hasOwn((await guest("/api/session")).data, "kiosk"),
+    false,
+  );
+  assert.equal(
+    (
+      await admin(
+        "/api/v2/accounts",
+        {
+          username: "desk-test",
+          password: "Reception-test-only-2026",
+          role: "recepcion",
+        },
+        "POST",
+      )
+    ).status,
+    201,
+  );
+  const desk = await client();
+  await desk(
+    "/admin/login",
+    { username: "desk-test", password: "Reception-test-only-2026" },
+    "POST",
+  );
+  assert.equal(
+    (await desk("/api/registrar", { codigo: "T001" }, "POST")).status,
     200,
   );
   assert.equal(
-    (await guest("/api/registrar", { codigo: "T001" }, "POST")).status,
+    (await desk("/api/registrar", { codigo: "T001" }, "POST")).status,
     409,
   );
   assert.equal(
-    (await guest("/api/registrar", { codigo: "T002J" }, "POST")).status,
-    403,
+    (await desk("/api/registrar", { codigo: "T002J" }, "POST")).status,
+    200,
   );
-  await admin("/api/v2/kiosk-token", {}, "POST");
+  assert.equal((await desk("/api/v2/exams")).status, 403);
   assert.equal(
-    (await guest("/api/registrar", { codigo: "T002" }, "POST")).status,
-    401,
+    db.prepare("SELECT source FROM attendance WHERE student_code='T001'").get()
+      .source,
+    "operador",
   );
 });
 test("operator permissions and guide coverage are enforced", async () => {
@@ -303,6 +331,10 @@ test("operator permissions and guide coverage are enforced", async () => {
     "/admin/login",
     { username: "recepcion", password: "Reception-test-only-2026" },
     "POST",
+  );
+  assert.equal(
+    (await teacher("/api/registrar", { codigo: "T003" }, "POST")).status,
+    403,
   );
   assert.equal((await reception("/api/evaluaciones")).status, 403);
   assert.equal((await reception("/api/v2/exams")).status, 403);
@@ -406,7 +438,7 @@ test("changing a student code and cycle preserves identity, contacts, printed sh
   const before = db.prepare("SELECT * FROM usuarios WHERE codigo='T001'").get();
   assert.equal(
     (await admin("/api/ciclos", { nombre: "SEMESTRAL" }, "POST")).status,
-    201,
+    409,
   );
   const r = await admin(
     "/api/usuarios/T001",
@@ -856,4 +888,67 @@ test("camera uploads are idempotent per operator and reject cross-exam receipt r
     401,
   );
   assert.deepEqual(fs.readdirSync(path.join(dir, "temp")), []);
+});
+
+test("exception revisions recalculate stored answers and keep booklet versions fixed", async () => {
+  let result = await admin(
+    "/api/v2/exams",
+    {
+      titulo: "REVISIÓN DE REGLAS",
+      ciclo: "ANUAL",
+      fecha: "2026-11-09",
+      definition: {
+        totalQuestions: 4,
+        keys: { 1: "A", 2: "A", 3: "A", 4: "A" },
+        forms: { A: [1, 2, 3, 4], B: [4, 3, 2, 1] },
+      },
+    },
+    "POST",
+  );
+  assert.equal(result.status, 201);
+  const id = result.data.id;
+  assert.equal(
+    (await admin(`/api/v2/exams/${id}/ready`, {}, "POST")).status,
+    200,
+  );
+  result = await admin(
+    `/api/v2/exams/${id}/grade`,
+    {
+      codigoEstudiante: "T002",
+      area: "GENERAL",
+      form: "B",
+      respuestas: { 1: "B", 2: "B", 3: "B", 4: "B" },
+    },
+    "POST",
+  );
+  assert.equal(result.status, 200);
+  assert.equal(result.data.resultado.puntajeTotal, -4.5);
+  const before = (await admin(`/api/v2/exams/${id}`)).data;
+  const keys = structuredClone(before.definition.keys);
+  keys[1].noPenalty = true;
+  keys[2].optionScores = { A: 20, B: 5, C: 0, D: 0, E: 0 };
+  keys[3].voidPolicy = "exclude";
+  result = await admin(
+    `/api/v2/exams/${id}/revise-keys`,
+    { keys, reason: "Excepciones cotejadas con el reglamento" },
+    "POST",
+  );
+  assert.equal(result.status, 200);
+  assert.equal(result.data.revision, 2);
+  assert.deepEqual(result.data.definition.forms, before.definition.forms);
+  const rows = (await admin(`/api/v2/exams/${id}/results`)).data.rows;
+  assert.equal(rows[0].puntajeTotal, 3.875);
+  assert.equal(rows[0].detail.form, "B");
+  result = await admin(
+    `/api/v2/exams/${id}/revise-keys`,
+    {
+      keys,
+      forms: { A: [4, 3, 2, 1], B: [1, 2, 3, 4] },
+      reason: "Intento de cambiar el orden",
+    },
+    "POST",
+  );
+  assert.equal(result.status, 409);
+  assert.match(result.data.mensaje, /versiones.*fijados/);
+  assert.equal((await admin(`/api/v2/exams/${id}`)).data.revision, 2);
 });

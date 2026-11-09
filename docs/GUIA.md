@@ -12,7 +12,7 @@ Prepara una instalación nueva y conoce dónde está cada función.
 4. **Crea ciclos y horarios.** En Ciclos y horarios registra primero los ciclos; después establece la entrada y tolerancia para mañana y tarde.
 5. **Registra usuarios.** En Estudiantes y docentes pulsa Nuevo usuario para crear una ficha. El código debe ser único. Los estudiantes necesitan ciclo y turno.
 6. **Completa áreas y contactos.** En Apoderados y áreas asigna el perfil de postulación y los apoderados que recibirán avisos.
-7. **Vincula recepción.** En Asistencia abre Vincular un punto de recepción y genera un código para cada equipo. En la página pública usa Vincular punto de asistencia.
+7. **Prepara la cuenta de recepción.** Crea una cuenta con rol Recepción en Cuentas y respaldo. Inicia sesión con ella en el navegador que registrará los ingresos.
 8. **Prepara un simulacro de prueba.** Usa un alumno ficticio y un examen pequeño antes del primer lote real. Verifica impresión, lecturas y puntajes.
 
 ## Crear cuentas y distribuir permisos
@@ -58,21 +58,21 @@ Imprime identificaciones para acelerar la recepción.
 5. **Usa cámara si es necesario.** En la página de asistencia elige el lector con cámara y permite su acceso. Para usar cámara desde otro dispositivo necesitas HTTPS.
 6. **No confundas las fichas.** El QR del carnet identifica al usuario; el QR de cartillas identifica un examen, versión, revisión y página.
 
-## Vincular un punto de asistencia
+## Usar una cuenta de recepción
 
-Autoriza un equipo de recepción sin darle acceso a las notas.
+Registra ingresos con una cuenta autorizada y permisos limitados.
 
-1. **Genera el código.** Una cuenta administradora abre Asistencia, despliega Vincular un punto de recepción y pulsa Generar código de recepción.
-2. **Abre la página pública en recepción.** Usa el botón Vincular punto de asistencia de la esquina inferior e ingresa el código. El navegador conserva una sesión de ocho horas.
-3. **Registra un código de prueba.** Escanea un carnet o escribe su código y comprueba la hora y el estado.
-4. **Protege el equipo.** El punto vinculado solo registra asistencias. Las justificaciones requieren una cuenta autorizada.
-5. **Renueva cuando corresponda.** Si borras las cookies o expira la sesión, vuelve a vincular. Rotar el código invalida los puntos anteriores.
+1. **Crea una cuenta de recepción.** En Cuentas y respaldo, un administrador crea una cuenta individual con rol Recepción para el encargado.
+2. **Inicia sesión.** Abre /admin e ingresa el usuario y contraseña de recepción. Cambia la contraseña inicial cuando se solicite.
+3. **Abre el registro público.** En el mismo navegador, abre la página principal y pulsa Asistencias. La sesión de la cuenta autoriza el registro de ingresos.
+4. **Registra y comprueba.** Escanea el carnet o escribe el código del alumno. Revisa la confirmación, hora y estado; los ingresos duplicados para el mismo turno se rechazan.
+5. **Protege la cuenta.** El rol Recepción permite gestionar asistencias y biblioteca, pero no acceder a simulacros. Cierra la sesión al terminar; un administrador puede desactivar la cuenta.
 
 ## Registrar ingresos sin duplicados
 
 Usa código, lector USB o cámara.
 
-1. **Abre el registro.** En la página pública pulsa Asistencias o el lector con cámara. El equipo debe estar vinculado, o debes iniciar sesión con un rol autorizado.
+1. **Abre el registro.** En la página pública pulsa Asistencias o el lector con cámara. Inicia sesión antes con una cuenta de administración o recepción en el mismo navegador.
 2. **Introduce el código.** Escríbelo o usa un lector USB. El sistema identifica por código, no por nombre.
 3. **Comprueba el resultado.** Revisa nombre, ciclo, turno y hora. La fecha y hora se calculan en America/Lima.
 4. **Evita registros repetidos.** Una segunda lectura del mismo usuario, fecha y turno informa que ya existe un ingreso.
@@ -109,10 +109,10 @@ Distingue los nuevos registros de los Excel anteriores.
 
 Sigue cuatro pasos: Datos, Cursos y áreas, Claves y Revisión.
 
-1. **Abre Simulacros.** Pulsa Nuevo examen. En el paso Datos elige Estándar de 100 preguntas. Las opciones avanzadas permanecen plegadas.
+1. **Abre Simulacros.** Pulsa Nuevo examen. En Datos, el único selector Plantilla reúne las preestablecidas y las que guardaste. Elige Base de 100 preguntas para configurar sus cursos.
 2. **Completa los datos.** Indica título, ciclo y fecha. El perfil GENERAL evalúa las 100 preguntas.
 3. **Distribuye los cursos.** Pulsa Continuar para abrir Cursos y áreas. Edita el curso General o agrega cursos con rangos sin solapamientos: Matemática 1-20, Física 21-30 y los demás hasta 100. Cada pregunta pertenece a un único curso. El resumen inferior indica huecos, repeticiones y cantidades por área.
-4. **Configura puntajes.** Los valores iniciales están en Puntajes del simulacro, dentro de Datos. Abre Puntajes especiales para este curso si un curso necesita valores diferentes. En Ajustes de puntaje para todos los cursos puedes reaplicar los valores generales.
+4. **Configura puntajes.** Los puntajes generales están visibles en Datos, separados del resto de los campos. En Cursos y áreas puedes ajustar Puntajes especiales para este curso si necesita otros valores. Las reglas se guardan con el examen.
 5. **Marca las claves con botones.** Continúa a Claves. Selecciona un curso y pulsa A, B, C, D o E para la pregunta indicada; el editor avanza automáticamente. El contador de cada curso muestra tu progreso. Puedes pulsar un número para corregirlo o Ir a una pendiente. Activa Aceptar varias alternativas si una pregunta admite más de una respuesta; después pulsa Siguiente. También puedes escribir las letras A–E con el foco dentro del editor. Para cargar una lista existente abre Pegar una lista de claves y pega A B C… sin números.
 6. **Guarda el borrador.** En Revisión comprueba el resumen. Guardar borrador conserva el trabajo con claves pendientes; después puedes abrir Editar borrador.
 7. **Valida el examen.** Si todas las claves o reglas están completas, usa Guardar y validar. También puedes validar un borrador guardado desde Validar y preparar. Después la estructura queda fijada.
@@ -122,17 +122,17 @@ Sigue cuatro pasos: Datos, Cursos y áreas, Claves y Revisión.
 
 El número impreso y el número evaluado son conceptos diferentes.
 
-1. **Elige formato por áreas.** En Simulacros pulsa Nuevo examen. Repaso UNMSM es el formato predeterminado: carga la distribución de los PDF de la academia, con 120 preguntas impresas y 100 evaluables para cada área A–E. Completa título, ciclo y fecha.
-2. **Asigna cursos.** Continúa a Cursos y áreas. Los 19 cursos ya tienen sus rangos; Historia del Perú e Historia Universal están separadas. Abre un curso para revisar o editar, manteniendo los demás plegados.
-3. **Configura la matriz de áreas.** En cada curso usa Configurar área de postulación para revisar A–E. La plantilla usa preguntas fijas según los cuadros del cuadernillo. Las preguntas fuera del perfil no cuentan como blancos. Si usas otro material, ajusta los rangos antes de validar.
-4. **Comprueba los totales.** El resumen inferior de Cursos y áreas muestra las cantidades asignadas a cada perfil. Su suma debe coincidir exactamente con la cantidad evaluable; corrige las diferencias antes de continuar.
+1. **Elige Simulacro tipo UNMSM.** En Simulacros pulsa Nuevo examen. En Plantilla elige Simulacro tipo UNMSM: contiene 120 preguntas impresas, 19 cursos y 100 evaluables para cada área A–E.
+2. **Completa los datos.** Indica título, ciclo y fecha. Los puntajes generales están visibles en Datos; las actitudinales solo suman por acierto, sin descuento por errores o blancos.
+3. **Usa la configuración establecida.** El asistente omite Cursos y áreas: sigue Datos → Claves → Revisión. La distribución queda precargada. Si deseas cambiarla, selecciona una base o Personalizado (empieza desde cero) y aparecerá ese paso.
+4. **Revisa los puntajes.** Puedes ajustar los puntajes generales en Datos. El descuento cero de actitudinales se conserva. No hace falta volver a ingresar rangos ni cantidades por curso.
 5. **Carga la clave del cuadernillo.** En Claves marca las alternativas con los botones A–E. El avance automático pasa al siguiente curso cuando completas el actual; usa Curso para saltar a otro y los números para revisar. También puedes abrir Pegar una lista de claves y pegar las 120 alternativas en orden. La clave del cuadernillo es única; el área del alumno determina cuáles se califican.
 6. **Asigna áreas a estudiantes.** En Apoderados y áreas registra el perfil de cada postulante antes de imprimir.
 7. **Valida y descarga cartillas.** La cartilla contiene 120 filas aunque la nota de un alumno utilice solo 100.
 8. **Revisa por curso y área.** Los resultados muestran aciertos, errores, blancos, anuladas y puntaje por curso. El ranking comparte puesto cuando hay empate.
 
-- Esta plantilla reproduce el material proporcionado por la academia; revisa su vigencia para cada examen. No contiene claves de respuesta.
-- Para empezar desde cero elige Por áreas en Datos y define cursos y rangos. Los formatos estándar evalúan todas las preguntas con un perfil GENERAL.
+- La plantilla reproduce el material proporcionado por la academia; revisa su vigencia para cada examen. No contiene claves de respuesta.
+- Las bases de 100 preguntas, 120 preguntas y por áreas muestran Cursos y áreas para configurar su distribución. Los exámenes que ya estaban guardados conservan sus reglas.
 
 ## Preguntas fijas frente a elegir un cupo dentro de un curso
 
@@ -149,7 +149,7 @@ Evita calificar preguntas que no corresponden o seleccionar las mejores respuest
 
 Aplica excepciones de puntaje de forma explícita.
 
-1. **Sin descuento.** En la plantilla Repaso UNMSM, las actitudinales (1–10) ya tienen correcta +20, incorrecta 0 y blanco 0: solo suman los aciertos. Los otros cursos mantienen su penalización. Revisa el curso en Cursos y áreas → Puntajes especiales para este curso. Para excepciones adicionales puedes usar Preguntas sin penalización.
+1. **Sin descuento.** En Simulacro tipo UNMSM, las actitudinales (1–10) ya tienen correcta +20, incorrecta 0 y blanco 0. Para otras excepciones usa Preguntas sin penalización. Después de registrar respuestas, puedes cambiar esas reglas desde Revisar claves y reglas y recalcular automáticamente.
 2. **Anular una pregunta.** Indica los números anulados y elige Otorgar puntos o Excluir del puntaje. El resultado registra la anulación por separado.
 3. **Puntaje por alternativa.** En el bloque de puntajes por alternativa pega número,A,B,C,D,E; por ejemplo 15,20,15,10,5,0. Esta regla sirve cuando todas las alternativas tienen un valor propio.
 4. **Configura el blanco.** El puntaje por blanco pertenece a la regla del curso. Una marca doble sigue siendo inválida.
@@ -167,15 +167,15 @@ Relaciona el orden impreso con las preguntas originales.
 
 - Esta versión cambia el orden de preguntas, no el orden de alternativas A-E dentro de una pregunta.
 
-## Reutilizar formatos sin repetir la configuración
+## Elegir y guardar plantillas de simulacros
 
-Guarda cursos y matriz de áreas como una plantilla.
+Un solo selector Plantilla en Datos; Guardar como plantilla en Revisión.
 
-1. **Prepara el diseño.** Nuevo examen carga Repaso UNMSM con cursos y matriz de áreas de los PDF de la academia. Puedes editarla o comenzar con un formato estándar. Revisa los puntajes y agrega las claves propias de cada examen.
-2. **Guarda una plantilla.** En el editor abre Reutilizar una plantilla o un archivo de configuración. Usa Guardar como plantilla y escribe un nombre identificable. Puedes guardar una estructura con claves pendientes.
-3. **Crea el siguiente examen.** Crea un nuevo examen y despliega Reutilizar una plantilla o un archivo de configuración. Selecciona la plantilla, cambia título, ciclo y fecha y pega las nuevas claves.
-4. **Revisa las reglas.** No asumas que el formato del examen anterior sigue vigente.
-5. **Exporta o importa estructura.** Usa el archivo JSON de estructura para llevar una configuración completa entre instalaciones. El archivo no contiene notas de estudiantes.
+1. **Elige en Datos.** El selector Plantilla contiene Simulacro tipo UNMSM, las bases y Mis plantillas. UNMSM ya tiene la distribución establecida y omite Cursos y áreas.
+2. **Completa o adapta.** Indica título, ciclo y fecha. Para configurar cursos o áreas propios, elige Personalizado o una de las bases. Carga las claves y excepciones.
+3. **Guarda en Revisión.** Escribe Nombre de la plantilla y pulsa Guardar como plantilla. Es independiente de Guardar borrador o Guardar y validar. Se admiten claves pendientes.
+4. **Reutiliza en otro examen.** Pulsa Nuevo examen y selecciona la plantilla dentro de Mis plantillas. Revisa los datos y reemplaza las claves por las del nuevo cuadernillo. Cargar una plantilla no cambia las notas de otro examen.
+5. **Conserva las reglas del examen.** Después de guardar, el simulacro conserva una copia de su configuración. Las actualizaciones de una plantilla no cambian exámenes existentes. Usa Revisar claves y reglas para corregir notas ya registradas con motivo e historial.
 
 ## Generar cartillas por curso y elegir tamaño de impresión
 
@@ -258,13 +258,16 @@ También sirve como alternativa cuando una hoja no se puede escanear.
 
 Las revisiones no borran el resultado anterior.
 
-1. **Abre el examen.** Selecciona Revisar claves.
-2. **Carga la clave corregida.** Usa el mismo editor visual de claves: selecciona el curso, pulsa el número de la pregunta y elige la alternativa corregida. Las otras claves se conservan. Puedes aceptar varias alternativas o indicar preguntas anuladas. Si ya tienes una lista completa corregida, abre Pegar una lista de claves.
+1. **Abre el examen.** Selecciona un simulacro listo o publicado y pulsa Revisar claves y reglas. Los borradores se editan con Editar borrador.
+2. **Carga la clave corregida.** Puedes corregir las alternativas, preguntas sin penalización, anulaciones y puntajes por alternativa. El selector Conservar reglas actuales mantiene las políticas de anulación existentes; evita sustituir una exclusión por puntos sin querer.
 3. **Escribe un motivo.** Por ejemplo: Corrección de clave oficial en pregunta 42.
 4. **Confirma el recálculo.** Se crea una revisión y se recalifican todas las respuestas guardadas en una transacción.
 5. **Revisa diferencias.** Comprueba los resultados por alumno y curso. El historial conserva las notas previas.
 6. **Publica otra vez.** La revisión vuelve a estado Listo. Publica cuando termines de verificar.
 7. **Gestiona avisos anteriores.** Los avisos pendientes de las notas anteriores se cancelan. Los mensajes ya entregados no se pueden retirar. Publica la revisión correcta y genera sus nuevos avisos conscientemente.
+
+- Al confirmar, se recalculan todas las respuestas registradas, también las ingresadas manualmente, y se actualiza el ranking. Se conserva el historial; un examen publicado vuelve a Listo para revisar y publicar nuevamente.
+- Las versiones A/B son órdenes de preguntas, no revisiones de notas. En B:51-100,1-50, la pregunta 1 impresa usa la clave original 51. El orden queda fijado al validar; para cambiarlo crea otro simulacro. Las cartillas ya impresas siguen usando su versión original.
 
 ## Ranking, publicación y avisos de resultados
 
@@ -398,10 +401,10 @@ Mantén los datos de trabajo fuera del código fuente.
 Pistas para recuperar el flujo sin perder datos.
 
 1. **No puedo iniciar sesión.** Comprueba usuario, contraseña y que la cuenta esté activa. Tras muchos intentos espera 15 minutos. La recuperación administrativa está documentada en el README.
-2. **No puedo registrar un ingreso.** Vincula el punto de asistencia o inicia sesión con permisos. Revisa el código y si ya existe un registro para el turno.
+2. **No puedo registrar un ingreso.** Inicia sesión con una cuenta de administración o recepción. Revisa el código y si ya existe un registro para el turno.
 3. **El examen no valida.** Comprueba claves faltantes, cursos solapados, huecos y suma de preguntas por cada área.
 4. **El lector no inicia.** Comprueba Python, PYTHON_BIN y los paquetes de requirements.txt. Prueba el comando npm run test:omr.
 5. **No reconoce la hoja.** Usa una cartilla v2 completa, 300 ppp, cuatro marcadores visibles y QR nítido. Los formatos antiguos no se leen con la nueva plantilla.
 6. **El lote tiene incidencias.** Abre Revisar. Resuelve las marcas dudosas, páginas repetidas o faltantes antes de confirmar.
 7. **No llegan avisos.** Comprueba contactos autorizados, idioma y plantillas aprobadas, estado de credenciales, Internet y webhooks.
-8. **La sesión cambió.** Actualiza la página e inicia sesión de nuevo. Un cambio de contraseña, desactivación o rotación de recepción puede invalidarla.
+8. **La sesión cambió.** Actualiza la página e inicia sesión de nuevo. Un cambio de contraseña, desactivación de la cuenta puede invalidarla.

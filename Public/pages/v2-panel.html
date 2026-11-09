@@ -20,7 +20,8 @@
       <button class="v2-button secondary" id="v2-edit">Editar borrador</button
       ><button class="v2-button" id="v2-ready">Validar y preparar</button
       ><button class="v2-button" id="v2-publish">Publicar resultados</button
-      ><button class="v2-button secondary" id="v2-revise">Revisar claves</button
+      ><button class="v2-button secondary" id="v2-revise">
+        Revisar claves y reglas</button
       ><button class="v2-button danger" id="v2-archive">Archivar</button
       ><button class="v2-button secondary" data-admin="" id="v2-notify">
         Notificar resultados
@@ -71,8 +72,8 @@
       <div class="wizard-pane" data-wizard-pane="0">
         <h3>Empieza por los datos del examen</h3>
         <p class="v2-help">
-          Elige un formato. La distribución por cursos y las claves se completan
-          en los siguientes pasos.
+          Completa título, ciclo y fecha. Elige una plantilla y revisa los
+          puntajes.
         </p>
         <div class="v2-form-grid">
           <label
@@ -84,16 +85,14 @@
           ><label>Ciclo<select name="ciclo" required=""></select></label
           ><label>Fecha<input name="fecha" required="" type="date" /></label
           ><label
-            >Formato<select id="v2-preset">
-              <option value="repaso-unmsm">
-                Repaso UNMSM · predeterminada
-              </option>
+            >Plantilla<select id="v2-preset">
+              <option value="repaso-unmsm">Simulacro tipo UNMSM</option>
               <option value="100">Estándar de 100 preguntas</option>
               <option value="120">Estándar de 120 preguntas</option>
               <option value="areas">
                 Por áreas · 120 impresas / 100 evaluables
               </option>
-              <option value="custom">Personalizado</option>
+              <option value="custom">Personalizado · empezar desde cero</option>
             </select></label
           ><label
             >Preguntas del cuadernillo<input
@@ -105,20 +104,23 @@
               value="100"
           /></label>
         </div>
-        <p id="v2-preset-source" class="v2-help" hidden>
-          Basada en los PDF de repaso de la academia: 120 preguntas impresas,
-          100 evaluables por cada área A–E y 19 cursos. Puedes editar la
-          distribución. Actitudinales: correcta +20; incorrecta y blanco 0, sin
-          descuento. Las claves se cargan por separado.
-        </p>
+        <div id="v2-fixed-preset" class="v2-notice" hidden>
+          <strong>Simulacro tipo UNMSM: configuración establecida</strong>
+          <p id="v2-preset-source" class="v2-help">
+            120 preguntas, 19 cursos y áreas A–E ya distribuidos según los PDF
+            de repaso; 100 evaluables por área. Continuar te lleva a Claves. Las
+            actitudinales solo suman por acierto. Para crear otra distribución,
+            elige una base o Personalizado y empieza desde cero.
+          </p>
+        </div>
         <div id="v2-format-confirm" class="v2-notice warning" hidden>
           <p>
-            Aplicar este formato reemplazará los cursos, áreas y claves que
+            Aplicar esta plantilla reemplazará los cursos, áreas y claves que
             estás editando.
           </p>
           <div class="v2-toolbar">
             <button id="v2-format-apply" class="v2-button" type="button">
-              Aplicar formato</button
+              Aplicar plantilla</button
             ><button
               id="v2-format-keep"
               class="v2-button secondary"
@@ -128,8 +130,11 @@
             </button>
           </div>
         </div>
-        <details>
-          <summary>Puntajes del simulacro</summary>
+        <section class="wizard-scoring" aria-labelledby="wizard-scoring-title">
+          <h4 id="wizard-scoring-title">Puntajes del simulacro</h4>
+          <p class="v2-help" id="wizard-scoring-help">
+            Valores generales del simulacro.
+          </p>
           <div class="v2-form-grid">
             <label
               >Puntos por correcta<input
@@ -155,7 +160,7 @@
                 value="0"
             /></label>
           </div>
-        </details>
+        </section>
       </div>
       <div class="wizard-pane" data-wizard-pane="1" hidden="">
         <h3>Distribuye las preguntas por curso</h3>
@@ -274,34 +279,17 @@ B:51-100,1-50"
           estará listo para imprimir y calificar.
         </p>
         <div id="v2-wizard-review"></div>
+        <label
+          >Nombre de la plantilla<input
+            id="v2-template-name"
+            maxlength="100"
+            placeholder="Ej.: Simulacro semanal de ciencias"
+        /></label>
+        <button class="v2-button secondary" id="v2-save-template" type="button">
+          Guardar como plantilla
+        </button>
+        <p class="v2-help" id="v2-template-feedback" role="status"></p>
       </div>
-      <details class="wizard-optional">
-        <summary>
-          Reutilizar una plantilla o un archivo de configuración
-        </summary>
-        <div class="v2-toolbar">
-          <button
-            class="v2-button secondary"
-            id="v2-save-template"
-            type="button"
-          >
-            Guardar como plantilla</button
-          ><button
-            class="v2-button secondary"
-            id="v2-export-structure"
-            type="button"
-          >
-            Exportar estructura</button
-          ><label class="v2-file-label"
-            >Importar estructura<input
-              accept="application/json,.json"
-              id="v2-import-structure"
-              type="file" /></label
-          ><select aria-label="Cargar plantilla" id="v2-template-select">
-            <option value="">Cargar una plantilla guardada</option>
-          </select>
-        </div>
-      </details>
       <footer class="wizard-footer">
         <button
           class="v2-button secondary"
@@ -671,16 +659,6 @@ B:51-100,1-50"
       registro correspondiente.
     </div>
     <div class="v2-card" id="v2-attendance"></div>
-    <details class="v2-card" data-admin="">
-      <summary>Configurar un punto de recepción</summary>
-      <p>
-        Vincula el navegador del punto de asistencia con un código de un solo
-        acceso visible. Rotarlo desvincula los equipos anteriores.
-      </p>
-      <button class="v2-button secondary" id="v2-kiosk">
-        Generar código de recepción</button
-      ><output class="v2-secret" hidden="" id="v2-kiosk-output"></output>
-    </details>
   </section>
   <section class="v2-panel" data-v2-panel="contacts" hidden="">
     <div class="v2-toolbar">

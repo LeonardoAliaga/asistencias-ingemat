@@ -101,25 +101,6 @@ router.patch("/accounts/:id", requireAdmin, (req, res) => {
   audit(req, "actualizar", "cuenta", id);
   res.json({ exito: true });
 });
-router.post("/kiosk-token", requireAdmin, (req, res) => {
-  const token = randomUUID() + randomUUID().slice(0, 8),
-    version = randomUUID();
-  db.transaction(() => {
-    db.prepare(
-      "INSERT OR REPLACE INTO config_general(clave,valor) VALUES('kiosk_token_hash',?)",
-    ).run(auth.hashPassword(token));
-    db.prepare(
-      "INSERT OR REPLACE INTO config_general(clave,valor) VALUES('kiosk_version',?)",
-    ).run(version);
-    audit(req, "vincular_kiosco", "config", "kiosk");
-  })();
-  res.json({
-    exito: true,
-    token,
-    mensaje:
-      "Este código se muestra una sola vez. Rotarlo desvincula los puntos anteriores.",
-  });
-});
 router.get("/audit", requireAdmin, (req, res) =>
   res.json(
     db.prepare("SELECT * FROM audit_events ORDER BY id DESC LIMIT 200").all(),

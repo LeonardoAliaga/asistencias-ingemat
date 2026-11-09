@@ -4,7 +4,6 @@ const {
   requireAdmin,
   requireAuthenticated,
   requirePermission,
-  requireKiosk,
 } = require("../middleware/auth.middleware");
 
 const registrarRouter = require("./registrar.route");
@@ -21,7 +20,11 @@ const evaluacionesRouter = require("./evaluaciones.route");
 const router = express.Router();
 
 // Rutas Públicas
-router.use("/registrar", requireKiosk, registrarRouter);
+router.use(
+  "/registrar",
+  requirePermission("asistencias:write"),
+  registrarRouter,
+);
 router.use("/ciclos-visual", ciclosVisualRouter);
 router.use("/ciclos", ciclosRouter);
 router.use("/horarios", horariosRouter);

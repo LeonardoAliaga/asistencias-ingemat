@@ -2,7 +2,7 @@
   {
     "id": "builtin:repaso-unmsm",
     "presetId": "repaso-unmsm",
-    "name": "Repaso UNMSM · 120 impresas / 100 por área",
+    "name": "Simulacro tipo UNMSM",
     "builtIn": true,
     "isDefault": true,
     "source": {

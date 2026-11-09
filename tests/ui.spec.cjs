@@ -156,7 +156,7 @@ test("legacy user and library forms still save once after repeated navigation", 
     "Física: edición corregida",
   );
 });
-test("public library explains access and the reception pairing dialog opens", async ({
+test("public library explains account access without reception pairing", async ({
   page,
 }) => {
   const errors = [];
@@ -167,12 +167,7 @@ test("public library explains access and the reception pairing dialog opens", as
   await expect(page.locator(".box-header")).toContainText(
     "Una cuenta de recepción",
   );
-  await page
-    .getByRole("button", { name: "Vincular punto de asistencia" })
-    .click();
-  await expect(page.locator("#kiosk-pair-form")).toBeVisible();
-  await page.click("#kiosk-pair-close");
-  await expect(page.locator("#kiosk-pair-form")).not.toBeVisible();
+  await expect(page.locator("#kiosk-status, #kiosk-pair-form")).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 
@@ -591,7 +586,7 @@ test("new exam defaults to the PDF distribution, saves without keys and validate
   await expect(page.locator("#v2-preset-source")).toBeVisible();
   await page.fill('[name="titulo"]', "REPASO PDF UI");
   await page.selectOption('[name="ciclo"]', "ANUAL");
-  await nextStep(page, 1);
+  await expect(page.locator('[data-wizard-step="1"]')).toBeHidden();
   await expect(
     page.locator(".v2-section-editor").first().locator("[data-course-wrong]"),
   ).toHaveValue("0");
@@ -612,8 +607,6 @@ test("new exam defaults to the PDF distribution, saves without keys and validate
     "Historia del Perú",
   );
   const course = page.locator(".v2-section-editor").nth(3);
-  await course.locator("summary").first().click();
-  await course.locator("[data-course-area]").selectOption("E");
   await expect(
     course.locator('[data-rule-area="E"] [data-rule-questions]'),
   ).toHaveValue("31-32");
@@ -624,7 +617,7 @@ test("new exam defaults to the PDF distribution, saves without keys and validate
   await page.click("#wizard-save");
   await expect(page.locator("#v2-message")).toContainText("Borrador guardado");
   await page.click("#v2-edit");
-  await nextStep(page, 1);
+  await expect(page.locator('[data-wizard-step="1"]')).toBeHidden();
   await expect(
     page.locator(".v2-section-editor").first().locator("[data-course-wrong]"),
   ).toHaveValue("0");
@@ -665,7 +658,7 @@ test("switching formats protects edits but does not interrupt an untouched defau
   await page.selectOption("#v2-preset", "repaso-unmsm");
   await page.click("#v2-format-apply");
   await expect(page.locator('[name="total"]')).toHaveValue("120");
-  await nextStep(page, 1);
+  await nextStep(page, 2);
   await expect(page.locator(".v2-section-editor")).toHaveCount(19);
 });
 
@@ -675,7 +668,6 @@ async function startVisualKeys(page) {
   await page.click("#v2-new");
   await page.fill('[name="titulo"]', "CLAVES VISUALES UI");
   await page.selectOption('[name="ciclo"]', "ANUAL");
-  await nextStep(page, 1);
   await nextStep(page, 2);
   return page.locator("#v2-exam-editor .key-editor");
 }
@@ -724,7 +716,6 @@ test("visual keys support clicks, keyboard, course progress, multiple answers an
   await page.click("#wizard-save");
   await expect(page.locator("#v2-message")).toContainText("Borrador guardado");
   await page.click("#v2-edit");
-  await nextStep(page, 1);
   await nextStep(page, 2);
   await expect(editor.locator('[data-key-question="1"]')).toHaveAttribute(
     "aria-label",
@@ -1161,4 +1152,166 @@ test("identity review preserves leading zeros and submits code/area with an audi
   });
   expect(submitted.reason).toContain("cotejado");
   expect(submitted.responses[1].status).toBe("blank");
+});
+
+test("one template selector, visible scoring and UNMSM three-step navigation", async ({
+  page,
+}) => {
+  await login(page);
+  await navigate(page, "exams");
+  await page.click("#v2-new");
+  await expect(
+    page.getByRole("combobox", { name: "Plantilla", exact: true }),
+  ).toHaveCount(1);
+  await expect(page.locator("#v2-template-select")).toHaveCount(0);
+  await expect(
+    page
+      .locator("#v2-preset option")
+      .filter({ hasText: "Simulacro tipo UNMSM" }),
+  ).toHaveCount(1);
+  await expect(page.locator('[name="correct"]')).toBeVisible();
+  await expect(page.locator('[name="wrong"]')).toBeVisible();
+  await expect(page.locator('[name="blank"]')).toBeVisible();
+  expect(
+    await page
+      .locator('[name="correct"]')
+      .evaluate((el) => !!el.closest("details")),
+  ).toBe(false);
+  await expect(page.locator('[name="total"]')).toHaveAttribute("readonly", "");
+  await expect(page.locator("#v2-save-template")).toBeHidden();
+  await page.fill('[name="wrong"]', "0");
+  await page.fill('[name="wrong"]', "2");
+  await page.fill('[name="blank"]', "-0.25");
+  await expect(
+    page.locator(".v2-section-editor").first().locator("[data-course-wrong]"),
+  ).toHaveValue("0");
+  await expect(
+    page.locator(".v2-section-editor").first().locator("[data-course-blank]"),
+  ).toHaveValue("0");
+  await expect(
+    page.locator(".v2-section-editor").nth(1).locator("[data-course-wrong]"),
+  ).toHaveValue("2");
+  await page.fill('[name="wrong"]', "1.125");
+  await page.fill('[name="blank"]', "0");
+  await page.fill('[name="titulo"]', "ASISTENTE UNMSM");
+  await page.selectOption('[name="ciclo"]', "ANUAL");
+  await nextStep(page, 2);
+  await expect(page.locator("#wizard-progress")).toHaveText("Paso 2 de 3");
+  await expect(page.locator('[data-wizard-step="1"]')).toBeHidden();
+  await page.click("#wizard-back");
+  await expect(page.locator('[data-wizard-pane="0"]')).toBeVisible();
+  await nextStep(page, 2);
+  await nextStep(page, 3);
+  await expect(page.locator("#v2-save-template")).toBeVisible();
+  await page.fill("#v2-template-name", "MI PLANTILLA UI");
+  await page.click("#v2-save-template");
+  await expect(page.locator("#v2-template-feedback")).toContainText(
+    "Plantilla guardada",
+  );
+  await page.click("#wizard-back");
+  await page.click("#wizard-back");
+  const saved = page
+    .locator("#v2-preset option")
+    .filter({ hasText: "MI PLANTILLA UI" });
+  const value = await saved.getAttribute("value");
+  expect(value.startsWith("saved:")).toBe(true);
+  await page.selectOption("#v2-preset", value);
+  await nextStep(page, 2);
+  await expect(page.locator("#v2-keys")).toHaveValue("");
+});
+
+test("score exceptions can be edited and recalculated after students answer", async ({
+  page,
+}) => {
+  await login(page);
+  await navigate(page, "exams");
+  await page.click("#v2-new");
+  await page.selectOption("#v2-preset", "100");
+  await page.fill('[name="titulo"]', "EXCEPCIONES UI");
+  await page.selectOption('[name="ciclo"]', "ANUAL");
+  await page.fill('[name="total"]', "4");
+  await nextStep(page, 1);
+  await nextStep(page, 2);
+  await pasteKeys(page, "A A A A");
+  await nextStep(page, 3);
+  await page.click("#wizard-prepare");
+  await expect(page.locator("#v2-message")).toContainText("validado");
+  await page.click("#v2-manual-tab");
+  await page.selectOption("#v2-manual-student", "DEMO002");
+  await page.fill("#v2-manual-answers", "B B B B");
+  await page.click("#v2-manual button[type=submit]");
+  await expect(page.locator("#v2-message")).toContainText("-4.5 puntos");
+  await page.click("#v2-revise");
+  await page.fill("#v2-revision-no-penalty", "1");
+  await page.fill("#v2-revision-void", "3");
+  await page.selectOption("#v2-revision-policy", "exclude");
+  await page.fill("#v2-revision-option-scores", "2,20,5,0,0,0");
+  await page.fill("#v2-revision-reason", "Excepciones corregidas tras cotejo");
+  await page.click("#v2-revise-form button[type=submit]");
+  await expect(page.locator("#v2-dialog")).toBeHidden();
+  await page.click('[data-local-tab="exam-results"]');
+  await expect(page.locator("#v2-results")).toContainText("3.875");
+  await page.click("#v2-revise");
+  await expect(page.locator("#v2-revision-no-penalty")).toHaveValue("1");
+  await expect(page.locator("#v2-revision-void")).toHaveValue("3");
+  await expect(page.locator("#v2-revision-policy")).toHaveValue("preserve");
+  await expect(page.locator("#v2-revision-option-scores")).toHaveValue(
+    "2,20,5,0,0,0",
+  );
+  await page.fill("#v2-revision-reason", "Revisión sin modificar las reglas");
+  await page.click("#v2-revise-form button[type=submit]");
+  await expect(page.locator("#v2-dialog")).toBeHidden();
+  await expect(page.locator("#v2-results")).toContainText("3.875");
+});
+
+test("custom template starts clean and confirms before discarding configuration", async ({
+  page,
+}) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await login(page);
+  await navigate(page, "exams");
+  await page.click("#v2-new");
+  await page.fill('[name="titulo"]', "PERSONALIZADO UI");
+  await page.selectOption('[name="ciclo"]', "ANUAL");
+  await nextStep(page, 2);
+  await pasteKeys(page, "A B C D E");
+  await page.click("#wizard-back");
+  await page.selectOption("#v2-preset", "custom");
+  await expect(page.locator("#v2-format-confirm")).toBeVisible();
+  await page.click("#v2-format-keep");
+  await expect(page.locator("#v2-preset")).toHaveValue("repaso-unmsm");
+  await expect(page.locator("#v2-keys")).toHaveValue("A B C D E");
+  await page.selectOption("#v2-preset", "custom");
+  await page.click("#v2-format-apply");
+  await expect(page.locator("#v2-preset option").last()).toHaveAttribute(
+    "value",
+    "custom",
+  );
+  await expect(page.locator('[name="total"]')).toHaveValue("");
+  await expect(page.locator('[name="total"]')).not.toHaveAttribute("readonly");
+  await expect(page.locator(".v2-section-editor")).toHaveCount(0);
+  for (const id of [
+    "v2-keys",
+    "v2-no-penalty",
+    "v2-void",
+    "v2-option-scores",
+    "v2-forms",
+  ])
+    await expect(page.locator(`#${id}`)).toHaveValue("");
+  await expect(page.locator(".v2-area-row")).toHaveCount(1);
+  await expect(page.locator('[name="titulo"]')).toHaveValue("PERSONALIZADO UI");
+  await page.fill('[name="total"]', "4");
+  await nextStep(page, 1);
+  await expect(page.locator("#wizard-progress")).toHaveText("Paso 2 de 4");
+  await expect(page.locator("[data-area-total]")).toHaveValue("4");
+  await page.click("#v2-add-section");
+  await page.fill("[data-course-name]", "Álgebra");
+  await page.fill("[data-course-range]", "1-4");
+  await nextStep(page, 2);
+  await pasteKeys(page, "A A A A");
+  await nextStep(page, 3);
+  await page.click("#wizard-prepare");
+  await expect(page.locator("#v2-message")).toContainText("validado");
+  expect(errors).toEqual([]);
 });

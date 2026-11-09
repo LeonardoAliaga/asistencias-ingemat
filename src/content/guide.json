@@ -33,8 +33,8 @@
           "text": "En Apoderados y áreas asigna el perfil de postulación y los apoderados que recibirán avisos."
         },
         {
-          "title": "Vincula recepción",
-          "text": "En Asistencia abre Vincular un punto de recepción y genera un código para cada equipo. En la página pública usa Vincular punto de asistencia."
+          "title": "Prepara la cuenta de recepción",
+          "text": "Crea una cuenta con rol Recepción en Cuentas y respaldo. Inicia sesión con ella en el navegador que registrará los ingresos."
         },
         {
           "title": "Prepara un simulacro de prueba",
@@ -172,30 +172,30 @@
       "tips": []
     },
     {
-      "id": "vincular-kiosco",
+      "id": "acceso-recepcion",
       "category": "Asistencia",
-      "title": "Vincular un punto de asistencia",
-      "summary": "Autoriza un equipo de recepción sin darle acceso a las notas.",
+      "title": "Usar una cuenta de recepción",
+      "summary": "Registra ingresos con una cuenta autorizada y permisos limitados.",
       "steps": [
         {
-          "title": "Genera el código",
-          "text": "Una cuenta administradora abre Asistencia, despliega Vincular un punto de recepción y pulsa Generar código de recepción."
+          "title": "Crea una cuenta de recepción",
+          "text": "En Cuentas y respaldo, un administrador crea una cuenta individual con rol Recepción para el encargado."
         },
         {
-          "title": "Abre la página pública en recepción",
-          "text": "Usa el botón Vincular punto de asistencia de la esquina inferior e ingresa el código. El navegador conserva una sesión de ocho horas."
+          "title": "Inicia sesión",
+          "text": "Abre /admin e ingresa el usuario y contraseña de recepción. Cambia la contraseña inicial cuando se solicite."
         },
         {
-          "title": "Registra un código de prueba",
-          "text": "Escanea un carnet o escribe su código y comprueba la hora y el estado."
+          "title": "Abre el registro público",
+          "text": "En el mismo navegador, abre la página principal y pulsa Asistencias. La sesión de la cuenta autoriza el registro de ingresos."
         },
         {
-          "title": "Protege el equipo",
-          "text": "El punto vinculado solo registra asistencias. Las justificaciones requieren una cuenta autorizada."
+          "title": "Registra y comprueba",
+          "text": "Escanea el carnet o escribe el código del alumno. Revisa la confirmación, hora y estado; los ingresos duplicados para el mismo turno se rechazan."
         },
         {
-          "title": "Renueva cuando corresponda",
-          "text": "Si borras las cookies o expira la sesión, vuelve a vincular. Rotar el código invalida los puntos anteriores."
+          "title": "Protege la cuenta",
+          "text": "El rol Recepción permite gestionar asistencias y biblioteca, pero no acceder a simulacros. Cierra la sesión al terminar; un administrador puede desactivar la cuenta."
         }
       ],
       "tips": []
@@ -208,7 +208,7 @@
       "steps": [
         {
           "title": "Abre el registro",
-          "text": "En la página pública pulsa Asistencias o el lector con cámara. El equipo debe estar vinculado, o debes iniciar sesión con un rol autorizado."
+          "text": "En la página pública pulsa Asistencias o el lector con cámara. Inicia sesión antes con una cuenta de administración o recepción en el mismo navegador."
         },
         {
           "title": "Introduce el código",
@@ -308,7 +308,7 @@
       "steps": [
         {
           "title": "Abre Simulacros",
-          "text": "Pulsa Nuevo examen. En el paso Datos elige Estándar de 100 preguntas. Las opciones avanzadas permanecen plegadas."
+          "text": "Pulsa Nuevo examen. En Datos, el único selector Plantilla reúne las preestablecidas y las que guardaste. Elige Base de 100 preguntas para configurar sus cursos."
         },
         {
           "title": "Completa los datos",
@@ -320,7 +320,7 @@
         },
         {
           "title": "Configura puntajes",
-          "text": "Los valores iniciales están en Puntajes del simulacro, dentro de Datos. Abre Puntajes especiales para este curso si un curso necesita valores diferentes. En Ajustes de puntaje para todos los cursos puedes reaplicar los valores generales."
+          "text": "Los puntajes generales están visibles en Datos, separados del resto de los campos. En Cursos y áreas puedes ajustar Puntajes especiales para este curso si necesita otros valores. Las reglas se guardan con el examen."
         },
         {
           "title": "Marca las claves con botones",
@@ -348,20 +348,20 @@
       "summary": "El número impreso y el número evaluado son conceptos diferentes.",
       "steps": [
         {
-          "title": "Elige formato por áreas",
-          "text": "En Simulacros pulsa Nuevo examen. Repaso UNMSM es el formato predeterminado: carga la distribución de los PDF de la academia, con 120 preguntas impresas y 100 evaluables para cada área A–E. Completa título, ciclo y fecha."
+          "title": "Elige Simulacro tipo UNMSM",
+          "text": "En Simulacros pulsa Nuevo examen. En Plantilla elige Simulacro tipo UNMSM: contiene 120 preguntas impresas, 19 cursos y 100 evaluables para cada área A–E."
         },
         {
-          "title": "Asigna cursos",
-          "text": "Continúa a Cursos y áreas. Los 19 cursos ya tienen sus rangos; Historia del Perú e Historia Universal están separadas. Abre un curso para revisar o editar, manteniendo los demás plegados."
+          "title": "Completa los datos",
+          "text": "Indica título, ciclo y fecha. Los puntajes generales están visibles en Datos; las actitudinales solo suman por acierto, sin descuento por errores o blancos."
         },
         {
-          "title": "Configura la matriz de áreas",
-          "text": "En cada curso usa Configurar área de postulación para revisar A–E. La plantilla usa preguntas fijas según los cuadros del cuadernillo. Las preguntas fuera del perfil no cuentan como blancos. Si usas otro material, ajusta los rangos antes de validar."
+          "title": "Usa la configuración establecida",
+          "text": "El asistente omite Cursos y áreas: sigue Datos → Claves → Revisión. La distribución queda precargada. Si deseas cambiarla, selecciona una base o Personalizado (empieza desde cero) y aparecerá ese paso."
         },
         {
-          "title": "Comprueba los totales",
-          "text": "El resumen inferior de Cursos y áreas muestra las cantidades asignadas a cada perfil. Su suma debe coincidir exactamente con la cantidad evaluable; corrige las diferencias antes de continuar."
+          "title": "Revisa los puntajes",
+          "text": "Puedes ajustar los puntajes generales en Datos. El descuento cero de actitudinales se conserva. No hace falta volver a ingresar rangos ni cantidades por curso."
         },
         {
           "title": "Carga la clave del cuadernillo",
@@ -381,8 +381,8 @@
         }
       ],
       "tips": [
-        "Esta plantilla reproduce el material proporcionado por la academia; revisa su vigencia para cada examen. No contiene claves de respuesta.",
-        "Para empezar desde cero elige Por áreas en Datos y define cursos y rangos. Los formatos estándar evalúan todas las preguntas con un perfil GENERAL."
+        "La plantilla reproduce el material proporcionado por la academia; revisa su vigencia para cada examen. No contiene claves de respuesta.",
+        "Las bases de 100 preguntas, 120 preguntas y por áreas muestran Cursos y áreas para configurar su distribución. Los exámenes que ya estaban guardados conservan sus reglas."
       ]
     },
     {
@@ -426,7 +426,7 @@
       "steps": [
         {
           "title": "Sin descuento",
-          "text": "En la plantilla Repaso UNMSM, las actitudinales (1–10) ya tienen correcta +20, incorrecta 0 y blanco 0: solo suman los aciertos. Los otros cursos mantienen su penalización. Revisa el curso en Cursos y áreas → Puntajes especiales para este curso. Para excepciones adicionales puedes usar Preguntas sin penalización."
+          "text": "En Simulacro tipo UNMSM, las actitudinales (1–10) ya tienen correcta +20, incorrecta 0 y blanco 0. Para otras excepciones usa Preguntas sin penalización. Después de registrar respuestas, puedes cambiar esas reglas desde Revisar claves y reglas y recalcular automáticamente."
         },
         {
           "title": "Anular una pregunta",
@@ -481,28 +481,28 @@
     {
       "id": "plantillas",
       "category": "Simulacros",
-      "title": "Reutilizar formatos sin repetir la configuración",
-      "summary": "Guarda cursos y matriz de áreas como una plantilla.",
+      "title": "Elegir y guardar plantillas de simulacros",
+      "summary": "Un solo selector Plantilla en Datos; Guardar como plantilla en Revisión.",
       "steps": [
         {
-          "title": "Prepara el diseño",
-          "text": "Nuevo examen carga Repaso UNMSM con cursos y matriz de áreas de los PDF de la academia. Puedes editarla o comenzar con un formato estándar. Revisa los puntajes y agrega las claves propias de cada examen."
+          "title": "Elige en Datos",
+          "text": "El selector Plantilla contiene Simulacro tipo UNMSM, las bases y Mis plantillas. UNMSM ya tiene la distribución establecida y omite Cursos y áreas."
         },
         {
-          "title": "Guarda una plantilla",
-          "text": "En el editor abre Reutilizar una plantilla o un archivo de configuración. Usa Guardar como plantilla y escribe un nombre identificable. Puedes guardar una estructura con claves pendientes."
+          "title": "Completa o adapta",
+          "text": "Indica título, ciclo y fecha. Para configurar cursos o áreas propios, elige Personalizado o una de las bases. Carga las claves y excepciones."
         },
         {
-          "title": "Crea el siguiente examen",
-          "text": "Crea un nuevo examen y despliega Reutilizar una plantilla o un archivo de configuración. Selecciona la plantilla, cambia título, ciclo y fecha y pega las nuevas claves."
+          "title": "Guarda en Revisión",
+          "text": "Escribe Nombre de la plantilla y pulsa Guardar como plantilla. Es independiente de Guardar borrador o Guardar y validar. Se admiten claves pendientes."
         },
         {
-          "title": "Revisa las reglas",
-          "text": "No asumas que el formato del examen anterior sigue vigente."
+          "title": "Reutiliza en otro examen",
+          "text": "Pulsa Nuevo examen y selecciona la plantilla dentro de Mis plantillas. Revisa los datos y reemplaza las claves por las del nuevo cuadernillo. Cargar una plantilla no cambia las notas de otro examen."
         },
         {
-          "title": "Exporta o importa estructura",
-          "text": "Usa el archivo JSON de estructura para llevar una configuración completa entre instalaciones. El archivo no contiene notas de estudiantes."
+          "title": "Conserva las reglas del examen",
+          "text": "Después de guardar, el simulacro conserva una copia de su configuración. Las actualizaciones de una plantilla no cambian exámenes existentes. Usa Revisar claves y reglas para corregir notas ya registradas con motivo e historial."
         }
       ],
       "tips": []
@@ -733,11 +733,11 @@
       "steps": [
         {
           "title": "Abre el examen",
-          "text": "Selecciona Revisar claves."
+          "text": "Selecciona un simulacro listo o publicado y pulsa Revisar claves y reglas. Los borradores se editan con Editar borrador."
         },
         {
           "title": "Carga la clave corregida",
-          "text": "Usa el mismo editor visual de claves: selecciona el curso, pulsa el número de la pregunta y elige la alternativa corregida. Las otras claves se conservan. Puedes aceptar varias alternativas o indicar preguntas anuladas. Si ya tienes una lista completa corregida, abre Pegar una lista de claves."
+          "text": "Puedes corregir las alternativas, preguntas sin penalización, anulaciones y puntajes por alternativa. El selector Conservar reglas actuales mantiene las políticas de anulación existentes; evita sustituir una exclusión por puntos sin querer."
         },
         {
           "title": "Escribe un motivo",
@@ -760,7 +760,10 @@
           "text": "Los avisos pendientes de las notas anteriores se cancelan. Los mensajes ya entregados no se pueden retirar. Publica la revisión correcta y genera sus nuevos avisos conscientemente."
         }
       ],
-      "tips": []
+      "tips": [
+        "Al confirmar, se recalculan todas las respuestas registradas, también las ingresadas manualmente, y se actualiza el ranking. Se conserva el historial; un examen publicado vuelve a Listo para revisar y publicar nuevamente.",
+        "Las versiones A/B son órdenes de preguntas, no revisiones de notas. En B:51-100,1-50, la pregunta 1 impresa usa la clave original 51. El orden queda fijado al validar; para cambiarlo crea otro simulacro. Las cartillas ya impresas siguen usando su versión original."
+      ]
     },
     {
       "id": "publicar",
@@ -1155,7 +1158,7 @@
         },
         {
           "title": "No puedo registrar un ingreso",
-          "text": "Vincula el punto de asistencia o inicia sesión con permisos. Revisa el código y si ya existe un registro para el turno."
+          "text": "Inicia sesión con una cuenta de administración o recepción. Revisa el código y si ya existe un registro para el turno."
         },
         {
           "title": "El examen no valida",
@@ -1179,7 +1182,7 @@
         },
         {
           "title": "La sesión cambió",
-          "text": "Actualiza la página e inicia sesión de nuevo. Un cambio de contraseña, desactivación o rotación de recepción puede invalidarla."
+          "text": "Actualiza la página e inicia sesión de nuevo. Un cambio de contraseña, desactivación de la cuenta puede invalidarla."
         }
       ],
       "tips": []

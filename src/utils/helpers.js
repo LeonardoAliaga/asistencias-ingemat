@@ -154,15 +154,8 @@ function getFullName(usuario = {}) {
 
 // Obtener lista de ciclos desde SQLite
 function getCiclosData() {
-  try {
-    const rows = db.prepare("SELECT nombre FROM ciclos ORDER BY id ASC").all();
-    if (rows.length > 0) {
-      return { ciclos: rows.map((r) => r.nombre) };
-    }
-  } catch (error) {
-    console.error("Utils: Error al leer ciclos desde SQLite:", error);
-  }
-  return { ciclos: ["SEMESTRAL", "ANUAL", "SABATINO", "DOMINGOS"] };
+  const rows = db.prepare("SELECT nombre FROM ciclos ORDER BY id ASC").all();
+  return { ciclos: rows.map((row) => row.nombre) };
 }
 
 module.exports = {

@@ -129,7 +129,7 @@ async function makeBookletPDF(
           });
     };
     if (layout.identification) {
-      const panelWidth = half ? 170 : 210;
+      const panelWidth = half ? 160 : 195;
       doc
         .strokeColor("#777777")
         .lineWidth(0.4)

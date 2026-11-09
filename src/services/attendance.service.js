@@ -80,7 +80,7 @@ function register(code, req, date = new Date()) {
       time,
       record.arrived_at,
       record.status,
-      req.session?.kiosk ? "kiosco" : "operador",
+      "operador",
     );
     try {
       queued = notifications.notifyAttendance(record, user);

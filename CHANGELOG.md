@@ -6,7 +6,7 @@
 - Cartillas PDF personalizadas con QR firmado y marcadores ArUco. Captura OMR en lotes con Python/OpenCV y revisión de excepciones.
 - Importación CSV y guardado atómico; protección frente a duplicados, perfiles inválidos y notas reemplazadas sin motivo.
 - Historial de calificaciones, recálculo por revisión de claves, padrón por examen y empates de ranking.
-- Asistencia canónica SQLite, exportación diaria, justificaciones auditadas y vinculación de recepción.
+- Asistencia canónica SQLite, exportación diaria, justificaciones auditadas y acceso mediante cuentas autorizadas.
 - WhatsApp Business Platform directo: contactos autorizados, plantillas, cola persistente y estados de entrega con webhooks firmados.
 - Cuentas y roles, contraseñas scrypt, sesiones persistentes, CSRF, copias consistentes y recuperación local de acceso.
 - Dashboard responsive, recursos locales y guía contextual con 34 tutoriales buscables.

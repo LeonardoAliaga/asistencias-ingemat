@@ -20,6 +20,11 @@ const { audit } = require("./src/services/audit.service");
 
 function createApp() {
   ejecutarMigracionInicial();
+  require("./src/services/cycles.service").initializeCycles();
+  // Retire credentials from the removed reception-device pairing flow.
+  db.prepare(
+    "DELETE FROM config_general WHERE clave IN ('kiosk_token_hash','kiosk_version')",
+  ).run();
   auth.bootstrapAdmin();
   const app = express();
   app.disable("x-powered-by");
@@ -121,7 +126,6 @@ function createApp() {
               mustChangePassword: !!account.must_change_password,
             }
           : null,
-      kiosk: !!req.session.kiosk,
       version: "2.0.0",
       timezone: config.timezone,
     });
@@ -133,21 +137,16 @@ function createApp() {
     )
       return next();
     if (req.headers["sec-fetch-site"] === "cross-site")
-      return res
-        .status(403)
-        .json({
-          exito: false,
-          mensaje: "La solicitud debe originarse en esta aplicación.",
-        });
+      return res.status(403).json({
+        exito: false,
+        mensaje: "La solicitud debe originarse en esta aplicación.",
+      });
     if (!req.session.csrf || req.get("x-csrf-token") !== req.session.csrf)
-      return res
-        .status(403)
-        .json({
-          exito: false,
-          code: "CSRF",
-          mensaje:
-            "La sesión cambió. Actualiza la página e inténtalo de nuevo.",
-        });
+      return res.status(403).json({
+        exito: false,
+        code: "CSRF",
+        mensaje: "La sesión cambió. Actualiza la página e inténtalo de nuevo.",
+      });
     next();
   });
   const loginLimiter = rateLimit({
@@ -220,20 +219,6 @@ function createApp() {
       mensaje: "Contraseña actualizada. Las demás sesiones se han cerrado.",
     });
   });
-  app.post("/api/kiosk/pair", loginLimiter, (req, res) => {
-    const row = db
-      .prepare(
-        "SELECT valor FROM config_general WHERE clave='kiosk_token_hash'",
-      )
-      .get();
-    if (!auth.verifyPassword(req.body.token, row?.valor))
-      throw new AppError("Código de vinculación incorrecto.", 401);
-    req.session.kiosk = true;
-    req.session.kioskVersion = db
-      .prepare("SELECT valor FROM config_general WHERE clave='kiosk_version'")
-      .get()?.valor;
-    res.json({ exito: true, mensaje: "Punto de asistencia vinculado." });
-  });
   app.get("/health", (req, res) =>
     res.json({ ok: !!db.prepare("SELECT 1 ok").get().ok, version: "2.0.0" }),
   );
@@ -279,18 +264,16 @@ function createApp() {
     if (res.headersSent) return next(err);
     const status = err.status || 500;
     if (!(err instanceof AppError) && status >= 500) console.error(err);
-    res
-      .status(status >= 400 && status < 600 ? status : 500)
-      .json({
-        exito: false,
-        mensaje:
-          err instanceof AppError
-            ? err.message
-            : err.code === "LIMIT_FILE_SIZE"
-              ? "El archivo supera el tamaño permitido."
-              : "No se pudo completar la operación.",
-        ...(err.details ? { details: err.details } : {}),
-      });
+    res.status(status >= 400 && status < 600 ? status : 500).json({
+      exito: false,
+      mensaje:
+        err instanceof AppError
+          ? err.message
+          : err.code === "LIMIT_FILE_SIZE"
+            ? "El archivo supera el tamaño permitido."
+            : "No se pudo completar la operación.",
+      ...(err.details ? { details: err.details } : {}),
+    });
   });
   return app;
 }

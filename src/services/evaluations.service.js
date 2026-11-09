@@ -17,10 +17,13 @@ function saveExam(body, req, id) {
     cycle = String(body.ciclo || "").trim();
   if (!title || title.length > 180 || !cycle)
     throw new AppError("Indica título y ciclo.");
-  if (
-    !db.prepare("SELECT 1 FROM ciclos WHERE UPPER(nombre)=UPPER(?)").get(cycle)
-  )
-    throw new AppError("El ciclo no existe.");
+  const registeredCycle = db
+    .prepare("SELECT nombre FROM ciclos WHERE UPPER(TRIM(nombre))=UPPER(?)")
+    .get(cycle);
+  if (!registeredCycle)
+    throw new AppError(
+      "El ciclo seleccionado ya no existe. Actualiza los ciclos y elige uno registrado.",
+    );
   const def = normalizeDefinition(body.definition, { complete: false });
   const existing = id ? getExam(id) : null;
   if (existing && existing.estado !== "borrador")
@@ -232,6 +235,14 @@ function reviseKeys(id, body, req) {
     throw new AppError("El examen no está listo.");
   const reason = String(body.reason || "").trim();
   if (reason.length < 5) throw new AppError("Indica el motivo de la revisión.");
+  if (
+    body.forms !== undefined &&
+    JSON.stringify(body.forms) !== JSON.stringify(exam.definition.forms)
+  )
+    throw new AppError(
+      "Las versiones y su orden quedan fijados al validar. Crea otro simulacro si necesitas cambiar el orden del cuadernillo.",
+      409,
+    );
   const next = normalizeDefinition({ ...exam.definition, keys: body.keys });
   const results = db
     .prepare("SELECT * FROM respuestas_evaluacion WHERE evaluacion_id=?")

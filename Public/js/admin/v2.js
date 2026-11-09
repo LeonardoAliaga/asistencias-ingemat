@@ -163,6 +163,9 @@ async function loadCycles() {
         `<option value="${esc(typeof c === "string" ? c : c.nombre)}">${esc(typeof c === "string" ? c : c.nombre)}</option>`,
     )
     .join("");
+  $("v2-exam-editor").elements.ciclo.setCustomValidity(
+    list.length ? "" : "Primero registra un ciclo en la sección Ciclos.",
+  );
   $("v2-exam-editor").elements.ciclo.innerHTML =
     '<option value="">Selecciona un ciclo</option>' + opts;
   $("v2-attendance-cycle").innerHTML =
@@ -208,16 +211,92 @@ async function loadExams(selected) {
   await loadTemplates();
 }
 async function loadTemplates() {
+  const previous = $("v2-preset").value;
   state.templates = await api("/api/v2/templates");
-  $("v2-template-select").innerHTML =
-    '<option value="">Cargar plantilla guardada</option>' +
-    state.templates
-      .map(
-        (t) =>
-          `<option value="${esc(t.id)}">${t.builtIn ? "Predeterminada · " : ""}${esc(t.name)}</option>`,
-      )
-      .join("");
+  const saved = state.templates.filter((t) => !t.builtIn);
+  $("v2-preset").innerHTML =
+    '<optgroup label="Preestablecidas"><option value="repaso-unmsm">Simulacro tipo UNMSM</option><option value="100">Base de 100 preguntas</option><option value="120">Base de 120 preguntas</option><option value="areas">Base por áreas · configurar cursos</option></optgroup>' +
+    (saved.length
+      ? '<optgroup label="Mis plantillas">' +
+        saved
+          .map(
+            (t) => `<option value="saved:${esc(t.id)}">${esc(t.name)}</option>`,
+          )
+          .join("") +
+        "</optgroup>"
+      : "") +
+    '<option value="custom">Personalizado · empezar desde cero</option>';
+  if ([...$("v2-preset").options].some((o) => o.value === previous))
+    $("v2-preset").value = previous;
 }
+
+function matchesUNMSM(definition) {
+  const template = state.templates.find((t) => t.presetId === "repaso-unmsm");
+  if (!template) return false;
+  const attitude = definition.sections?.[0]?.scoring;
+  if (
+    Number(attitude?.wrong ?? definition.scoring?.wrong ?? 1.125) !== 0 ||
+    Number(attitude?.blank ?? definition.scoring?.blank ?? 0) !== 0
+  )
+    return false;
+  const outline = (d) => ({
+    total: d.totalQuestions,
+    areas: d.areas.map((a) => [a.code, a.name, a.requiredQuestions]),
+    sections: d.sections.map((c) => ({
+      name: c.name,
+      questions: Array.isArray(c.questions) ? c.questions : expand(c.questions),
+      rules: d.areas.map((a) => {
+        const r = c.rules[a.code],
+          questions = Array.isArray(r.questions)
+            ? r.questions
+            : expand(r.questions);
+        return [
+          a.code,
+          questions,
+          r.selection || "fixed",
+          r.quota ?? questions.length,
+        ];
+      }),
+    })),
+  });
+  try {
+    return (
+      JSON.stringify(outline(definition)) ===
+      JSON.stringify(outline(template.definition))
+    );
+  } catch {
+    return false;
+  }
+}
+function wizardSteps() {
+  return state.fixedPreset ? [0, 2, 3] : [0, 1, 2, 3];
+}
+function syncWizardMode() {
+  const steps = wizardSteps();
+  document
+    .querySelector(".wizard-steps")
+    .classList.toggle("is-fixed", !!state.fixedPreset);
+  for (const button of document.querySelectorAll("[data-wizard-step]")) {
+    const index = steps.indexOf(Number(button.dataset.wizardStep));
+    button.hidden = index < 0;
+    if (index >= 0)
+      button.querySelector(".wizard-number").textContent = index + 1;
+  }
+  $("v2-fixed-preset").hidden = !state.fixedPreset;
+  $("wizard-scoring-help").textContent = state.fixedPreset
+    ? "Valores generales. Las actitudinales mantienen 0 por error o blanco."
+    : "Valores generales del simulacro; puedes ajustar cada curso en Cursos y áreas.";
+  $("v2-exam-editor").elements.total.readOnly = !!state.fixedPreset;
+}
+function moveWizard(direction) {
+  const steps = wizardSteps(),
+    index = steps.indexOf(wizardStep);
+  showWizardStep(
+    steps[Math.max(0, Math.min(steps.length - 1, index + direction))],
+    direction > 0,
+  );
+}
+
 async function selectExam(id) {
   const summary = state.exams.find((e) => e.id === id);
   state.selected = summary
@@ -362,6 +441,44 @@ function answerValues(text) {
     }),
   );
 }
+function questionSet(text, total) {
+  const values = expand(text);
+  if (values.some((q) => q > total))
+    throw new Error(
+      "Las excepciones deben indicar preguntas dentro del cuadernillo.",
+    );
+  return new Set(values);
+}
+function optionScoreValues(text, total) {
+  const scores = {};
+  for (const line of text.split(/\r?\n/).filter((l) => l.trim())) {
+    const values = line.split(",").map((v) => v.trim()),
+      q = Number(values[0]);
+    if (
+      values.length !== 6 ||
+      !Number.isInteger(q) ||
+      q < 1 ||
+      q > total ||
+      scores[q] ||
+      values.slice(1).some((v) => !v || !Number.isFinite(Number(v)))
+    )
+      throw new Error(
+        "Los puntajes por alternativa requieren una pregunta válida sin repetir y cinco valores: número,A,B,C,D,E.",
+      );
+    scores[q] = Object.fromEntries(
+      ["A", "B", "C", "D", "E"].map((o, i) => [o, Number(values[i + 1])]),
+    );
+  }
+  return scores;
+}
+function optionScoreText(keys) {
+  return Object.entries(keys)
+    .filter(([, k]) => k.optionScores)
+    .map(([q, k]) =>
+      [q, ...["A", "B", "C", "D", "E"].map((o) => k.optionScores[o])].join(","),
+    )
+    .join("\n");
+}
 function collectEditor({ structureOnly = false } = {}) {
   const form = $("v2-exam-editor"),
     total = Number(form.elements.total.value);
@@ -431,8 +548,8 @@ function collectEditor({ structureOnly = false } = {}) {
   };
   if (structureOnly) return payload;
   const values = keyValues($("v2-keys").value),
-    noPenalty = new Set(expand($("v2-no-penalty").value)),
-    annulled = new Set(expand($("v2-void").value));
+    noPenalty = questionSet($("v2-no-penalty").value, total),
+    annulled = questionSet($("v2-void").value, total);
   const keys = {};
   for (let q = 1; q <= total; q++)
     keys[q] = {
@@ -440,19 +557,10 @@ function collectEditor({ structureOnly = false } = {}) {
       noPenalty: noPenalty.has(q),
       voidPolicy: annulled.has(q) ? $("v2-void-policy").value : null,
     };
-  for (const line of $("v2-option-scores")
-    .value.split(/\r?\n/)
-    .filter((l) => l.trim())) {
-    const vals = line.split(",").map((s) => s.trim()),
-      q = Number(vals[0]);
-    if (vals.length !== 6 || !keys[q])
-      throw new Error(
-        "Los puntajes por alternativa requieren número,A,B,C,D,E.",
-      );
-    keys[q].optionScores = Object.fromEntries(
-      ["A", "B", "C", "D", "E"].map((o, i) => [o, Number(vals[i + 1])]),
-    );
-  }
+  for (const [q, scores] of Object.entries(
+    optionScoreValues($("v2-option-scores").value, total),
+  ))
+    keys[q].optionScores = scores;
   const forms = {};
   for (const line of $("v2-forms")
     .value.split(/\r?\n/)
@@ -621,6 +729,7 @@ function renderSections() {
 function setEditor(def, id = null) {
   state.editor = id;
   state.definitionDirty = false;
+  $("v2-template-feedback").textContent = "";
   $("v2-preset-source").hidden = true;
   const f = $("v2-exam-editor");
   f.hidden = false;
@@ -676,21 +785,25 @@ function setEditor(def, id = null) {
         : [100, 120].includes(def.totalQuestions)
           ? String(def.totalQuestions)
           : "custom";
+  state.fixedPreset = matchesUNMSM(def);
+  if (state.fixedPreset) state.currentPreset = "repaso-unmsm";
   $("v2-preset").value = state.currentPreset;
+  $("v2-preset-source").hidden = !state.fixedPreset;
+  syncWizardMode();
   $("v2-format-confirm").hidden = true;
   state.keyEditor?.reset();
   showWizardStep(0, false);
 }
 function preset(value) {
   const editorId = state.editor;
-  const builtIn = state.templates.find(
-    (t) => t.builtIn && t.presetId === value,
+  const selectedTemplate = state.templates.find((t) =>
+    t.builtIn ? t.presetId === value : `saved:${t.id}` === value,
   );
-  if (builtIn) {
-    setEditor(builtIn.definition, editorId);
+  if (selectedTemplate) {
+    setEditor(selectedTemplate.definition, editorId);
     state.currentPreset = value;
     $("v2-preset").value = value;
-    $("v2-preset-source").hidden = false;
+    $("v2-preset-source").hidden = !state.fixedPreset;
     return;
   }
   if (value === "repaso-unmsm") {
@@ -700,7 +813,14 @@ function preset(value) {
     );
     return;
   }
-  const total = value === "areas" ? 120 : value === "120" ? 120 : 100,
+  const total =
+      value === "custom"
+        ? ""
+        : value === "areas"
+          ? 120
+          : value === "120"
+            ? 120
+            : 100,
     areas =
       value === "areas"
         ? ["A", "B", "C", "D", "E"].map((code) => ({
@@ -708,30 +828,39 @@ function preset(value) {
             name: `Área ${code}`,
             requiredQuestions: 100,
           }))
-        : [{ code: "GENERAL", name: "General", requiredQuestions: total }];
+        : [
+            {
+              code: "GENERAL",
+              name: "General",
+              requiredQuestions: Number(total),
+            },
+          ];
   setEditor(
     {
       totalQuestions: total,
       areas,
-      sections: [
-        {
-          name: "General",
-          questions: Array.from({ length: total }, (_, i) => i + 1),
-          rules: Object.fromEntries(
-            areas.map((a) => [
-              a.code,
+      sections:
+        value === "custom"
+          ? []
+          : [
               {
-                questions:
-                  value === "areas"
-                    ? []
-                    : Array.from({ length: total }, (_, i) => i + 1),
-                selection: "fixed",
-                quota: value === "areas" ? 0 : total,
+                name: "General",
+                questions: Array.from({ length: total }, (_, i) => i + 1),
+                rules: Object.fromEntries(
+                  areas.map((a) => [
+                    a.code,
+                    {
+                      questions:
+                        value === "areas"
+                          ? []
+                          : Array.from({ length: total }, (_, i) => i + 1),
+                      selection: "fixed",
+                      quota: value === "areas" ? 0 : total,
+                    },
+                  ]),
+                ),
               },
-            ]),
-          ),
-        },
-      ],
+            ],
       scoring: { correct: 20, wrong: 1.125, blank: 0 },
       keys: {},
       forms: {},
@@ -1303,9 +1432,14 @@ function revealField(field) {
 }
 function showWizardStep(next, validate = true) {
   next = Math.max(0, Math.min(3, next));
+  if (state.fixedPreset && next === 1) next = wizardStep > 1 ? 0 : 2;
   if (validate && next > wizardStep) {
     for (const pane of document.querySelectorAll("[data-wizard-pane]")) {
-      if (Number(pane.dataset.wizardPane) >= next) continue;
+      if (
+        Number(pane.dataset.wizardPane) >= next ||
+        (state.fixedPreset && pane.dataset.wizardPane === "1")
+      )
+        continue;
       for (const field of pane.querySelectorAll("input,select,textarea")) {
         if (!field.disabled && !field.checkValidity()) {
           revealField(field);
@@ -1314,6 +1448,10 @@ function showWizardStep(next, validate = true) {
       }
     }
     if (next > 1 && updateWizardFeedback()?.issues.length) {
+      state.fixedPreset = false;
+      state.currentPreset = "custom";
+      $("v2-preset").value = "custom";
+      syncWizardMode();
       showWizardStep(1, false);
       $("v2-structure-summary").focus();
       return;
@@ -1333,7 +1471,9 @@ function showWizardStep(next, validate = true) {
   $("wizard-next").hidden = next === 3;
   $("wizard-save").hidden = next !== 3;
   $("wizard-prepare").hidden = next !== 3;
-  $("wizard-progress").textContent = `Paso ${next + 1} de 4`;
+  const steps = wizardSteps();
+  $("wizard-progress").textContent =
+    `Paso ${steps.indexOf(next) + 1} de ${steps.length}`;
   updateWizardFeedback();
   const heading = document.querySelector(`[data-wizard-pane="${next}"] h3`);
   heading.tabIndex = -1;
@@ -1488,7 +1628,7 @@ function updateWizardFeedback() {
 }
 function syncSimpleTotal() {
   const total = Number($("v2-exam-editor").elements.total.value),
-    previous = state.lastTotal;
+    previous = Number(state.lastTotal);
   if (
     !Number.isInteger(total) ||
     total < 1 ||
@@ -1601,8 +1741,8 @@ async function initialize() {
         e.target.close();
     }
   });
-  bind("wizard-next", "click", () => showWizardStep(wizardStep + 1));
-  bind("wizard-back", "click", () => showWizardStep(wizardStep - 1, false));
+  bind("wizard-next", "click", () => moveWizard(1));
+  bind("wizard-back", "click", () => moveWizard(-1));
   for (const button of document.querySelectorAll("[data-wizard-step]"))
     button.onclick = () =>
       showWizardStep(
@@ -1635,7 +1775,7 @@ async function initialize() {
   $("v2-exam-editor").addEventListener("input", (event) => {
     if (
       !event.target.matches(
-        '[name="titulo"], [name="ciclo"], [name="fecha"], #v2-preset, #v2-template-select, [data-course-area], .key-editor select, .key-editor input',
+        '[name="titulo"], [name="ciclo"], [name="fecha"], #v2-preset, #v2-template-name, [data-course-area], .key-editor select, .key-editor input',
       )
     )
       state.definitionDirty = true;
@@ -1644,7 +1784,15 @@ async function initialize() {
       for (const field of $("v2-sections").querySelectorAll(
         `[data-course-${key}]`,
       ))
-        if (Number(field.value) === state.defaultScoring[key])
+        if (
+          !(
+            state.fixedPreset &&
+            key !== "correct" &&
+            field.closest(".v2-section-editor") ===
+              $("v2-sections").firstElementChild
+          ) &&
+          Number(field.value) === state.defaultScoring[key]
+        )
           field.value = event.target.value;
       state.defaultScoring[key] = Number(event.target.value);
     }
@@ -1653,7 +1801,7 @@ async function initialize() {
   $("v2-exam-editor").addEventListener("change", (event) => {
     if (
       !event.target.matches(
-        '[name="titulo"], [name="ciclo"], [name="fecha"], #v2-preset, #v2-template-select, [data-course-area], .key-editor select, .key-editor input',
+        '[name="titulo"], [name="ciclo"], [name="fecha"], #v2-preset, #v2-template-name, [data-course-area], .key-editor select, .key-editor input',
       )
     )
       state.definitionDirty = true;
@@ -1695,10 +1843,6 @@ async function initialize() {
   });
   bind("v2-preset", "change", (e) => {
     const value = e.target.value;
-    if (value === "custom") {
-      state.currentPreset = value;
-      return;
-    }
     captureSections();
     const hasWork =
       state.definitionDirty ||
@@ -1957,58 +2101,24 @@ async function initialize() {
     await loadSettings();
     message("Cuenta creada. La contraseña debe cambiarse al iniciar sesión.");
   });
-  bind("v2-kiosk", "click", async () => {
-    const r = await api("/api/v2/kiosk-token", json({}));
-    $("v2-kiosk-output").hidden = false;
-    $("v2-kiosk-output").textContent = r.token;
-    message(r.mensaje);
-  });
   bind("v2-backup", "click", async () => {
     const r = await api("/api/v2/backup", json({}));
     $("v2-backup-result").innerHTML =
       `<p>${esc(r.mensaje)}</p><a href="/api/v2/backups/${encodeURIComponent(r.filename)}" class="v2-button secondary">Descargar copia</a>`;
   });
   bind("v2-save-template", "click", async () => {
-    const name = prompt("Nombre de la plantilla");
-    if (!name) return;
+    const name = $("v2-template-name").value.trim();
+    if (!name) {
+      $("v2-template-name").focus();
+      throw new Error("Escribe un nombre para guardar la plantilla.");
+    }
     await api(
       "/api/v2/templates",
       json({ name, definition: collectEditor().definition }),
     );
     await loadTemplates();
-    message("Plantilla guardada.");
-  });
-  bind("v2-template-select", "change", (e) => {
-    const t = state.templates.find((t) => t.id === e.target.value);
-    if (t) {
-      setEditor(t.definition);
-      if (t.builtIn) {
-        state.currentPreset = t.presetId;
-        $("v2-preset").value = t.presetId;
-        $("v2-preset-source").hidden = false;
-      }
-    }
-  });
-  bind("v2-export-structure", "click", () => {
-    const blob = new Blob(
-        [JSON.stringify(collectEditor().definition, null, 2)],
-        { type: "application/json" },
-      ),
-      a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "estructura-ingemat.json";
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  });
-  bind("v2-import-structure", "change", async (e) => {
-    const file = e.target.files[0];
-    if (!file || file.size > 1024 * 1024)
-      throw new Error("Selecciona una estructura JSON de hasta 1 MB.");
-    const definition = JSON.parse(await file.text());
-    if (!definition.areas || !definition.sections)
-      throw new Error("El archivo no contiene una estructura de examen.");
-    setEditor(definition);
-    message("Estructura cargada. Revísala y guarda un nuevo examen.");
+    $("v2-template-feedback").textContent =
+      "Plantilla guardada. La encontrarás en Datos al crear otro simulacro.";
   });
   bind("v2-revise", "click", reviseKeysDialog);
   state.poll = setInterval(() => {
@@ -2024,19 +2134,34 @@ function updateCSVLink() {
 }
 function reviseKeysDialog() {
   const e = state.selected;
+  const noPenalty = compact(
+    Object.keys(e.definition.keys)
+      .filter((q) => e.definition.keys[q].noPenalty)
+      .map(Number),
+  );
+  const annulled = compact(
+    Object.keys(e.definition.keys)
+      .filter((q) => e.definition.keys[q].voidPolicy)
+      .map(Number),
+  );
   showDialog(
-    "Revisar claves y recalcular",
-    `<form id="v2-revise-form"><p>Se creará una revisión y se recalificarán todas las respuestas. El resultado anterior se conserva y el examen vuelve a Listo.</p><details><summary>Pegar una lista de claves (opcional)</summary><label>Claves corregidas<textarea id="v2-revision-keys" rows="9" required>${esc(
+    "Revisar claves y reglas",
+    `<form id="v2-revise-form"><p>Al confirmar se recalculan automáticamente todas las respuestas registradas. Se guarda el historial y el simulacro vuelve a Listo para revisar antes de publicarlo otra vez.</p>
+    <details><summary>Pegar una lista de claves (opcional)</summary><label>Claves corregidas<textarea id="v2-revision-keys" rows="9" required>${esc(
       Object.entries(e.definition.keys)
         .map(([n, k]) => `${n},${k.answers.join("/")}`)
         .join("\n"),
-    )}</textarea></label></details><label>Preguntas anuladas<input id="v2-revision-void" value="${esc(
-      compact(
-        Object.keys(e.definition.keys)
-          .filter((q) => e.definition.keys[q].voidPolicy)
-          .map(Number),
-      ),
-    )}"></label><label>Regla de anulación<select id="v2-revision-policy"><option value="credit">Otorgar puntos</option><option value="exclude">Excluir del puntaje</option></select></label><label>Motivo<input id="v2-revision-reason" required minlength="5"></label><button type="submit" class="v2-button">Confirmar revisión y recalcular</button></form>`,
+    )}</textarea></label></details>
+    <section class="stack" aria-labelledby="revision-rules-title"><h4 id="revision-rules-title">Excepciones de puntaje</h4>
+      <label>Preguntas sin penalización<input id="v2-revision-no-penalty" value="${esc(noPenalty)}" placeholder="Ej.: 1-10"></label>
+      <label>Preguntas anuladas<input id="v2-revision-void" value="${esc(annulled)}" placeholder="Ej.: 42,67"></label>
+      <label>Regla de anulación<select id="v2-revision-policy"><option value="preserve">Conservar reglas actuales (nuevas: otorgar puntos)</option><option value="credit">Otorgar puntos a todas las indicadas</option><option value="exclude">Excluir del puntaje todas las indicadas</option></select></label>
+      <label>Puntos por alternativa (número,A,B,C,D,E)<textarea id="v2-revision-option-scores" rows="3" placeholder="15,20,15,10,5,0">${esc(optionScoreText(e.definition.keys))}</textarea></label>
+      <p class="v2-help">Deja vacía una lista para quitar esas excepciones. Revisa los valores contra el reglamento antes de confirmar.</p>
+    </section>
+    <details><summary>¿Qué son las versiones A/B?</summary><p>Son órdenes diferentes de las mismas preguntas. Si la primera pregunta de B corresponde a la 51 del original, el lector aplica la clave de la 51. No son revisiones de notas. El orden de las versiones queda fijado al validar, para conservar la interpretación de respuestas y cartillas ya registradas.</p><p class="v2-help">Versiones de este simulacro: ${esc(Object.keys(e.definition.forms).join(", "))}. Para cambiar su orden crea un simulacro nuevo.</p></details>
+    <label>Motivo de la corrección<input id="v2-revision-reason" required minlength="5"></label>
+    <button type="submit" class="v2-button">Aplicar cambios y recalcular</button></form>`,
   );
   mountKeyEditor($("v2-revision-keys"), {
     getDefinition: () => e.definition,
@@ -2044,14 +2169,27 @@ function reviseKeysDialog() {
     escape: esc,
   }).reset();
   bind("v2-revise-form", "submit", async () => {
-    const values = keyValues($("v2-revision-keys").value),
-      annulled = new Set(expand($("v2-revision-void").value)),
-      keys = structuredClone(e.definition.keys);
-    for (const [q, k] of Object.entries(keys)) {
-      k.answers = (values[q] || "").toUpperCase().split("/").filter(Boolean);
-      k.voidPolicy = annulled.has(Number(q))
-        ? $("v2-revision-policy").value
+    const total = e.definition.totalQuestions,
+      values = keyValues($("v2-revision-keys").value),
+      noPenalty = questionSet($("v2-revision-no-penalty").value, total),
+      annulled = questionSet($("v2-revision-void").value, total),
+      scores = optionScoreValues($("v2-revision-option-scores").value, total),
+      keys = structuredClone(e.definition.keys),
+      policy = $("v2-revision-policy").value;
+    if (Object.keys(values).some((q) => Number(q) < 1 || Number(q) > total))
+      throw new Error(
+        "Las claves deben corresponder a preguntas del cuadernillo.",
+      );
+    for (const [q, key] of Object.entries(keys)) {
+      key.answers = (values[q] || "").toUpperCase().split("/").filter(Boolean);
+      key.noPenalty = noPenalty.has(Number(q));
+      key.voidPolicy = annulled.has(Number(q))
+        ? policy === "preserve"
+          ? key.voidPolicy || "credit"
+          : policy
         : null;
+      if (scores[q]) key.optionScores = scores[q];
+      else delete key.optionScores;
     }
     await api(
       `/api/v2/exams/${e.id}/revise-keys`,
@@ -2060,10 +2198,11 @@ function reviseKeysDialog() {
     $("v2-dialog").close();
     await loadExams(e.id);
     message(
-      "Nueva revisión aplicada. Comprueba las notas antes de volver a publicar.",
+      "Nueva revisión aplicada. Puntajes y ranking recalculados. Comprueba las notas antes de volver a publicar.",
     );
   });
 }
+
 export const v2Ready = initialize();
 export async function openV2Panel(name) {
   await v2Ready;

@@ -43,7 +43,7 @@ Las rutas de archivos guardadas en la base son relativas al directorio de datos 
 
 ## Autenticación
 
-Cuentas individuales con roles, contraseñas scrypt, limitación de intentos, sesiones en SQLite, rotación al iniciar sesión, invalidación por versión de cuenta y protección CSRF en escritura. Las cookies usan SameSite y, en producción, HTTPS. La recepción se vincula por código y no hereda acceso a las notas.
+Cuentas individuales con roles, contraseñas scrypt, limitación de intentos, sesiones en SQLite, rotación al iniciar sesión, invalidación por versión de cuenta y protección CSRF en escritura. Las cookies usan SameSite y, en producción, HTTPS. La recepción usa cuentas individuales con permiso para registrar asistencias y sin acceso a las notas.
 
 Los datos de operación, secretos y logs se excluyen de Git. Los HTML de administración y las APIs académicas requieren sesión. La interfaz sanea el HTML heredado mediante DOMPurify y los nuevos componentes escapan los valores dinámicos.
 

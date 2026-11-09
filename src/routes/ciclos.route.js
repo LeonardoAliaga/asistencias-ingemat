@@ -14,7 +14,10 @@ router.get("/", (req, res) => {
     console.error("Ciclos Route: Error al obtener datos de ciclos:", err);
     res
       .status(500)
-      .json({ ciclos: ["SEMESTRAL", "ANUAL", "SABATINO", "DOMINGOS"] });
+      .json({
+        mensaje:
+          "No se pudo cargar la lista de ciclos. Actualiza la página para reintentar.",
+      });
   }
 });
 
@@ -58,13 +61,11 @@ router.delete("/:ciclo", requireAdmin, (req, res) => {
       )
       .get(cicloABorrar, cicloABorrar, cicloABorrar)
   )
-    return res
-      .status(409)
-      .json({
-        exito: false,
-        mensaje:
-          "El ciclo tiene usuarios o historial académico. Conserva su registro y crea otro ciclo si corresponde.",
-      });
+    return res.status(409).json({
+      exito: false,
+      mensaje:
+        "El ciclo tiene usuarios o historial académico. Conserva su registro y crea otro ciclo si corresponde.",
+    });
   try {
     const info = db
       .prepare("DELETE FROM ciclos WHERE UPPER(nombre) = ?")

@@ -7,7 +7,7 @@ El panel organiza el trabajo por propósito. Resumen contiene indicadores y acce
 | Espacio                | Contenido                                                                         |
 | ---------------------- | --------------------------------------------------------------------------------- |
 | Resumen                | Indicadores, accesos rápidos y acceso a los tutoriales                            |
-| Asistencia             | Fecha, ciclo, registros, justificaciones, exportación y vinculación de recepción  |
+| Asistencia             | Fecha, ciclo, registros, justificaciones, exportación y acceso de recepción  |
 | Archivos históricos    | Excel anteriores, accesibles desde Asistencia                                     |
 | Estudiantes y docentes | Directorio con búsqueda por nombre/código, altas, edición y carnets               |
 | Apoderados y áreas     | Área de postulación y contactos autorizados                                       |
@@ -28,12 +28,12 @@ El menú y las acciones respetan los roles existentes. La autorización de las o
 
 ## Configuración progresiva de simulacros
 
-1. **Datos:** título, ciclo, fecha y formato. Los puntajes generales permanecen plegados.
-2. **Cursos y áreas:** cursos desplegables, rangos y un selector para editar un perfil a la vez. El resumen muestra preguntas sin asignar, repeticiones y diferencias en los cupos. Para un solo perfil con preguntas fijas se reutiliza el rango del curso.
+1. **Datos:** título, ciclo, fecha y un único selector Plantilla. Los puntajes generales se muestran directamente, separados por un encabezado. Personalizado aparece al final y empieza con la cantidad por definir, sin cursos, claves ni excepciones.
+2. **Cursos y áreas (se omite con Simulacro tipo UNMSM):** cursos desplegables, rangos y un selector para editar un perfil a la vez. El resumen muestra preguntas sin asignar, repeticiones y diferencias en los cupos. Para un solo perfil con preguntas fijas se reutiliza el rango del curso.
 3. **Claves:** entrada de alternativas con contador. Anulaciones, puntajes por alternativa y versiones están dentro de opciones avanzadas.
-4. **Revisión:** cantidades por área y cobertura de la clave. Se distingue guardar un borrador con claves pendientes de guardar y validar un examen completo.
+4. **Revisión:** cantidades por área y cobertura de la clave, nombre opcional y Guardar como plantilla. Se distingue guardar un borrador con claves pendientes de guardar y validar un examen completo.
 
-El asistente conserva los campos al avanzar y retroceder. Un cambio de formato con cursos o claves existentes muestra la opción de aplicar el nuevo diseño o conservar la configuración. Las plantillas y los archivos de estructura están en un desplegable propio.
+El asistente conserva los campos al avanzar y retroceder. Un cambio de plantilla con cursos o claves existentes muestra la opción de reemplazarlos o conservar la configuración. Simulacro tipo UNMSM conserva sus cursos y áreas establecidos y recorre Datos → Claves → Revisión. Las bases y plantillas guardadas se eligen en el mismo selector.
 
 En un examen guardado, las tareas de consultar resultados, imprimir y cargar respuestas manualmente tienen pestañas propias. La corrección de una nota requiere activar esa opción y escribir un motivo.
 
