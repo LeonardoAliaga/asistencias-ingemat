@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 import cv2
 import numpy as np
+import zxingcpp
 from PIL import Image, ImageOps
 import pypdfium2 as pdfium
 
@@ -49,6 +50,15 @@ def read_qr(normalized, layout):
     x1, y1 = round((qr_box['x']-pad)*SCALE), round((qr_box['y']-pad)*SCALE)
     x2, y2 = round((qr_box['x']+qr_box['size']+pad)*SCALE), round((qr_box['y']+qr_box['size']+pad)*SCALE)
     crop = normalized[y1:y2, x1:x2]
+    # Independent QR decoding avoids OpenCV's intermittent failures on valid
+    # QR masks. Identity and signature are still verified by Node afterwards.
+    values = {barcode.text for barcode in zxingcpp.read_barcodes(
+        crop, formats=zxingcpp.BarcodeFormat.QRCode,
+    ) if barcode.valid}
+    if len(values) == 1:
+        return values.pop()
+    if len(values) > 1:
+        return ''
     detector = cv2.QRCodeDetector()
     candidates = [crop, cv2.resize(crop, None, fx=.75, fy=.75, interpolation=cv2.INTER_AREA)]
     candidates.append(cv2.threshold(crop,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)[1])

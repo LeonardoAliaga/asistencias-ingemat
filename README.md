@@ -84,7 +84,13 @@ Las revisiones de claves recalculan las notas en una transacción y conservan el
 
 ## Lectura OMR
 
-El lector usa Python/OpenCV, marcadores ArUco y una geometría de impresión compartida con el generador PDF. Identifica estudiante, área, versión, página y formato desde un QR firmado. Los PDF se rasterizan con PDFium, sin servicios externos de OCR.
+Si ya instalaste una versión anterior de esta rama, actualiza también las dependencias de Python dentro de tu entorno virtual:
+
+```sh
+python -m pip install -r src/omr/requirements.txt
+```
+
+El lector usa Python/OpenCV, marcadores ArUco y una geometría de impresión compartida con el generador PDF. ZXing-C++ decodifica el QR y OpenCV se conserva como alternativa; la firma y la identidad se comprueban en Node. Identifica estudiante, área, versión, página y formato desde un QR firmado. Los PDF se rasterizan con PDFium, sin servicios externos de OCR.
 
 - Cartillas A4 horizontal; imprimir al 100%, sin recortar QR ni marcadores.
 - PDF, PNG o JPG; máximo 10 archivos de 20 MB y 100 páginas por lote.

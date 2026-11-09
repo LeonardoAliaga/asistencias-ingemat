@@ -5,6 +5,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from unittest import mock
 import cv2
 import numpy as np
 
@@ -80,14 +81,20 @@ class OMRTests(unittest.TestCase):
         self.assertEqual(result['page'],2)
         self.assertEqual(len(result['responses']),80)
         self.assertEqual(result['responses']['200']['options'],['B'])
+    def test_opencv_fallback_when_primary_decoder_cannot_read(self):
+        with mock.patch.object(reader.zxingcpp, 'read_barcodes', return_value=[]):
+            result=self.read(sheet(self.layouts[0],{1:['C']}))
+        self.assertEqual(result['responses']['1']['options'],['C'])
     def test_actual_pdf_from_node_generator(self):
-        directory=Path(self.tmp.name);env={**os.environ,'DATA_DIR':str(directory/'data'),'DISABLE_MIGRATION_BACKUP':'1'}
-        code='''const fs=require('fs');const qrcode=require('qrcode');const encode=qrcode.toBuffer;let mask=0;qrcode.toBuffer=(value,opts)=>encode(value,{...opts,maskPattern:mask++%8});const {makePDF}=require('./src/services/omr-pdf.service');const {normalizeDefinition}=require('./src/services/grading.service');const def=normalizeDefinition({totalQuestions:120,keys:Object.fromEntries(Array.from({length:120},(_,i)=>[i+1,'A']))});makePDF({id:'pdf-test',titulo:'SIMULACRO SINTETICO',ciclo:'ANUAL',estado:'listo',revision:1,definition:def},Array.from({length:8},(_,i)=>({codigo:'DEMO'+i,nombre:'DEMO',apellido:'ALUMNO',area:'GENERAL'}))).then(bytes=>{fs.writeFileSync(process.argv[1],bytes);require('./src/database/db').close();}).catch(e=>{console.error(e);process.exit(1)});'''
+        directory=Path(self.tmp.name);env={**os.environ,'DATA_DIR':str(directory/'data'),'DISABLE_MIGRATION_BACKUP':'1','SESSION_SECRET':'synthetic-omr-regression-test-secret-only-2026'}
+        code='''const fs=require('fs');const qrcode=require('qrcode');const encode=qrcode.toBuffer;let mask=0;qrcode.toBuffer=(value,opts)=>encode(value,{...opts,maskPattern:mask++%8});const {makePDF}=require('./src/services/omr-pdf.service');const {normalizeDefinition}=require('./src/services/grading.service');const def=normalizeDefinition({totalQuestions:120,keys:Object.fromEntries(Array.from({length:120},(_,i)=>[i+1,'A']))});makePDF({id:'pdf-test',titulo:'SIMULACRO SINTETICO',ciclo:'ANUAL',estado:'listo',revision:1,definition:def},Array.from({length:32},(_,i)=>({codigo:'DEMO'+i,nombre:'DEMO',apellido:'ALUMNO',area:'GENERAL'}))).then(bytes=>{fs.writeFileSync(process.argv[1],bytes);require('./src/database/db').close();}).catch(e=>{console.error(e);process.exit(1)});'''
         filename=directory/'cartilla.pdf'
         subprocess.run(['node','-e',code,str(filename)],cwd=ROOT,env=env,check=True,capture_output=True)
-        pages=list(reader.images(filename));self.assertEqual(len(pages),8)
-        for image in pages:
+        count=0
+        for image in reader.images(filename):
+            count+=1
             result=self.read(image);self.assertEqual(len(result['responses']),120)
             self.assertTrue(all(r['status']=='blank' for r in result['responses'].values()))
+        self.assertEqual(count,32)
 
 if __name__=='__main__':unittest.main()

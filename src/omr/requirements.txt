@@ -2,3 +2,4 @@ opencv-python-headless>=4.10,<5
 numpy>=2.0,<3
 pypdfium2>=4.30,<6
 Pillow>=11,<14
+zxing-cpp>=3.1.1,<4

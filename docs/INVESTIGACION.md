@@ -8,19 +8,21 @@ Para una academia con simulacros recurrentes, se recomienda escaneo con alimenta
 
 La documentación del fabricante [Remark: escáneres](https://remarksoftware.com/support/remark-office-omr-support/scanner-information/) describe ADF, importación de imágenes/PDF y resoluciones de 200–300 ppp. Elegir 300 ppp y conservar grises es el punto de partida de **este** lector, que debe probarse con la impresora, papel y lápices de la academia.
 
-| Recurso | Uso que encaja | Consideración |
-|---|---|---|
-| [OpenCV](https://docs.opencv.org/4.x/d5/dae/tutorial_aruco_detection.html) | Reconocimiento integrado con plantilla propia y marcadores identificables | Es una biblioteca, necesita controles, pruebas y revisión humana |
-| [OMRChecker](https://github.com/Udayraj123/OMRChecker) | Base abierta para plantillas personalizadas y extracción de respuestas | Licencia MIT; requiere configuración y validación de la plantilla; no se usan sus cifras promocionales como garantía |
-| [Auto Multiple Choice](https://www.auto-multiple-choice.net/doc/usage/) | Flujo completo de creación y captura con AMC-TXT/LaTeX | Impone su propio proceso de autoría y preparación de documentos |
-| [Remark Office OMR](https://remarksoftware.com/products/office-omr/features/) | Operación con herramienta comercial, revisión y exportación CSV | Hay licencia; puede alimentar a INGEMAT por CSV en lugar de imponer su cálculo final |
-| [ZipGrade](https://www.zipgrade.com/forms/) | Captura móvil y exámenes compatibles con sus formularios | Sus formas estándar documentadas son 20/50/100; no se presume compatibilidad de un cuadernillo de 120 sin una prueba concreta |
+| Recurso                                                                       | Uso que encaja                                                            | Consideración                                                                                                                 |
+| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| [OpenCV](https://docs.opencv.org/4.x/d5/dae/tutorial_aruco_detection.html)    | Reconocimiento integrado con plantilla propia y marcadores identificables | Es una biblioteca, necesita controles, pruebas y revisión humana                                                              |
+| [OMRChecker](https://github.com/Udayraj123/OMRChecker)                        | Base abierta para plantillas personalizadas y extracción de respuestas    | Licencia MIT; requiere configuración y validación de la plantilla; no se usan sus cifras promocionales como garantía          |
+| [Auto Multiple Choice](https://www.auto-multiple-choice.net/doc/usage/)       | Flujo completo de creación y captura con AMC-TXT/LaTeX                    | Impone su propio proceso de autoría y preparación de documentos                                                               |
+| [Remark Office OMR](https://remarksoftware.com/products/office-omr/features/) | Operación con herramienta comercial, revisión y exportación CSV           | Hay licencia; puede alimentar a INGEMAT por CSV en lugar de imponer su cálculo final                                          |
+| [ZipGrade](https://www.zipgrade.com/forms/)                                   | Captura móvil y exámenes compatibles con sus formularios                  | Sus formas estándar documentadas son 20/50/100; no se presume compatibilidad de un cuadernillo de 120 sin una prueba concreta |
 
 La implementación v2 usa OpenCV con un formato de impresión compartido entre el PDF y el lector. Esa decisión permite imprimir 120 preguntas completas, asociar alumno/área/versión mediante QR y aplicar las reglas de la academia en un motor independiente. Otros lectores pueden integrarse exportando respuestas a CSV.
 
+La identificación QR utiliza [ZXing-C++ y sus bindings Python](https://github.com/zxing-cpp/zxing-cpp/blob/master/wrappers/python/README.md), con OpenCV como alternativa de lectura. Se incorporó un decodificador independiente después de observar un fallo intermitente de OpenCV en un PDF generado sin marcas. El lector no cambia las reglas académicas: Node sigue validando la firma y la ficha registrada antes de aceptar una lectura.
+
 La plantilla usa cuatro marcadores ArUco distintos para corregir orientación y perspectiva. Las marcas se clasifican como única, blanco, múltiple o dudosa. Una decisión incierta pasa a revisión; no se convierte automáticamente en blanco ni se selecciona la burbuja más conveniente para la nota.
 
-**Validación realizada:** imágenes sintéticas de 120 preguntas, dobles marcas, marca tenue, perspectiva, giro, falta o duplicación de marcadores, segunda página de 200 preguntas y PDF realmente generado por Node con los ocho patrones de máscara del QR. También se probó el recorrido PDF personalizado → lector Python → lote → recálculo por revisión → importación atómica. Falta la calibración con un lote físico de la academia, que no estuvo disponible durante el desarrollo.
+**Validación realizada:** imágenes sintéticas de 120 preguntas, dobles marcas, marca tenue, perspectiva, giro, falta o duplicación de marcadores, segunda página de 200 preguntas y 32 cartillas en PDF realmente generado por Node, cubriendo los ocho patrones de máscara del QR, y la alternativa de lectura con OpenCV. También se probó el recorrido PDF personalizado → lector Python → lote → recálculo por revisión → importación atómica. Falta la calibración con un lote físico de la academia, que no estuvo disponible durante el desarrollo.
 
 ## WhatsApp consistente
 
