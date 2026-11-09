@@ -1315,3 +1315,55 @@ test("custom template starts clean and confirms before discarding configuration"
   await expect(page.locator("#v2-message")).toContainText("validado");
   expect(errors).toEqual([]);
 });
+
+for (const width of [390, 768, 950]) {
+  test(`reception menu opens, closes and navigates under CSP at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 844 });
+    const violations = [];
+    page.on("console", (message) => {
+      if (
+        message
+          .text()
+          .includes("violates the following Content Security Policy")
+      )
+        violations.push(message.text());
+    });
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    const button = page.locator("#navbar-toggle");
+    await expect(button).toHaveAccessibleName("Abrir menú");
+    const menu = page.locator("#navbar-menu");
+    await expect(menu).toBeHidden();
+    await button.click();
+    await expect(button).toHaveAttribute("aria-expanded", "true");
+    await expect(menu).toBeVisible();
+    await page.click("#btn-asistencias");
+    await expect(page.locator("#codigo")).toBeVisible();
+    await expect(menu).toBeHidden();
+    await button.focus();
+    await page.keyboard.press("Enter");
+    await expect(menu).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(menu).toBeHidden();
+    await expect(button).toBeFocused();
+    await page.keyboard.press("Space");
+    await expect(menu).toBeVisible();
+    await button.click();
+    await expect(menu).toBeHidden();
+    await button.click();
+    // Move past the mobile breakpoint with an open menu, then return to mobile.
+    await page.setViewportSize({ width: 1200, height: 844 });
+    await expect(button).toBeHidden();
+    await expect(menu).toBeVisible();
+    await page.setViewportSize({ width, height: 844 });
+    await expect(button).toHaveAttribute("aria-expanded", "false");
+    await expect(menu).toBeHidden();
+    // The short landscape viewport must let reception reach the last link.
+    await page.setViewportSize({ width, height: 280 });
+    await button.click();
+    await page.locator('#navbar-menu a[href="#sobre-nosotros"]').click();
+    await expect(menu).toBeHidden();
+    expect(violations).toEqual([]);
+  });
+}

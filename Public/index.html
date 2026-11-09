@@ -22,26 +22,26 @@
     <script src="/js/session.js"></script>
   </head>
   <body>
-    <nav class="navbar" id="navbar">
+    <nav class="navbar" id="navbar" aria-label="Navegación principal">
       <a href="#"><img id="navbar-logo" src="img/logo-examen.png" alt="Academia INGEMAT" /></a>
-      <ul>
+      <ul id="navbar-menu">
         <li>
-          <a href="#" id="btn-inicio" onclick="toggle()">Inicio</a>
+          <a href="#" id="btn-inicio">Inicio</a>
         </li>
         <li>
-          <a href="#" id="btn-asistencias" onclick="toggle()">Asistencias</a>
+          <a href="#" id="btn-asistencias">Asistencias</a>
         </li>
         <li>
-          <a href="#" id="btn-prestamo-libros" onclick="toggle()"><i class="bi bi-book"></i> Libros</a>
+          <a href="#" id="btn-prestamo-libros"><i class="bi bi-book"></i> Libros</a>
         </li>
         <li class="mobile-only">
-          <a href="#" id="btn-scan" onclick="toggle()">Escanear</a>
+          <a href="#" id="btn-scan">Escanear</a>
         </li>
-        <li><a href="#ciclos" onclick="toggle()">Ciclos</a></li>
-        <li><a href="#sobre-nosotros" onclick="toggle()">Sobre Nosotros</a></li>
-        <li><a href="/admin" onclick="toggle()">Admin</a></li>
+        <li><a href="#ciclos">Ciclos</a></li>
+        <li><a href="#sobre-nosotros">Sobre Nosotros</a></li>
+        <li><a href="/admin">Admin</a></li>
       </ul>
-      <div class="toggle" onclick="toggle()"></div>
+      <button class="toggle" id="navbar-toggle" type="button" aria-controls="navbar-menu" aria-expanded="false" aria-label="Abrir menú"></button>
     </nav>
     <header>
       <div class="carousel-ingresantes">
