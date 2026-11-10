@@ -5,14 +5,14 @@ const defaults = {
   enabled: false,
   provider: "baileys",
   attendanceMessage: [
-    "📚 INGEMAT · Asistencia\nEstudiante: {nombre}\nFecha: {fecha}\nHora: {hora}\nEstado: {estado}",
-    "✅ Registro de ingreso INGEMAT\nEstudiante: {nombre}\nFecha: {fecha} · Hora: {hora}\nEstado: {estado}",
-    "📝 Aviso de asistencia\nEstudiante: {nombre}\nRegistró ingreso el {fecha} a las {hora}\nEstado: {estado}",
+    "INGEMAT 📚 · Asistencia\nEstudiante: {nombre}\nFecha: {fecha}\nHora: {hora}\nEstado: {estado}",
+    "INGEMAT ✅ · Registro de ingreso\nEstudiante: {nombre}\nFecha: {fecha} · Hora: {hora}\nEstado: {estado}",
+    "INGEMAT 📝 · Aviso de asistencia\nEstudiante: {nombre}\nRegistró ingreso el {fecha} a las {hora}\nEstado: {estado}",
   ].join("\n---\n"),
   resultsMessage: [
-    "🎓 INGEMAT · Simulacro\nEstudiante: {nombre}\nExamen: {examen}\nPuntaje: {puntaje}\nÁrea: {area}",
-    "📊 Resultados INGEMAT\nEstudiante: {nombre}\nEvaluación: {examen}\nPuntaje: {puntaje} · Área: {area}",
-    "📚 Reporte de evaluación\nEstudiante: {nombre}\nPrueba: {examen}\nResultado: {puntaje}\nÁrea: {area}",
+    "INGEMAT 🎓 · Simulacro\nEstudiante: {nombre}\nExamen: {examen}\nPuntaje: {puntaje}\nÁrea: {area}",
+    "INGEMAT 📊 · Resultados\nEstudiante: {nombre}\nEvaluación: {examen}\nPuntaje: {puntaje} · Área: {area}",
+    "INGEMAT 📚 · Reporte de evaluación\nEstudiante: {nombre}\nPrueba: {examen}\nResultado: {puntaje}\nÁrea: {area}",
   ].join("\n---\n"),
 };
 const fields = {
