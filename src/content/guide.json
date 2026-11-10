@@ -612,12 +612,14 @@
         },
         {
           "title": "Procesa y confirma",
-          "text": "Pulsa Procesar capturas para crear un único lote OMR. Espera el resultado en Lotes recientes, corrige las incidencias y confirma la importación. Los archivos originales del lote se conservan; las notas solo se guardan tras esa confirmación."
+          "text": "Pulsa Procesar capturas para crear un único lote OMR. Su estado aparece debajo del escáner, antes del historial. Corrige las incidencias y confirma la importación. Los archivos originales del lote se conservan; las notas solo se guardan tras esa confirmación."
         }
       ],
       "tips": [
         "Una sesión individual de NAPS2 genera un PDF de hasta 20 MB. Divide las pilas grandes; el lector admite hasta 100 caras de cartilla por lote.",
-        "También puedes cargar PDF, PNG o JPG escaneados previamente desde el apartado de archivos."
+        "También puedes cargar PDF, PNG o JPG escaneados previamente desde el apartado de archivos.",
+        "Lotes recientes usa un selector compacto. Limpiar finalizados oculta de tu lista los lotes importados o fallidos; Restaurar lista los vuelve a mostrar. Los pendientes permanecen visibles y no se borran archivos, notas ni auditoría.",
+        "Limpiar intentos fallidos retira capturas fallidas o canceladas de tu examen y usuario. Conserva las capturas listas y las solicitudes activas. Los apartados Cargar PDF o imágenes e Importar CSV están al final de la sección."
       ]
     },
     {
@@ -656,7 +658,8 @@
         }
       ],
       "tips": [
-        "En una cartilla con código marcado, revisa también la identificación: las ocho casillas muestran lo leído por columna. Un ? indica Sin marca, Revisar o Varias marcas. El lector busca relleno interior y separa los números y letras impresos, tanto en el código como en el área. La lectura original del área indica la opción reconocida, Sin marca, Revisar marca tenue o incompleta o Varias marcas. El código debe existir en el padrón y el área debe ser válida. El lote y la revisión muestran los apellidos, nombres y código del estudiante encontrado en el padrón del examen, incluso si falta resolver el área o el reverso. Mostrar un nombre no habilita la importación si hay incidencias. Si editas el código, el nuevo estudiante se verifica al confirmar la revisión. Si corriges a mano el código o el área, compara con la imagen, indica el motivo y confirma la revisión. El lector original y sus densidades se conservan."
+        "En una cartilla con código marcado, revisa también la identificación: las ocho casillas muestran lo leído por columna. Un ? indica Sin marca, Revisar o Varias marcas. El lector busca relleno interior y separa los números y letras impresos, tanto en el código como en el área. La lectura original del área indica la opción reconocida, Sin marca, Revisar marca tenue o incompleta o Varias marcas. El código debe existir en el padrón y el área debe ser válida. El lote y la revisión muestran los apellidos, nombres y código del estudiante encontrado en el padrón del examen, incluso si falta resolver el área o el reverso. Mostrar un nombre no habilita la importación si hay incidencias. Si editas el código, el nuevo estudiante se verifica al confirmar la revisión. Si corriges a mano el código o el área, compara con la imagen, indica el motivo y confirma la revisión. El lector original y sus densidades se conservan.",
+        "Las respuestas usan una lectura más estricta del relleno interior: los puntos pequeños no se consideran una alternativa ni crean una falsa marca doble. Una marca parcial significativa o muy tenue pasa a revisión. Rellena los círculos de forma uniforme; el código y el área conservan su lectura independiente. Procesa un lote nuevo para aplicar este análisis a un escaneo anterior."
       ]
     },
     {
@@ -938,11 +941,11 @@
       "id": "whatsapp-configurar",
       "category": "WhatsApp oficial",
       "title": "Configurar WhatsApp Business Platform",
-      "summary": "Sustituye las sesiones de navegador por una integración oficial.",
+      "summary": "Conexión oficial con tarifas de Meta: comprueba el costo antes de activar los avisos.",
       "steps": [
         {
           "title": "Prepara la cuenta de Meta",
-          "text": "Necesitas un portafolio empresarial, una WhatsApp Business Account y un número habilitado para Cloud API. Empieza con el número de prueba de Meta."
+          "text": "Necesitas un portafolio empresarial, una WhatsApp Business Account y un número habilitado para Cloud API. Empieza con el número de prueba de Meta. La plataforma oficial puede cobrar por mensaje entregado según categoría y destino. Revisa las tarifas vigentes en Meta y la facturación de tu cuenta antes de usar números reales. La conexión directa sin intermediario no convierte los envíos en gratuitos."
         },
         {
           "title": "Configura el servidor",
@@ -974,7 +977,8 @@
         }
       ],
       "tips": [
-        "La API oficial tiene tarifas y reglas de plantillas. Consulta los costos vigentes para Perú. La aplicación no solicita ni muestra tokens en el navegador."
+        "La API oficial tiene tarifas y reglas de plantillas. Consulta los costos vigentes para Perú. La aplicación no solicita ni muestra tokens en el navegador.",
+        "Para alternativas sin tarifa de API por mensaje, consulta docs/INVESTIGACION.md: Baileys, WPPConnect y el envío manual mediante wa.me. Las bibliotecas no oficiales siguen sujetas a cambios de WhatsApp; la comparación es una propuesta, no un proveedor nuevo activado en esta versión."
       ]
     },
     {

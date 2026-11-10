@@ -952,26 +952,29 @@ async function loadResults() {
 }
 async function loadBatches() {
   const batches = await api("/api/v2/imports");
-  $("v2-batches").innerHTML = table(
-    ["Fecha", "Examen", "Origen", "Estado", "Acción"],
-    batches.map((b) => [
-      esc(stamp(b.created_at)),
-      esc(
-        state.exams.find((e) => e.id === b.evaluation_id)?.titulo ||
-          b.evaluation_id,
-      ),
-      esc(b.source.toUpperCase()),
-      badge(b.status),
-      `<button class="v2-link" data-batch="${b.id}">Abrir lote</button>`,
-    ]),
+  const signature = JSON.stringify([
+    batches,
+    state.exams.map((e) => [e.id, e.titulo]),
+  ]);
+  if (state.batchHistorySignature === signature) {
+    if (state.batch) await openBatch(state.batch.id);
+    return;
+  }
+  state.batchHistorySignature = signature;
+  const previous = $("v2-batch-select")?.value || state.batch?.id;
+  const selected = batches.some((b) => b.id === previous)
+    ? previous
+    : batches[0]?.id;
+  $("v2-batches").innerHTML = batches.length
+    ? `<div class="v2-toolbar batch-history-picker"><label>Lote guardado (${batches.length})<select id="v2-batch-select">${batches.map((b) => `<option value="${esc(b.id)}" ${b.id === selected ? "selected" : ""}>${esc(stamp(b.created_at))} · ${esc(state.exams.find((e) => e.id === b.evaluation_id)?.titulo || b.evaluation_id)} · ${esc(statuses[b.status] || b.status)}</option>`).join("")}</select></label><button class="v2-button secondary" id="v2-open-batch" data-batch="${esc(selected)}" type="button">Abrir lote</button></div>`
+    : '<p class="v2-help">No hay lotes recientes en tu lista.</p>';
+  $("v2-clear-batches").disabled = !batches.some((b) =>
+    ["committed", "failed"].includes(b.status),
   );
-  $("v2-batches")
-    .querySelectorAll("[data-batch]")
-    .forEach(
-      (b) =>
-        (b.onclick = () =>
-          openBatch(b.dataset.batch).catch((e) => message(e.message, true))),
-    );
+  bind("v2-batch-select", "change", () => {
+    $("v2-open-batch").dataset.batch = $("v2-batch-select").value;
+  });
+  bind("v2-open-batch", "click", () => openBatch($("v2-batch-select").value));
   if (state.batch) await openBatch(state.batch.id);
 }
 function scannedStudentLabel(page) {
@@ -992,9 +995,15 @@ function scannedStudentNotice(page) {
     : `<p class="v2-notice warning"><strong>Estudiante sin identificar</strong><br>${scannedStudentLabel(page)}. Comprueba el código y el padrón del examen.</p>`;
 }
 async function openBatch(id) {
+  const request = (state.batchRequest = (state.batchRequest || 0) + 1);
   const b = await api(`/api/v2/imports/${id}`);
+  if (request !== state.batchRequest) return;
   state.batch = b;
   const el = $("v2-batch-detail");
+  const signature = JSON.stringify(b);
+  // Polling unchanged data must not erase the operator's reason or selection.
+  if (state.batchSignature === signature && !el.hidden) return;
+  state.batchSignature = signature;
   el.hidden = false;
   el.innerHTML = `<div class="v2-card-title"><h3>Lote · ${esc(b.source.toUpperCase())}</h3>${badge(b.status)}</div>${b.error ? `<p class="v2-notice warning">${esc(b.error)}</p>` : ""}${["queued", "processing"].includes(b.status) ? "<p>Procesando en segundo plano. Esta vista se actualiza automáticamente.</p>" : ""}${
     b.result.pages
@@ -1887,6 +1896,17 @@ async function initialize() {
   ])
     bind(id, "change", loadAttendance);
   bind("v2-refresh-batches", "click", loadBatches);
+  bind("v2-clear-batches", "click", async () => {
+    const result = await api("/api/v2/imports/clear-history", json({}));
+    await loadBatches();
+    $("v2-history-status").textContent =
+      `${result.hidden} lotes finalizados ocultos. Puedes restaurar la lista.`;
+  });
+  bind("v2-restore-batches", "click", async () => {
+    await api("/api/v2/imports/restore-history", json({}));
+    await loadBatches();
+    $("v2-history-status").textContent = "Lista restaurada.";
+  });
   bind("v2-refresh-notifications", "click", loadNotifications);
   bind("v2-reload", "click", async () => {
     await loadCycles();

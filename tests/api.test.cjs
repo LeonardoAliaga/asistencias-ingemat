@@ -970,3 +970,35 @@ test("exception revisions recalculate stored answers and keep booklet versions f
   assert.match(result.data.mensaje, /versiones.*fijados/);
   assert.equal((await admin(`/api/v2/exams/${id}`)).data.revision, 2);
 });
+
+test("batch history cleanup is authenticated, reversible and preserves direct access to saved data", async () => {
+  const id = require("node:crypto").randomUUID();
+  db.prepare(
+    "INSERT INTO import_batches(id,evaluation_id,revision,source,status,actor,result) VALUES(?,?,1,'omr','failed','admin','{}')",
+  ).run(id, exam.id);
+  assert.equal(
+    (await guest("/api/v2/imports/clear-history", {}, "POST")).status,
+    401,
+  );
+  assert.equal(
+    (await admin("/api/v2/imports/clear-history", {}, "POST")).status,
+    200,
+  );
+  assert(!(await admin("/api/v2/imports")).data.some((b) => b.id === id));
+  assert.equal((await admin(`/api/v2/imports/${id}`)).data.id, id);
+  assert.equal(
+    (await admin("/api/v2/imports/restore-history", {}, "POST")).status,
+    200,
+  );
+  assert((await admin("/api/v2/imports")).data.some((b) => b.id === id));
+  assert.equal(
+    (await guest("/api/v2/scanner/clear-failed", { examId: exam.id }, "POST"))
+      .status,
+    401,
+  );
+  assert.equal(
+    (await admin("/api/v2/scanner/clear-failed", { examId: exam.id }, "POST"))
+      .status,
+    200,
+  );
+});

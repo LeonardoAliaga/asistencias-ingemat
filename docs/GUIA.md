@@ -213,10 +213,12 @@ Añade capturas desde el cristal o el alimentador y envíalas juntas al lector O
 3. **Prepara el papel.** Para Brother MFC-T920DW usa Cristal con los cuartos recortados; su alimentador requiere al menos 148 × 148 mm. Elige A4 para el área completa del cristal o A5 para media hoja. El alimentador admite hasta 20 hojas y escanea una cara; para los cuartos debes voltear manualmente y capturar ambos lados. Se fija 300 ppp en escala de grises.
 4. **Escanea y añade.** Pulsa Escanear y añadir y espera a que aparezca Lista para procesar. Abre Ver PDF para comprobar que están el QR y los cuatro marcadores. Cambia o voltea el papel y repite; la bandeja conserva hasta diez capturas listas por examen y operador, incluso al recargar. Puedes cancelar un escaneo o quitar una captura terminada.
 5. **Recupera una conexión interrumpida.** Si se pierde la respuesta, pulsa Verificar captura pendiente o Verificar envío pendiente. Se reutiliza el mismo identificador y no se repite una orden ya recibida. Si se reinicia el servidor durante la captura se marca Fallida; comprueba el escáner y solicita una nueva captura manualmente.
-6. **Procesa y confirma.** Pulsa Procesar capturas para crear un único lote OMR. Espera el resultado en Lotes recientes, corrige las incidencias y confirma la importación. Los archivos originales del lote se conservan; las notas solo se guardan tras esa confirmación.
+6. **Procesa y confirma.** Pulsa Procesar capturas para crear un único lote OMR. Su estado aparece debajo del escáner, antes del historial. Corrige las incidencias y confirma la importación. Los archivos originales del lote se conservan; las notas solo se guardan tras esa confirmación.
 
 - Una sesión individual de NAPS2 genera un PDF de hasta 20 MB. Divide las pilas grandes; el lector admite hasta 100 caras de cartilla por lote.
 - También puedes cargar PDF, PNG o JPG escaneados previamente desde el apartado de archivos.
+- Lotes recientes usa un selector compacto. Limpiar finalizados oculta de tu lista los lotes importados o fallidos; Restaurar lista los vuelve a mostrar. Los pendientes permanecen visibles y no se borran archivos, notas ni auditoría.
+- Limpiar intentos fallidos retira capturas fallidas o canceladas de tu examen y usuario. Conserva las capturas listas y las solicitudes activas. Los apartados Cargar PDF o imágenes e Importar CSV están al final de la sección.
 
 ## Resolver marcas dobles, dudosas y hojas no reconocidas
 
@@ -231,6 +233,7 @@ Corrige la lectura sin perder su evidencia original.
 7. **Confirma cuando esté listo.** Una lectura dudosa pendiente impide cerrar el lote. Las marcas dobles confirmadas se califican conforme a la regla del examen.
 
 - En una cartilla con código marcado, revisa también la identificación: las ocho casillas muestran lo leído por columna. Un ? indica Sin marca, Revisar o Varias marcas. El lector busca relleno interior y separa los números y letras impresos, tanto en el código como en el área. La lectura original del área indica la opción reconocida, Sin marca, Revisar marca tenue o incompleta o Varias marcas. El código debe existir en el padrón y el área debe ser válida. El lote y la revisión muestran los apellidos, nombres y código del estudiante encontrado en el padrón del examen, incluso si falta resolver el área o el reverso. Mostrar un nombre no habilita la importación si hay incidencias. Si editas el código, el nuevo estudiante se verifica al confirmar la revisión. Si corriges a mano el código o el área, compara con la imagen, indica el motivo y confirma la revisión. El lector original y sus densidades se conservan.
+- Las respuestas usan una lectura más estricta del relleno interior: los puntos pequeños no se consideran una alternativa ni crean una falsa marca doble. Una marca parcial significativa o muy tenue pasa a revisión. Rellena los círculos de forma uniforme; el código y el área conservan su lectura independiente. Procesa un lote nuevo para aplicar este análisis a un escaneo anterior.
 
 ## Importar respuestas desde CSV u otro lector OMR
 
@@ -327,9 +330,9 @@ Mantén la información pública desde el panel.
 
 ## Configurar WhatsApp Business Platform
 
-Sustituye las sesiones de navegador por una integración oficial.
+Conexión oficial con tarifas de Meta: comprueba el costo antes de activar los avisos.
 
-1. **Prepara la cuenta de Meta.** Necesitas un portafolio empresarial, una WhatsApp Business Account y un número habilitado para Cloud API. Empieza con el número de prueba de Meta.
+1. **Prepara la cuenta de Meta.** Necesitas un portafolio empresarial, una WhatsApp Business Account y un número habilitado para Cloud API. Empieza con el número de prueba de Meta. La plataforma oficial puede cobrar por mensaje entregado según categoría y destino. Revisa las tarifas vigentes en Meta y la facturación de tu cuenta antes de usar números reales. La conexión directa sin intermediario no convierte los envíos en gratuitos.
 2. **Configura el servidor.** Completa WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_API_VERSION, WHATSAPP_APP_SECRET y WHATSAPP_VERIFY_TOKEN en .env. El token se queda en el servidor.
 3. **Publica el webhook.** Meta debe acceder por HTTPS a /webhooks/whatsapp. Una instalación solo en localhost necesita un endpoint público o un despliegue con HTTPS.
 4. **Suscribe eventos de mensajes.** Configura el token de verificación y los eventos de mensajes y estados en Meta. Los POST se validan con la firma del App Secret.
@@ -339,6 +342,7 @@ Sustituye las sesiones de navegador por una integración oficial.
 8. **Haz una prueba controlada.** Registra un ingreso de un alumno de prueba y comprueba el estado real de entrega antes de usarlo con toda la academia.
 
 - La API oficial tiene tarifas y reglas de plantillas. Consulta los costos vigentes para Perú. La aplicación no solicita ni muestra tokens en el navegador.
+- Para alternativas sin tarifa de API por mensaje, consulta docs/INVESTIGACION.md: Baileys, WPPConnect y el envío manual mediante wa.me. Las bibliotecas no oficiales siguen sujetas a cambios de WhatsApp; la comparación es una propuesta, no un proveedor nuevo activado en esta versión.
 
 ## Áreas y apoderados que reciben avisos
 

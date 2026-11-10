@@ -61,6 +61,14 @@ Marca una sola área con relleno uniforme. Las letras o dígitos impresos no cue
 
 Procesa un lote nuevo para aplicar el análisis a archivos ya escaneados; los lotes guardados mantienen su lectura anterior. Una corrección manual conserva el resultado original y requiere motivo.
 
+## Respuestas: tolerancia a puntos y rellenos parciales
+
+La lectura de alternativas se evalúa por separado del código y del área. El método `answer-fill-v2` mide el disco interior (80% del radio) en grises con contraste local y eliminación de ruido fino. Una alternativa necesita al menos 60% de cobertura firme de ese disco para aceptarse automáticamente. Hasta 30% se considera ruido o un punto insuficiente; por encima de 30%, sin alcanzar una marca firme, pasa a revisión, también con una segunda medida sensible a lápiz tenue. Una marca parcial significativa junto a una respuesta impide elegir automáticamente; dos rellenos firmes siguen siendo marca múltiple.
+
+Los porcentajes describen el área interior analizada, no la oscuridad del lápiz ni una promesa de precisión universal. No se selecciona la alternativa más oscura para resolver ambigüedades. El alumno debe rellenar uniformemente, sin limitarse a un punto. Los umbrales del código y del área no cambian; las cartillas impresas siguen siendo compatibles. Los lotes guardados conservan su lectura anterior: procesa un lote nuevo para usar el criterio actualizado.
+
+La pantalla pone el lote activo antes de Lotes recientes. El historial ocupa un selector compacto. Limpiar finalizados oculta por cuenta los lotes importados o fallidos y Restaurar lista revierte esa preferencia; archivos, notas, auditoría y detección de duplicados se conservan. Los lotes pendientes siguen visibles. Los intentos fallidos/cancelados del escáner tienen su propia limpieza, que conserva las capturas listas. PDF/imágenes y CSV están al final.
+
 ## Verificación y piloto
 
 Las pruebas generan y rasterizan los PDF del generador, verifican los QR de cada posición del anverso/reverso, leen hojas completas, rellenan códigos con ceros iniciales y áreas, generan fotos JPEG con giro y perspectiva y recorren lector → revisión de identidad → confirmación de notas. También comprueban la carga anterior. Las regresiones de identificación rasterizan los dos formatos reales, prueban los diez dígitos en las ocho posiciones, rellenos interiores, lápiz gris, pequeños desplazamientos, JPEG, variación de papel e impresión y códigos con ceros iniciales. Las regresiones del área cubren las cinco letras y perfiles numéricos en los dos PDF, relleno centrado, lápiz gris, desplazamiento/JPEG, variación de papel e impresión, marcas dobles y tenues y el perfil único sin marca. Las marcas dobles o tenues y las columnas o áreas vacías bloquean la identificación automática.

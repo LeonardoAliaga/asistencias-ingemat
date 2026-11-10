@@ -405,6 +405,9 @@ router.get("/scanner/jobs", write, (req, res) =>
 router.post("/scanner/jobs", write, (req, res) =>
   res.status(202).json(scanner.start(req.body, req)),
 );
+router.post("/scanner/clear-failed", write, (req, res) =>
+  res.json(scanner.clearFailed(String(req.body.examId || ""), req)),
+);
 router.post("/scanner/jobs/:id/cancel", write, (req, res) =>
   res.json(scanner.cancel(req.params.id, req)),
 );
@@ -417,14 +420,12 @@ router.get("/scanner/jobs/:id/file", write, (req, res) =>
 router.post("/scanner/import", write, (req, res) =>
   res.status(202).json(scanner.processCaptures(req.body, req)),
 );
-router.get("/imports", read, (req, res) =>
-  res.json(
-    db
-      .prepare(
-        "SELECT id,evaluation_id,revision,source,status,error,actor,created_at FROM import_batches ORDER BY created_at DESC LIMIT 100",
-      )
-      .all(),
-  ),
+router.get("/imports", read, (req, res) => res.json(imports.listBatches(req)));
+router.post("/imports/clear-history", read, (req, res) =>
+  res.json(imports.clearBatchHistory(req)),
+);
+router.post("/imports/restore-history", read, (req, res) =>
+  res.json(imports.restoreBatchHistory(req)),
 );
 router.get("/imports/:id", read, (req, res) => {
   const b = imports.batchView(req.params.id);

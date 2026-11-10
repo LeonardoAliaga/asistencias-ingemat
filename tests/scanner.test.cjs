@@ -233,3 +233,38 @@ test("native launcher preserves literal arguments, reports missing executable an
     else process.env.NAPS2_BIN = previous;
   }
 });
+
+test("bulk cleanup only discards failed/cancelled captures of the current operator and exam", () => {
+  const rows = [];
+  for (const [status, owner] of [
+    ["failed", "admin"],
+    ["cancelled", "admin"],
+    ["ready", "admin"],
+    ["scanning", "admin"],
+    ["failed", "other"],
+  ]) {
+    const id = randomUUID();
+    db.prepare(
+      "INSERT INTO scanner_jobs(id,evaluation_id,revision,actor,driver,device,source,page_size,status) VALUES(?,?,1,?,'wia','Brother','glass','a4',?)",
+    ).run(id, exam.id, owner, status);
+    fs.writeFileSync(path.join(dir, "scanner", id + ".pdf"), "%PDF-test");
+    rows.push({ id, status, owner });
+  }
+  assert.equal(scanner.clearFailed("different-exam", req).cleared, 0);
+  const result = scanner.clearFailed(exam.id, req);
+  assert(result.cleared >= 2);
+  for (const row of rows) {
+    const cleared =
+      row.owner === "admin" && ["failed", "cancelled"].includes(row.status);
+    assert.equal(
+      db.prepare("SELECT status FROM scanner_jobs WHERE id=?").get(row.id)
+        .status,
+      cleared ? "discarded" : row.status,
+    );
+    assert.equal(
+      fs.existsSync(path.join(dir, "scanner", row.id + ".pdf")),
+      !cleared,
+    );
+  }
+  assert.equal(scanner.clearFailed(exam.id, req).cleared, 0);
+});

@@ -7,7 +7,8 @@ export function mountScanner({ api, escape: esc, onUploaded, username }) {
     requesting = false,
     refreshing = false,
     refreshQueued = false,
-    displayedExam = "";
+    displayedExam = "",
+    queueMarkup = "";
   try {
     pending = JSON.parse(sessionStorage.getItem(key) || "{}") || {};
   } catch {
@@ -93,9 +94,17 @@ export function mountScanner({ api, escape: esc, onUploaded, username }) {
     $("scanner-process").textContent = pending.import
       ? "Verificar envío pendiente"
       : "Procesar capturas";
-    $("scanner-queue").innerHTML = jobs.length
+    $("scanner-clear-failed").disabled =
+      locked || !jobs.some((j) => ["failed", "cancelled"].includes(j.status));
+    const markup = jobs.length
       ? `<ul class="scanner-captures">${jobs.map((j, i) => `<li><div><strong>Captura ${i + 1} · ${esc(labels[j.status] || j.status)}</strong><p>${j.source === "glass" ? "Cristal" : "Alimentador"} · ${esc(j.pageSize.toUpperCase())}${j.bytes ? ` · ${(j.bytes / 1024).toFixed(0)} KB` : ""}</p>${j.error ? `<p class="field-error">${esc(j.error)}</p>` : ""}</div><div class="v2-toolbar">${j.fileUrl ? `<a class="v2-link" href="${esc(j.fileUrl)}" target="_blank" rel="noopener">Ver PDF ${i + 1}</a>` : ""}${j.status === "scanning" ? `<button class="v2-link" type="button" data-cancel="${esc(j.id)}">Cancelar escaneo</button>` : `<button class="v2-link" type="button" data-discard="${esc(j.id)}" ${requesting || pending.import ? "disabled" : ""}>Quitar captura ${i + 1}</button>`}</div></li>`).join("")}</ul>`
       : '<p class="v2-help">Las capturas aparecerán aquí. Cambia o voltea la hoja para añadir otra cara.</p>';
+    if (markup !== queueMarkup) {
+      const top = $("scanner-queue").scrollTop;
+      $("scanner-queue").innerHTML = markup;
+      $("scanner-queue").scrollTop = top;
+      queueMarkup = markup;
+    }
   }
   async function refresh() {
     const examId = $("v2-import-exam").value;
@@ -172,6 +181,18 @@ export function mountScanner({ api, escape: esc, onUploaded, username }) {
       );
     }),
   );
+  $("scanner-clear-failed").addEventListener("click", () =>
+    act(async () => {
+      const result = await api(
+        "/api/v2/scanner/clear-failed",
+        json({ examId: $("v2-import-exam").value }),
+      );
+      await refresh();
+      status(
+        `${result.cleared} intentos fallidos o cancelados retirados. Las capturas listas se conservan.`,
+      );
+    }),
+  );
   $("scanner-driver").addEventListener("change", () => {
     $("scanner-device").innerHTML =
       '<option value="">Busca los escáneres con este controlador</option>';
@@ -236,7 +257,7 @@ export function mountScanner({ api, escape: esc, onUploaded, username }) {
       delete pending.import;
       save();
       status(
-        "Lote recibido. Revisa las incidencias en Lotes recientes y confirma las notas cuando esté completo.",
+        "Lote recibido. Su estado aparece debajo del escáner. Revisa las incidencias antes de confirmar las notas.",
       );
       await refresh();
       await onUploaded(batch);

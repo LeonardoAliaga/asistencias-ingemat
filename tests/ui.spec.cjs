@@ -1588,3 +1588,144 @@ test("scanner explains a busy device and enables when the other request finishes
     "Listo para escanear",
   );
 });
+
+for (const width of [390, 1440])
+  test(`compact batch history clears and restores finished items while OMR status stays before uploads at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await scannerFixture(page);
+    let hidden = false;
+    const batches = Array.from({ length: 40 }, (_, i) => ({
+      id: `history-${i}`,
+      evaluation_id: "demo",
+      source: "omr",
+      status: i === 39 ? "processing" : i === 38 ? "failed" : "committed",
+      created_at: "2026-11-10T12:00:00Z",
+      result: {},
+      files: [],
+    }));
+    await page.route("**/api/v2/imports", (route) =>
+      route.fulfill({ json: hidden ? batches.slice(-1) : batches }),
+    );
+    await page.route("**/api/v2/imports/history-*", (route) => {
+      const id = new URL(route.request().url()).pathname.split("/").at(-1);
+      return route.fulfill({ json: batches.find((b) => b.id === id) });
+    });
+    await page.route("**/api/v2/imports/clear-history", (route) => {
+      hidden = true;
+      return route.fulfill({ json: { hidden: 39 } });
+    });
+    await page.route("**/api/v2/imports/restore-history", (route) => {
+      hidden = false;
+      return route.fulfill({ json: { exito: true } });
+    });
+    await selectScannerExam(page);
+    await expect(page.locator("#v2-batch-select option")).toHaveCount(40);
+    expect(
+      await page
+        .locator("#v2-batches")
+        .evaluate((el) => el.getBoundingClientRect().height),
+    ).toBeLessThan(180);
+    await page.selectOption("#v2-batch-select", "history-39");
+    await page.click("#v2-open-batch");
+    await expect(page.locator("#v2-batch-detail")).toContainText("Procesando");
+    expect(
+      await page
+        .locator("#v2-batch-detail")
+        .evaluate((el) =>
+          Boolean(
+            el.compareDocumentPosition(
+              document.getElementById("batch-history-title"),
+            ) & Node.DOCUMENT_POSITION_FOLLOWING,
+          ),
+        ),
+    ).toBe(true);
+    for (const id of ["v2-scan-form", "v2-csv-form"])
+      expect(
+        await page
+          .locator("#v2-batches")
+          .evaluate(
+            (el, id) =>
+              Boolean(
+                el.compareDocumentPosition(document.getElementById(id)) &
+                Node.DOCUMENT_POSITION_FOLLOWING,
+              ),
+            id,
+          ),
+      ).toBe(true);
+    await page.click("#v2-clear-batches");
+    await expect(page.locator("#v2-batch-select option")).toHaveCount(1);
+    await expect(page.locator("#v2-batch-detail")).toContainText("Procesando");
+    await expect(page.locator("#v2-history-status")).toContainText("39 lotes");
+    await page.reload();
+    await expect(page.locator("body")).toHaveAttribute("data-ready", "true");
+    await navigate(page, "imports");
+    await expect(page.locator("#v2-batch-select option")).toHaveCount(1);
+    await page.click("#v2-restore-batches");
+    await expect(page.locator("#v2-batch-select option")).toHaveCount(40);
+    batches[39].status = "ready";
+    await page.selectOption("#v2-batch-select", "history-39");
+    await page.click("#v2-open-batch");
+    await page.check("#v2-batch-replace");
+    await page.fill(
+      "#v2-batch-reason",
+      "Motivo que no debe perderse al actualizar",
+    );
+    await page.click("#v2-refresh-batches");
+    await expect(page.locator("#v2-batch-replace")).toBeChecked();
+    await expect(page.locator("#v2-batch-reason")).toHaveValue(
+      "Motivo que no debe perderse al actualizar",
+    );
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBeLessThanOrEqual(width);
+    const audit = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
+      .analyze();
+    expect(audit.violations).toEqual([]);
+  });
+
+test("scanner failed attempts have bounded height and cleanup preserves ready captures on mobile", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await scannerFixture(page);
+  let jobs = Array.from({ length: 32 }, (_, i) => ({
+    id: `attempt-${i}`,
+    status: i < 30 ? "failed" : "ready",
+    source: "glass",
+    pageSize: "a4",
+    bytes: i < 30 ? 0 : 1024,
+    error: i < 30 ? "No se pudo completar la captura. Revisa el escáner." : "",
+    fileUrl: i < 30 ? null : `/api/v2/scanner/jobs/attempt-${i}/file`,
+  }));
+  await page.route("**/api/v2/scanner/jobs?*", (route) =>
+    route.fulfill({ json: { busy: false, jobs } }),
+  );
+  await page.route("**/api/v2/scanner/clear-failed", (route) => {
+    jobs = jobs.filter((j) => j.status === "ready");
+    return route.fulfill({ json: { cleared: 30 } });
+  });
+  await selectScannerExam(page);
+  await expect(page.locator(".scanner-captures li")).toHaveCount(32);
+  expect(
+    await page
+      .locator("#scanner-queue")
+      .evaluate((el) => el.getBoundingClientRect().height),
+  ).toBeLessThanOrEqual(321);
+  await page.click("#scanner-clear-failed");
+  await expect(page.locator(".scanner-captures li")).toHaveCount(2);
+  await expect(page.locator("#scanner-process")).toBeEnabled();
+  await expect(page.locator("#scanner-clear-failed")).toBeDisabled();
+  await expect(page.locator("#scanner-status")).toContainText(
+    "capturas listas se conservan",
+  );
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth),
+  ).toBeLessThanOrEqual(390);
+  const audit = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
+    .analyze();
+  expect(audit.violations).toEqual([]);
+});

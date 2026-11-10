@@ -323,6 +323,23 @@ function createScannerService({
         .map(view),
     };
   }
+  function clearFailed(examId, req) {
+    const rows = database
+      .prepare(
+        "SELECT id FROM scanner_jobs WHERE actor=? AND evaluation_id=? AND status IN ('failed','cancelled')",
+      )
+      .all(actor(req), examId);
+    database.transaction(() => {
+      for (const row of rows)
+        database
+          .prepare(
+            "UPDATE scanner_jobs SET status='discarded' WHERE id=? AND status IN ('failed','cancelled')",
+          )
+          .run(row.id);
+    })();
+    for (const row of rows) remove(file(row.id));
+    return { cleared: rows.length };
+  }
   function cancel(id, req) {
     const row = owned(id, req);
     if (row.status === "scanning" && active?.id === id)
@@ -426,6 +443,7 @@ function createScannerService({
     discover,
     start,
     list,
+    clearFailed,
     cancel,
     discard,
     processCaptures,

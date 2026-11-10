@@ -95,6 +95,27 @@ function batchView(id) {
         : findStudent(row.codigoEstudiante);
   return b;
 }
+function listBatches(req) {
+  return db
+    .prepare(
+      "SELECT b.id,b.evaluation_id,b.revision,b.source,b.status,b.error,b.actor,b.created_at FROM import_batches b WHERE b.status NOT IN ('committed','failed') OR NOT EXISTS (SELECT 1 FROM hidden_import_batches h WHERE h.batch_id=b.id AND h.actor=?) ORDER BY b.created_at DESC,b.rowid DESC LIMIT 100",
+    )
+    .all(req.session.username);
+}
+function clearBatchHistory(req) {
+  const result = db
+    .prepare(
+      "INSERT OR IGNORE INTO hidden_import_batches(actor,batch_id) SELECT ?,id FROM import_batches WHERE status IN ('committed','failed')",
+    )
+    .run(req.session.username);
+  return { hidden: result.changes };
+}
+function restoreBatchHistory(req) {
+  db.prepare("DELETE FROM hidden_import_batches WHERE actor=?").run(
+    req.session.username,
+  );
+  return { exito: true };
+}
 function writeResult(id, result, status) {
   db.prepare(
     "UPDATE import_batches SET result=?,status=?,updated_at=CURRENT_TIMESTAMP WHERE id=?",
@@ -594,6 +615,9 @@ module.exports = {
   root,
   batch,
   batchView,
+  listBatches,
+  clearBatchHistory,
+  restoreBatchHistory,
   createCSV,
   createScan,
   processScanQueue,
