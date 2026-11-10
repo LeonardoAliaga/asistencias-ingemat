@@ -19,7 +19,9 @@ jobs:
           python-version: '3.12'
           cache: pip
           cache-dependency-path: src/omr/requirements.txt
+      - run: node scripts/check-install.cjs --lock-only
       - run: npm ci
+      - run: npm run install:doctor
       - run: npm run whatsapp:doctor
       - run: python -m pip install -r src/omr/requirements.txt
       - run: npm run omr:doctor
@@ -29,3 +31,24 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run test:ui
       - run: npm audit --omit=dev --audit-level=high
+  windows-install:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        npm: ['11.9.0', '11.16.0']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.22.1'
+          cache: npm
+      - run: npm install --global npm@${{ matrix.npm }}
+      - run: node scripts/check-install.cjs --lock-only
+      # Impide que las herramientas del runner oculten una compilación accidental.
+      - run: npm ci --foreground-scripts
+        env:
+          NODE_GYP_FORCE_PYTHON: C:/ingemat-no-build-toolchain/python.exe
+      - run: npm run install:doctor
+      - run: npm run whatsapp:doctor

@@ -26,6 +26,8 @@ npm ci
 python -m venv .venv
 ```
 
+Para comprobar la instalación de SQLite ejecuta `npm run install:doctor`. La versión bloqueada incluye binarios para Windows x64/ARM64 y no necesita Visual Studio para la instalación habitual. Si `npm ci` intenta ejecutar `node-gyp rebuild` en `better-sqlite3`, actualiza esta rama con `git pull --ff-only` y repite `npm ci`; no borres `package-lock.json`. Comprueba antes de instalar con `node scripts/check-install.cjs --lock-only`. Tras modificar dependencias, vuelve a ejecutar esa comprobación: npm puede eliminar el metadato `gypfile: false` del lockfile al regenerarlo.
+
 Activa el entorno e instala OMR:
 
 ```sh

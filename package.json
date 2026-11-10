@@ -11,6 +11,7 @@
     "omr:doctor": "node scripts/check-omr.cjs",
     "test:omr": "python3 -m unittest discover -s tests -p \"test_*.py\"",
     "check": "node scripts/check-syntax.cjs",
+    "install:doctor": "node scripts/check-install.cjs",
     "test:ui": "playwright test",
     "format": "prettier --write app.js src Public/js/admin/v2.js Public/js/session.js Public/css/v2.css Public/pages/v2-panel.html tests scripts",
     "scanner:doctor": "node scripts/check-scanner.cjs",
