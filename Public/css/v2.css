@@ -1758,8 +1758,8 @@ body[data-account-role="docente"] .btn-delete-seccion {
 /* Envíos por WhatsApp: verde de marca y estados accesibles. */
 .admin-app .whatsapp-send-button,
 .admin-app #report-whatsapp-dialog .v2-button[type="submit"] {
-  background: #128c7e;
-  border-color: #128c7e;
+  background: #0b786d;
+  border-color: #0b786d;
   color: #fff;
 }
 .admin-app .whatsapp-send-button:hover:not(:disabled),

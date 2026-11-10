@@ -1276,6 +1276,7 @@ test("score exceptions can be edited and recalculated after students answer", as
   await expect(page.locator("#v2-message")).toContainText("validado");
   await page.click("#v2-manual-tab");
   await page.selectOption("#v2-manual-student", "DEMO002");
+  await page.locator("#v2-manual-bulk").evaluate((el) => { el.open = true; });
   await page.fill("#v2-manual-answers", "B B B B");
   await page.click("#v2-manual button[type=submit]");
   await expect(page.locator("#v2-message")).toContainText("-4.5 puntos");
@@ -2322,6 +2323,7 @@ test("manual answers use the quick visual editor and allow blanks and multiple m
   await page.fill('[name="titulo"]', "RESPUESTAS MANUALES UI");
   await page.selectOption('[name="ciclo"]', "ANUAL");
   await page.selectOption("#v2-preset", "100");
+  await nextStep(page, 1);
   await nextStep(page, 2);
   await pasteKeys(page, Array(100).fill("A").join(" "));
   await nextStep(page, 3);
@@ -2349,7 +2351,7 @@ test("manual answers use the quick visual editor and allow blanks and multiple m
 test("WhatsApp report buttons have green backgrounds", async ({ page }) => {
   await login(page);
   await navigate(page, "attendance");
-  await expect(page.locator("#v2-attendance-whatsapp")).toHaveCSS("background-color", "rgb(18, 140, 126)");
+  await expect(page.locator("#v2-attendance-whatsapp")).toHaveCSS("background-color", "rgb(11, 120, 109)");
   await navigate(page, "reports");
-  await expect(page.locator("#btn-whatsapp-reporte-alumno")).toHaveCSS("background-color", "rgb(18, 140, 126)");
+  await expect(page.locator("#btn-whatsapp-reporte-alumno")).toHaveCSS("background-color", "rgb(11, 120, 109)");
 });
