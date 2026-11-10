@@ -251,7 +251,7 @@
         },
         {
           "title": "Pulsa Justificar",
-          "text": "Escribe un motivo de al menos cinco caracteres y confirma."
+          "text": "El botón aparece solo si el estado es tarde. Escribe un motivo de al menos cinco caracteres y confirma; al quedar justificada, el botón desaparece."
         },
         {
           "title": "Verifica el cambio",

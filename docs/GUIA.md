@@ -87,7 +87,7 @@ Deja un motivo y una persona responsable.
 
 1. **Inicia sesión.** Usa una cuenta de administración o recepción.
 2. **Busca el registro.** En Asistencias selecciona la fecha y el ciclo.
-3. **Pulsa Justificar.** Escribe un motivo de al menos cinco caracteres y confirma.
+3. **Pulsa Justificar.** El botón aparece solo si el estado es tarde. Escribe un motivo de al menos cinco caracteres y confirma; al quedar justificada, el botón desaparece.
 4. **Verifica el cambio.** La fila pasa a justificada y conserva la hora original. La auditoría identifica quién hizo el cambio.
 5. **Consulta el histórico anterior.** Los Excel de la versión anterior permanecen en Asistencia → Archivos históricos; las justificaciones de esos archivos se manejan en su vista previa.
 

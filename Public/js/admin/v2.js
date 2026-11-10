@@ -1274,7 +1274,7 @@ async function loadAttendance() {
       esc(r.arrival_time || "-"),
       `${esc(r.status)}${r.justification ? `<br>${esc(r.justification)}` : ""}`,
       ["admin", "recepcion"].includes(state.role)
-        ? `<div class="v2-attendance-actions"><button type="button" class="v2-link" data-justify="${esc(r.id)}">Justificar</button><button type="button" class="v2-link v2-attendance-delete" data-delete-attendance="${esc(r.id)}" aria-label="Eliminar asistencia de ${esc(r.name_snapshot)} (${esc(r.student_code)})" title="Eliminar registro de asistencia"><i class="bi bi-trash3" aria-hidden="true"></i></button></div>`
+        ? `<div class="v2-attendance-actions">${r.status === "tarde" ? `<button type="button" class="v2-link" data-justify="${esc(r.id)}">Justificar</button>` : ""}<button type="button" class="v2-link v2-attendance-delete" data-delete-attendance="${esc(r.id)}" aria-label="Eliminar asistencia de ${esc(r.name_snapshot)} (${esc(r.student_code)})" title="Eliminar registro de asistencia"><i class="bi bi-trash3" aria-hidden="true"></i></button></div>`
         : "",
     ]),
   );
