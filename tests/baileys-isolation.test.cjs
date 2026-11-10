@@ -51,6 +51,89 @@ function fixture(options = {}) {
   };
 }
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+test("media sends use private bounded files and preserve stable IDs for individual and group recipients", async () => {
+  const { randomUUID } = require("node:crypto");
+  const { createCanvas } = require("@napi-rs/canvas");
+  const { mediaContent } = require("../src/whatsapp/media.cjs");
+  const mediaDir = path.join(dir, "reports");
+  fs.mkdirSync(mediaDir);
+  const attachment = {
+    id: randomUUID(),
+    format: "png",
+    fileName: "Reporte_DEMO001.png",
+  };
+  const png = createCanvas(30, 30).toBuffer("image/png");
+  fs.writeFileSync(path.join(mediaDir, `${attachment.id}.png`), png);
+  assert(mediaContent(mediaDir, attachment, "Reporte").image.equals(png));
+  const f = fixture({ mediaDir });
+  f.service.connect();
+  f.connected();
+  const sent = f.service.sendMedia(
+    "120363123456789@g.us",
+    "Reporte",
+    "0123456789ABCDEF",
+    attachment,
+  );
+  assert.deepEqual(f.child.command.attachment, attachment);
+  assert.equal(f.child.command.recipient, "120363123456789@g.us");
+  assert.equal(f.child.command.text, "Reporte");
+  f.child.emit("message", {
+    type: "result",
+    id: f.child.command.id,
+    ok: true,
+    messageId: "0123456789ABCDEF",
+  });
+  assert.equal(await sent, "0123456789ABCDEF");
+  await assert.rejects(
+    f.service.sendMedia("+51900111222", "Reporte", "0123456789ABCDEF", {
+      ...attachment,
+      id: "../private",
+    }),
+    (e) => e.code === "BAILEYS_INVALID_MESSAGE" && e.notSent,
+  );
+  await assert.rejects(
+    f.service.sendText("120363123456789@g.us", "Texto", "0123456789ABCDEF"),
+  );
+  const pdf = {
+    id: randomUUID(),
+    format: "pdf",
+    fileName: "Reporte_DEMO001.pdf",
+  };
+  fs.writeFileSync(path.join(mediaDir, `${pdf.id}.pdf`), "%PDF-1.7\nexample");
+  const content = mediaContent(mediaDir, pdf, "Informe");
+  assert.equal(content.mimetype, "application/pdf");
+  assert.equal(content.fileName, pdf.fileName);
+  assert(Buffer.isBuffer(content.document));
+  assert.throws(() =>
+    mediaContent(mediaDir, { ...pdf, fileName: "../reporte.pdf" }, ""),
+  );
+});
+test("group discovery returns only bounded group labels and does not expose participant data", async () => {
+  const f = fixture();
+  f.service.connect();
+  f.connected();
+  const groups = f.service.listGroups();
+  assert.equal(f.child.command.type, "list_groups");
+  f.child.emit("message", {
+    type: "result",
+    id: f.child.command.id,
+    ok: true,
+    groups: [
+      {
+        id: "120363123456789@g.us",
+        subject: "Anual - Mañana",
+        size: 25,
+        participants: ["private"],
+      },
+      { id: "invalid", subject: "Rejected" },
+    ],
+  });
+  assert.deepEqual(await groups, [
+    { id: "120363123456789@g.us", subject: "Anual - Mañana", size: 25 },
+  ]);
+  f.service.stop();
+  await assert.rejects(f.service.listGroups(), (e) => e.notSent);
+});
 test("supervisor is lazy and enforces a separate IPC process with bounded JS heap", () => {
   const f = fixture();
   assert.equal(f.forks(), 0);

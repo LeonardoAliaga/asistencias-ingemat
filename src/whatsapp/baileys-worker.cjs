@@ -2,6 +2,7 @@
 // It never imports the academy database, HTTP app or academic services.
 const QRCode = require("qrcode");
 const { openAuthStore } = require("./auth-store.cjs");
+const { GROUP_ID, isPhone, mediaContent } = require("./media.cjs");
 let socket,
   store,
   reconnectTimer,
@@ -182,26 +183,76 @@ async function start() {
   process.on(
     "message",
     guarded(async (message) => {
+      if (message?.type === "list_groups") {
+        try {
+          if (stopped || socket?.ws?.isOpen !== true) throw new Error();
+          const groups = await socket.groupFetchAllParticipating();
+          emit({
+            type: "result",
+            id: message.id,
+            ok: true,
+            groups: Object.values(groups)
+              .slice(0, 1000)
+              .map((g) => ({
+                id: g.id,
+                subject: String(g.subject || "Sin nombre").slice(0, 256),
+                size: g.size || g.participants?.length || 0,
+              })),
+          });
+        } catch {
+          emit({ type: "result", id: message.id, ok: false, notSent: true });
+        }
+        return;
+      }
       if (message?.type !== "send") return;
       if (stopped || sending || socket?.ws?.isOpen !== true) {
         emit({ type: "result", id: message.id, ok: false, notSent: true });
         return;
       }
       if (
-        !/^\+[1-9]\d{7,14}$/.test(message.recipient) ||
+        (!isPhone(message.recipient) &&
+          !(message.attachment && GROUP_ID.test(message.recipient))) ||
         typeof message.text !== "string" ||
         !message.text.trim() ||
         message.text.length > 6000 ||
         !/^[A-Z0-9]{16,64}$/.test(message.messageId)
       ) {
-        emit({ type: "result", id: message.id, ok: false, notSent: true });
+        emit({
+          type: "result",
+          id: message.id,
+          ok: false,
+          notSent: true,
+          invalidMessage: true,
+        });
         return;
       }
       sending = true;
+      let content;
+      try {
+        content = message.attachment
+          ? mediaContent(
+              process.env.INGEMAT_WA_MEDIA_DIR,
+              message.attachment,
+              message.text,
+            )
+          : { text: message.text };
+      } catch {
+        sending = false;
+        emit({
+          type: "result",
+          id: message.id,
+          ok: false,
+          notSent: true,
+          invalidMessage: true,
+        });
+        return;
+      }
       try {
         const result = await socket.sendMessage(
-          message.recipient.slice(1) + "@s.whatsapp.net",
-          { text: message.text },
+          GROUP_ID.test(message.recipient)
+            ? message.recipient
+            : message.recipient.slice(1) + "@s.whatsapp.net",
+          content,
           { messageId: message.messageId },
         );
         if (!result?.key?.id) throw new Error("Missing message ID");

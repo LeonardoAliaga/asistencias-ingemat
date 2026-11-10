@@ -3,12 +3,15 @@ const { EventEmitter } = require("node:events");
 const path = require("node:path");
 const fs = require("node:fs");
 const config = require("../config");
+const { GROUP_ID, isPhone, readAttachment } = require("../whatsapp/media.cjs");
 const REVIEW_NOTE =
   "WhatsApp no está disponible. Revisa el paquete Baileys y su versión. La aplicación sigue funcionando y los avisos pendientes se conservan.";
 function createBaileysService({
   spawn = fork,
   workerPath = path.join(__dirname, "../whatsapp/baileys-worker.cjs"),
   authDir = path.join(config.dataDir, "whatsapp"),
+  mediaDir = path.join(config.dataDir, "whatsapp", "reports"),
+  mediaTimeoutMs = 90000,
   timeoutMs = 25000,
   bootMs = 30000,
   watchdogMs = 45000,
@@ -115,6 +118,7 @@ function createBaileysService({
             ),
           ),
           INGEMAT_WA_AUTH_DIR: authDir,
+          INGEMAT_WA_MEDIA_DIR: mediaDir,
         },
         execArgv: ["--max-old-space-size=256"],
         stdio: ["ignore", "ignore", "ignore", "ipc"],
@@ -195,11 +199,32 @@ function createBaileysService({
             if (!entry) return;
             pending.delete(message.id);
             clearTimeout(entry.timer);
-            if (message.ok && message.messageId === entry.messageId)
+            if (entry.operation === "groups") {
+              if (message.ok && Array.isArray(message.groups))
+                entry.resolve(
+                  message.groups
+                    .slice(0, 1000)
+                    .filter(
+                      (g) =>
+                        GROUP_ID.test(g.id) && typeof g.subject === "string",
+                    )
+                    .map((g) => ({
+                      id: g.id,
+                      subject: g.subject.slice(0, 256),
+                      size: Number(g.size) || 0,
+                    })),
+                );
+              else entry.reject(unavailable("BAILEYS_GROUPS_ERROR"));
+            } else if (message.ok && message.messageId === entry.messageId)
               entry.resolve(message.messageId);
             else
               entry.reject(
-                unavailable("BAILEYS_SEND_ERROR", message.notSent !== true),
+                unavailable(
+                  message.invalidMessage
+                    ? "BAILEYS_INVALID_MESSAGE"
+                    : "BAILEYS_SEND_ERROR",
+                  message.notSent !== true,
+                ),
               );
           } else if (
             message.type === "delivery" &&
@@ -231,22 +256,53 @@ function createBaileysService({
       !/^[A-Z0-9]{16,64}$/.test(messageId)
     )
       return Promise.reject(unavailable("BAILEYS_INVALID_MESSAGE"));
+    return dispatch({ type: "send", recipient, text, messageId }, timeoutMs);
+  }
+  function sendMedia(recipient, caption, messageId, attachment) {
+    if (!child || snapshot.state !== "connected")
+      return Promise.reject(unavailable("BAILEYS_OFFLINE"));
+    try {
+      if (
+        (!isPhone(recipient) && !GROUP_ID.test(recipient)) ||
+        typeof caption !== "string" ||
+        caption.length > 2000 ||
+        !/^[A-Z0-9]{16,64}$/.test(messageId)
+      )
+        throw new Error();
+      readAttachment(mediaDir, attachment);
+    } catch {
+      return Promise.reject(unavailable("BAILEYS_INVALID_MESSAGE"));
+    }
+    return dispatch(
+      { type: "send", recipient, text: caption, messageId, attachment },
+      mediaTimeoutMs,
+    );
+  }
+  function listGroups() {
+    if (!child || snapshot.state !== "connected")
+      return Promise.reject(unavailable("BAILEYS_OFFLINE"));
+    return dispatch({ type: "list_groups" }, timeoutMs, "groups");
+  }
+  function dispatch(command, deadline, operation = "send") {
     const current = child,
       token = generation,
       id = String(++sequence);
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         if (generation === token) fault("BAILEYS_SEND_TIMEOUT");
-      }, timeoutMs);
+      }, deadline);
       timer.unref?.();
-      pending.set(id, { resolve, reject, timer, messageId });
+      pending.set(id, {
+        resolve,
+        reject,
+        timer,
+        messageId: command.messageId,
+        operation,
+      });
       try {
-        current.send(
-          { type: "send", id, recipient, text, messageId },
-          (error) => {
-            if (error && generation === token) fault("BAILEYS_IPC_ERROR");
-          },
-        );
+        current.send({ ...command, id }, (error) => {
+          if (error && generation === token) fault("BAILEYS_IPC_ERROR");
+        });
       } catch {
         fault("BAILEYS_IPC_ERROR");
       }
@@ -312,6 +368,8 @@ function createBaileysService({
     stop,
     reset,
     sendText,
+    sendMedia,
+    listGroups,
     getQR,
     onDelivery: (callback) => events.on("delivery", callback),
   };
