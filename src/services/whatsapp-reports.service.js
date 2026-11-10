@@ -1,4 +1,5 @@
 const crypto = require("node:crypto");
+const { attendanceReportCaption, studentReportCaption } = require("./whatsapp-report-captions.service");
 const db = require("../database/db");
 const notifications = require("./notifications.service");
 const groups = require("./whatsapp-groups.service");
@@ -139,7 +140,7 @@ async function studentReport(input, req) {
         studentUid: user.uid,
         studentCode: user.codigo,
         period,
-        text: `Reporte académico de ${user.apellido} ${user.nombre} (${user.codigo}). ${period}.`,
+        text: studentReportCaption({ name: `${user.apellido} ${user.nombre}`, code: user.codigo, period, requestId: input.requestId }),
       },
       png: input.png,
       format: input.format,
@@ -187,7 +188,7 @@ async function dailyReport(input, req) {
         cycle: target.cycle,
         date: input.date,
         shift,
-        text: `Reporte de asistencia · ${target.cycle} · ${input.date}${shift ? " · " + shift : " · todos los turnos"}.`,
+        text: attendanceReportCaption({ cycle: target.cycle, date: input.date, shift, requestId: input.requestId }),
       },
       png,
       format: input.format,
