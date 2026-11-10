@@ -64,6 +64,93 @@ test("create, validate and grade an exam from the dashboard", async ({
   await expect(page.locator("#v2-results")).toContainText("ALUMNO ANA DEMO");
   expect(errors).toEqual([]);
 });
+for (const width of [1440, 390])
+  test(`guardian contacts can be saved, updated and revoked at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    const errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await login(page);
+    await navigate(page, "contacts");
+    await page.fill("#v2-contact-search", "DEMO003");
+    const card = page.locator("#v2-contacts .v2-card");
+    const dialog = page.locator("#v2-dialog");
+    const phone = width === 1440 ? "+51900000001" : "+51900000002";
+    await card.getByRole("button", { name: "Agregar apoderado" }).click();
+    await dialog.getByLabel("Nombre del apoderado").fill("María Muñoz Ñahui");
+    await dialog.getByLabel("Teléfono internacional").fill("900000001");
+    await dialog
+      .getByLabel("Autorizó recibir avisos de este estudiante")
+      .check();
+    const rejected = page.waitForResponse(
+      (r) =>
+        r.request().method() === "POST" &&
+        r.url().endsWith("/students/DEMO003/contacts"),
+    );
+    await dialog.getByRole("button", { name: "Guardar contacto" }).click();
+    expect((await rejected).status()).toBe(400);
+    await expect(dialog.getByRole("alert")).toContainText(
+      "teléfono internacional",
+    );
+    await expect(
+      dialog.getByRole("button", { name: "Guardar contacto" }),
+    ).toBeEnabled();
+    await expect(dialog.getByLabel("Nombre del apoderado")).toHaveValue(
+      "María Muñoz Ñahui",
+    );
+    await expect(
+      dialog.getByLabel("Autorizó recibir avisos de este estudiante"),
+    ).toBeChecked();
+    await dialog.getByLabel("Teléfono internacional").fill(phone);
+    await dialog.getByRole("button", { name: "Guardar contacto" }).click();
+    await expect(dialog).not.toBeVisible();
+    await expect(card).toContainText("María Muñoz Ñahui");
+    const saved = async () => {
+      const response = await page.request.get("/api/v2/students");
+      expect(response.ok()).toBe(true);
+      const students = await response.json();
+      expect(students.find((s) => s.codigo === "DEMO002").contacts).toEqual([]);
+      return students
+        .find((s) => s.codigo === "DEMO003")
+        .contacts.filter((c) => c.phone === phone);
+    };
+    expect(await saved()).toEqual([
+      expect.objectContaining({
+        name: "María Muñoz Ñahui",
+        consent: 1,
+        active: 1,
+      }),
+    ]);
+    await page.reload();
+    await expect(page.locator("body")).toHaveAttribute("data-ready", "true");
+    await navigate(page, "contacts");
+    await page.fill("#v2-contact-search", "DEMO003");
+    await expect(card).toContainText(phone);
+    await card.getByRole("button", { name: "Agregar apoderado" }).click();
+    await dialog
+      .getByLabel("Nombre del apoderado")
+      .fill("María Muñoz actualizado");
+    await dialog.getByLabel("Teléfono internacional").fill(phone);
+    await dialog.getByRole("button", { name: "Guardar contacto" }).click();
+    await expect(dialog).not.toBeVisible();
+    expect(await saved()).toEqual([
+      expect.objectContaining({
+        name: "María Muñoz actualizado",
+        consent: 0,
+        active: 1,
+      }),
+    ]);
+    const row = card.locator(".v2-contact-row").filter({ hasText: phone });
+    await expect(row).toContainText("Sin autorización");
+    await row.getByRole("button", { name: "Revocar" }).click();
+    await expect(row).toHaveCount(0);
+    expect(await saved()).toEqual([
+      expect.objectContaining({ consent: 0, active: 0 }),
+    ]);
+    expect(errors).toEqual([]);
+  });
+
 test("guide searches, category filters and step-by-step tutorials work", async ({
   page,
 }) => {

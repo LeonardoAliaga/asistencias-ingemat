@@ -1346,18 +1346,28 @@ function renderContacts() {
     b.onclick = () => {
       showDialog(
         "Agregar contacto autorizado",
-        '<form id="v2-contact-form"><label>Nombre del apoderado<input name="name" required maxlength="100"></label><label>Teléfono internacional<input name="phone" type="tel" required placeholder="+51900111222"></label><label class="v2-checkbox"><input name="consent" type="checkbox"> Autorizó recibir avisos de este estudiante</label><button type="submit" class="v2-button">Guardar contacto</button></form>',
+        '<form id="v2-contact-form"><label>Nombre del apoderado<input name="guardianName" required maxlength="100" autocomplete="name"></label><label>Teléfono internacional<input name="guardianPhone" type="tel" required placeholder="+51900111222" autocomplete="tel"></label><label class="v2-checkbox"><input name="guardianConsent" type="checkbox"> Autorizó recibir avisos de este estudiante</label><p id="v2-contact-error" class="field-error" role="alert" hidden></p><button type="submit" class="v2-button">Guardar contacto</button></form>',
       );
       bind("v2-contact-form", "submit", async (e) => {
-        const f = e.target;
-        await api(
-          `/api/v2/students/${encodeURIComponent(b.dataset.addContact)}/contacts`,
-          json({
-            name: f.elements.name.value,
-            phone: f.elements.phone.value,
-            consent: f.elements.consent.checked,
-          }),
-        );
+        // Names must not collide with HTMLFormElement properties: the HTML
+        // sanitizer removes unsafe names such as "name" to prevent clobbering.
+        const fields = new FormData(e.currentTarget);
+        const errorMessage = $("v2-contact-error");
+        errorMessage.hidden = true;
+        try {
+          await api(
+            `/api/v2/students/${encodeURIComponent(b.dataset.addContact)}/contacts`,
+            json({
+              name: fields.get("guardianName"),
+              phone: fields.get("guardianPhone"),
+              consent: fields.has("guardianConsent"),
+            }),
+          );
+        } catch (error) {
+          errorMessage.textContent = error.message;
+          errorMessage.hidden = false;
+          return;
+        }
         $("v2-dialog").close();
         await loadStudents();
         renderContacts();
