@@ -1041,6 +1041,24 @@ async function openBatch(id) {
     await loadExams(state.selected?.id);
   });
 }
+function codeColumnPreview(identification) {
+  if (identification?.columns?.length !== 8) return "";
+  const labels = {
+    single: "Leído",
+    blank: "Sin marca",
+    uncertain: "Revisar",
+    multiple: "Varias marcas",
+  };
+  return `<p class="v2-help">Lectura original del código, de izquierda a derecha. Comprueba las columnas con ? contra la cartilla.</p><ol class="identity-columns" aria-label="Lectura de las ocho columnas del código">${identification.columns
+    .map((column, index) => {
+      const single =
+        column.status === "single" && /^[0-9]$/.test(column.options?.[0] || "");
+      const digit = single ? column.options[0] : "?";
+      const label = labels[column.status] || "Revisar";
+      return `<li class="${single ? "" : "needs-review"}" aria-label="Columna ${index + 1}: ${esc(single ? digit : label)}"><span>Col. ${index + 1}</span><strong>${esc(digit)}</strong><small>${esc(label)}</small></li>`;
+    })
+    .join("")}</ol>`;
+}
 function reviewPage(index) {
   const b = state.batch,
     p = b.result.pages[index];
@@ -1051,7 +1069,7 @@ function reviewPage(index) {
         ? `<p class="v2-notice warning">${esc(p.error)}</p>`
         : `${
             p.identification
-              ? `<div class="v2-notice warning">Comprueba el código y el área contra la cartilla. Una corrección requiere motivo.</div><div class="v2-form-grid"><label>Código de 8 dígitos<input id="v2-review-code" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" required value="${esc((p.identificationOverride || p.identification).code)}"></label><label>Área marcada<select id="v2-review-area" required><option value="">Selecciona un área</option>${
+              ? `<div class="v2-notice warning">Comprueba el código y el área contra la cartilla. Una corrección requiere motivo.</div>${codeColumnPreview(p.identification)}<div class="v2-form-grid"><label>Código de 8 dígitos<input id="v2-review-code" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" required value="${esc((p.identificationOverride || p.identification).code)}"></label><label>Área marcada<select id="v2-review-area" required><option value="">Selecciona un área</option>${
                   state.exams
                     .find((e) => e.id === b.evaluation_id)
                     ?.definition?.areas?.map(

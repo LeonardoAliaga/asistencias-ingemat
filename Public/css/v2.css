@@ -1612,3 +1612,33 @@ body[data-account-role="docente"] .btn-delete-seccion {
 .wizard-steps.is-fixed {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
+
+.identity-columns {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.identity-columns li {
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+  padding: 10px 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f5f8fc;
+  text-align: center;
+}
+.identity-columns li.needs-review {
+  background: #fff4dd;
+  border-color: #b8780a;
+}
+.identity-columns span,
+.identity-columns small {
+  font-size: 11px;
+}
+.identity-columns strong {
+  font-size: 20px;
+}

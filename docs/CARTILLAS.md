@@ -37,8 +37,16 @@ Un código desconocido, incompleto o con varias marcas, un área inexistente o i
 
 El formato A4 anterior personalizado sigue disponible y sus cartillas impresas siguen siendo válidas. Los nuevos diseños usan versiones geométricas independientes (cuarto v3, media v4); no se reinterpretan las coordenadas de las cartillas v2.
 
+## Lectura del código y revisión por columna
+
+El código de ocho dígitos se reconoce por separado de las respuestas. Se mide el relleno interior en escala de grises con una referencia de papel local; una apertura morfológica separa los trazos finos del número impreso y del borde. La lectura anterior del anillo exterior podía perder rellenos centrados. Una segunda medida sensible a trazos tenues solo genera una incidencia, nunca elige un dígito.
+
+Se exige una única marca clara en cada una de las ocho columnas. Se conservan ceros iniciales, lecturas originales y densidades. No se completa un código por parecido con el padrón. En Revisar se muestran ocho casillas con el dígito leído o `?`, indicando Sin marca, Revisar o Varias marcas; coteja las dudas con la cartilla y registra un motivo para cualquier corrección.
+
+Las coordenadas, QR y plantillas de cuarto/media hoja no cambian, de modo que se pueden seguir utilizando las cartillas ya impresas. El nuevo análisis se aplica al procesar archivos de nuevo; los lotes anteriores conservan sus lecturas registradas. Mantén 300 ppp en grises y rellena un círculo por columna con presión uniforme. La letra manuscrita en los recuadros no sustituye los círculos.
+
 ## Verificación y piloto
 
-Las pruebas imprimen los PDF reales, verifican los QR de cada posición del anverso/reverso, leen hojas completas, rellenan códigos con ceros iniciales y áreas, generan fotos JPEG con giro y perspectiva y recorren lector → revisión de identidad → confirmación de notas. También comprueban la carga anterior.
+Las pruebas imprimen los PDF reales, verifican los QR de cada posición del anverso/reverso, leen hojas completas, rellenan códigos con ceros iniciales y áreas, generan fotos JPEG con giro y perspectiva y recorren lector → revisión de identidad → confirmación de notas. También comprueban la carga anterior. Las regresiones de identificación rasterizan los dos formatos reales, prueban los diez dígitos en las ocho posiciones, rellenos interiores, lápiz gris, pequeños desplazamientos, JPEG, variación de papel e impresión y códigos con ceros iniciales. Las marcas dobles o tenues y las columnas vacías bloquean la identificación automática.
 
 Haz una prueba física antes de usar el formato compacto para un salón completo. La legibilidad real depende de impresora, papel, marcas y teléfono. Para grandes lotes sigue siendo preferible el escáner a 300 ppp; no actives filtros que borren trazos tenues.

@@ -88,6 +88,43 @@ def read_options(mask, options):
     state = 'multiple' if len(marked) > 1 else 'uncertain' if uncertain else 'single' if marked else 'blank'
     return {'status': state, 'options': marked, 'densities': ratios}
 
+def read_code_options(gray, options):
+    """Measure broad fill inside digit bubbles, separately from printed glyphs.
+
+    The old narrow annulus missed centered pencil marks. A local paper estimate
+    retains grayscale pencil strokes; opening removes the thin printed numeral
+    and outline before measuring the inner disk. A softer channel only raises a
+    review flag, never chooses a digit. Coordinates and printed sheets stay valid.
+    """
+    firm, soft = {}, {}
+    for opt in options:
+        cx, cy = round(opt['x'] * SCALE), round(opt['y'] * SCALE)
+        radius = opt['radius'] * SCALE
+        pad = int(np.ceil(radius * 1.35))
+        roi = gray[cy-pad:cy+pad+1, cx-pad:cx+pad+1]
+        if roi.shape != (2*pad+1, 2*pad+1):
+            raise ValueError('Hay círculos del código fuera del área de lectura.')
+        yy, xx = np.ogrid[-pad:pad+1, -pad:pad+1]
+        distance = xx*xx + yy*yy
+        interior = distance <= (radius * .80)**2
+        paper = (distance >= (radius * 1.10)**2) & (distance <= (radius * 1.35)**2)
+        background = float(np.percentile(roi[paper], 90))
+        deficit = background - roi.astype(np.float32)
+        # At the normalized 300 dpi this erases the 5.2 pt numeral strokes,
+        # while a proper centered fill remains wider than the structuring disk.
+        kernel_radius = max(1, round(radius * .40))
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2*kernel_radius+1, 2*kernel_radius+1))
+        values = []
+        for threshold in (max(18, background * .08), max(10, background * .04)):
+            ink = (deficit >= threshold).astype(np.uint8) * 255
+            broad_ink = cv2.morphologyEx(ink, cv2.MORPH_OPEN, kernel)
+            values.append(round(float(np.mean(broad_ink[interior] > 0)), 4))
+        firm[opt['option']], soft[opt['option']] = values
+    marked = [option for option, density in firm.items() if density >= .50]
+    uncertain = [option for option, density in soft.items() if density > .12 and option not in marked]
+    state = 'multiple' if len(marked) > 1 else 'uncertain' if uncertain else 'single' if marked else 'blank'
+    return {'status': state, 'options': marked, 'densities': firm, 'softDensities': soft, 'method': 'interior-fill-v1'}
+
 def split_cartillas(image):
     """Find separate marker rectangles on imposed A4s; never mix their corners."""
     detector = cv2.aruco.ArucoDetector(cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50))
@@ -172,7 +209,7 @@ def read_page(image, layouts, output):
     identification = None
     if layout.get('identification'):
         spec = layout['identification']
-        columns = [read_options(mask, column['options']) for column in spec['columns']]
+        columns = [read_code_options(normalized, column['options']) for column in spec['columns']]
         area = read_options(mask, spec['areas']) if spec['areas'] else None
         identification = {
             'columns': columns,

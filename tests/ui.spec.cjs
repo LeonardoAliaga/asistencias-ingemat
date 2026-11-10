@@ -874,63 +874,100 @@ test("printing offers quarter duplex and half single-sided with quantity and pri
   expect(audit.violations).toEqual([]);
 });
 
-test("identity review preserves leading zeros and submits code/area with an audit reason", async ({
-  page,
-}) => {
-  const examId = await selectScannerExam(page);
-  const batch = {
-    id: "identity-ui",
-    created_at: "2026-11-09 12:00:00",
-    evaluation_id: examId,
-    source: "omr",
-    status: "review",
-    files: [],
-    result: {
-      reviewVersion: 1,
-      rows: [],
-      pages: [
-        {
-          page: 1,
-          layoutVersion: 4,
-          file: "foto.jpg",
-          qr: "synthetic",
-          identification: { code: "00123456", area: "GENERAL", columns: [] },
-          responses: { 1: { status: "blank", options: [] } },
-          warning: "Revisar identificación",
-        },
-      ],
-    },
-  };
-  await page.route("**/api/v2/imports", (route) =>
-    route.fulfill({ json: [batch] }),
-  );
-  await page.route("**/api/v2/imports/identity-ui", (route) =>
-    route.fulfill({ json: batch }),
-  );
-  let submitted;
-  await page.route("**/api/v2/imports/identity-ui/pages/0", async (route) => {
-    submitted = route.request().postDataJSON();
-    await route.fulfill({ json: batch });
+for (const uncertainCode of [false, true])
+  test(`identity review preserves leading zeros and shows original columns (${uncertainCode ? "partial" : "complete"})`, async ({
+    page,
+  }) => {
+    if (uncertainCode) await page.setViewportSize({ width: 390, height: 844 });
+    const examId = await selectScannerExam(page);
+    const batch = {
+      id: "identity-ui",
+      created_at: "2026-11-09 12:00:00",
+      evaluation_id: examId,
+      source: "omr",
+      status: "review",
+      files: [],
+      result: {
+        reviewVersion: 1,
+        rows: [],
+        pages: [
+          {
+            page: 1,
+            layoutVersion: 4,
+            file: "foto.jpg",
+            qr: "synthetic",
+            identification: {
+              code: uncertainCode ? "" : "00123456",
+              area: "GENERAL",
+              columns: [..."00123456"].map((digit, i) => ({
+                status:
+                  uncertainCode && [2, 4].includes(i)
+                    ? i === 2
+                      ? "uncertain"
+                      : "blank"
+                    : "single",
+                options: uncertainCode && [2, 4].includes(i) ? [] : [digit],
+              })),
+            },
+            responses: { 1: { status: "blank", options: [] } },
+            warning: "Revisar identificación",
+          },
+        ],
+      },
+    };
+    await page.route("**/api/v2/imports", (route) =>
+      route.fulfill({ json: [batch] }),
+    );
+    await page.route("**/api/v2/imports/identity-ui", (route) =>
+      route.fulfill({ json: batch }),
+    );
+    let submitted;
+    await page.route("**/api/v2/imports/identity-ui/pages/0", async (route) => {
+      submitted = route.request().postDataJSON();
+      await route.fulfill({ json: batch });
+    });
+    await page.click("#v2-refresh-batches");
+    await page.click('[data-batch="identity-ui"]');
+    await page.click('[data-review="0"]');
+    await expect(page.locator("#v2-review-code")).toHaveValue(
+      uncertainCode ? "" : "00123456",
+    );
+    await expect(page.locator(".identity-columns li")).toHaveCount(8);
+    await expect(
+      page.locator(".identity-columns li strong").first(),
+    ).toHaveText("0");
+    if (uncertainCode) {
+      await expect(page.locator(".identity-columns li").nth(2)).toContainText(
+        "?",
+      );
+      await expect(page.locator(".identity-columns li").nth(4)).toContainText(
+        "Sin marca",
+      );
+    }
+    await expect(page.locator("#v2-review-area")).toHaveValue("GENERAL");
+    if (uncertainCode) {
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth),
+      ).toBeLessThanOrEqual(390);
+      const accessibility = await new AxeBuilder({ page })
+        .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
+        .analyze();
+      expect(accessibility.violations).toEqual([]);
+    }
+    await page.fill("#v2-review-code", "00234567");
+    await page.fill(
+      "#v2-review-reason",
+      "Código cotejado con la cartilla física",
+    );
+    await page.click("#v2-review-form button[type=submit]");
+    await expect(page.locator("#v2-dialog")).toBeHidden();
+    expect(submitted.identification).toEqual({
+      code: "00234567",
+      area: "GENERAL",
+    });
+    expect(submitted.reason).toContain("cotejado");
+    expect(submitted.responses[1].status).toBe("blank");
   });
-  await page.click("#v2-refresh-batches");
-  await page.click('[data-batch="identity-ui"]');
-  await page.click('[data-review="0"]');
-  await expect(page.locator("#v2-review-code")).toHaveValue("00123456");
-  await expect(page.locator("#v2-review-area")).toHaveValue("GENERAL");
-  await page.fill("#v2-review-code", "00234567");
-  await page.fill(
-    "#v2-review-reason",
-    "Código cotejado con la cartilla física",
-  );
-  await page.click("#v2-review-form button[type=submit]");
-  await expect(page.locator("#v2-dialog")).toBeHidden();
-  expect(submitted.identification).toEqual({
-    code: "00234567",
-    area: "GENERAL",
-  });
-  expect(submitted.reason).toContain("cotejado");
-  expect(submitted.responses[1].status).toBe("blank");
-});
 
 test("one template selector, visible scoring and UNMSM three-step navigation", async ({
   page,
