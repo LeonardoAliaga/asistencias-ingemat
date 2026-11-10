@@ -230,7 +230,7 @@ Corrige la lectura sin perder su evidencia original.
 6. **Comprueba páginas y duplicados.** No se permite importar dos veces la misma página. Un alumno con varias páginas necesita el conjunto completo.
 7. **Confirma cuando esté listo.** Una lectura dudosa pendiente impide cerrar el lote. Las marcas dobles confirmadas se califican conforme a la regla del examen.
 
-- En una cartilla con código marcado, revisa también la identificación: las ocho casillas muestran lo leído por columna. Un ? indica Sin marca, Revisar o Varias marcas. El lector busca relleno interior y separa los números impresos; el código debe existir en el padrón y el área debe ser válida. Si corriges a mano el código o el área, compara con la imagen, indica el motivo y confirma la revisión. El lector original y sus densidades se conservan.
+- En una cartilla con código marcado, revisa también la identificación: las ocho casillas muestran lo leído por columna. Un ? indica Sin marca, Revisar o Varias marcas. El lector busca relleno interior y separa los números y letras impresos, tanto en el código como en el área. La lectura original del área indica la opción reconocida, Sin marca, Revisar marca tenue o incompleta o Varias marcas. El código debe existir en el padrón y el área debe ser válida. Si corriges a mano el código o el área, compara con la imagen, indica el motivo y confirma la revisión. El lector original y sus densidades se conservan.
 
 ## Importar respuestas desde CSV u otro lector OMR
 

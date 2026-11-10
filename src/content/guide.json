@@ -656,7 +656,7 @@
         }
       ],
       "tips": [
-        "En una cartilla con código marcado, revisa también la identificación: las ocho casillas muestran lo leído por columna. Un ? indica Sin marca, Revisar o Varias marcas. El lector busca relleno interior y separa los números impresos; el código debe existir en el padrón y el área debe ser válida. Si corriges a mano el código o el área, compara con la imagen, indica el motivo y confirma la revisión. El lector original y sus densidades se conservan."
+        "En una cartilla con código marcado, revisa también la identificación: las ocho casillas muestran lo leído por columna. Un ? indica Sin marca, Revisar o Varias marcas. El lector busca relleno interior y separa los números y letras impresos, tanto en el código como en el área. La lectura original del área indica la opción reconocida, Sin marca, Revisar marca tenue o incompleta o Varias marcas. El código debe existir en el padrón y el área debe ser válida. Si corriges a mano el código o el área, compara con la imagen, indica el motivo y confirma la revisión. El lector original y sus densidades se conservan."
       ]
     },
     {

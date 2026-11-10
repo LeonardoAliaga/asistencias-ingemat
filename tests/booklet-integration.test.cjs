@@ -158,7 +158,7 @@ for physical in physical_pages:
    identity=layout['identification'];assert all(c['status']=='blank' for c in p['identification']['columns'])
    for column,digit in zip(identity['columns'],student['codigo']):
     o=next(o for o in column['options'] if o['option']==digit);cv2.circle(image,(round(o['x']*r.SCALE),round(o['y']*r.SCALE)),round(o['radius']*r.SCALE*.98),(0,0,0),-1)
-   o=next(o for o in identity['areas'] if o['option']==student['area']);cv2.circle(image,(round(o['x']*r.SCALE),round(o['y']*r.SCALE)),round(o['radius']*r.SCALE*.98),(0,0,0),-1)
+   o=next(o for o in identity['areas'] if o['option']==student['area']);cv2.circle(image,(round(o['x']*r.SCALE),round(o['y']*r.SCALE)),round(o['radius']*r.SCALE*.65),(170,170,170),-1)
   h,w=image.shape[:2];matrix=cv2.getPerspectiveTransform(np.float32([[0,0],[w,0],[w,h],[0,h]]),np.float32([[12,9],[w-15,5],[w-6,h-10],[4,h-18]]));image=cv2.warpPerspective(image,matrix,(w,h),borderValue=(255,255,255))
   if number==1:image=np.rot90(image).copy()
   cv2.imwrite(str(out/f'photo-{number}.jpg'),image,[cv2.IMWRITE_JPEG_QUALITY,95]);number+=1

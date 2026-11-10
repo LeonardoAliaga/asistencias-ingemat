@@ -88,13 +88,13 @@ def read_options(mask, options):
     state = 'multiple' if len(marked) > 1 else 'uncertain' if uncertain else 'single' if marked else 'blank'
     return {'status': state, 'options': marked, 'densities': ratios}
 
-def read_code_options(gray, options):
-    """Measure broad fill inside digit bubbles, separately from printed glyphs.
+def read_identity_options(gray, options):
+    """Measure broad fill inside code/area bubbles, separately from printed glyphs.
 
     The old narrow annulus missed centered pencil marks. A local paper estimate
     retains grayscale pencil strokes; opening removes the thin printed numeral
     and outline before measuring the inner disk. A softer channel only raises a
-    review flag, never chooses a digit. Coordinates and printed sheets stay valid.
+    review flag, never chooses an identity. Coordinates and printed sheets stay valid.
     """
     firm, soft = {}, {}
     for opt in options:
@@ -103,14 +103,14 @@ def read_code_options(gray, options):
         pad = int(np.ceil(radius * 1.35))
         roi = gray[cy-pad:cy+pad+1, cx-pad:cx+pad+1]
         if roi.shape != (2*pad+1, 2*pad+1):
-            raise ValueError('Hay círculos del código fuera del área de lectura.')
+            raise ValueError('Hay círculos de identificación fuera del área de lectura.')
         yy, xx = np.ogrid[-pad:pad+1, -pad:pad+1]
         distance = xx*xx + yy*yy
         interior = distance <= (radius * .80)**2
         paper = (distance >= (radius * 1.10)**2) & (distance <= (radius * 1.35)**2)
         background = float(np.percentile(roi[paper], 90))
         deficit = background - roi.astype(np.float32)
-        # At the normalized 300 dpi this erases the 5.2 pt numeral strokes,
+        # At the normalized 300 dpi this erases the 5.2 pt numeral/letter strokes,
         # while a proper centered fill remains wider than the structuring disk.
         kernel_radius = max(1, round(radius * .40))
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2*kernel_radius+1, 2*kernel_radius+1))
@@ -209,8 +209,8 @@ def read_page(image, layouts, output):
     identification = None
     if layout.get('identification'):
         spec = layout['identification']
-        columns = [read_code_options(normalized, column['options']) for column in spec['columns']]
-        area = read_options(mask, spec['areas']) if spec['areas'] else None
+        columns = [read_identity_options(normalized, column['options']) for column in spec['columns']]
+        area = read_identity_options(normalized, spec['areas']) if spec['areas'] else None
         identification = {
             'columns': columns,
             'code': ''.join(c['options'][0] for c in columns) if all(c['status'] == 'single' for c in columns) else '',

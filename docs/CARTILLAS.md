@@ -29,7 +29,7 @@ Cada cartilla es única. No fotocopies una sola para diferentes alumnos: sus QR 
 
 ## Lectura y revisión
 
-Puedes cargar PDF de A4 completas con cuatro o dos cartillas, o fotografías de las cartillas ya recortadas. El lector separa los rectángulos por sus marcadores antes de normalizarlos, sin mezclar las esquinas entre alumnos. Una parte incompleta queda como incidencia. La bandeja de cámara admite hasta diez fotos; el lector admite hasta cien caras de cartilla por lote.
+Puedes cargar PDF de A4 completas con cuatro o dos cartillas, o fotografías de las cartillas ya recortadas. El lector separa los rectángulos por sus marcadores antes de normalizarlos, sin mezclar las esquinas entre alumnos. Una parte incompleta queda como incidencia. La bandeja de NAPS2 permite reunir hasta diez capturas; el lector admite hasta cien caras de cartilla por lote.
 
 En cuarto, incluye frente y reverso en el mismo lote. Se agrupan por identificador único, sin depender del orden del archivo ni del nombre escrito. Si falta una cara, se solicita revisión y no se importa parcialmente el alumno.
 
@@ -45,8 +45,16 @@ Se exige una única marca clara en cada una de las ocho columnas. Se conservan c
 
 Las coordenadas, QR y plantillas de cuarto/media hoja no cambian, de modo que se pueden seguir utilizando las cartillas ya impresas. El nuevo análisis se aplica al procesar archivos de nuevo; los lotes anteriores conservan sus lecturas registradas. Mantén 300 ppp en grises y rellena un círculo por columna con presión uniforme. La letra manuscrita en los recuadros no sustituye los círculos.
 
+## Lectura del área
+
+Los círculos del área usan el mismo análisis de relleno interior que los del código, con contraste local y separación de los trazos impresos. Antes se leía solo una franja del borde, lo que podía omitir una marca centrada. El cambio es del lector: no modifica tamaño, coordenadas ni QR y permite utilizar cartillas ya impresas de cuarto y media hoja.
+
+Marca una sola área con relleno uniforme. Las letras o dígitos impresos no cuentan como selección. La pantalla de revisión muestra la lectura original del área o Sin marca, Revisar marca tenue o incompleta o Varias marcas. Si no existe una única marca clara, el área queda pendiente de cotejo; no se deduce del código ni se elige por la opción más oscura. Un examen con un único perfil sigue asignándolo sin pedir una marca.
+
+Procesa un lote nuevo para aplicar el análisis a archivos ya escaneados; los lotes guardados mantienen su lectura anterior. Una corrección manual conserva el resultado original y requiere motivo.
+
 ## Verificación y piloto
 
-Las pruebas imprimen los PDF reales, verifican los QR de cada posición del anverso/reverso, leen hojas completas, rellenan códigos con ceros iniciales y áreas, generan fotos JPEG con giro y perspectiva y recorren lector → revisión de identidad → confirmación de notas. También comprueban la carga anterior. Las regresiones de identificación rasterizan los dos formatos reales, prueban los diez dígitos en las ocho posiciones, rellenos interiores, lápiz gris, pequeños desplazamientos, JPEG, variación de papel e impresión y códigos con ceros iniciales. Las marcas dobles o tenues y las columnas vacías bloquean la identificación automática.
+Las pruebas generan y rasterizan los PDF del generador, verifican los QR de cada posición del anverso/reverso, leen hojas completas, rellenan códigos con ceros iniciales y áreas, generan fotos JPEG con giro y perspectiva y recorren lector → revisión de identidad → confirmación de notas. También comprueban la carga anterior. Las regresiones de identificación rasterizan los dos formatos reales, prueban los diez dígitos en las ocho posiciones, rellenos interiores, lápiz gris, pequeños desplazamientos, JPEG, variación de papel e impresión y códigos con ceros iniciales. Las regresiones del área cubren las cinco letras y perfiles numéricos en los dos PDF, relleno centrado, lápiz gris, desplazamiento/JPEG, variación de papel e impresión, marcas dobles y tenues y el perfil único sin marca. Las marcas dobles o tenues y las columnas o áreas vacías bloquean la identificación automática.
 
 Haz una prueba física antes de usar el formato compacto para un salón completo. La legibilidad real depende de impresora, papel, marcas y teléfono. Para grandes lotes sigue siendo preferible el escáner a 300 ppp; no actives filtros que borren trazos tenues.

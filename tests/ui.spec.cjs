@@ -874,12 +874,33 @@ test("printing offers quarter duplex and half single-sided with quantity and pri
   expect(audit.violations).toEqual([]);
 });
 
-for (const uncertainCode of [false, true])
-  test(`identity review preserves leading zeros and shows original columns (${uncertainCode ? "partial" : "complete"})`, async ({
+for (const { uncertainCode = false, areaStatus, label } of [
+  { label: "complete" },
+  { label: "partial", uncertainCode: true },
+  ...["single", "blank", "uncertain", "multiple"].map((areaStatus) => ({
+    label: `area ${areaStatus}`,
+    areaStatus,
+  })),
+])
+  test(`identity review preserves leading zeros and shows original readings (${label})`, async ({
     page,
   }) => {
-    if (uncertainCode) await page.setViewportSize({ width: 390, height: 844 });
+    const mobile = uncertainCode || areaStatus === "uncertain";
+    if (mobile) await page.setViewportSize({ width: 390, height: 844 });
     const examId = await selectScannerExam(page);
+    if (areaStatus) {
+      const response = await page.request.get(`/api/v2/exams/${examId}`);
+      const exam = await response.json();
+      exam.definition.areas = [..."ABCDE"].map((code) => ({ code }));
+      await page.route(`**/api/v2/exams/${examId}`, (route) =>
+        route.fulfill({ json: exam }),
+      );
+    }
+    const originalArea = areaStatus
+      ? areaStatus === "single"
+        ? "C"
+        : ""
+      : "GENERAL";
     const batch = {
       id: "identity-ui",
       created_at: "2026-11-09 12:00:00",
@@ -898,7 +919,20 @@ for (const uncertainCode of [false, true])
             qr: "synthetic",
             identification: {
               code: uncertainCode ? "" : "00123456",
-              area: "GENERAL",
+              area: originalArea,
+              ...(areaStatus
+                ? {
+                    areaReading: {
+                      status: areaStatus,
+                      options:
+                        areaStatus === "single"
+                          ? ["C"]
+                          : areaStatus === "multiple"
+                            ? ["A", "B"]
+                            : [],
+                    },
+                  }
+                : {}),
               columns: [..."00123456"].map((digit, i) => ({
                 status:
                   uncertainCode && [2, 4].includes(i)
@@ -944,8 +978,21 @@ for (const uncertainCode of [false, true])
         "Sin marca",
       );
     }
-    await expect(page.locator("#v2-review-area")).toHaveValue("GENERAL");
-    if (uncertainCode) {
+    await expect(page.locator("#v2-review-area")).toHaveValue(originalArea);
+    if (areaStatus) {
+      const statusLabels = {
+        single: "Lectura original del área: C.",
+        blank: "Sin marca",
+        uncertain: "Revisar marca tenue o incompleta",
+        multiple: "Varias marcas",
+      };
+      await expect(page.locator("[data-area-reading]")).toContainText(
+        statusLabels[areaStatus],
+      );
+    } else {
+      await expect(page.locator("[data-area-reading]")).toHaveCount(0);
+    }
+    if (mobile) {
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth),
       ).toBeLessThanOrEqual(390);
@@ -955,6 +1002,15 @@ for (const uncertainCode of [false, true])
       expect(accessibility.violations).toEqual([]);
     }
     await page.fill("#v2-review-code", "00234567");
+    const correctedArea =
+      areaStatus && areaStatus !== "single" ? "B" : originalArea;
+    if (correctedArea !== originalArea) {
+      await page.selectOption("#v2-review-area", correctedArea);
+      // Manual correction must not replace the original reader's warning.
+      await expect(page.locator("[data-area-reading]")).toContainText(
+        "Coteja la cartilla",
+      );
+    }
     await page.fill(
       "#v2-review-reason",
       "Código cotejado con la cartilla física",
@@ -963,7 +1019,7 @@ for (const uncertainCode of [false, true])
     await expect(page.locator("#v2-dialog")).toBeHidden();
     expect(submitted.identification).toEqual({
       code: "00234567",
-      area: "GENERAL",
+      area: correctedArea,
     });
     expect(submitted.reason).toContain("cotejado");
     expect(submitted.responses[1].status).toBe("blank");

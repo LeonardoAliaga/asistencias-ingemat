@@ -1059,6 +1059,21 @@ function codeColumnPreview(identification) {
     })
     .join("")}</ol>`;
 }
+function areaReadingPreview(identification) {
+  const reading = identification?.areaReading;
+  // Older batches and exams with one fixed profile have no marked-area reading.
+  if (!reading) return "";
+  const single = reading.status === "single" && reading.options?.length === 1;
+  const labels = {
+    blank: "Sin marca",
+    uncertain: "Revisar marca tenue o incompleta",
+    multiple: "Varias marcas",
+  };
+  const label = single
+    ? reading.options[0]
+    : labels[reading.status] || "Revisar";
+  return `<p class="${single ? "v2-help" : "v2-notice warning"}" data-area-reading>Lectura original del área: ${esc(label)}.${single ? "" : " Coteja la cartilla y selecciona el área correcta."}</p>`;
+}
 function reviewPage(index) {
   const b = state.batch,
     p = b.result.pages[index];
@@ -1069,7 +1084,7 @@ function reviewPage(index) {
         ? `<p class="v2-notice warning">${esc(p.error)}</p>`
         : `${
             p.identification
-              ? `<div class="v2-notice warning">Comprueba el código y el área contra la cartilla. Una corrección requiere motivo.</div>${codeColumnPreview(p.identification)}<div class="v2-form-grid"><label>Código de 8 dígitos<input id="v2-review-code" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" required value="${esc((p.identificationOverride || p.identification).code)}"></label><label>Área marcada<select id="v2-review-area" required><option value="">Selecciona un área</option>${
+              ? `<div class="v2-notice warning">Comprueba el código y el área contra la cartilla. Una corrección requiere motivo.</div>${codeColumnPreview(p.identification)}${areaReadingPreview(p.identification)}<div class="v2-form-grid"><label>Código de 8 dígitos<input id="v2-review-code" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" required value="${esc((p.identificationOverride || p.identification).code)}"></label><label>Área marcada<select id="v2-review-area" required><option value="">Selecciona un área</option>${
                   state.exams
                     .find((e) => e.id === b.evaluation_id)
                     ?.definition?.areas?.map(
