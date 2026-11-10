@@ -61,7 +61,7 @@ export function mountKeyEditor(textarea, { getDefinition, parse, escape, mode = 
     }
     if (multiple) {
       const selected = new Set(
-        (values[active] || "").split("/").filter(Boolean),
+        (values[active] || "").split("/").filter((letter) => letters.includes(letter)),
       );
       if (selected.has(letter)) selected.delete(letter);
       else selected.add(letter);

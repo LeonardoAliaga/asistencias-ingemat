@@ -2188,6 +2188,8 @@ async function initialize() {
       reason = $("v2-manual-reason").value;
     if (replace && reason.trim().length < 5)
       throw new Error("Describe el motivo de la corrección.");
+    if (!Object.keys(keyValues($("v2-manual-answers").value)).length)
+      throw new Error("Registra las respuestas del estudiante antes de calificar. Puedes marcar una pregunta en blanco.");
     const data = await api(
       `/api/v2/exams/${state.selected.id}/grade`,
       json({
