@@ -37,6 +37,14 @@ Un código desconocido, incompleto o con varias marcas, un área inexistente o i
 
 El formato A4 anterior personalizado sigue disponible y sus cartillas impresas siguen siendo válidas. Los nuevos diseños usan versiones geométricas independientes (cuarto v3, media v4); no se reinterpretan las coordenadas de las cartillas v2.
 
+## Estudiante identificado en pantalla
+
+El lote, la previsualización de notas y la ventana Revisar muestran los apellidos, nombres y código del estudiante encontrado en el padrón del examen. El nombre se obtiene del código exacto leído o de una corrección confirmada; no de los nombres manuscritos ni de una coincidencia aproximada. Se conserva el nombre registrado al validar el examen cuando existe esa referencia histórica.
+
+El estudiante puede identificarse aunque el área siga pendiente o falte el reverso. Ambas caras se relacionan por el QR firmado de la misma cartilla, no por el orden del escaneo. Mostrar el nombre no resuelve esas incidencias ni habilita la importación. Un código incompleto, desconocido o ajeno al examen queda sin estudiante identificado. Si editas el código, la pantalla retira el nombre anterior hasta confirmar la revisión y verificar el nuevo código.
+
+Los nombres se consultan al abrir el lote, sin alterar sus lecturas originales ni crear notas. Esta visualización también está disponible para lotes anteriores y cartillas personalizadas.
+
 ## Lectura del código y revisión por columna
 
 El código de ocho dígitos se reconoce por separado de las respuestas. Se mide el relleno interior en escala de grises con una referencia de papel local; una apertura morfológica separa los trazos finos del número impreso y del borde. La lectura anterior del anillo exterior podía perder rellenos centrados. Una segunda medida sensible a trazos tenues solo genera una incidencia, nunca elige un dígito.

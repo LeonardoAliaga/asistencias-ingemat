@@ -24,6 +24,77 @@ function batch(id) {
   if (!b) throw new AppError("Lote no encontrado.", 404);
   return { ...b, files: JSON.parse(b.files), result: JSON.parse(b.result) };
 }
+// Read-only presentation data: matching a student never resolves an area,
+// changes a stored reading or makes a batch eligible for grading.
+function batchView(id) {
+  const b = batch(id),
+    exam = getExam(b.evaluation_id),
+    groups = new Map(),
+    matched = new Map(),
+    cache = new Map(),
+    lookup = db.prepare(
+      "SELECT u.codigo,u.nombre,u.apellido,r.name_snapshot FROM usuarios u LEFT JOIN exam_roster r ON r.evaluation_id=? AND r.user_uid=u.uid WHERE u.codigo=? AND u.rol='estudiante' AND (UPPER(u.ciclo)=UPPER(?) OR r.user_uid IS NOT NULL)",
+    );
+  const findStudent = (code) => {
+    if (typeof code !== "string" || !code) return null;
+    if (!cache.has(code)) {
+      const student = lookup.get(exam.id, code, exam.ciclo);
+      cache.set(
+        code,
+        student
+          ? {
+              code: student.codigo,
+              name:
+                student.name_snapshot ||
+                `${student.apellido} ${student.nombre}`.trim(),
+            }
+          : null,
+      );
+    }
+    return cache.get(code);
+  };
+  for (const page of b.result.pages || []) {
+    page.identifiedStudent = null;
+    if (page.error || page.excluded) continue;
+    try {
+      const sheet = resolveQR(page.qr);
+      if (
+        sheet.evaluation_id !== exam.id ||
+        sheet.revision > exam.revision ||
+        !sheetLayouts(exam.definition, sheet.layout_version).some(
+          (l) => l.page === sheet.page,
+        )
+      )
+        continue;
+      const group = groups.get(sheet.id) || { pages: [], codes: new Set() };
+      group.pages.push(page);
+      if (sheet.layout_version === 2) group.codes.add(sheet.student_code);
+      else if (sheet.page === 1 && page.identification) {
+        const code = (page.identificationOverride || page.identification).code;
+        group.codes.add(
+          typeof code === "string" && /^\d{8}$/.test(code) ? code : "",
+        );
+      }
+      groups.set(sheet.id, group);
+    } catch {
+      // Invalid/unregistered QR data must not identify a student for display.
+    }
+  }
+  for (const [sheetId, group] of groups) {
+    if (group.codes.size !== 1) continue;
+    const code = [...group.codes][0];
+    if (!code) continue;
+    const student = findStudent(code);
+    matched.set(sheetId, student);
+    for (const page of group.pages) page.identifiedStudent = student;
+  }
+  for (const row of b.result.rows || [])
+    row.identifiedStudent =
+      b.source === "omr"
+        ? matched.get(row.sheetId) || null
+        : findStudent(row.codigoEstudiante);
+  return b;
+}
 function writeResult(id, result, status) {
   db.prepare(
     "UPDATE import_batches SET result=?,status=?,updated_at=CURRENT_TIMESTAMP WHERE id=?",
@@ -522,6 +593,7 @@ function commitBatch(id, body, req) {
 module.exports = {
   root,
   batch,
+  batchView,
   createCSV,
   createScan,
   processScanQueue,

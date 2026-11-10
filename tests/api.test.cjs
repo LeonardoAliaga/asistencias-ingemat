@@ -200,6 +200,13 @@ test("CSV preview detects duplicates and commit is atomic on conflicting grades"
   );
   assert.equal(r.status, 200, JSON.stringify(r.data));
   const id = r.data.id;
+  const visible = await admin(`/api/v2/imports/${id}`);
+  assert.equal(visible.status, 200);
+  assert.deepEqual(visible.data.result.rows[0].identifiedStudent, {
+    code: "T003",
+    name: "T003 ALUMNO",
+  });
+  assert.equal((await guest(`/api/v2/imports/${id}`)).status, 401);
   r = await admin(`/api/v2/imports/${id}/commit`, { reviewVersion: 1 }, "POST");
   assert.equal(r.status, 409);
   assert.equal(

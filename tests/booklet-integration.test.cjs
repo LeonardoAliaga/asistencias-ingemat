@@ -190,6 +190,13 @@ print(number)
       ),
     );
     assert.equal(batch.result.rows.length, sheets.length);
+    const visible = imports.batchView(batch.id);
+    for (const page of visible.result.pages) {
+      assert.equal(page.identifiedStudent.name, "ALUMNO DEMO");
+      assert.equal(page.identifiedStudent.code, page.codigoEstudiante);
+    }
+    for (const row of visible.result.rows)
+      assert.equal(row.identifiedStudent.code, row.codigoEstudiante);
     for (const row of batch.result.rows) {
       assert.match(row.codigoEstudiante, /^00\d{6}$/);
       assert.equal(row.preview.puntajeTotal, 2000);
@@ -211,6 +218,12 @@ print(number)
     assert.ok(
       batch.result.pages.some((p) => /no corresponde/.test(p.warning || "")),
     );
+    assert.ok(
+      imports
+        .batchView(batch.id)
+        .result.pages.filter((p) => p.sheetId === front.sheetId)
+        .every((p) => p.identifiedStudent === null),
+    );
     batch = imports.reviewPage(
       batch.id,
       frontIndex,
@@ -226,6 +239,12 @@ print(number)
       req,
     );
     assert.equal(batch.status, "ready");
+    assert.ok(
+      imports
+        .batchView(batch.id)
+        .result.pages.filter((p) => p.sheetId === front.sheetId)
+        .every((p) => p.identifiedStudent?.code === front.identification.code),
+    );
     const grades = imports.commitBatch(
       batch.id,
       { reviewVersion: batch.result.reviewVersion },

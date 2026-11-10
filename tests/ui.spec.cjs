@@ -874,9 +874,15 @@ test("printing offers quarter duplex and half single-sided with quantity and pri
   expect(audit.violations).toEqual([]);
 });
 
-for (const { uncertainCode = false, areaStatus, label } of [
+for (const {
+  uncertainCode = false,
+  unknownStudent = false,
+  areaStatus,
+  label,
+} of [
   { label: "complete" },
   { label: "partial", uncertainCode: true },
+  { label: "unregistered code", unknownStudent: true },
   ...["single", "blank", "uncertain", "multiple"].map((areaStatus) => ({
     label: `area ${areaStatus}`,
     areaStatus,
@@ -901,6 +907,18 @@ for (const { uncertainCode = false, areaStatus, label } of [
         ? "C"
         : ""
       : "GENERAL";
+    const originalCode = uncertainCode
+      ? ""
+      : unknownStudent
+        ? "00999999"
+        : "00123456";
+    const identifiedStudent =
+      uncertainCode || unknownStudent
+        ? null
+        : {
+            code: originalCode,
+            name: "PÉREZ RAMÍREZ ANA MARÍA",
+          };
     const batch = {
       id: "identity-ui",
       created_at: "2026-11-09 12:00:00",
@@ -910,15 +928,27 @@ for (const { uncertainCode = false, areaStatus, label } of [
       files: [],
       result: {
         reviewVersion: 1,
-        rows: [],
+        rows:
+          identifiedStudent && originalArea
+            ? [
+                {
+                  codigoEstudiante: originalCode,
+                  identifiedStudent,
+                  area: originalArea,
+                  form: "A",
+                  preview: { totalEvaluables: 100, puntajeTotal: 2000 },
+                },
+              ]
+            : [],
         pages: [
           {
+            identifiedStudent,
             page: 1,
             layoutVersion: 4,
             file: "foto.jpg",
             qr: "synthetic",
             identification: {
-              code: uncertainCode ? "" : "00123456",
+              code: originalCode,
               area: originalArea,
               ...(areaStatus
                 ? {
@@ -933,7 +963,7 @@ for (const { uncertainCode = false, areaStatus, label } of [
                     },
                   }
                 : {}),
-              columns: [..."00123456"].map((digit, i) => ({
+              columns: [...(originalCode || "00123456")].map((digit, i) => ({
                 status:
                   uncertainCode && [2, 4].includes(i)
                     ? i === 2
@@ -962,10 +992,31 @@ for (const { uncertainCode = false, areaStatus, label } of [
     });
     await page.click("#v2-refresh-batches");
     await page.click('[data-batch="identity-ui"]');
+    if (identifiedStudent)
+      await expect(page.locator("#v2-batch-detail")).toContainText(
+        identifiedStudent.name,
+      );
+    else
+      await expect(page.locator("#v2-batch-detail")).not.toContainText(
+        "PÉREZ RAMÍREZ",
+      );
     await page.click('[data-review="0"]');
-    await expect(page.locator("#v2-review-code")).toHaveValue(
-      uncertainCode ? "" : "00123456",
-    );
+    if (identifiedStudent) {
+      await expect(page.locator("#v2-review-student")).toContainText(
+        identifiedStudent.name,
+      );
+      await expect(page.locator("#v2-review-student")).toContainText(
+        originalCode,
+      );
+      await expect(page.locator("#v2-dialog-title")).toContainText(
+        identifiedStudent.name,
+      );
+    } else {
+      await expect(page.locator("#v2-review-student")).toContainText(
+        "Estudiante sin identificar",
+      );
+    }
+    await expect(page.locator("#v2-review-code")).toHaveValue(originalCode);
     await expect(page.locator(".identity-columns li")).toHaveCount(8);
     await expect(
       page.locator(".identity-columns li strong").first(),
@@ -1002,6 +1053,15 @@ for (const { uncertainCode = false, areaStatus, label } of [
       expect(accessibility.violations).toEqual([]);
     }
     await page.fill("#v2-review-code", "00234567");
+    await expect(page.locator("#v2-review-student")).toContainText(
+      "El nuevo código se verificará",
+    );
+    await expect(page.locator("#v2-review-student")).not.toContainText(
+      "PÉREZ RAMÍREZ",
+    );
+    await expect(page.locator("#v2-dialog-title")).toContainText(
+      "código en revisión",
+    );
     const correctedArea =
       areaStatus && areaStatus !== "single" ? "B" : originalArea;
     if (correctedArea !== originalArea) {

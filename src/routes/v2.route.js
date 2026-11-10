@@ -427,7 +427,7 @@ router.get("/imports", read, (req, res) =>
   ),
 );
 router.get("/imports/:id", read, (req, res) => {
-  const b = imports.batch(req.params.id);
+  const b = imports.batchView(req.params.id);
   res.json({
     ...b,
     files: b.files.map((f) => ({ name: f.name })),

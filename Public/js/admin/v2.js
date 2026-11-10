@@ -974,6 +974,23 @@ async function loadBatches() {
     );
   if (state.batch) await openBatch(state.batch.id);
 }
+function scannedStudentLabel(page) {
+  const student = page.identifiedStudent;
+  if (student)
+    return `<strong>${esc(student.name)}</strong><br><span>Código: ${esc(student.code)}</span>`;
+  const code =
+    (page.identificationOverride || page.identification)?.code ||
+    page.codigoEstudiante;
+  return code
+    ? `${esc(code)}<br><small>Identificación pendiente</small>`
+    : "Sin identificar";
+}
+function scannedStudentNotice(page) {
+  const student = page.identifiedStudent;
+  return student
+    ? `<p class="v2-notice"><strong>Estudiante identificado</strong><br>${scannedStudentLabel(page)}</p>`
+    : `<p class="v2-notice warning"><strong>Estudiante sin identificar</strong><br>${scannedStudentLabel(page)}. Comprueba el código y el padrón del examen.</p>`;
+}
 async function openBatch(id) {
   const b = await api(`/api/v2/imports/${id}`);
   state.batch = b;
@@ -985,7 +1002,7 @@ async function openBatch(id) {
           ["Página", "Estudiante", "Marcas", "Incidencia", "Acción"],
           b.result.pages.map((p, i) => [
             `${i + 1} · ${esc(p.file)}`,
-            esc(p.codigoEstudiante || "Sin identificar"),
+            scannedStudentLabel(p),
             Object.values(p.responses || {}).filter(
               (r) => r.status === "single",
             ).length + " únicas",
@@ -1005,9 +1022,9 @@ async function openBatch(id) {
         )
       : ""
   }<h4>Previsualización de calificaciones</h4>${table(
-    ["Código", "Área", "Versión", "Evaluables", "Puntaje"],
+    ["Estudiante", "Área", "Versión", "Evaluables", "Puntaje"],
     (b.result.rows || []).map((r) => [
-      esc(r.codigoEstudiante),
+      scannedStudentLabel(r),
       esc(r.area),
       esc(r.form),
       String(r.preview.totalEvaluables),
@@ -1077,12 +1094,13 @@ function areaReadingPreview(identification) {
 function reviewPage(index) {
   const b = state.batch,
     p = b.result.pages[index];
+  const reviewTitle = `Revisar cartilla · ${p.identifiedStudent?.name || p.codigoEstudiante || "sin identificar"}`;
   showDialog(
-    `Revisar cartilla · ${p.codigoEstudiante || "sin identificar"}`,
+    reviewTitle,
     `<div class="v2-scan-review"><div>${p.imageUrl ? `<a href="${esc(p.imageUrl)}" target="_blank" rel="noopener"><img src="${esc(p.imageUrl)}" alt="Cartilla escaneada; abrir para ampliar"></a>` : "<p>La página no se pudo identificar. Exclúyela con un motivo y vuelve a escanearla.</p>"}</div><form id="v2-review-form">${
       p.error
         ? `<p class="v2-notice warning">${esc(p.error)}</p>`
-        : `${
+        : `<div id="v2-review-student">${scannedStudentNotice(p)}</div>${
             p.identification
               ? `<div class="v2-notice warning">Comprueba el código y el área contra la cartilla. Una corrección requiere motivo.</div>${codeColumnPreview(p.identification)}${areaReadingPreview(p.identification)}<div class="v2-form-grid"><label>Código de 8 dígitos<input id="v2-review-code" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" required value="${esc((p.identificationOverride || p.identification).code)}"></label><label>Área marcada<select id="v2-review-area" required><option value="">Selecciona un área</option>${
                   state.exams
@@ -1102,6 +1120,17 @@ function reviewPage(index) {
             .join("")}</div>`
     }<label>Motivo<input id="v2-review-reason" required minlength="5" placeholder="Revisado contra la cartilla física"></label>${p.error ? "" : '<button class="v2-button" type="submit">Confirmar revisión</button>'}<button class="v2-button danger" type="button" id="v2-review-exclude">Excluir esta página</button></form></div>`,
   );
+  bind("v2-review-code", "input", () => {
+    const original = (p.identificationOverride || p.identification).code || "";
+    $("v2-dialog-title").textContent =
+      $("v2-review-code").value === original
+        ? reviewTitle
+        : "Revisar cartilla · código en revisión";
+    $("v2-review-student").innerHTML =
+      $("v2-review-code").value === original
+        ? scannedStudentNotice(p)
+        : '<p class="v2-help">El nuevo código se verificará al confirmar la revisión.</p>';
+  });
   if (p.identification)
     api(`/api/v2/exams/${b.evaluation_id}`)
       .then((exam) => {
