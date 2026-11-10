@@ -3,115 +3,7 @@ import * as dom from "./wa-dom.js";
 import * as state from "./wa-state.js";
 import { showMessage, markUnsavedChanges } from "./wa-helpers.js";
 
-let currentAutocompleteFocus = -1;
-
-// --- INICIO LÓGICA DE AUTOCOMPLETADO (COPIADA) ---
-
-function closeAllAutocompleteLists(elmnt) {
-  const items = dom.reportRuleGroupResultados;
-  if (items && items !== elmnt) {
-    items.innerHTML = "";
-  }
-  currentAutocompleteFocus = -1;
-}
-
-function addAutocompleteActive(items) {
-  if (!items) return false;
-  removeAutocompleteActive(items);
-  if (currentAutocompleteFocus >= items.length) currentAutocompleteFocus = 0;
-  if (currentAutocompleteFocus < 0) currentAutocompleteFocus = items.length - 1;
-
-  const activeItem = items[currentAutocompleteFocus];
-  if (activeItem) {
-    activeItem.classList.add("autocomplete-active");
-    activeItem.scrollIntoView({ block: "nearest" });
-  }
-}
-
-function removeAutocompleteActive(items) {
-  for (let i = 0; i < items.length; i++) {
-    items[i].classList.remove("autocomplete-active");
-  }
-}
-
-function initReportAutocomplete() {
-  const input = dom.reportRuleGroupFiltro;
-  const hiddenInput = dom.reportRuleGroupHidden;
-  const resultsContainer = dom.reportRuleGroupResultados;
-
-  if (!input || !hiddenInput || !resultsContainer) return;
-
-  input.addEventListener("input", function (e) {
-    const val = this.value;
-    closeAllAutocompleteLists();
-    if (!val || val.length < 2) {
-      hiddenInput.value = "";
-      return false;
-    }
-
-    console.log(
-      `[wa-rules-report.js] Buscando grupos. Usando lista de ${state.availableGroups.length} grupos del estado.`
-    );
-    const valNorm = val.toLowerCase();
-
-    state.availableGroups.forEach((group) => {
-      const groupNameNorm = group.name.toLowerCase();
-      const index = groupNameNorm.indexOf(valNorm);
-
-      if (index !== -1) {
-        const itemDiv = document.createElement("div");
-        itemDiv.classList.add("autocomplete-item");
-        itemDiv.innerHTML =
-          group.name.substring(0, index) +
-          "<strong>" +
-          group.name.substring(index, index + val.length) +
-          "</strong>" +
-          group.name.substring(index + val.length);
-
-        itemDiv.dataset.id = group.id;
-        itemDiv.dataset.name = group.name;
-
-        itemDiv.addEventListener("click", function (e) {
-          input.value = this.dataset.name;
-          hiddenInput.value = this.dataset.id;
-          closeAllAutocompleteLists();
-          markUnsavedChanges(); // Marcar cambios al seleccionar
-        });
-        resultsContainer.appendChild(itemDiv);
-      }
-    });
-  });
-
-  input.addEventListener("keydown", function (e) {
-    let items = resultsContainer.getElementsByClassName("autocomplete-item");
-    if (e.keyCode == 40) {
-      currentAutocompleteFocus++;
-      addAutocompleteActive(items);
-      e.preventDefault();
-    } else if (e.keyCode == 38) {
-      currentAutocompleteFocus--;
-      addAutocompleteActive(items);
-      e.preventDefault();
-    } else if (e.keyCode == 13) {
-      e.preventDefault();
-      if (currentAutocompleteFocus > -1 && items[currentAutocompleteFocus]) {
-        items[currentAutocompleteFocus].click();
-      }
-    } else if (e.keyCode == 27) {
-      closeAllAutocompleteLists();
-      input.value = "";
-      hiddenInput.value = "";
-    }
-  });
-
-  document.addEventListener("click", function (e) {
-    if (e.target !== input) {
-      closeAllAutocompleteLists(e.target);
-    }
-  });
-}
-
-// --- FIN LÓGICA DE AUTOCOMPLETADO ---
+import { setupGroupAutocomplete } from "./wa-group-autocomplete.js";
 
 async function handleManualSend(event) {
   const button = event.currentTarget;
@@ -316,7 +208,7 @@ export function initReportRuleListeners() {
   }
 
   // --- INICIALIZAR AUTOCOMPLETADO (LÍNEA FALTANTE) ---
-  initReportAutocomplete();
+  setupGroupAutocomplete({input:dom.reportRuleGroupFiltro,hiddenInput:dom.reportRuleGroupHidden,resultsContainer:dom.reportRuleGroupResultados,getGroups:()=>state.availableGroups,onSelect:markUnsavedChanges});
 
   if (dom.btnAddReportRule) {
     dom.btnAddReportRule.addEventListener("click", handleAddReportRule);
