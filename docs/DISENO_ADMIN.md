@@ -17,7 +17,7 @@ El panel organiza el trabajo por propósito. Resumen contiene indicadores y acce
 | Tareas                 | Registro por curso, ciclo y semana; historial de entregas                         |
 | Reportes               | Por estudiante, consolidado semanal y ranking histórico                           |
 | Biblioteca             | Estantería, catálogo y préstamos/devoluciones                                     |
-| Comunicación           | WhatsApp oficial, configuración y seguimiento de entregas                         |
+| Comunicación           | Baileys aislado, vinculación del teléfono y seguimiento de entregas                         |
 | Ciclos y horarios      | Ciclos académicos, entrada y tolerancia por turno                                 |
 | Página pública         | Ciclos visibles e imágenes de ingresantes                                         |
 | Cuentas y respaldo     | Operadores, copias de seguridad y actividad/auditoría                             |
@@ -69,4 +69,4 @@ Las pruebas de navegador usan una base de datos temporal con información fictic
 
 Se ejecutan comprobaciones automáticas con axe-core para criterios WCAG A/AA en las pantallas y ventanas cubiertas. Se revisan visualmente estados vacíos y con registros, formularios, tablas y ventanas. Estas comprobaciones no constituyen una certificación completa de accesibilidad: sigue siendo útil probar con los operadores de la academia, lectores de pantalla y navegadores/dispositivos reales.
 
-La reorganización no cambia el modelo de calificación ni el formato de las cartillas. La lectura OMR sigue necesitando el piloto físico descrito en el README; WhatsApp requiere configurar las credenciales y plantillas reales.
+La reorganización no cambia el modelo de calificación ni el formato de las cartillas. La lectura OMR sigue necesitando el piloto físico descrito en el README; WhatsApp requiere vincular el teléfono y comprobar los mensajes con los contactos autorizados.

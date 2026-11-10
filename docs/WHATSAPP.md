@@ -1,0 +1,45 @@
+# WhatsApp con Baileys
+
+Baileys es la única conexión implementada. No se usan API de pago, tokens de proveedor, plantillas aprobadas ni un webhook público. La biblioteca no oficial depende del protocolo de WhatsApp y puede necesitar revisiones; su fallo se aísla del servidor académico.
+
+## Instalar y vincular
+
+1. Detén la app, actualiza la rama y ejecuta `npm ci`. La versión opcional está fijada en el lockfile.
+2. Ejecuta `npm run whatsapp:doctor`. Solo carga el paquete en un proceso aparte y comprueba sus contratos básicos; no conecta cuentas. Un fallo devuelve diagnóstico sin impedir `npm start`.
+3. Inicia INGEMAT y abre Comunicación con una cuenta de administración. Conserva los mensajes predeterminados o edita las variables indicadas. Guarda con avisos desactivados.
+4. Pulsa Conectar / Reintentar. En el teléfono de la academia, WhatsApp → Dispositivos vinculados → Vincular un dispositivo. Escanea el QR del panel. Este QR vincula el teléfono y es distinto al de las cartillas.
+5. Comprueba Conectado; entonces activa notificaciones y guarda. Vincular no activa por sí solo los mensajes. Registra únicamente contactos autorizados. Prueba primero con un contacto del personal que haya autorizado la prueba.
+
+El QR de vinculación y las acciones de conexión están restringidos a administradores y requieren sesión; las escrituras conservan CSRF. El QR no se registra en consola ni se incluye en los endpoints generales de estado. Tiene vencimiento y se borra del panel al detener/desconectar.
+
+## Fallos y recuperación
+
+| Situación | Comportamiento | Acción |
+|---|---|---|
+| Paquete ausente, incompatible o módulo nativo que falla | El proceso hijo se detiene; aparece Revisa el paquete Baileys y su versión | Ejecuta `npm ci`, `npm run whatsapp:doctor` y revisa el código de estado del panel/consola |
+| Desconexión transitoria | Hasta cinco reconexiones con espera creciente | Espera el estado conectado; si se agotan, usa Conectar / Reintentar |
+| Cierre de sesión desde el teléfono | Se requiere otra vinculación | Volver a vincular → confirmar → Conectar → nuevo QR |
+| Proceso caído o bloqueado | El supervisor lo detiene mediante plazos/latidos; no entra en un bucle de reinicios | Revisa el paquete y reconecta manualmente |
+| Caída después de solicitar un envío | El aviso queda Por comprobar; no se repite automáticamente | Verifica que no llegó antes de confirmar un reintento |
+| Servicio sin conectar | Los avisos siguen pendientes | Restablece la conexión y comprueba que los avisos están activados |
+| Módulo de interfaz no disponible | Aviso en dashboard; las otras secciones continúan | Comprueba los archivos de la actualización y recarga el navegador |
+
+Detener conexión desactiva envíos y conserva la sesión. Volver a vincular elimina solo la sesión local; no borra estudiantes, notas, asistencias ni los avisos históricos. El aviso técnico usa códigos controlados; no publica credenciales ni el texto de conversaciones.
+
+## Sesión y cola
+
+La sesión está en `DATA_DIR/whatsapp/baileys-auth.db`, separada de `ingemat.db`. Guarda credenciales, claves Signal con buffers y un máximo de 1000 mensajes para resolver reintentos del protocolo. Los cambios de claves se guardan en transacciones; no se usa el helper de múltiples archivos. La carpeta es privada y no se sirve como contenido web ni se incluye en Git.
+
+La copia SQLite del panel corresponde a la base académica. Conserva la carpeta de WhatsApp en privado con la app detenida si necesitas restaurar la vinculación; también puedes vincular de nuevo. No mezcles archivos WAL/SHM de otra ejecución con una restauración.
+
+La cola de avisos reside en la base académica para conservar el evento junto a la asistencia. Solo guarda textos/confirmaciones; el paquete de red nunca accede a la base académica. Los textos quedan fijados al crear el aviso. Un cambio posterior de plantilla no altera lo que ya estaba en cola. Las autorizaciones revocadas y las notas corregidas invalidan los avisos obsoletos.
+
+Esta interfaz envía a contactos individuales. No incorpora automatización de grupos. Las confirmaciones se muestran cuando WhatsApp las comunica; la aceptación por el componente no equivale a entrega al destinatario.
+
+## Actualización desde la integración anterior
+
+La migración 006 conserva los avisos históricos y retira la configuración de API de pago. Los avisos pendientes anteriores se cancelan y no se reproducen por Baileys. Los resultados inciertos quedan como historial para reconciliar, sin reintento por el nuevo transporte. Los nuevos avisos empiezan desactivados hasta vincular y activar. Las antiguas variables `WHATSAPP_*` ya no son utilizadas.
+
+Las pruebas automatizadas usan contactos ficticios y procesos simulados. El paquete real se comprueba con el diagnóstico sin vincular números ni enviar mensajes. La primera vinculación y prueba de entrega real deben realizarse en la PC de la academia.
+
+Además se verificó una instalación limpia y la ausencia real del paquete en una copia aislada: el componente informó `BAILEYS_PACKAGE_LOAD_ERROR` y el HTTP de la app devolvió 200 con SQLite disponible. Esta comprobación no abrió una conexión a WhatsApp.

@@ -24,42 +24,17 @@ La plantilla usa cuatro marcadores ArUco distintos para corregir orientación y 
 
 **Validación realizada:** imágenes sintéticas de 120 preguntas, dobles marcas, marca tenue, perspectiva, giro, falta o duplicación de marcadores, segunda página de 200 preguntas y 32 cartillas en PDF realmente generado por Node, cubriendo los ocho patrones de máscara del QR, y la alternativa de lectura con OpenCV. También se probó el recorrido PDF personalizado → lector Python → lote → recálculo por revisión → importación atómica. Falta la calibración con un lote físico de la academia, que no estuvo disponible durante el desarrollo.
 
-## WhatsApp consistente
+## WhatsApp: decisión implementada
 
-La solución implementada es [WhatsApp Business Platform / Cloud API](https://www.postman.com/meta/whatsapp-business-platform/documentation/wlk6lh4/whatsapp-cloud-api), con HTTP versionado. El panel no depende de un navegador conectado a WhatsApp Web.
+La academia eligió [Baileys / WhiskeySockets](https://github.com/WhiskeySockets/Baileys), biblioteca abierta sin navegador, como único transporte. Se fija `@whiskeysockets/baileys` a `7.0.0-rc14`; la [página de releases](https://github.com/WhiskeySockets/Baileys/releases) la identifica como RC. No se promete inmunidad a cambios del protocolo ni a restricciones de WhatsApp. La integración de API de pago fue retirada del código, la interfaz y las instrucciones de operación.
 
-[Twilio](https://www.twilio.com/docs/whatsapp/api) y [360dialog](https://docs.360dialog.com/) son alternativas de proveedor si se necesita soporte y administración adicional; tienen sus propios costos y condiciones. Esta versión implementa el transporte directo de Meta, con una cola interna independiente.
+El paquete se carga únicamente en un proceso hijo, con heap JS acotado, plazos, latidos, reconexión limitada y apertura de circuito ante fallos. El servidor académico no importa la biblioteca. La persistencia SQL guarda credenciales y claves Signal, de acuerdo con la [recomendación de sesión](https://github.com/WhiskeySockets/docs/blob/main/authentication/session-management.mdx), en una base separada de las notas. No se usa el helper de múltiples archivos en producción.
 
-El antiguo [SDK oficial de WhatsApp para Node](https://github.com/WhatsApp/WhatsApp-Nodejs-SDK) está archivado. No se incorpora una dependencia archivada para sustituir otra frágil: la pequeña capa HTTP es explícita, configurable y está probada con respuestas simuladas.
+La cola académica conserva la autorización de contactos, textos y eventos idempotentes. Los IDs de mensaje estables permiten correlacionar confirmaciones tempranas. Una caída después de solicitar el envío se trata como resultado incierto y exige revisión, sin reenviar a ciegas. La [documentación de reconexión](https://github.com/WhiskeySockets/docs/blob/main/advanced/troubleshooting.mdx) explica que la aplicación debe gestionarla; tras un cierre de sesión se solicita volver a vincular.
 
-Para mensajería iniciada por la academia se usan plantillas aprobadas. La [documentación de Twilio](https://www.twilio.com/docs/whatsapp/api) detalla la ventana de atención de 24 horas y los mensajes con plantilla fuera de esa ventana. La [tarificación oficial](https://business.whatsapp.com/products/platform-pricing) varía por país, categoría y condiciones aplicables. No se fija un precio que dependa de la cuenta o del volumen real.
+Se añadieron pruebas de paquete ausente, caída real de un hijo con HTTP vivo, timeout, latidos, persistencia de buffers/claves, cola, credenciales y datos históricos, autorización, QR privado, funcionamiento académico con el servicio caído y módulo de interfaz no disponible. El diagnóstico `npm run whatsapp:doctor` carga la versión instalada sin conectar una cuenta. No hubo envíos reales durante el desarrollo.
 
-### El requisito de grupos
-
-La [documentación actual de Groups API de 360dialog](https://docs.360dialog.com/docs/messaging/groups) exige Official Business Account y describe un máximo de ocho participantes, además de exclusiones para coexistencia. Esa API no es un reemplazo general de los grupos de alumnos de un salón.
-
-Por eso v2 configura contactos individuales autorizados por estudiante. Los reportes administrativos se pueden descargar y compartir manualmente en grupos ya existentes. Cambiar a otra biblioteca que controle WhatsApp Web no ofrece la misma estabilidad de un contrato de API oficial.
-
-### Entrega y fallos
-
-La cola distingue aceptación del proveedor y entrega al destinatario. Guarda el identificador de Meta, correlaciona los webhooks, evita reenvíos del mismo evento y aplica espera creciente a errores transitorios. Una respuesta incierta exige comprobación antes de reenviar. Las firmas HMAC del webhook se validan y los eventos repetidos o desordenados no hacen retroceder estados de entrega.
-
-No se conectó una cuenta real ni se enviaron mensajes durante el desarrollo. Las pruebas usan un transporte simulado. La habilitación empresarial, el número, los secretos y la aprobación de plantillas corresponden a la cuenta de la academia.
-
-## Costo y alternativas gratuitas de WhatsApp — revisión del 10/11/2026
-
-La integración oficial de esta rama **no es una promesa de mensajería gratuita**. La [página de precios de Meta](https://business.whatsapp.com/products/platform-pricing) publica cobros por mensajes entregados, según destino y categoría. Debe comprobarse la facturación vigente de la cuenta. No se presuponen franquicias o exenciones y no se publica aquí una tarifa peruana sin conocer el caso concreto. La pantalla de Comunicación y la guía ahora lo indican antes de habilitar avisos.
-
-| Recurso | Estado observado en su fuente primaria | Arquitectura y costo | Encaje para INGEMAT |
-|---|---|---|---|
-| [Baileys / WhiskeySockets](https://github.com/WhiskeySockets/Baileys) | [Releases](https://github.com/WhiskeySockets/Baileys/releases): v7.0.0-rc14 y línea v6.7.24; la versión 7 introduce cambios incompatibles y sigue etiquetada RC | Código abierto MIT; conexión WebSocket, sin Chromium ni tarifa de Cloud API por mensaje. La PC/servidor y mantenimiento siguen teniendo costo operativo | Primera candidata para evaluar automatización gratuita con menos procesos de navegador. Esto es una decisión de arquitectura, no una medición de rendimiento ni una garantía de entrega |
-| [WPPConnect](https://wppconnect.io/wppconnect/) | [v2.3.6, 23/10/2026](https://github.com/wppconnect-team/wppconnect/releases/tag/v2.3.6), con correcciones recientes de sesión y navegador | Biblioteca LGPL; usa Puppeteer y WhatsApp Web. Autohospedada sin tarifa de Cloud API por mensaje | Alternativa con actividad reciente, pero mantiene la dependencia de un navegador y sus cambios |
-| [whatsapp-web.js](https://wwebjs.dev/) | [Releases](https://github.com/wwebjs/whatsapp-web.js/releases) consultadas: v1.34.7 | Biblioteca abierta que controla WhatsApp Web en navegador | Sigue disponible y actualizada, pero volver a ella no elimina el origen del mantenimiento que motivó la migración |
-| [Enlace oficial wa.me](https://faq.whatsapp.com/5913398998672934) | Ayuda oficial de WhatsApp para click-to-chat y texto preparado | Abre un chat con el mensaje preparado; una persona pulsa Enviar en su aplicación | Alternativa sin automatización de sesión ni tarifa de Cloud API. No ofrece confirmación automática de entrega ni envíos desatendidos |
-
-**Propuesta técnica:** si la prioridad es automatizar sin pagar Cloud API, evaluar Baileys como adaptador de transporte aislado del sistema académico. Mantener la cola SQLite, consentimiento de contactos, correlación de eventos y reconciliación de resultados inciertos. Usar persistencia transaccional de credenciales y claves Signal; la [documentación de sesión](https://github.com/WhiskeySockets/docs/blob/main/authentication/session-management.mdx) desaconseja el helper de múltiples archivos en producción. La [reconexión](https://github.com/WhiskeySockets/docs/blob/main/advanced/troubleshooting.mdx) debe implementarse expresamente; una sesión cerrada requiere nueva vinculación. Fijar una versión concreta, probarla con un número de ensayo y actualizar con pruebas, sin descargar arbitrariamente la rama de desarrollo en cada arranque.
-
-Ninguna biblioteca no oficial ofrece inmunidad ante cambios de protocolo, desconexiones o restricciones de WhatsApp; el [README de Baileys](https://raw.githubusercontent.com/WhiskeySockets/Baileys/master/README.md) explicita su independencia y límites. Una biblioteca gratuita no equivale a un proveedor soportado por WhatsApp. Esta revisión no instala ni activa un transporte nuevo, ni conecta números ni envía mensajes.
+Detalles: [operación y recuperación](WHATSAPP.md) y [arquitectura](ARQUITECTURA.md).
 
 ## QR y selección del simulacro: propuesta para debatir
 

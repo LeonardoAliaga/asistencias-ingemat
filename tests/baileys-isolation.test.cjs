@@ -55,7 +55,12 @@ test("supervisor is lazy and enforces a separate IPC process with bounded JS hea
   const f = fixture();
   assert.equal(f.forks(), 0);
   assert.equal(f.service.status().state, "idle");
+  const oldSecret = process.env.SESSION_SECRET;
+  process.env.SESSION_SECRET = "do-not-pass-to-third-party";
   f.service.connect();
+  if (oldSecret === undefined) delete process.env.SESSION_SECRET;
+  else process.env.SESSION_SECRET = oldSecret;
+  assert.equal(f.options().env.SESSION_SECRET, undefined);
   f.service.connect();
   assert.equal(f.forks(), 1);
   assert(f.options().execArgv.includes("--max-old-space-size=256"));
@@ -228,4 +233,19 @@ test("transactional auth persists both credentials and Signal keys including buf
     undefined,
   );
   store.close();
+});
+
+test("a reconnect cannot start another worker while the session reset is in progress", async () => {
+  const f = fixture();
+  f.child.kill = () => true;
+  f.service.connect();
+  const reset = f.service.reset();
+  assert.equal(f.service.status().state, "resetting");
+  f.service.connect();
+  assert.equal(f.forks(), 1);
+  f.child.exitCode = 0;
+  f.child.emit("exit", 0);
+  await reset;
+  f.service.connect();
+  assert.equal(f.forks(), 2);
 });

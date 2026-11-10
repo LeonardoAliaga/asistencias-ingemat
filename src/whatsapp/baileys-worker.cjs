@@ -132,8 +132,10 @@ async function start() {
             return;
           }
           emit({ type: "state", state: "reconnecting" });
+          clearTimeout(reconnectTimer);
           reconnectTimer = setTimeout(
             () => {
+              if (token !== socketGeneration || stopped) return;
               try {
                 connect();
               } catch {

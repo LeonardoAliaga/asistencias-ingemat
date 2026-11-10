@@ -23,9 +23,11 @@ Este cambio es una versión mayor. La rama de trabajo es `feat/ingemat-v2`; `mai
 
 ## Cambios de WhatsApp
 
-Las sesiones de navegador anteriores ya no se usan. No necesitas instalar Chrome para WhatsApp ni conservar LocalAuth como dependencia de operación. Configura Cloud API, sus plantillas y webhooks. Se envían avisos a contactos individuales autorizados; los grupos tradicionales no se trasladan.
+La única conexión es Baileys en un proceso aislado. Ejecuta `npm ci` y `npm run whatsapp:doctor`. No necesitas Chrome, LocalAuth, tokens de API de pago ni webhooks públicos. Vincula el teléfono en Comunicación y activa los avisos solo cuando aparezca Conectado.
 
-La API tiene costos y requisitos propios. Activar la opción del panel no crea una cuenta empresarial, no aprueba plantillas ni configura por sí solo un número de Meta.
+La migración 006 pasa de la configuración anterior a `whatsapp_config` con avisos desactivados, conserva el historial y cancela los avisos pendientes de la integración retirada; no los reproduce por Baileys. Los envíos de resultado incierto permanecen para consulta y reconciliación, sin reintento por el nuevo proveedor. Esta transición es idempotente y no borra notas ni asistencia.
+
+La sesión de Baileys usa `DATA_DIR/whatsapp/baileys-auth.db` con sus propios WAL/SHM, separada de `ingemat.db`. La copia SQLite del panel corresponde a la base académica; si necesitas conservar la vinculación, respalda la carpeta de WhatsApp en privado con la app detenida. También puedes volver a vincular sin afectar los datos académicos. Los archivos de sesión de bibliotecas anteriores no se importan.
 
 ## Revertir una actualización
 

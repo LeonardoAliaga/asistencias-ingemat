@@ -532,87 +532,20 @@ test("changing a student code and cycle preserves identity, contacts, printed sh
     409,
   );
 });
-test("WhatsApp webhooks require a valid signature and verification token before accepting delivery updates", async () => {
-  const crypto = require("node:crypto");
-  process.env.WHATSAPP_APP_SECRET = "Synthetic-webhook-secret";
-  process.env.WHATSAPP_VERIFY_TOKEN = "Synthetic-verification-token";
-  const challenge = await fetch(
-    base +
-      "/webhooks/whatsapp?hub.mode=subscribe&hub.verify_token=Synthetic-verification-token&hub.challenge=12345",
-  );
-  assert.equal(challenge.status, 200);
-  assert.equal(await challenge.text(), "12345");
-  assert.equal(
-    (
-      await fetch(
-        base + "/webhooks/whatsapp?hub.mode=subscribe&hub.verify_token=wrong",
-      )
-    ).status,
-    403,
-  );
-  const job = require("../src/services/notifications.service").enqueue({
-    eventKey: "test-webhook",
-    recipient: "+51900111222",
-    kind: "results",
-    payload: {},
-  });
-  db.prepare(
-    "UPDATE outbox SET provider_id='wamid-http-test',status='accepted' WHERE id=?",
-  ).run(job);
-  const payload = JSON.stringify({
-    entry: [
-      {
-        changes: [
-          {
-            value: {
-              statuses: [{ id: "wamid-http-test", status: "delivered" }],
-            },
-          },
-        ],
-      },
-    ],
-  });
-  const headers = {
-    "Content-Type": "application/json",
-    "x-hub-signature-256":
-      "sha256=" +
-      crypto
-        .createHmac("sha256", process.env.WHATSAPP_APP_SECRET)
-        .update(payload)
-        .digest("hex"),
-  };
-  assert.equal(
-    (
-      await fetch(base + "/webhooks/whatsapp", {
-        method: "POST",
-        headers: { ...headers, "x-hub-signature-256": "sha256=wrong" },
-        body: payload,
-      })
-    ).status,
-    403,
-  );
-  assert.equal(
-    db.prepare("SELECT status FROM outbox WHERE id=?").get(job).status,
-    "accepted",
-  );
-  for (let i = 0; i < 2; i++)
-    assert.equal(
-      (
-        await fetch(base + "/webhooks/whatsapp", {
-          method: "POST",
-          headers,
-          body: payload,
-        })
-      ).status,
-      200,
-    );
-  assert.equal(
-    db.prepare("SELECT status FROM outbox WHERE id=?").get(job).status,
-    "delivered",
-  );
-  assert.equal(db.prepare("SELECT COUNT(*) n FROM webhook_events").get().n, 1);
-  delete process.env.WHATSAPP_APP_SECRET;
-  delete process.env.WHATSAPP_VERIFY_TOKEN;
+test("paid WhatsApp endpoints are removed and Baileys controls require an administrator", async () => {
+  assert.equal((await admin("/webhooks/whatsapp")).status,404);
+  assert.equal((await admin("/whatsapp/api/status")).status,404);
+  assert.equal((await guest("/api/v2/notifications/health")).status,401);
+  const cfg = await admin("/api/v2/notifications");
+  assert.equal(cfg.data.status.provider,"baileys");
+  assert.equal(cfg.data.config.enabled,false);
+  assert(!("attendanceTemplate" in cfg.data.config));
+  assert.equal((await admin("/api/v2/notifications/config", {enabled:true},"PUT")).status,400);
+  assert.equal((await admin("/api/v2/notifications/config", {enabled:false,provider:"meta_cloud"},"PUT")).status,400);
+  assert.equal((await guest("/api/v2/notifications/baileys/connect",{},"POST")).status,401);
+  assert.equal((await admin("/api/v2/notifications/baileys/qr")).status,409);
+  assert.equal((await admin("/api/v2/notifications/baileys/stop",{},"POST")).status,200);
+  assert.equal((await admin("/api/v2/notifications/config", {enabled:false},"PUT")).status,200);
 });
 
 test("academic exports are valid workbooks and referenced cycles/books cannot be removed", async () => {

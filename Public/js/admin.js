@@ -115,7 +115,7 @@ const routes = {
     title: "Comunicación",
     group: "Gestión",
     description:
-      "Configura los avisos oficiales de WhatsApp y comprueba sus estados de entrega.",
+      "Vincula WhatsApp con Baileys y comprueba sus estados de entrega.",
     guide: "whatsapp-configurar",
     roles: ["admin"],
     v2: true,

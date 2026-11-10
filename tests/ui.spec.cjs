@@ -77,7 +77,7 @@ test("guide searches, category filters and step-by-step tutorials work", async (
   await expect(page.locator(".v2-tutorial li")).toHaveCount(8);
   await page.keyboard.press("Escape");
   await page.fill("#v2-guide-search", "");
-  await page.selectOption("#v2-guide-category", "WhatsApp oficial");
+  await page.selectOption("#v2-guide-category", "WhatsApp");
   await expect(page.locator("#v2-guide-count")).toHaveText("4 tutoriales");
 });
 test("mobile views fit the viewport and legacy HTML is sanitized", async ({
@@ -1728,4 +1728,167 @@ test("scanner failed attempts have bounded height and cleanup preserves ready ca
     .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
     .analyze();
   expect(audit.violations).toEqual([]);
+});
+
+async function baileysUIFixture(page, initial = {}) {
+  const defaults = {
+    enabled: false,
+    provider: "baileys",
+    attendanceMessage:
+      "INGEMAT · Asistencia\nEstudiante: {nombre}\nFecha: {fecha}\nHora: {hora}\nEstado: {estado}",
+    resultsMessage:
+      "INGEMAT · Simulacro\nEstudiante: {nombre}\nExamen: {examen}\nPuntaje: {puntaje}\nÁrea: {area}",
+  };
+  let config = { ...defaults },
+    health = {
+      provider: "baileys",
+      version: "7.0.0-rc14",
+      state: "idle",
+      connected: false,
+      configured: false,
+      enabled: false,
+      qrAvailable: false,
+      needsPackageReview: false,
+      note: "Conecta WhatsApp antes de activar los avisos.",
+      ...initial,
+    };
+  const posts = [];
+  await page.route("**/api/v2/notifications", (r) =>
+    r.fulfill({ json: { config, status: health, outbox: [] } }),
+  );
+  await page.route("**/api/v2/notifications/health", (r) =>
+    r.fulfill({ json: health }),
+  );
+  await page.route("**/api/v2/notifications/config", (r) => {
+    config = { ...config, ...r.request().postDataJSON() };
+    return r.fulfill({ json: { exito: true } });
+  });
+  await page.route("**/api/v2/notifications/baileys/*", (r) => {
+    const action = new URL(r.request().url()).pathname.split("/").at(-1);
+    posts.push(action);
+    if (action === "qr")
+      return r.fulfill({
+        json: {
+          dataUrl:
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a6iUAAAAASUVORK5CYII=",
+          expiresAt: health.qrExpiresAt,
+        },
+      });
+    health =
+      action === "connect"
+        ? {
+            ...health,
+            state: "connected",
+            connected: true,
+            configured: true,
+            qrAvailable: false,
+            needsPackageReview: false,
+            note: "WhatsApp conectado.",
+          }
+        : {
+            ...health,
+            state: "stopped",
+            connected: false,
+            configured: false,
+            enabled: false,
+            qrAvailable: false,
+            needsPackageReview: false,
+            note: "Conexión detenida. La sesión se conserva.",
+          };
+    return r.fulfill({ json: health });
+  });
+  return { posts, health: () => health };
+}
+test("Baileys is the only connection and health refresh preserves message drafts", async ({
+  page,
+}) => {
+  await baileysUIFixture(page);
+  await login(page);
+  await navigate(page, "notifications");
+  await expect(
+    page.locator(
+      "#v2-wa-config [name=provider], [name=attendanceTemplate], [name=resultsTemplate]",
+    ),
+  ).toHaveCount(0);
+  await page.fill("[name=attendanceMessage]", "Aviso editado para {nombre}");
+  await page.click("#v2-baileys-connect");
+  await expect(page.locator("#v2-baileys-status")).toContainText(
+    "WhatsApp conectado",
+  );
+  await expect(page.locator("[name=attendanceMessage]")).toHaveValue(
+    "Aviso editado para {nombre}",
+  );
+  await expect(page.locator("#v2-baileys-connect")).toBeDisabled();
+  await page.check("[name=enabled]");
+  await page.click("#v2-wa-config button[type=submit]");
+  await expect(page.locator("#v2-message")).toContainText(
+    "Configuración de WhatsApp guardada",
+  );
+});
+test("package error is visible across dashboard sections and academic UI remains usable on mobile", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const note =
+    "WhatsApp no está disponible. Revisa el paquete Baileys y su versión. La aplicación sigue funcionando y los avisos pendientes se conservan.";
+  await baileysUIFixture(page, {
+    state: "error",
+    needsPackageReview: true,
+    note,
+  });
+  await login(page);
+  await navigate(page, "notifications");
+  await expect(page.locator("#whatsapp-service-warning")).toContainText(
+    "Revisa el paquete Baileys",
+  );
+  await expect(page.locator("#v2-baileys-connect")).toBeEnabled();
+  const communicationAudit = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
+    .analyze();
+  expect(communicationAudit.violations).toEqual([]);
+  await navigate(page, "exams");
+  await page.click("#v2-new");
+  await expect(page.locator("#v2-exam-editor")).toBeVisible();
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth),
+  ).toBeLessThanOrEqual(390);
+  const audit = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
+    .analyze();
+  expect(audit.violations).toEqual([]);
+});
+test("pairing QR is cleared when stopping and the phone connection never enables notifications automatically", async ({
+  page,
+}) => {
+  const f = await baileysUIFixture(page, {
+    state: "pairing",
+    qrAvailable: true,
+    qrExpiresAt: Date.now() + 60000,
+    note: "Vincula tu teléfono.",
+  });
+  await login(page);
+  await navigate(page, "notifications");
+  await expect(page.locator("#v2-baileys-qr")).toBeVisible();
+  await expect(page.locator("[name=enabled]")).not.toBeChecked();
+  await page.click("#v2-baileys-stop");
+  await expect(page.locator("#v2-baileys-qr")).toBeHidden();
+  await expect(page.locator("#v2-baileys-qr-image")).not.toHaveAttribute(
+    "src",
+    /data:/,
+  );
+  expect(f.posts).toContain("stop");
+});
+test("failure to load the optional communication UI does not block the admin application", async ({
+  page,
+}) => {
+  await page.route("**/js/admin/notifications.js", (r) => r.abort("failed"));
+  await login(page);
+  await navigate(page, "attendance");
+  await expect(page.locator("#whatsapp-service-warning")).toContainText(
+    "No se pudo cargar Comunicación",
+  );
+  await expect(page.locator("#v2-attendance-load")).toBeVisible();
+  await navigate(page, "exams");
+  await page.click("#v2-new");
+  await expect(page.locator("#v2-exam-editor")).toBeVisible();
 });

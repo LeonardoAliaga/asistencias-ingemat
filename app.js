@@ -64,15 +64,7 @@ function createApp() {
       strictTransportSecurity: config.production ? undefined : false,
     }),
   );
-  app.use(
-    express.json({
-      limit: "5mb",
-      verify(req, res, buf) {
-        if (req.path.replace(/\/$/, "") === "/webhooks/whatsapp")
-          req.rawBody = buf;
-      },
-    }),
-  );
+  app.use(express.json({ limit: "5mb" }));
   app.use(
     session({
       name: "ingemat.sid",
@@ -131,11 +123,7 @@ function createApp() {
     });
   });
   app.use((req, res, next) => {
-    if (
-      ["GET", "HEAD", "OPTIONS"].includes(req.method) ||
-      req.path.replace(/\/$/, "") === "/webhooks/whatsapp"
-    )
-      return next();
+    if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return next();
     if (req.headers["sec-fetch-site"] === "cross-site")
       return res.status(403).json({
         exito: false,
@@ -222,14 +210,8 @@ function createApp() {
   app.get("/health", (req, res) =>
     res.json({ ok: !!db.prepare("SELECT 1 ok").get().ok, version: "2.0.0" }),
   );
-  app.use("/webhooks/whatsapp", require("./src/routes/webhook.route"));
   app.use("/api/v2", requireAuthenticated, require("./src/routes/v2.route"));
   app.use("/api", require("./src/routes/api.route"));
-  app.use(
-    "/whatsapp/api",
-    requireAdmin,
-    require("./src/routes/whatsapp.route"),
-  );
   const adminPage = (req, res) => {
     if (!req.session.accountId) return res.redirect("/pages/admin-login.html");
     return requireAuthenticated(req, res, () =>

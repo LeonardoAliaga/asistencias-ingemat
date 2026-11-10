@@ -20,10 +20,10 @@ Base inspeccionada: `be777fabb46e41df984302c9a3ebde8685c77b81` de `main`. Se rev
 | Notas reemplazadas sin conservar su versión anterior | Historial y motivo obligatorio para correcciones |
 | Ranking asignaba puestos distintos a puntajes iguales | Empates con puesto compartido y orden secundario por código |
 | Estado compartido entre clave y respuestas de alumnos | Borradores separados y motor único para las nuevas capturas |
-| WhatsApp Web dependía de HTML/versiones y navegador | Cloud API con HTTP versionado, cola y webhooks firmados |
+| WhatsApp Web dependía de HTML/versiones y navegador | Baileys en proceso hijo supervisado, cola persistente y confirmaciones de entrega |
 | Una nota corregida podía reutilizar el evento de un aviso anterior | Identidad por calificación, cancelación de pendientes obsoletos y nueva publicación |
 | Estado booleano de envío sin confirmación de entrega | Estados separados y protección frente a duplicación/reintentos inciertos |
-| Configuración de WhatsApp leída de JSON y guardada en SQLite | Configuración oficial centralizada en SQLite; secretos solo en servidor |
+| Configuración de WhatsApp leída de JSON y guardada en SQLite | Configuración Baileys en SQLite; sesión y claves Signal en una base privada separada |
 | Recursos de la dashboard dependían de varios CDNs | Librerías, iconos y scripts servidos localmente desde dependencias bloqueadas |
 | Estilos móviles aumentaban fuentes a tamaños excesivos | Reglas responsive, foco visible, contención de tablas y controles táctiles |
 | Estilos globales rompían los pasos de los tutoriales | Componentes nuevos aislados de reglas heredadas |
@@ -39,7 +39,7 @@ Se conserva el frontend anterior para usuarios, biblioteca, tareas y reportes mi
 
 La auditoría inicial de `package-lock.json` señaló 21 dependencias afectadas (incluyendo desarrollo y dependencias transitivas). Tras retirar el transporte de navegador y actualizar paquetes/lockfile, la comprobación local de npm quedó sin alertas. ExcelJS usa una sustitución acotada de su dependencia UUID; el uso de `v4` mantiene compatibilidad y las exportaciones se prueban.
 
-No se ha verificado un despliegue existente ni un lote físico de cartillas. No se conectó WhatsApp a una cuenta real. Esos dos puntos necesitan el equipo/material y las credenciales de la academia; el código, documentación y verificaciones reproducibles quedan en esta rama.
+No se ha verificado un despliegue existente ni un lote físico de cartillas. No se conectó WhatsApp a una cuenta real. Esos dos puntos necesitan el equipo/material y el teléfono de WhatsApp de la academia; el código, documentación y verificaciones reproducibles quedan en esta rama.
 
 Se verificó además la migración sobre una copia del SQLite existente: se conservaron las cantidades de usuarios, ciclos, evaluaciones, respuestas, tareas, registros de tarea, libros y préstamos. La comprobación de integridad devolvió `ok` y se creó el respaldo previo. La base original no fue modificada.
 

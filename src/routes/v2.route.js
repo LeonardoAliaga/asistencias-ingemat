@@ -46,7 +46,7 @@ router.get("/summary", (req, res) =>
       .get(businessDate()).n,
     pendientes: db
       .prepare(
-        "SELECT COUNT(*) n FROM outbox WHERE status IN ('pending','retry','unknown','failed')",
+        "SELECT COUNT(*) n FROM outbox WHERE provider='baileys' AND status IN ('pending','retry','unknown','failed')",
       )
       .get().n,
     imports: db
@@ -489,70 +489,6 @@ router.post("/templates", write, (req, res) => {
   audit(req, "guardar_plantilla", "plantilla", id);
   res.status(201).json({ exito: true, id });
 });
-router.get("/notifications", requireAdmin, (req, res) =>
-  res.json({
-    exito: true,
-    status: notifications.status(),
-    config: notifications.getConfig(),
-    outbox: db
-      .prepare(
-        "SELECT id,recipient,kind,status,attempts,error,provider_id,created_at FROM outbox ORDER BY created_at DESC LIMIT 100",
-      )
-      .all(),
-  }),
-);
-router.put("/notifications/config", requireAdmin, (req, res) => {
-  const c = req.body;
-  if (
-    typeof c.enabled !== "boolean" ||
-    !/^\w{2,3}(?:_\w{2})?$/.test(c.language || "") ||
-    ["attendanceTemplate", "resultsTemplate"].some(
-      (k) => !/^[a-z0-9_]{0,100}$/.test(c[k] || ""),
-    )
-  )
-    throw new AppError("Configuración de plantillas inválida.");
-  if (
-    c.enabled &&
-    (!notifications.status().configured ||
-      !c.attendanceTemplate ||
-      !c.resultsTemplate)
-  )
-    throw new AppError(
-      "Completa las credenciales del servidor y ambas plantillas antes de activar los envíos.",
-    );
-  const clean = {
-    enabled: c.enabled,
-    language: c.language,
-    attendanceTemplate: c.attendanceTemplate || "",
-    resultsTemplate: c.resultsTemplate || "",
-  };
-  db.prepare(
-    "INSERT OR REPLACE INTO config_general(clave,valor) VALUES('whatsapp_cloud_config',?)",
-  ).run(JSON.stringify(clean));
-  audit(req, "configurar_whatsapp", "config", "cloud", { enabled: c.enabled });
-  res.json({ exito: true });
-});
-router.post("/notifications/:id/retry", requireAdmin, (req, res) => {
-  const row = db.prepare("SELECT * FROM outbox WHERE id=?").get(req.params.id);
-  if (!row || !["failed", "unknown"].includes(row.status))
-    throw new AppError("El mensaje no se puede reenviar en su estado actual.");
-  if (
-    row.kind === "results" &&
-    notifications.resultState(JSON.parse(row.payload)) !== "current"
-  )
-    throw new AppError(
-      "El resultado fue modificado o está sin publicar. Revisa, publica y genera el aviso actualizado.",
-      409,
-    );
-  if (row.status === "unknown" && req.body.confirmNotDelivered !== true)
-    throw new AppError(
-      "Confirma que el mensaje no fue entregado antes de reenviarlo.",
-    );
-  db.prepare(
-    "UPDATE outbox SET status='pending',next_attempt_at=0,error='' WHERE id=?",
-  ).run(row.id);
-  audit(req, "reintentar_aviso", "notificacion", row.id);
-  res.json({ exito: true });
-});
+router.use("/notifications", require("./notifications.route"));
 router.scanner = scanner;
 module.exports = router;

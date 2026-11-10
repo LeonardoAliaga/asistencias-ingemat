@@ -76,7 +76,7 @@ Usa código, lector USB o cámara.
 2. **Introduce el código.** Escríbelo o usa un lector USB. El sistema identifica por código, no por nombre.
 3. **Comprueba el resultado.** Revisa nombre, ciclo, turno y hora. La fecha y hora se calculan en America/Lima.
 4. **Evita registros repetidos.** Una segunda lectura del mismo usuario, fecha y turno informa que ya existe un ingreso.
-5. **Continúa aunque falle Internet.** La asistencia se guarda en SQLite. Los avisos quedan en cola y se envían cuando la conexión oficial vuelva a estar disponible.
+5. **Continúa aunque falle Internet.** La asistencia se guarda en SQLite. Los avisos quedan en cola y se envían cuando WhatsApp vuelva a estar disponible.
 6. **Consulta la lista.** En Asistencia filtra por fecha, ciclo y turno. Descarga Excel o pulsa Copiar imagen para pegar el reporte PNG con Ctrl+V.
 
 - Un aviso en cola no equivale a un mensaje entregado. Consulta Comunicación para comprobar el estado.
@@ -281,7 +281,7 @@ Revisa antes de comunicar.
 3. **Exporta el cuadro.** Usa el Excel de ranking o los reportes individuales de Reportes.
 4. **Publica.** Pulsa Publicar cuando hayas comprobado claves y lecturas. Publicar no envía mensajes automáticamente.
 5. **Envía avisos si corresponde.** Con WhatsApp configurado y contactos autorizados, pulsa Notificar resultados. El envío queda en cola.
-6. **Comprueba entregas.** Comunicación distingue aceptado por Meta, enviado, entregado, leído y fallido.
+6. **Comprueba entregas.** Comunicación distingue aceptado por WhatsApp, enviado, entregado, leído y fallido.
 
 ## Registrar tareas, notas vigesimales y entregas
 
@@ -328,21 +328,20 @@ Mantén la información pública desde el panel.
 5. **Comprueba la portada.** Abre la página pública y revisa el orden, legibilidad y recorte en celular.
 6. **Retira material antiguo.** Elimina únicamente los elementos que ya no deben mostrarse.
 
-## Configurar WhatsApp Business Platform
+## Vincular WhatsApp con Baileys
 
-Conexión oficial con tarifas de Meta: comprueba el costo antes de activar los avisos.
+Vincula el teléfono; los fallos de WhatsApp quedan aislados de la operación académica.
 
-1. **Prepara la cuenta de Meta.** Necesitas un portafolio empresarial, una WhatsApp Business Account y un número habilitado para Cloud API. Empieza con el número de prueba de Meta. La plataforma oficial puede cobrar por mensaje entregado según categoría y destino. Revisa las tarifas vigentes en Meta y la facturación de tu cuenta antes de usar números reales. La conexión directa sin intermediario no convierte los envíos en gratuitos.
-2. **Configura el servidor.** Completa WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_API_VERSION, WHATSAPP_APP_SECRET y WHATSAPP_VERIFY_TOKEN en .env. El token se queda en el servidor.
-3. **Publica el webhook.** Meta debe acceder por HTTPS a /webhooks/whatsapp. Una instalación solo en localhost necesita un endpoint público o un despliegue con HTTPS.
-4. **Suscribe eventos de mensajes.** Configura el token de verificación y los eventos de mensajes y estados en Meta. Los POST se validan con la firma del App Secret.
-5. **Crea las plantillas.** Asistencia: nombre, fecha, hora, estado. Resultados: nombre, examen, puntaje, área. Solicita su aprobación y usa exactamente el código de idioma aprobado.
-6. **Completa Comunicación.** Introduce nombres de plantillas e idioma. Activa los avisos cuando el estado indique credenciales completas.
-7. **Registra contactos autorizados.** En Apoderados y áreas agrega teléfonos internacionales y registra su autorización para recibir los avisos.
-8. **Haz una prueba controlada.** Registra un ingreso de un alumno de prueba y comprueba el estado real de entrega antes de usarlo con toda la academia.
+1. **Instala el paquete.** Actualiza la rama y ejecuta npm ci. Baileys es una dependencia opcional fijada a una versión probada. npm run whatsapp:doctor comprueba que carga sin conectar una cuenta. Si falla, la app puede iniciar y mostrará Revisa el paquete Baileys y su versión.
+2. **Abre Comunicación.** Inicia sesión como administrador. La única conexión disponible es Baileys. No se necesitan tokens, cuenta de API de pago, plantillas aprobadas ni webhook público.
+3. **Personaliza los mensajes.** Edita los mensajes de asistencia y resultados. Conserva {nombre} y usa las variables indicadas debajo de cada campo. Guarda con los avisos desactivados mientras vinculas el teléfono.
+4. **Conecta y escanea el QR.** Pulsa Conectar / Reintentar. En el teléfono de la academia abre WhatsApp → Dispositivos vinculados → Vincular un dispositivo. Escanea el QR privado del panel antes de que caduque. Este QR vincula el teléfono; es distinto al QR de las cartillas.
+5. **Activa cuando esté conectado.** Comprueba el estado Conectado, marca Activar notificaciones y guarda. Vincular el teléfono no activa los avisos automáticamente. Las asistencias generan avisos para contactos autorizados; los resultados se notifican cuando lo solicitas tras publicarlos.
+6. **Recupera una falla.** Si el paquete, la conexión o el proceso fallan, aparece un aviso para revisar Baileys. La app, la asistencia y las notas continúan; los avisos sin enviar se conservan. Ejecuta npm run whatsapp:doctor, revisa la versión y pulsa Conectar / Reintentar. Un envío incierto necesita comprobar la entrega antes de reenviarlo.
+7. **Detén o vuelve a vincular.** Detener conexión desactiva los avisos y conserva la sesión. Volver a vincular, tras confirmar, elimina solo la sesión local de WhatsApp; después conecta y escanea otro QR. No borra asistencias, estudiantes ni calificaciones.
 
-- La API oficial tiene tarifas y reglas de plantillas. Consulta los costos vigentes para Perú. La aplicación no solicita ni muestra tokens en el navegador.
-- Para alternativas sin tarifa de API por mensaje, consulta docs/INVESTIGACION.md: Baileys, WPPConnect y el envío manual mediante wa.me. Las bibliotecas no oficiales siguen sujetas a cambios de WhatsApp; la comparación es una propuesta, no un proveedor nuevo activado en esta versión.
+- Baileys se ejecuta en un proceso separado con tiempos de espera, latidos de supervisión y límite de heap. La sesión está en DATA_DIR/whatsapp/baileys-auth.db, separada de la base académica.
+- Es una biblioteca no oficial sujeta a cambios de WhatsApp. La aplicación no instala actualizaciones arbitrarias ni reinicia indefinidamente un proceso que falla. Consulta docs/WHATSAPP.md y docs/ARQUITECTURA.md.
 
 ## Áreas y apoderados que reciben avisos
 
@@ -357,25 +356,28 @@ Cada alumno puede tener varios contactos autorizados.
 
 ## Reintentos, mensajes fallidos y entrega
 
-La asistencia y la mensajería tienen estados independientes.
+La cola conserva avisos y distingue entrega confirmada de un resultado incierto.
 
-1. **Abre Comunicación.** La tabla muestra los últimos avisos y su estado.
-2. **Pendiente / reintento.** El mensaje está en cola. Los errores transitorios reintentan con espera creciente.
-3. **Aceptado / enviado.** Meta aceptó la solicitud o informó su envío. Todavía no significa que el teléfono lo haya recibido.
-4. **Entregado / leído.** El webhook confirmó estos estados cuando están disponibles.
-5. **Fallido.** Revisa error, número, plantilla aprobada, idioma, credenciales y límites del proveedor.
-6. **Estado desconocido.** Un corte pudo ocurrir después de que Meta aceptara el mensaje. Comprueba que no se entregó antes de reenviar para evitar duplicados.
-7. **Reintenta conscientemente.** Usa Reintentar después de corregir la causa. Los avisos entregados no se vuelven a enviar desde ese botón.
+1. **Consulta la cola.** En Comunicación, Avisos y entregas muestra destinatario, tipo, estado y detalle. Actualizar refresca la tabla sin reenviar.
+2. **Pendiente.** El aviso espera a que WhatsApp esté conectado y los envíos activados. No depende de que la asistencia o la calificación vuelvan a guardarse.
+3. **Aceptado y enviado.** El componente de WhatsApp aceptó el mensaje o confirmó su envío al servidor. Esto no equivale a entrega al teléfono.
+4. **Entregado y leído.** Se muestran cuando WhatsApp comunica las confirmaciones disponibles. Los eventos repetidos o fuera de orden no hacen retroceder un estado confirmado.
+5. **Fallido o por comprobar.** Revisa el detalle y el aviso del paquete. Si el proceso cayó después de intentar enviar, el estado es Por comprobar. Verifica con el destinatario que no llegó antes de confirmar un reintento.
+6. **Avisos históricos.** Los avisos de la integración anterior se conservan solo para consulta y no se reproducen automáticamente por Baileys. La actualización desactiva aquella configuración; los nuevos envíos se activan tras vincular el teléfono.
 
-## Qué cambia si antes enviabas a grupos
+- Una autorización revocada cancela avisos pendientes. Corregir una nota cancela los avisos obsoletos y requiere volver a publicar antes de notificar.
 
-La migración oficial no conserva automáticamente los grupos del salón.
+## Avisos individuales y reportes para grupos
 
-1. **Distingue los productos.** Un grupo normal de WhatsApp Web no es un destinatario individual de Cloud API.
-2. **Revisa los límites vigentes.** La documentación de Groups API consultada exige Official Business Account y limita los grupos a ocho participantes; no sustituye un salón grande.
-3. **Usa avisos individuales.** La nueva integración se orienta a apoderados y estudiantes con autorización.
-4. **Conserva el reporte administrativo.** Descarga el consolidado si necesitas compartirlo manualmente en un grupo existente.
-5. **Evalúa otro canal si el grupo es obligatorio.** Un canal grupal con API oficial puede estudiarse por separado. No vuelvas a introducir una sesión de navegador pensando que tendrá la estabilidad de Cloud API.
+Esta interfaz envía avisos a contactos individuales autorizados.
+
+1. **Identifica el destinatario.** Los avisos automáticos de esta versión utilizan los contactos individuales registrados por estudiante.
+2. **Prepara el reporte del grupo.** Descarga el reporte o la imagen de asistencia con los filtros correctos.
+3. **Comparte desde WhatsApp.** Abre el grupo correspondiente en tu teléfono o WhatsApp y adjunta el archivo manualmente.
+4. **Conserva la privacidad.** Comprueba que el grupo y el contenido correspondan al salón antes de compartir los resultados.
+5. **Comprueba el envío.** La app no recibe confirmaciones de un archivo que compartes manualmente en un grupo. Comprueba el chat y evita adjuntar el mismo reporte varias veces.
+
+- Baileys admite más capacidades, pero esta implementación no incorpora selección ni automatización de grupos.
 
 ## Crear y comprobar copias de seguridad
 
@@ -398,7 +400,7 @@ Mantén los datos de trabajo fuera del código fuente.
 4. **Arranca una sola instancia.** La aplicación crea una copia previa a la migración y aplica cambios de esquema. No ejecutes varios procesos de PM2 para esta instalación SQLite.
 5. **Comprueba el histórico.** Los usuarios, notas y archivos existentes se conservan localmente. Los exámenes anteriores se consultan como históricos y no se recalifican sin estructura v2.
 6. **Prueba funciones.** Verifica acceso, asistencia, un simulacro pequeño, impresión y lectura antes de comenzar la jornada.
-7. **Configura WhatsApp de nuevo.** Las sesiones LocalAuth anteriores no se utilizan. Completa Cloud API y los contactos autorizados.
+7. **Configura WhatsApp de nuevo.** Las sesiones LocalAuth anteriores no se utilizan. Vincula el teléfono con Baileys en Comunicación y revisa los contactos autorizados.
 
 ## Resolver problemas frecuentes
 
@@ -410,5 +412,5 @@ Pistas para recuperar el flujo sin perder datos.
 4. **El lector no inicia.** Ejecuta npm run omr:doctor en la carpeta del proyecto. Muestra el Python efectivo y comprueba cada dependencia, incluida ArUco. Revisa las líneas [OMR] de la consola donde arrancaste la app; al procesar un lote muestran el error original, stderr y código de salida. Tras cambiar el .env reinicia la app.
 5. **No reconoce la hoja.** Usa una cartilla v2 completa, 300 ppp, cuatro marcadores visibles y QR nítido. Los formatos antiguos no se leen con la nueva plantilla.
 6. **El lote tiene incidencias.** Abre Revisar. Resuelve las marcas dudosas, páginas repetidas o faltantes antes de confirmar.
-7. **No llegan avisos.** Comprueba contactos autorizados, idioma y plantillas aprobadas, estado de credenciales, Internet y webhooks.
+7. **No llegan avisos.** Comprueba contactos autorizados, mensajes guardados, conexión del teléfono y avisos activados. Si aparece Revisa el paquete Baileys y su versión, ejecuta npm run whatsapp:doctor y reintenta la conexión. Las asistencias y notas se conservan.
 8. **La sesión cambió.** Actualiza la página e inicia sesión de nuevo. Un cambio de contraseña, desactivación de la cuenta puede invalidarla.

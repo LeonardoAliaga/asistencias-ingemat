@@ -27,7 +27,8 @@ function createBaileysService({
     code: "",
     note: "Conecta WhatsApp y vincula tu teléfono antes de activar los avisos.",
   };
-  let qr = null;
+  let qr = null,
+    resetting = false;
   const pending = new Map();
   const status = () => ({
     ...snapshot,
@@ -73,6 +74,7 @@ function createBaileysService({
     console.warn("[WhatsApp] Servicio aislado detenido", { code });
   }
   function connect() {
+    if (resetting) return status();
     if (child && snapshot.state === "pairing" && !status().qrAvailable) stop();
     if (child) return status();
     const token = ++generation;
@@ -85,7 +87,35 @@ function createBaileysService({
     qr = null;
     try {
       child = spawn(workerPath, [], {
-        env: { ...process.env, INGEMAT_WA_AUTH_DIR: authDir },
+        env: {
+          ...Object.fromEntries(
+            Object.entries(process.env).filter(([key]) =>
+              [
+                "path",
+                "systemroot",
+                "windir",
+                "temp",
+                "tmp",
+                "tmpdir",
+                "home",
+                "userprofile",
+                "localappdata",
+                "appdata",
+                "lang",
+                "lc_all",
+                "tz",
+                "http_proxy",
+                "https_proxy",
+                "no_proxy",
+                "node_env",
+                "node_extra_ca_certs",
+                "ssl_cert_file",
+                "ssl_cert_dir",
+              ].includes(key.toLowerCase()),
+            ),
+          ),
+          INGEMAT_WA_AUTH_DIR: authDir,
+        },
         execArgv: ["--max-old-space-size=256"],
         stdio: ["ignore", "ignore", "ignore", "ipc"],
         windowsHide: true,
@@ -233,7 +263,15 @@ function createBaileysService({
     return previous;
   }
   async function reset() {
+    if (resetting) return status();
+    resetting = true;
     const previous = stop();
+    snapshot = {
+      state: "resetting",
+      needsPackageReview: false,
+      code: "",
+      note: "Cerrando la sesión local antes de volver a vincular…",
+    };
     if (previous && previous.exitCode == null)
       await new Promise((resolve) => {
         const timer = setTimeout(() => {
@@ -252,8 +290,16 @@ function createBaileysService({
         fs.rmSync(path.join(authDir, "baileys-auth.db" + suffix), {
           force: true,
         });
+      snapshot = {
+        state: "stopped",
+        needsPackageReview: false,
+        code: "",
+        note: "Sesión local retirada. Pulsa Conectar para vincular el teléfono.",
+      };
     } catch {
       fault("BAILEYS_SESSION_RESET_ERROR");
+    } finally {
+      resetting = false;
     }
     return status();
   }

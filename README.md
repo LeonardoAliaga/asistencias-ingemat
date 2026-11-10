@@ -1,6 +1,6 @@
 # INGEMAT 2.0
 
-Gestión de una academia preuniversitaria: usuarios, recepción, asistencia, biblioteca, tareas, simulacros por cursos y áreas, lectura OMR por lotes y avisos individuales con WhatsApp Business Platform.
+Gestión de una academia preuniversitaria: usuarios, recepción, asistencia, biblioteca, tareas, simulacros por cursos y áreas, lectura OMR por lotes y avisos individuales con Baileys en un proceso aislado.
 
 La guía completa está dentro de la dashboard, en **Guía y tutoriales**: 34 tutoriales con buscador, categorías y ayuda contextual. También se puede leer en [docs/GUIA.md](docs/GUIA.md).
 
@@ -17,7 +17,7 @@ Criterios de diseño, referencias de Carbon/WCAG y alcance de las verificaciones
 - Node.js **24 LTS o 26 LTS**, npm y un equipo que pueda permanecer encendido durante la jornada.
 - Python 3.11 o posterior para OMR; se prueba con 3.12.
 - Para escanear lotes: escáner o multifuncional con alimentador automático, preferentemente a 300 ppp. Las fotos PNG/JPG también funcionan con cartillas v2 completas.
-- Para avisos: acceso a Internet, WhatsApp Business Platform y un endpoint HTTPS público para webhooks. La asistencia funciona aunque el transporte esté desconectado.
+- Para avisos: acceso a Internet y el teléfono de WhatsApp de la academia para vincularlo desde Comunicación. La asistencia funciona aunque el transporte esté desconectado.
 
 ## Instalar
 
@@ -101,34 +101,23 @@ El lector usa Python/OpenCV, marcadores ArUco y una geometría de impresión com
 
 Para reducir manipulación, la ruta recomendada es ADF → PDF multipágina → lote → revisión de excepciones. Para pocos alumnos puedes usar fotos. La comparación de herramientas y fuentes está en [docs/INVESTIGACION.md](docs/INVESTIGACION.md).
 
-## WhatsApp oficial
+## WhatsApp con Baileys
 
-Se retiraron Chromium, Puppeteer, LocalAuth y el transporte `whatsapp-web.js`. La integración usa HTTP con la API versionada de Meta, plantillas aprobadas, cola persistente y webhooks firmados.
+La única conexión disponible es **Baileys**, fijada a `7.0.0-rc14` e instalada como dependencia opcional. La biblioteca y su conexión se ejecutan en un proceso hijo: no se importan en el servidor académico. Un error de carga, caída, bloqueo o timeout detiene ese componente y muestra **Revisa el paquete Baileys y su versión**; la app y las operaciones académicas continúan.
 
-Configura en `.env`:
-
-```dotenv
-WHATSAPP_ACCESS_TOKEN=token_de_sistema_del_servidor
-WHATSAPP_PHONE_NUMBER_ID=identificador_del_numero
-WHATSAPP_API_VERSION=v25.0
-WHATSAPP_APP_SECRET=secreto_de_la_aplicacion_meta
-WHATSAPP_VERIFY_TOKEN=valor_aleatorio_de_verificacion
+```sh
+npm ci
+npm run whatsapp:doctor
+npm start
 ```
 
-Verifica en Meta qué versión soportada vas a utilizar. No uses un token temporal de la pantalla de pruebas como credencial de operación permanente. El webhook es `https://TU_DOMINIO/webhooks/whatsapp`; configura su verificación y suscripción al campo de mensajes/estados.
+El diagnóstico no vincula cuentas ni envía mensajes. Desde **Comunicación**, guarda los mensajes, pulsa **Conectar / Reintentar** y escanea el QR con WhatsApp → Dispositivos vinculados. Cuando aparezca Conectado, activa los avisos y guarda. No se necesitan credenciales de API de pago ni webhooks públicos. La sesión persiste en `DATA_DIR/whatsapp/baileys-auth.db`, separada de la base académica. Conserva esa carpeta en privado o vuelve a vincular el teléfono tras restaurar.
 
-Plantillas de **cuerpo con parámetros de texto**, en este orden:
+Los avisos requieren contactos autorizados. Los resultados se notifican mediante una acción explícita después de publicarlos. La cola conserva mensajes y sus textos; un envío incierto no se repite automáticamente. Los estados de entrega se actualizan cuando WhatsApp los comunica. Esta interfaz no automatiza grupos.
 
-- Asistencia: nombre, fecha, hora, estado.
-- Resultado: nombre, examen, puntaje, área.
+La migración retira la configuración y los endpoints de la integración anterior, conserva sus avisos históricos y no los reenvía por Baileys. Las instalaciones anteriores empiezan con los nuevos avisos desactivados hasta vincular el teléfono. La biblioteca no oficial puede requerir mantenimiento; aislarla evita convertir sus fallos en una caída de INGEMAT.
 
-Registra nombre exacto e idioma aprobado de ambas plantillas en **Comunicación**. Registra a los apoderados en **Apoderados y áreas** y su autorización. Los avisos permanecen desactivados hasta completar la configuración. Los resultados solo se notifican cuando el administrador pulsa el botón correspondiente.
-
-La cola evita duplicar un mismo evento. Se diferencian pendiente, aceptado, enviado, entregado, leído y fallido; un corte incierto se conserva para comprobación y no se reenvía a ciegas. Una autorización revocada cancela avisos que todavía no se enviaron.
-
-Esta integración **no envía a los grupos tradicionales del salón**. La Groups API oficial consultada admite grupos pequeños y requisitos especiales; no sustituye los grupos grandes existentes. Puedes descargar los reportes y compartirlos manualmente, o evaluar otro canal oficial para grupos. Las opciones y limitaciones están en la guía y en la investigación.
-
-No se han realizado envíos reales ni se han configurado cuentas externas durante el desarrollo; para activarlos hacen falta las credenciales y plantillas de la academia. Consulta las tarifas vigentes por país y categoría.
+[Uso y recuperación](docs/WHATSAPP.md) · [Arquitectura y responsabilidades](docs/ARQUITECTURA.md). Las pruebas no conectan números reales ni envían mensajes a personas.
 
 ## Copias y recuperación
 
@@ -182,7 +171,7 @@ npm run test:ui
 npm audit --omit=dev
 ```
 
-Los tests usan directorios temporales y datos ficticios; no usan los registros de la academia ni hacen envíos reales. Las pruebas del backend incluyen HTTP, permisos, migración, importación atómica, versiones, cuotas, duplicados y la cola oficial. Las pruebas OMR incluyen PDF real, 120 preguntas, marcas dobles/tenues, perspectiva y segunda página. Las pruebas de navegador cubren creación y calificación, guía, pantalla móvil, formularios heredados, acceso de recepción mediante cuentas y sanitización.
+Los tests usan directorios temporales y datos ficticios; no usan los registros de la academia ni hacen envíos reales. Las pruebas del backend incluyen HTTP, permisos, migración, importación atómica, versiones, cuotas, duplicados y la cola de Baileys y el aislamiento del proceso. Las pruebas OMR incluyen PDF real, 120 preguntas, marcas dobles/tenues, perspectiva y segunda página. Las pruebas de navegador cubren creación y calificación, guía, pantalla móvil, formularios heredados, acceso de recepción mediante cuentas y sanitización.
 
 ## Organización
 
@@ -190,7 +179,9 @@ Los tests usan directorios temporales y datos ficticios; no usan los registros d
 - `src/services/evaluations.service.js`: exámenes, revisiones e historial.
 - `src/services/imports.service.js`, `src/omr/`: lotes y reconocimiento de marcas.
 - `src/services/attendance.service.js`: registros canónicos y exportación.
-- `src/services/notifications.service.js`: transporte oficial y cola.
+- `src/services/notifications.service.js`: cola y reglas de los avisos.
+- `src/services/baileys.service.js`, `src/whatsapp/`: supervisor, proceso y sesión privada.
+- `src/routes/notifications.route.js`, `Public/js/admin/notifications.js`: HTTP e interfaz de Comunicación.
 - `src/database/migrations/`: esquema y actualización.
 - `Public/js/admin/v2.js`, `Public/pages/v2-panel.html`: herramientas del panel.
 - `src/content/guide.json`: contenido único de los 34 tutoriales.

@@ -59,6 +59,12 @@ db.exec(
   ),
 );
 addColumn("outbox", "contact_id", "TEXT DEFAULT NULL");
+addColumn("outbox", "provider", "TEXT NOT NULL DEFAULT 'meta_cloud'");
+db.exec(
+  "CREATE INDEX IF NOT EXISTS outbox_provider_status ON outbox(provider,status,next_attempt_at)",
+);
+// One-time transition: preserve history without replaying paid-provider notices.
+db.exec(fs.readFileSync(path.join(__dirname,"migrations/006-baileys.sql"),"utf8"));
 const uuid = require("node:crypto").randomUUID;
 for (const row of db
   .prepare("SELECT codigo FROM usuarios WHERE uid='' OR uid IS NULL")

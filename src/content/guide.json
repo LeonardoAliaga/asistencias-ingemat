@@ -224,7 +224,7 @@
         },
         {
           "title": "Continúa aunque falle Internet",
-          "text": "La asistencia se guarda en SQLite. Los avisos quedan en cola y se envían cuando la conexión oficial vuelva a estar disponible."
+          "text": "La asistencia se guarda en SQLite. Los avisos quedan en cola y se envían cuando WhatsApp vuelva a estar disponible."
         },
         {
           "title": "Consulta la lista",
@@ -796,7 +796,7 @@
         },
         {
           "title": "Comprueba entregas",
-          "text": "Comunicación distingue aceptado por Meta, enviado, entregado, leído y fallido."
+          "text": "Comunicación distingue aceptado por WhatsApp, enviado, entregado, leído y fallido."
         }
       ],
       "tips": []
@@ -939,51 +939,47 @@
     },
     {
       "id": "whatsapp-configurar",
-      "category": "WhatsApp oficial",
-      "title": "Configurar WhatsApp Business Platform",
-      "summary": "Conexión oficial con tarifas de Meta: comprueba el costo antes de activar los avisos.",
+      "category": "WhatsApp",
+      "title": "Vincular WhatsApp con Baileys",
+      "summary": "Vincula el teléfono; los fallos de WhatsApp quedan aislados de la operación académica.",
       "steps": [
         {
-          "title": "Prepara la cuenta de Meta",
-          "text": "Necesitas un portafolio empresarial, una WhatsApp Business Account y un número habilitado para Cloud API. Empieza con el número de prueba de Meta. La plataforma oficial puede cobrar por mensaje entregado según categoría y destino. Revisa las tarifas vigentes en Meta y la facturación de tu cuenta antes de usar números reales. La conexión directa sin intermediario no convierte los envíos en gratuitos."
+          "title": "Instala el paquete",
+          "text": "Actualiza la rama y ejecuta npm ci. Baileys es una dependencia opcional fijada a una versión probada. npm run whatsapp:doctor comprueba que carga sin conectar una cuenta. Si falla, la app puede iniciar y mostrará Revisa el paquete Baileys y su versión."
         },
         {
-          "title": "Configura el servidor",
-          "text": "Completa WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_API_VERSION, WHATSAPP_APP_SECRET y WHATSAPP_VERIFY_TOKEN en .env. El token se queda en el servidor."
+          "title": "Abre Comunicación",
+          "text": "Inicia sesión como administrador. La única conexión disponible es Baileys. No se necesitan tokens, cuenta de API de pago, plantillas aprobadas ni webhook público."
         },
         {
-          "title": "Publica el webhook",
-          "text": "Meta debe acceder por HTTPS a /webhooks/whatsapp. Una instalación solo en localhost necesita un endpoint público o un despliegue con HTTPS."
+          "title": "Personaliza los mensajes",
+          "text": "Edita los mensajes de asistencia y resultados. Conserva {nombre} y usa las variables indicadas debajo de cada campo. Guarda con los avisos desactivados mientras vinculas el teléfono."
         },
         {
-          "title": "Suscribe eventos de mensajes",
-          "text": "Configura el token de verificación y los eventos de mensajes y estados en Meta. Los POST se validan con la firma del App Secret."
+          "title": "Conecta y escanea el QR",
+          "text": "Pulsa Conectar / Reintentar. En el teléfono de la academia abre WhatsApp → Dispositivos vinculados → Vincular un dispositivo. Escanea el QR privado del panel antes de que caduque. Este QR vincula el teléfono; es distinto al QR de las cartillas."
         },
         {
-          "title": "Crea las plantillas",
-          "text": "Asistencia: nombre, fecha, hora, estado. Resultados: nombre, examen, puntaje, área. Solicita su aprobación y usa exactamente el código de idioma aprobado."
+          "title": "Activa cuando esté conectado",
+          "text": "Comprueba el estado Conectado, marca Activar notificaciones y guarda. Vincular el teléfono no activa los avisos automáticamente. Las asistencias generan avisos para contactos autorizados; los resultados se notifican cuando lo solicitas tras publicarlos."
         },
         {
-          "title": "Completa Comunicación",
-          "text": "Introduce nombres de plantillas e idioma. Activa los avisos cuando el estado indique credenciales completas."
+          "title": "Recupera una falla",
+          "text": "Si el paquete, la conexión o el proceso fallan, aparece un aviso para revisar Baileys. La app, la asistencia y las notas continúan; los avisos sin enviar se conservan. Ejecuta npm run whatsapp:doctor, revisa la versión y pulsa Conectar / Reintentar. Un envío incierto necesita comprobar la entrega antes de reenviarlo."
         },
         {
-          "title": "Registra contactos autorizados",
-          "text": "En Apoderados y áreas agrega teléfonos internacionales y registra su autorización para recibir los avisos."
-        },
-        {
-          "title": "Haz una prueba controlada",
-          "text": "Registra un ingreso de un alumno de prueba y comprueba el estado real de entrega antes de usarlo con toda la academia."
+          "title": "Detén o vuelve a vincular",
+          "text": "Detener conexión desactiva los avisos y conserva la sesión. Volver a vincular, tras confirmar, elimina solo la sesión local de WhatsApp; después conecta y escanea otro QR. No borra asistencias, estudiantes ni calificaciones."
         }
       ],
       "tips": [
-        "La API oficial tiene tarifas y reglas de plantillas. Consulta los costos vigentes para Perú. La aplicación no solicita ni muestra tokens en el navegador.",
-        "Para alternativas sin tarifa de API por mensaje, consulta docs/INVESTIGACION.md: Baileys, WPPConnect y el envío manual mediante wa.me. Las bibliotecas no oficiales siguen sujetas a cambios de WhatsApp; la comparación es una propuesta, no un proveedor nuevo activado en esta versión."
+        "Baileys se ejecuta en un proceso separado con tiempos de espera, latidos de supervisión y límite de heap. La sesión está en DATA_DIR/whatsapp/baileys-auth.db, separada de la base académica.",
+        "Es una biblioteca no oficial sujeta a cambios de WhatsApp. La aplicación no instala actualizaciones arbitrarias ni reinicia indefinidamente un proceso que falla. Consulta docs/WHATSAPP.md y docs/ARQUITECTURA.md."
       ]
     },
     {
       "id": "whatsapp-contactos",
-      "category": "WhatsApp oficial",
+      "category": "WhatsApp",
       "title": "Áreas y apoderados que reciben avisos",
       "summary": "Cada alumno puede tener varios contactos autorizados.",
       "steps": [
@@ -1016,69 +1012,69 @@
     },
     {
       "id": "whatsapp-estados",
-      "category": "WhatsApp oficial",
+      "category": "WhatsApp",
       "title": "Reintentos, mensajes fallidos y entrega",
-      "summary": "La asistencia y la mensajería tienen estados independientes.",
+      "summary": "La cola conserva avisos y distingue entrega confirmada de un resultado incierto.",
       "steps": [
         {
-          "title": "Abre Comunicación",
-          "text": "La tabla muestra los últimos avisos y su estado."
+          "title": "Consulta la cola",
+          "text": "En Comunicación, Avisos y entregas muestra destinatario, tipo, estado y detalle. Actualizar refresca la tabla sin reenviar."
         },
         {
-          "title": "Pendiente / reintento",
-          "text": "El mensaje está en cola. Los errores transitorios reintentan con espera creciente."
+          "title": "Pendiente",
+          "text": "El aviso espera a que WhatsApp esté conectado y los envíos activados. No depende de que la asistencia o la calificación vuelvan a guardarse."
         },
         {
-          "title": "Aceptado / enviado",
-          "text": "Meta aceptó la solicitud o informó su envío. Todavía no significa que el teléfono lo haya recibido."
+          "title": "Aceptado y enviado",
+          "text": "El componente de WhatsApp aceptó el mensaje o confirmó su envío al servidor. Esto no equivale a entrega al teléfono."
         },
         {
-          "title": "Entregado / leído",
-          "text": "El webhook confirmó estos estados cuando están disponibles."
+          "title": "Entregado y leído",
+          "text": "Se muestran cuando WhatsApp comunica las confirmaciones disponibles. Los eventos repetidos o fuera de orden no hacen retroceder un estado confirmado."
         },
         {
-          "title": "Fallido",
-          "text": "Revisa error, número, plantilla aprobada, idioma, credenciales y límites del proveedor."
+          "title": "Fallido o por comprobar",
+          "text": "Revisa el detalle y el aviso del paquete. Si el proceso cayó después de intentar enviar, el estado es Por comprobar. Verifica con el destinatario que no llegó antes de confirmar un reintento."
         },
         {
-          "title": "Estado desconocido",
-          "text": "Un corte pudo ocurrir después de que Meta aceptara el mensaje. Comprueba que no se entregó antes de reenviar para evitar duplicados."
-        },
-        {
-          "title": "Reintenta conscientemente",
-          "text": "Usa Reintentar después de corregir la causa. Los avisos entregados no se vuelven a enviar desde ese botón."
+          "title": "Avisos históricos",
+          "text": "Los avisos de la integración anterior se conservan solo para consulta y no se reproducen automáticamente por Baileys. La actualización desactiva aquella configuración; los nuevos envíos se activan tras vincular el teléfono."
         }
       ],
-      "tips": []
+      "tips": [
+        "Una autorización revocada cancela avisos pendientes. Corregir una nota cancela los avisos obsoletos y requiere volver a publicar antes de notificar."
+      ]
     },
     {
       "id": "whatsapp-grupos",
-      "category": "WhatsApp oficial",
-      "title": "Qué cambia si antes enviabas a grupos",
-      "summary": "La migración oficial no conserva automáticamente los grupos del salón.",
+      "category": "WhatsApp",
+      "title": "Avisos individuales y reportes para grupos",
+      "summary": "Esta interfaz envía avisos a contactos individuales autorizados.",
       "steps": [
         {
-          "title": "Distingue los productos",
-          "text": "Un grupo normal de WhatsApp Web no es un destinatario individual de Cloud API."
+          "title": "Identifica el destinatario",
+          "text": "Los avisos automáticos de esta versión utilizan los contactos individuales registrados por estudiante."
         },
         {
-          "title": "Revisa los límites vigentes",
-          "text": "La documentación de Groups API consultada exige Official Business Account y limita los grupos a ocho participantes; no sustituye un salón grande."
+          "title": "Prepara el reporte del grupo",
+          "text": "Descarga el reporte o la imagen de asistencia con los filtros correctos."
         },
         {
-          "title": "Usa avisos individuales",
-          "text": "La nueva integración se orienta a apoderados y estudiantes con autorización."
+          "title": "Comparte desde WhatsApp",
+          "text": "Abre el grupo correspondiente en tu teléfono o WhatsApp y adjunta el archivo manualmente."
         },
         {
-          "title": "Conserva el reporte administrativo",
-          "text": "Descarga el consolidado si necesitas compartirlo manualmente en un grupo existente."
+          "title": "Conserva la privacidad",
+          "text": "Comprueba que el grupo y el contenido correspondan al salón antes de compartir los resultados."
         },
         {
-          "title": "Evalúa otro canal si el grupo es obligatorio",
-          "text": "Un canal grupal con API oficial puede estudiarse por separado. No vuelvas a introducir una sesión de navegador pensando que tendrá la estabilidad de Cloud API."
+          "title": "Comprueba el envío",
+          "text": "La app no recibe confirmaciones de un archivo que compartes manualmente en un grupo. Comprueba el chat y evita adjuntar el mismo reporte varias veces."
         }
       ],
-      "tips": []
+      "tips": [
+        "Baileys admite más capacidades, pero esta implementación no incorpora selección ni automatización de grupos."
+      ]
     },
     {
       "id": "backup",
@@ -1145,7 +1141,7 @@
         },
         {
           "title": "Configura WhatsApp de nuevo",
-          "text": "Las sesiones LocalAuth anteriores no se utilizan. Completa Cloud API y los contactos autorizados."
+          "text": "Las sesiones LocalAuth anteriores no se utilizan. Vincula el teléfono con Baileys en Comunicación y revisa los contactos autorizados."
         }
       ],
       "tips": []
@@ -1182,7 +1178,7 @@
         },
         {
           "title": "No llegan avisos",
-          "text": "Comprueba contactos autorizados, idioma y plantillas aprobadas, estado de credenciales, Internet y webhooks."
+          "text": "Comprueba contactos autorizados, mensajes guardados, conexión del teléfono y avisos activados. Si aparece Revisa el paquete Baileys y su versión, ejecuta npm run whatsapp:doctor y reintenta la conexión. Las asistencias y notas se conservan."
         },
         {
           "title": "La sesión cambió",

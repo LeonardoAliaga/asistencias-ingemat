@@ -1657,3 +1657,17 @@ body[data-account-role="docente"] .btn-delete-seccion {
   width: 100%;
   min-width: 0;
 }
+
+.whatsapp-qr {
+  text-align: center;
+  margin-block: 1rem;
+}
+.whatsapp-qr img {
+  max-width: 100%;
+  height: auto;
+  background: white;
+}
+#whatsapp-service-warning {
+  border-inline-start: 4px solid #b45309;
+  margin-bottom: 1rem;
+}

@@ -115,7 +115,7 @@ const statuses = {
   pending: "Pendiente",
   retry: "Reintento",
   sending: "Enviando",
-  accepted: "Aceptado por Meta",
+  accepted: "Aceptado por proveedor",
   sent: "Enviado",
   delivered: "Entregado",
   read: "Leído",
@@ -1377,51 +1377,8 @@ function renderContacts() {
     };
 }
 async function loadNotifications() {
-  const data = await api("/api/v2/notifications");
-  $("v2-cloud-status").innerHTML =
-    `${data.status.configured ? "<strong>Credenciales completas</strong>" : "<strong>Falta completar la conexión del servidor</strong>"} · WhatsApp Cloud API · ${esc(data.status.version)}<p>Configura y aprueba las plantillas antes de activar los envíos. La recepción de estados requiere un webhook público con HTTPS.</p>`;
-  const f = $("v2-cloud-config");
-  f.elements.enabled.checked = data.config.enabled;
-  for (const key of ["language", "attendanceTemplate", "resultsTemplate"])
-    f.elements[key].value = data.config[key];
-  $("v2-outbox").innerHTML = table(
-    ["Fecha", "Destinatario", "Aviso", "Estado", "Detalle", "Acción"],
-    data.outbox.map((r) => [
-      esc(stamp(r.created_at)),
-      esc(r.recipient),
-      r.kind === "attendance" ? "Asistencia" : "Resultado",
-      badge(r.status),
-      esc(r.error),
-      ["failed", "unknown"].includes(r.status)
-        ? `<button class="v2-link" data-retry="${r.id}" data-unknown="${r.status === "unknown"}">Reintentar</button>`
-        : "",
-    ]),
-  );
-  $("v2-outbox")
-    .querySelectorAll("[data-retry]")
-    .forEach(
-      (b) =>
-        (b.onclick = async () => {
-          try {
-            const unknown = b.dataset.unknown === "true";
-            if (
-              unknown &&
-              !confirm(
-                "Comprueba con el destinatario que este aviso NO se entregó. ¿Confirmas que no lo recibió?",
-              )
-            )
-              return;
-            await api(
-              `/api/v2/notifications/${b.dataset.retry}/retry`,
-              json({ confirmNotDelivered: unknown }),
-            );
-            await loadNotifications();
-            message("Aviso programado para reintento.");
-          } catch (e) {
-            message(e.message, true);
-          }
-        }),
-    );
+  const ui = await state.notificationsUI;
+  if (ui) await ui.load();
 }
 async function loadSettings() {
   const [accounts, audit] = await Promise.all([
@@ -1774,6 +1731,26 @@ async function initialize() {
   state.username = session.usuario.username;
   const view = $("vista-v2");
   view.innerHTML = await (await fetch("/pages/v2-panel.html")).text();
+  if (state.role === "admin")
+    state.notificationsUI = import("./notifications.js")
+      .then((module) =>
+        module.mountNotifications({
+          api,
+          escape: esc,
+          json,
+          table,
+          badge,
+          stamp,
+          message,
+        }),
+      )
+      .catch(() => {
+        const warning = $("whatsapp-service-warning");
+        warning.hidden = false;
+        warning.textContent =
+          "No se pudo cargar Comunicación. Revisa el paquete Baileys y los archivos de la interfaz. La aplicación sigue funcionando.";
+        return null;
+      });
   document.body.append($("v2-dialog"));
   $("v2-attendance-date").value = today();
   for (const el of view.querySelectorAll("[data-admin]"))
@@ -1907,7 +1884,7 @@ async function initialize() {
     await loadBatches();
     $("v2-history-status").textContent = "Lista restaurada.";
   });
-  bind("v2-refresh-notifications", "click", loadNotifications);
+
   bind("v2-reload", "click", async () => {
     await loadCycles();
     await loadStudents();
@@ -2163,23 +2140,6 @@ async function initialize() {
     message(
       "CSV validado. Revisa la previsualización y confirma la importación.",
     );
-  });
-  bind("v2-cloud-config", "submit", async (e) => {
-    const f = e.target;
-    await api(
-      "/api/v2/notifications/config",
-      json(
-        {
-          enabled: f.elements.enabled.checked,
-          language: f.elements.language.value,
-          attendanceTemplate: f.elements.attendanceTemplate.value,
-          resultsTemplate: f.elements.resultsTemplate.value,
-        },
-        "PUT",
-      ),
-    );
-    await loadNotifications();
-    message("Configuración de WhatsApp guardada.");
   });
   bind("v2-account-form", "submit", async (e) => {
     await api(

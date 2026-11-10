@@ -3,6 +3,10 @@ const notifications = require("./notifications.service");
 const imports = require("./imports.service");
 let timers = [];
 function start() {
+  if (timers.length) return;
+  const cfg = notifications.getConfig();
+  if (cfg.provider === "baileys" && cfg.enabled)
+    require("./baileys.service").connect();
   db.prepare(
     "UPDATE import_batches SET status='queued' WHERE status='processing'",
   ).run();
@@ -16,6 +20,7 @@ function start() {
   for (const timer of timers) timer.unref();
 }
 function stop() {
+  require("./baileys.service").stop();
   timers.forEach(clearInterval);
   timers = [];
 }
