@@ -1,4 +1,13 @@
 import { showWhatsAppToast } from "./whatsapp-status.js";
+function requestId() {
+  if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  // getRandomValues is available on HTTP LAN installations too.
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6] & 15) | 64;
+  bytes[8] = (bytes[8] & 63) | 128;
+  const hex = [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
 const escape = (s) =>
   String(s ?? "").replace(
     /[&<>"']/g,
@@ -36,7 +45,7 @@ async function dialog({ title, description, contacts, target, preview, send }) {
   );
   el.querySelector("[data-close]").onclick = () => el.close();
   const form = el.querySelector("form"),
-    requestId = crypto.randomUUID();
+    attemptId = requestId();
   if (contacts?.length === 1)
     form.elements.reportContact.value = contacts[0].id;
   form.onsubmit = async (event) => {
@@ -49,7 +58,7 @@ async function dialog({ title, description, contacts, target, preview, send }) {
       const result = await send({
         format: form.elements.reportFormat.value,
         contactId: form.elements.reportContact?.value,
-        requestId,
+        requestId: attemptId,
       });
       el.close();
       showWhatsAppToast(

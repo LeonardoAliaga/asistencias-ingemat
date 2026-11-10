@@ -2135,6 +2135,10 @@ for (const [format, width] of [
     await expect(page.locator("#alumno-reporte-dashboard")).toContainText(
       "ANA DEMO",
     );
+    if (width === 390)
+      await page.evaluate(() =>
+        Object.defineProperty(crypto, "randomUUID", { value: undefined }),
+      );
     await page.click("#btn-whatsapp-reporte-alumno");
     const modal = page.locator("#report-whatsapp-dialog");
     await expect(modal).toBeVisible();

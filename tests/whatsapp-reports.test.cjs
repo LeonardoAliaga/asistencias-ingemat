@@ -250,6 +250,14 @@ test("student report uploads require authorization, valid images and matching st
     400,
   );
   assert.equal(fs.existsSync(storage.directory), false);
+  const oversized = form({ buffer: Buffer.alloc(10 * 1024 * 1024 + 1) });
+  const rejected = await admin("/api/v2/whatsapp/student-report", {
+    method: "POST",
+    body: oversized,
+  });
+  assert.equal(rejected.status, 413);
+  assert.match(rejected.data.mensaje, /10 MB/);
+  assert.equal(fs.existsSync(storage.directory), false);
 });
 test("PNG and paginated PDF reports persist privately and identical request IDs do not duplicate sends", async () => {
   for (const format of ["png", "pdf"]) {

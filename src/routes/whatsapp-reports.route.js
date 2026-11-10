@@ -19,17 +19,29 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: MAX_BYTES, files: 1, fields: 8, parts: 9 },
 });
+function receiveReport(req, res, next) {
+  upload.single("report")(req, res, (error) => {
+    if (error instanceof multer.MulterError)
+      return next(
+        new AppError(
+          error.code === "LIMIT_FILE_SIZE"
+            ? "El reporte supera los 10 MB. Selecciona una semana o periodo más corto."
+            : "No se pudo recibir el reporte. Vuelve a abrir el envío.",
+          error.code === "LIMIT_FILE_SIZE" ? 413 : 400,
+        ),
+      );
+    next(error);
+  });
+}
 router.get("/status", requirePermission("usuarios:read"), (req, res) => {
   const s = baileys.status();
-  res
-    .set("Cache-Control", "no-store")
-    .json({
-      state: s.state,
-      connected: s.connected,
-      note: s.note,
-      needsPackageReview: s.needsPackageReview,
-      enabled: settings.getConfig().enabled,
-    });
+  res.set("Cache-Control", "no-store").json({
+    state: s.state,
+    connected: s.connected,
+    note: s.note,
+    needsPackageReview: s.needsPackageReview,
+    enabled: settings.getConfig().enabled,
+  });
 });
 router.get("/groups", requireAdmin, async (req, res) =>
   res.json({
@@ -56,19 +68,12 @@ router.get("/attendance-target", operator, (req, res) =>
 router.get("/student-contacts", requireAdmin, (req, res) =>
   res.json({ contacts: reports.contacts(req.query.studentCode) }),
 );
-router.post(
-  "/student-report",
-  requireAdmin,
-  upload.single("report"),
-  async (req, res) =>
-    res
-      .status(202)
-      .json(
-        await reports.studentReport(
-          { ...req.body, png: req.file?.buffer },
-          req,
-        ),
-      ),
+router.post("/student-report", requireAdmin, receiveReport, async (req, res) =>
+  res
+    .status(202)
+    .json(
+      await reports.studentReport({ ...req.body, png: req.file?.buffer }, req),
+    ),
 );
 router.post("/attendance-report", operator, async (req, res) =>
   res.status(202).json(await reports.dailyReport(req.body, req)),
