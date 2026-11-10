@@ -436,9 +436,19 @@ B:51-100,1-50"
               Tutorial
             </button>
           </div>
-          <label
-            >Estudiante<select id="v2-manual-student" required=""></select
-          ></label>
+          <div class="field">
+            <label for="v2-manual-student-search">Estudiante</label>
+            <div class="manual-student-search">
+              <input id="v2-manual-student-search" type="search"
+                     autocomplete="off" role="combobox" aria-autocomplete="list"
+                     aria-controls="v2-manual-student-results"
+                     aria-expanded="false" placeholder="Escribe nombre, apellido o código" />
+              <div id="v2-manual-student-results" class="student-autocomplete-dropdown"
+                   role="listbox" hidden></div>
+            </div>
+            <input id="v2-manual-student" type="hidden" />
+            <p id="v2-manual-student-selected" class="v2-help" role="status"></p>
+          </div>
           <div class="v2-form-grid">
             <label>Área<select id="v2-manual-area"></select></label
             ><label>Versión<select id="v2-manual-form"></select></label>

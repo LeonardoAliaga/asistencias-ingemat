@@ -1,5 +1,6 @@
 import { mountScanner } from "./scanner.js";
 import { mountKeyEditor } from "./key-editor.js";
+import { mountManualStudentSearch } from "./manual-student-search.js";
 const $ = (id) => document.getElementById(id);
 const esc = (s) =>
   String(s ?? "").replace(
@@ -303,6 +304,13 @@ function moveWizard(direction) {
   );
 }
 
+function manualEligibleStudents() {
+  const exam = state.selected;
+  if (!exam?.definition) return [];
+  return state.students.filter((student) =>
+    exam.eligibleStudentCodes?.includes(student.codigo) ??
+    student.ciclo.toUpperCase() === exam.ciclo.toUpperCase());
+}
 async function selectExam(id) {
   const summary = state.exams.find((e) => e.id === id);
   state.selected = summary
@@ -336,11 +344,7 @@ async function selectExam(id) {
   $("v2-notify").hidden = e.estado !== "publicado" || state.role !== "admin";
   $("v2-archive").hidden = !canWrite;
   if (!e.definition) return;
-  const students = state.students.filter(
-    (u) =>
-      e.eligibleStudentCodes?.includes(u.codigo) ??
-      u.ciclo.toUpperCase() === e.ciclo.toUpperCase(),
-  );
+  const students = manualEligibleStudents();
   const options = students
     .map(
       (u) =>
@@ -349,8 +353,7 @@ async function selectExam(id) {
     .join("");
   $("v2-sheet-student").innerHTML =
     '<option value="">Todo el ciclo</option>' + options;
-  $("v2-manual-student").innerHTML =
-    '<option value="">Selecciona un estudiante</option>' + options;
+  state.manualStudentSearch?.reset();
   const areaOptions = e.definition.areas
     .map(
       (a) =>
@@ -1909,6 +1912,13 @@ async function initialize() {
     parse: keyValues,
     escape: esc,
   });
+  state.manualStudentSearch = mountManualStudentSearch({
+    input: $("v2-manual-student-search"),
+    hidden: $("v2-manual-student"),
+    list: $("v2-manual-student-results"),
+    summary: $("v2-manual-student-selected"),
+    getStudents: manualEligibleStudents,
+  });
   state.manualAnswerEditor = mountKeyEditor($("v2-manual-answers"), {
     getDefinition: manualAnswerDefinition,
     parse: keyValues,
@@ -2184,6 +2194,10 @@ async function initialize() {
   });
   bind("v2-manual-form", "change", () => state.manualAnswerEditor?.refresh());
   bind("v2-manual", "submit", async () => {
+    if (!state.manualStudentSearch?.isSelected()) {
+      $("v2-manual-student-search").focus();
+      throw new Error("Selecciona un estudiante de los resultados de búsqueda antes de calificar.");
+    }
     const replace = $("v2-manual-replace").checked,
       reason = $("v2-manual-reason").value;
     if (replace && reason.trim().length < 5)

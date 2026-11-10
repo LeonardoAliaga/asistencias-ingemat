@@ -1790,3 +1790,32 @@ body[data-account-role="docente"] .btn-delete-seccion {
 #v2-manual .key-question-grid button.is-blank {
   background: #fff2da; border-color: #e8c885; color: #7f560a;
 }
+
+/* Buscador de estudiantes para calificación manual. */
+.manual-student-search { position: relative; min-width: 0; }
+.manual-student-search > input { width: 100%; }
+.manual-student-search .student-autocomplete-dropdown {
+  top: calc(100% + 4px);
+  z-index: 50;
+  max-height: 270px;
+}
+.manual-student-search .student-autocomplete-dropdown[hidden] { display: none; }
+.manual-student-search .student-autocomplete-item[role="option"] {
+  width: 100%;
+  min-height: 42px;
+  display: block;
+  text-align: left;
+  border: 0;
+  border-bottom: 1px solid #edf1f6;
+  border-radius: 0;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+.manual-student-search .student-autocomplete-item[role="option"]:hover,
+.manual-student-search .student-autocomplete-item.active {
+  background: #edf3fc;
+}
+.manual-student-search .manual-student-empty { color: var(--muted); cursor: default; }
+#v2-manual-student-selected:not(:empty) { color: #17633b; font-weight: 600; }

@@ -56,7 +56,11 @@ test("create, validate and grade an exam from the dashboard", async ({
   await page.click("#v2-ready");
   await expect(page.locator("#v2-message")).toContainText("Examen validado");
   await page.click("#v2-manual-tab");
-  await page.selectOption("#v2-manual-student", "DEMO001");
+  await page.fill("#v2-manual-student-search", "DEMO001");
+  await expect(page.locator('#v2-manual-student-results [role="option"]')).toHaveCount(1);
+  await page.locator("#v2-manual-student-search").press("ArrowDown");
+  await page.locator("#v2-manual-student-search").press("Enter");
+  await expect(page.locator("#v2-manual-student")).toHaveValue("DEMO001");
   await page.locator("#v2-manual-bulk").evaluate((el) => { el.open = true; });
   await page.fill("#v2-manual-answers", Array(100).fill("A").join(" "));
   await expect(page.locator("#v2-manual .key-editor")).toContainText("100 de 100 registradas");
@@ -1275,7 +1279,11 @@ test("score exceptions can be edited and recalculated after students answer", as
   await page.click("#wizard-prepare");
   await expect(page.locator("#v2-message")).toContainText("validado");
   await page.click("#v2-manual-tab");
-  await page.selectOption("#v2-manual-student", "DEMO002");
+  await page.fill("#v2-manual-student-search", "DEMO002");
+  await expect(page.locator('#v2-manual-student-results [role="option"]')).toHaveCount(1);
+  await page.locator("#v2-manual-student-search").press("ArrowDown");
+  await page.locator("#v2-manual-student-search").press("Enter");
+  await expect(page.locator("#v2-manual-student")).toHaveValue("DEMO002");
   await page.locator("#v2-manual-bulk").evaluate((el) => { el.open = true; });
   await page.fill("#v2-manual-answers", "B B B B");
   await page.click("#v2-manual button[type=submit]");
@@ -2354,4 +2362,29 @@ test("WhatsApp report buttons have green backgrounds", async ({ page }) => {
   await expect(page.locator("#v2-attendance-whatsapp")).toHaveCSS("background-color", "rgb(11, 120, 109)");
   await navigate(page, "reports");
   await expect(page.locator("#btn-whatsapp-reporte-alumno")).toHaveCSS("background-color", "rgb(11, 120, 109)");
+});
+
+test("manual student search supports names, ignores accents and prevents arbitrary student ids", async ({ page }) => {
+  await login(page);
+  await navigate(page, "exams");
+  await page.click("#v2-new");
+  await page.selectOption("#v2-preset", "100");
+  await page.fill('[name="titulo"]', "BUSCADOR ALUMNOS");
+  await page.selectOption('[name="ciclo"]', "ANUAL");
+  await nextStep(page, 1);
+  await nextStep(page, 2);
+  await pasteKeys(page, Array(100).fill("A").join(" "));
+  await nextStep(page, 3);
+  await page.click("#wizard-prepare");
+  await page.click("#v2-manual-tab");
+  const search = page.locator("#v2-manual-student-search");
+  await search.fill("ana alumno");
+  await expect(page.locator('#v2-manual-student-results [data-code="DEMO001"]')).toBeVisible();
+  await page.locator('#v2-manual-student-results [data-code="DEMO001"]').click();
+  await expect(page.locator("#v2-manual-student")).toHaveValue("DEMO001");
+  await search.fill("identificador inexistente");
+  await expect(page.locator("#v2-manual-student")).toHaveValue("");
+  await expect(page.locator("#v2-manual-student-results")).toContainText("No hay estudiantes");
+  await page.click("#v2-manual button[type=submit]");
+  await expect(page.locator("#v2-message")).toContainText("Selecciona un estudiante");
 });
