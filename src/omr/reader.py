@@ -88,8 +88,8 @@ def read_options(mask, options):
     state = 'multiple' if len(marked) > 1 else 'uncertain' if uncertain else 'single' if marked else 'blank'
     return {'status': state, 'options': marked, 'densities': ratios}
 
-def read_identity_options(gray, options):
-    """Measure broad fill inside code/area bubbles, separately from printed glyphs.
+def read_fill_options(gray, options, kernel_ratio, marked_density, review_density, method):
+    """Measure interior fill using local paper contrast and configurable opening.
 
     The old narrow annulus missed centered pencil marks. A local paper estimate
     retains grayscale pencil strokes; opening removes the thin printed numeral
@@ -103,16 +103,16 @@ def read_identity_options(gray, options):
         pad = int(np.ceil(radius * 1.35))
         roi = gray[cy-pad:cy+pad+1, cx-pad:cx+pad+1]
         if roi.shape != (2*pad+1, 2*pad+1):
-            raise ValueError('Hay círculos de identificación fuera del área de lectura.')
+            raise ValueError('Hay círculos fuera del área de lectura.')
         yy, xx = np.ogrid[-pad:pad+1, -pad:pad+1]
         distance = xx*xx + yy*yy
         interior = distance <= (radius * .80)**2
         paper = (distance >= (radius * 1.10)**2) & (distance <= (radius * 1.35)**2)
         background = float(np.percentile(roi[paper], 90))
         deficit = background - roi.astype(np.float32)
-        # At the normalized 300 dpi this erases the 5.2 pt numeral/letter strokes,
-        # while a proper centered fill remains wider than the structuring disk.
-        kernel_radius = max(1, round(radius * .40))
+        # Larger kernels remove the identity glyphs; smaller kernels preserve
+        # partial answer strokes while removing isolated printing/scanning noise.
+        kernel_radius = max(1, round(radius * kernel_ratio))
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2*kernel_radius+1, 2*kernel_radius+1))
         values = []
         for threshold in (max(18, background * .08), max(10, background * .04)):
@@ -120,10 +120,19 @@ def read_identity_options(gray, options):
             broad_ink = cv2.morphologyEx(ink, cv2.MORPH_OPEN, kernel)
             values.append(round(float(np.mean(broad_ink[interior] > 0)), 4))
         firm[opt['option']], soft[opt['option']] = values
-    marked = [option for option, density in firm.items() if density >= .50]
-    uncertain = [option for option, density in soft.items() if density > .12 and option not in marked]
+    marked = [option for option, density in firm.items() if density >= marked_density]
+    uncertain = [option for option, density in soft.items() if density > review_density and option not in marked]
     state = 'multiple' if len(marked) > 1 else 'uncertain' if uncertain else 'single' if marked else 'blank'
-    return {'status': state, 'options': marked, 'densities': firm, 'softDensities': soft, 'method': 'interior-fill-v1'}
+    return {'status': state, 'options': marked, 'densities': firm, 'softDensities': soft, 'method': method}
+
+def read_identity_options(gray, options):
+    # Preserve the calibrated code/area classifier and printed sheet geometry.
+    return read_fill_options(gray, options, .40, .50, .12, 'interior-fill-v1')
+
+def read_answer_options(gray, options):
+    # A speck is not a response. Require substantial interior fill for an
+    # automatic answer, but keep meaningful partial/faint marks in review.
+    return read_fill_options(gray, options, .14, .60, .30, 'answer-fill-v2')
 
 def split_cartillas(image):
     """Find separate marker rectangles on imposed A4s; never mix their corners."""
@@ -204,8 +213,7 @@ def read_page(image, layouts, output):
         break
     if normalized is None:
         raise ValueError('No se pudo reconocer el QR y formato. Conserva todos los marcadores y usa una imagen nítida.')
-    mask = cv2.adaptiveThreshold(normalized, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 51, 15)
-    responses = {str(bubble['question']): read_options(mask, bubble['options']) for bubble in layout['bubbles']}
+    responses = {str(bubble['question']): read_answer_options(normalized, bubble['options']) for bubble in layout['bubbles']}
     identification = None
     if layout.get('identification'):
         spec = layout['identification']

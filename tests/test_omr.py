@@ -65,7 +65,7 @@ class OMRTests(unittest.TestCase):
     def test_partial_mark_is_uncertain(self):
         image=sheet(self.layouts[0]);opt=self.layouts[0]['bubbles'][0]['options'][0]
         center=(round(opt['x']*reader.SCALE),round(opt['y']*reader.SCALE))
-        cv2.circle(image,center,round(opt['radius']*reader.SCALE*.4),(0,0,0),-1)
+        cv2.circle(image,center,round(opt['radius']*reader.SCALE*.5),(0,0,0),-1)
         self.assertEqual(self.read(image)['responses']['1']['status'],'uncertain')
     def test_missing_marker_is_rejected(self):
         image=sheet(self.layouts[0]);image[40:210,40:210]=255

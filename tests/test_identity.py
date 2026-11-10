@@ -233,3 +233,66 @@ const {bookletLayouts}=require('./src/services/omr-booklet-layout');
                 result=self.read(blank,layouts)
                 self.assertEqual(result['area'],'GENERAL')
                 self.assertIsNone(result['areaReading'])
+
+    def mark_answer(self, image, opt, fraction, shade=100, offset=(0,0)):
+        ink=np.full_like(image,255)
+        center=(round(opt['x']*reader.SCALE)+offset[0],round(opt['y']*reader.SCALE)+offset[1])
+        cv2.circle(ink,center,round(opt['radius']*reader.SCALE*fraction),shade,-1)
+        np.minimum(image,ink,out=image)
+
+    def answer(self, image, layouts, question):
+        return reader.read_page(cv2.cvtColor(image,cv2.COLOR_GRAY2BGR),layouts,self.root/'answers.png')['responses'][str(question)]
+
+    def test_answer_small_dots_are_ignored_instead_of_marked_or_flagged(self):
+        for name,(blank,layouts) in self.cases.items():
+            # Actual unlabeled answer circles from the PDF, both sides/formats.
+            for page in layouts:
+                # The back has its own QR; the normalized fixture is front-only.
+                if page['page']!=1:continue
+                bubble=page['bubbles'][0]
+                for fraction in [.10,.20,.30,.35]:
+                    with self.subTest(format=name,fraction=fraction):
+                        image=blank.copy()
+                        for opt in bubble['options']:
+                            self.mark_answer(image,opt,fraction)
+                        result=self.answer(image,layouts,bubble['question'])
+                        self.assertEqual(result['status'],'blank')
+                        self.assertEqual(result['options'],[])
+
+    def test_answer_clear_centered_gray_fills_read_all_options(self):
+        for name,(blank,layouts) in self.cases.items():
+            for bubble in [layouts[0]['bubbles'][0],layouts[0]['bubbles'][-1]]:
+                for opt in bubble['options']:
+                    for shade in [80,170,220]:
+                        with self.subTest(format=name,question=bubble['question'],option=opt['option'],shade=shade):
+                            image=blank.copy()
+                            self.mark_answer(image,opt,.70,shade=shade,offset=(1,-1))
+                            ok,jpeg=cv2.imencode('.jpg',image,[cv2.IMWRITE_JPEG_QUALITY,90]);self.assertTrue(ok)
+                            result=self.answer(cv2.imdecode(jpeg,cv2.IMREAD_GRAYSCALE),layouts,bubble['question'])
+                            self.assertEqual((result['status'],result['options']),('single',[opt['option']]))
+
+    def test_answer_a_dot_beside_a_full_answer_does_not_create_false_double_mark(self):
+        for name,(blank,layouts) in self.cases.items():
+            image=blank.copy();bubble=layouts[0]['bubbles'][0]
+            self.mark_answer(image,bubble['options'][1],.85)
+            self.mark_answer(image,bubble['options'][3],.30)
+            result=self.answer(image,layouts,bubble['question'])
+            self.assertEqual((result['status'],result['options']),('single',['B']))
+
+    def test_answer_meaningful_partial_and_faint_marks_still_require_review(self):
+        for name,(blank,layouts) in self.cases.items():
+            for fraction,shade in [(.50,100),(.85,242)]:
+                image=blank.copy();bubble=layouts[0]['bubbles'][0]
+                self.mark_answer(image,bubble['options'][0],fraction,shade=shade)
+                result=self.answer(image,layouts,bubble['question'])
+                self.assertEqual(result['status'],'uncertain')
+                self.assertEqual(result['options'],[])
+
+    def test_answer_two_real_fills_stay_multiple_and_partial_competitor_stays_uncertain(self):
+        for name,(blank,layouts) in self.cases.items():
+            for fraction,state in [(.85,'multiple'),(.50,'uncertain')]:
+                image=blank.copy();bubble=layouts[0]['bubbles'][0]
+                self.mark_answer(image,bubble['options'][0],.85)
+                self.mark_answer(image,bubble['options'][4],fraction)
+                result=self.answer(image,layouts,bubble['question'])
+                self.assertEqual(result['status'],state)
