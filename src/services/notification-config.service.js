@@ -1,12 +1,19 @@
 const db = require("../database/db");
 const { AppError } = require("../utils/errors");
+const { randomInt } = require("node:crypto");
 const defaults = {
   enabled: false,
   provider: "baileys",
-  attendanceMessage:
-    "INGEMAT · Asistencia\nEstudiante: {nombre}\nFecha: {fecha}\nHora: {hora}\nEstado: {estado}",
-  resultsMessage:
-    "INGEMAT · Simulacro\nEstudiante: {nombre}\nExamen: {examen}\nPuntaje: {puntaje}\nÁrea: {area}",
+  attendanceMessage: [
+    "📚 INGEMAT · Asistencia\\nEstudiante: {nombre}\\nFecha: {fecha}\\nHora: {hora}\\nEstado: {estado}",
+    "✅ Registro de ingreso INGEMAT\\nEstudiante: {nombre}\\nFecha: {fecha} · Hora: {hora}\\nEstado: {estado}",
+    "📝 Aviso de asistencia\\nEstudiante: {nombre}\\nRegistró ingreso el {fecha} a las {hora}\\nEstado: {estado}",
+  ].join("\\n---\\n"),
+  resultsMessage: [
+    "🎓 INGEMAT · Simulacro\\nEstudiante: {nombre}\\nExamen: {examen}\\nPuntaje: {puntaje}\\nÁrea: {area}",
+    "📊 Resultados INGEMAT\\nEstudiante: {nombre}\\nEvaluación: {examen}\\nPuntaje: {puntaje} · Área: {area}",
+    "📚 Reporte de evaluación\\nEstudiante: {nombre}\\nPrueba: {examen}\\nResultado: {puntaje}\\nÁrea: {area}",
+  ].join("\\n---\\n"),
 };
 const fields = {
   attendance: ["nombre", "fecha", "hora", "estado"],
@@ -30,15 +37,18 @@ function getConfig() {
   config.enabled = saved.enabled === true;
   return config;
 }
-function renderMessage(kind, parameters, config = getConfig()) {
+function splitVariants(message) {
+  return message.split(/^\\s*---\\s*$/m).map((item) => item.trim()).filter(Boolean);
+}
+function renderMessage(kind, parameters, config = getConfig(), chooseIndex = randomInt) {
   if (!fields[kind] || !Array.isArray(parameters) || parameters.length !== 4)
     throw new AppError("Datos de aviso incompletos.");
   const values = Object.fromEntries(
     fields[kind].map((key, i) => [key, String(parameters[i] ?? "")]),
   );
-  const template =
-    config[kind === "attendance" ? "attendanceMessage" : "resultsMessage"];
-  return template.replace(/\{([a-z]+)\}/g, (_, key) => values[key]);
+  const variants = splitVariants(config[kind === "attendance" ? "attendanceMessage" : "resultsMessage"]);
+  const template = variants[chooseIndex(variants.length)];
+  return template.replace(/\\{([a-z]+)\\}/g, (_, key) => values[key]);
 }
 function validateConfig(input, readiness) {
   const c = { ...getConfig(), ...input };
@@ -50,17 +60,22 @@ function validateConfig(input, readiness) {
   c.provider = "baileys";
   for (const [kind, allowed] of Object.entries(fields)) {
     const key = kind === "attendance" ? "attendanceMessage" : "resultsMessage";
+    const variants = typeof c[key] === "string" ? splitVariants(c[key]) : [];
     if (
       typeof c[key] !== "string" ||
-      !c[key].trim() ||
       c[key].length > 3000 ||
-      !c[key].includes("{nombre}") ||
-      [...c[key].matchAll(/\{([^{}]+)\}/g)].some(
-        (match) => !allowed.includes(match[1]),
+      variants.length < 1 ||
+      variants.length > 10 ||
+      variants.some((template) =>
+        template.length > 1000 ||
+        !template.includes("{nombre}") ||
+        [...template.matchAll(/\\{([^{}]+)\\}/g)].some(
+          (match) => !allowed.includes(match[1]),
+        )
       )
     )
       throw new AppError(
-        "Escribe mensajes de hasta 3000 caracteres con variables válidas y {nombre}.",
+        "Escribe hasta 10 variantes separadas por --- (máximo 3000 caracteres en total), con variables válidas y {nombre} en cada una.",
       );
   }
   if (c.enabled && !readiness("baileys"))

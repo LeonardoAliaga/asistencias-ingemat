@@ -1743,3 +1743,14 @@ body[data-account-role="docente"] .btn-delete-seccion {
   border-inline-start: 4px solid #b45309;
   margin-bottom: 1rem;
 }
+
+/* Sugerencias de grupos de WhatsApp: mismo patrón que alumnos y libros. */
+.wa-group-combobox { position: relative; min-width: 0; }
+.wa-group-combobox label { display: block; margin-bottom: 8px; }
+.wa-group-combobox input { width: 100%; }
+#wa-group-suggestions { z-index: 30; max-height: 280px; }
+#wa-group-suggestions[hidden] { display: none; }
+#wa-group-suggestions .wa-group-option.active,
+#wa-group-suggestions .wa-group-option:hover { background: #e0edff; }
+#wa-group-suggestions .wa-group-empty { color: var(--muted); cursor: default; }
+#wa-group-selected:not(:empty) { color: #17633b; font-weight: 600; }

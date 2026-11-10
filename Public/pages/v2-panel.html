@@ -728,23 +728,20 @@ B:51-100,1-50"
         </p>
         <label>Ciclo del grupo<select id="wa-group-cycle"></select></label>
         <p class="v2-help" id="wa-group-current"></p>
-        <label
-          >Buscar grupo de WhatsApp<input
-            id="wa-group-search"
-            type="search"
-            placeholder="Ej.: anual mañana · admite tildes y pequeños errores"
-            autocomplete="off" /></label
-        ><button
-          class="v2-button secondary"
-          id="wa-group-refresh"
-          type="button"
-        >
-          Buscar / actualizar grupos</button
-        ><label
-          >Grupo encontrado<select id="wa-group-select">
-            <option value="">Busca y selecciona un grupo</option>
-          </select></label
-        >
+        <div class="wa-group-combobox">
+          <label for="wa-group-search">Buscar grupo de WhatsApp</label>
+          <input id="wa-group-search" type="search"
+                 placeholder="Escribe parte del nombre del grupo…"
+                 autocomplete="off" role="combobox" aria-autocomplete="list"
+                 aria-controls="wa-group-suggestions" aria-expanded="false" />
+          <div id="wa-group-suggestions" class="student-autocomplete-dropdown"
+               role="listbox" hidden></div>
+        </div>
+        <input type="hidden" id="wa-group-select" />
+        <p class="v2-help" id="wa-group-selected" role="status"></p>
+        <button class="v2-button secondary" id="wa-group-refresh" type="button">
+          Buscar / actualizar grupos
+        </button>
         <div class="v2-toolbar">
           <button class="v2-button" id="wa-group-save" type="button">
             Guardar grupo del ciclo</button
@@ -778,7 +775,7 @@ B:51-100,1-50"
               maxlength="3000"
             ></textarea>
           </label>
-          <p class="v2-help">Variables: {nombre}, {fecha}, {hora}, {estado}.</p>
+          <p class="v2-help">Variables: {nombre}, {fecha}, {hora}, {estado}. Separa varias versiones con una línea <code>---</code>. El sistema elige una por cada aviso registrado.</p>
           <label
             >Mensaje de resultados<textarea
               name="resultsMessage"
