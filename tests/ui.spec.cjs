@@ -2213,9 +2213,13 @@ test("cycle groups are searchable and attendance shares the selected date and gr
   await navigate(page, "notifications");
   await page.locator("#wa-group-settings summary").click();
   await page.fill("#wa-group-search", "manana anaul");
-  await expect(page.locator("#wa-group-select option")).toHaveCount(2);
+  await expect(page.locator("#wa-group-suggestions [role='option']")).toHaveCount(1);
   expect(searchQuery).toBe("manana anaul");
-  await page.selectOption("#wa-group-select", group.id);
+  await page.locator("#wa-group-search").press("ArrowDown");
+  await page.locator("#wa-group-search").press("Enter");
+  await expect(page.locator("#wa-group-select")).toHaveValue(group.id);
+  await expect(page.locator("#wa-group-selected")).toContainText(group.subject);
+  await expect(page.locator("#wa-group-suggestions")).toBeHidden();
   await page.click("#wa-group-save");
   await expect(page.locator("#wa-group-message")).toContainText("guardado");
   await navigate(page, "attendance");
