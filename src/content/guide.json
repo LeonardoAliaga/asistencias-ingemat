@@ -232,7 +232,8 @@
         }
       ],
       "tips": [
-        "Un aviso en cola no equivale a un mensaje entregado. Consulta Comunicación para comprobar el estado."
+        "Un aviso en cola no equivale a un mensaje entregado. Consulta Comunicación para comprobar el estado.",
+        "Para enviar el reporte al grupo del ciclo, selecciona un ciclo con grupo configurado en Comunicación. Enviar reporte del día usa la fecha y turno seleccionados; puedes escoger imagen o PDF. No se envía automáticamente por abrir la lista."
       ]
     },
     {
@@ -861,8 +862,8 @@
           "text": "Usa los botones disponibles para imagen, documento o impresión del reporte."
         },
         {
-          "title": "Comparte con cuidado",
-          "text": "Elige el contacto autorizado. No publiques notas individuales en un grupo general por defecto."
+          "title": "Envía por WhatsApp",
+          "text": "Con una cuenta de administración, pulsa Enviar por WhatsApp. Selecciona un apoderado autorizado y elige Imagen PNG o Documento PDF. Se respeta la semana seleccionada. Pon el reporte en cola y comprueba la entrega en Comunicación."
         }
       ],
       "tips": []
@@ -970,11 +971,16 @@
         {
           "title": "Detén o vuelve a vincular",
           "text": "Detener conexión desactiva los avisos y conserva la sesión. Volver a vincular, tras confirmar, elimina solo la sesión local de WhatsApp; después conecta y escanea otro QR. No borra asistencias, estudiantes ni calificaciones."
+        },
+        {
+          "title": "Asigna un grupo a cada ciclo",
+          "text": "Abre Grupos de reportes por ciclo. Selecciona el ciclo y busca el grupo por palabras, sin tildes o con un pequeño error de escritura. Elige un grupo del teléfono conectado y guarda. En Asistencias, filtra el ciclo, la fecha y el turno; pulsa Enviar reporte del día y confirma el grupo y el formato."
         }
       ],
       "tips": [
         "Baileys se ejecuta en un proceso separado con tiempos de espera, latidos de supervisión y límite de heap. La sesión está en DATA_DIR/whatsapp/baileys-auth.db, separada de la base académica.",
-        "Es una biblioteca no oficial sujeta a cambios de WhatsApp. La aplicación no instala actualizaciones arbitrarias ni reinicia indefinidamente un proceso que falla. Consulta docs/WHATSAPP.md y docs/ARQUITECTURA.md."
+        "Es una biblioteca no oficial sujeta a cambios de WhatsApp. La aplicación no instala actualizaciones arbitrarias ni reinicia indefinidamente un proceso que falla. Consulta docs/WHATSAPP.md y docs/ARQUITECTURA.md.",
+        "La app intenta restaurar la sesión de WhatsApp en cada arranque. Un aviso temporal en la esquina informa de conexión o error. Los reportes solicitados manualmente pueden enviarse sin activar los avisos automáticos de asistencia y resultados."
       ]
     },
     {
@@ -1008,7 +1014,9 @@
           "text": "Usa Revocar. El contacto deja de participar en los siguientes avisos."
         }
       ],
-      "tips": []
+      "tips": [
+        "Al crear un estudiante también puedes registrar su área, nombre y teléfono del apoderado. Marca la autorización solo si el apoderado la dio. Los datos del estudiante y del contacto se guardan juntos."
+      ]
     },
     {
       "id": "whatsapp-estados",

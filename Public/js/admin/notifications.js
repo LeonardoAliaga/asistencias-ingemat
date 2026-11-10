@@ -13,15 +13,22 @@ export function mountNotifications({
   let qrExpiry = 0,
     refreshing = false,
     lastHealth = null;
+  const groupsUI = import("./whatsapp-groups.js")
+    .then((m) => m.mountWhatsAppGroups({ api, json }))
+    .catch(() => null);
   const setText = (id, value) => {
     const el = $(id);
     if (el.textContent !== value) el.textContent = value;
   };
   async function renderHealth(health) {
     const warning = $("whatsapp-service-warning");
-    warning.hidden =
-      health.provider !== "baileys" || !health.needsPackageReview;
-    setText("whatsapp-service-warning", warning.hidden ? "" : health.note);
+    // Connection notices are shown by the temporary corner toast. Details
+    // remain in Comunicación without adding a persistent banner to every view.
+    warning.hidden = true;
+    setText(
+      "whatsapp-service-warning",
+      health.needsPackageReview ? health.note : "",
+    );
     lastHealth = health;
     {
       setText(
@@ -70,11 +77,12 @@ export function mountNotifications({
       await renderHealth(await api("/api/v2/notifications/health"));
     } catch {
       const warning = $("whatsapp-service-warning");
-      warning.hidden = false;
+      warning.hidden = true;
       setText(
         "whatsapp-service-warning",
         "No se pudo consultar WhatsApp. Revisa el paquete Baileys y la conexión con el servidor.",
       );
+      setText("v2-baileys-status", warning.textContent);
     } finally {
       refreshing = false;
     }
@@ -85,6 +93,11 @@ export function mountNotifications({
     for (const key of ["attendanceMessage", "resultsMessage"])
       form.elements[key].value = data.config[key] ?? "";
     await renderHealth(data.status);
+    try {
+      await (await groupsUI)?.load();
+    } catch (error) {
+      $("wa-group-message").textContent = error.message;
+    }
     $("v2-outbox").innerHTML = table(
       [
         "Fecha",
@@ -97,9 +110,12 @@ export function mountNotifications({
       data.outbox.map((r) => [
         esc(stamp(r.created_at)),
         esc(r.recipient),
-        `${r.kind === "attendance" ? "Asistencia" : "Resultado"}<br>${r.provider === "baileys" ? "Baileys" : "Histórico anterior"}`,
+        `${esc({ attendance: "Asistencia", results: "Resultado", student_report: "Reporte del alumno", attendance_report: "Reporte del ciclo" }[r.kind] || r.kind)}<br>${r.provider === "baileys" ? "Baileys" : "Histórico anterior"}`,
         badge(r.status),
-        esc(r.error),
+        esc(r.error) +
+          (["student_report", "attendance_report"].includes(r.kind)
+            ? `<br><a href="/api/v2/whatsapp/reports/${encodeURIComponent(r.id)}/file">Descargar archivo del envío</a>`
+            : ""),
         r.provider === "baileys" && ["failed", "unknown"].includes(r.status)
           ? `<button class="v2-link" data-retry="${esc(r.id)}" data-unknown="${r.status === "unknown"}">Reintentar</button>`
           : "",

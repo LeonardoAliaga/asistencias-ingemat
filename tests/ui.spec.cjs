@@ -215,9 +215,17 @@ test("legacy user and library forms still save once after repeated navigation", 
   await expect(page.locator("#create-user-dialog")).not.toBeVisible();
   await page.fill("#people-search", "UI003");
   await expect(page.locator(".person-row:visible")).toContainText("JULIA");
-  const savedStudent=(await(await page.request.get("/api/v2/students")).json()).find(s=>s.codigo==="UI003");
+  const savedStudent = (
+    await (await page.request.get("/api/v2/students")).json()
+  ).find((s) => s.codigo === "UI003");
   expect(savedStudent.area).toBe("E");
-  expect(savedStudent.contacts).toEqual([expect.objectContaining({name:"MARÍA DEMO",phone:"+51900000009",consent:1})]);
+  expect(savedStudent.contacts).toEqual([
+    expect.objectContaining({
+      name: "MARÍA DEMO",
+      phone: "+51900000009",
+      consent: 1,
+    }),
+  ]);
   await navigate(page, "library");
   await navigate(page, "overview");
   await navigate(page, "library");
@@ -1854,6 +1862,9 @@ async function baileysUIFixture(page, initial = {}) {
   await page.route("**/api/v2/notifications/health", (r) =>
     r.fulfill({ json: health }),
   );
+  await page.route("**/api/v2/whatsapp/status", (r) =>
+    r.fulfill({ json: health }),
+  );
   await page.route("**/api/v2/notifications/config", (r) => {
     config = { ...config, ...r.request().postDataJSON() };
     return r.fulfill({ json: { exito: true } });
@@ -1933,9 +1944,10 @@ test("package error is visible across dashboard sections and academic UI remains
   });
   await login(page);
   await navigate(page, "notifications");
-  await expect(page.locator("#whatsapp-service-warning")).toContainText(
+  await expect(page.locator(".whatsapp-toast.error")).toContainText(
     "Revisa el paquete Baileys",
   );
+  await expect(page.locator("#whatsapp-service-warning")).toBeHidden();
   await expect(page.locator("#v2-baileys-connect")).toBeEnabled();
   const communicationAudit = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
@@ -1979,9 +1991,10 @@ test("failure to load the optional communication UI does not block the admin app
   await page.route("**/js/admin/notifications.js", (r) => r.abort("failed"));
   await login(page);
   await navigate(page, "attendance");
-  await expect(page.locator("#whatsapp-service-warning")).toContainText(
+  await expect(page.locator(".whatsapp-toast.error")).toContainText(
     "No se pudo cargar Comunicación",
   );
+  await expect(page.locator("#whatsapp-service-warning")).toBeHidden();
   await expect(page.locator("#v2-attendance-load")).toBeVisible();
   await navigate(page, "exams");
   await page.click("#v2-new");
@@ -2071,4 +2084,204 @@ test("read-only operators cannot see attendance deletion controls", async ({
   await navigate(page, "attendance");
   await expect(page.locator("#v2-attendance")).toContainText("DEMO002");
   await expect(page.locator("[data-delete-attendance]")).toHaveCount(0);
+});
+
+for (const [format, width] of [
+  ["png", 1440],
+  ["pdf", 390],
+])
+  test(`student report WhatsApp prepares the ${format} attachment at ${width}px`, async ({
+    page,
+  }) => {
+    const errors = [];
+    page.on("pageerror", (e) => errors.push(e.message));
+    await page.route("**/api/v2/whatsapp/student-contacts?*", (r) =>
+      r.fulfill({
+        json: {
+          contacts: [
+            {
+              id: "report-guardian",
+              name: "Apoderado de prueba",
+              phone: "+51900000001",
+            },
+          ],
+        },
+      }),
+    );
+    let uploaded;
+    await page.route("**/api/v2/whatsapp/student-report", async (r) => {
+      uploaded = r.request().postDataBuffer();
+      if (process.env.INGEMAT_REPORT_QA_DIR) {
+        const fs = require("node:fs"),
+          path = require("node:path");
+        fs.mkdirSync(process.env.INGEMAT_REPORT_QA_DIR, { recursive: true });
+        const start = uploaded.indexOf(Buffer.from("89504e470d0a1a0a", "hex"));
+        const end = uploaded.indexOf(Buffer.from("IEND"), start) + 8;
+        fs.writeFileSync(
+          path.join(process.env.INGEMAT_REPORT_QA_DIR, "student-rendered.png"),
+          uploaded.subarray(start, end),
+        );
+      }
+      await r.fulfill({
+        status: 202,
+        json: { exito: true, id: "report-queued", status: "pending" },
+      });
+    });
+    await page.setViewportSize({ width, height: 900 });
+    await login(page);
+    await navigate(page, "reports");
+    await page.fill("#reporte-student-search", "DEMO001");
+    await page.locator("#reporte-student-results [data-code=DEMO001]").click();
+    await expect(page.locator("#alumno-reporte-dashboard")).toContainText(
+      "ANA DEMO",
+    );
+    await page.click("#btn-whatsapp-reporte-alumno");
+    const modal = page.locator("#report-whatsapp-dialog");
+    await expect(modal).toBeVisible();
+    await expect(modal).toContainText("ANA DEMO");
+    await expect(modal).toContainText("Apoderado de prueba");
+    expect(
+      await modal
+        .locator("img")
+        .evaluate((img) => img.complete && img.naturalWidth),
+    ).toBe(1100);
+    await modal.getByLabel("Enviar como").selectOption(format);
+    if (process.env.INGEMAT_REPORT_QA_DIR)
+      await page.screenshot({
+        path: require("node:path").join(
+          process.env.INGEMAT_REPORT_QA_DIR,
+          `student-modal-${width}.png`,
+        ),
+      });
+    await modal.getByRole("button", { name: "Poner reporte en cola" }).click();
+    await expect(modal).toHaveCount(0);
+    const body = uploaded.toString("utf8");
+    expect(body).toContain('name="studentCode"\r\n\r\nDEMO001');
+    expect(body).toContain(`name="format"\r\n\r\n${format}`);
+    expect(body).toContain("report-guardian");
+    expect(
+      uploaded.indexOf(Buffer.from("89504e470d0a1a0a", "hex")),
+    ).toBeGreaterThan(0);
+    await expect(page.locator(".whatsapp-toast")).toContainText(
+      "Reporte en cola",
+    );
+    expect(errors).toEqual([]);
+  });
+
+test("cycle groups are searchable and attendance shares the selected date and group", async ({
+  page,
+}) => {
+  const group = {
+    id: "120363123456789@g.us",
+    subject: "INGEMAT Anual Mañana",
+    size: 30,
+  };
+  let mapped = null,
+    daily,
+    searchQuery = "";
+  await page.route("**/api/v2/whatsapp/attendance-groups", async (r) => {
+    if (r.request().method() === "PUT") {
+      const body = r.request().postDataJSON();
+      expect(body.cycle).toBe("ANUAL");
+      expect(body.groupId).toBe(group.id);
+      mapped = group;
+      await r.fulfill({ json: { exito: true, target: group } });
+    } else
+      await r.fulfill({
+        json: { cycles: [{ cycle: "ANUAL", target: mapped }] },
+      });
+  });
+  await page.route("**/api/v2/whatsapp/groups?*", (r) => {
+    searchQuery = new URL(r.request().url()).searchParams.get("q");
+    return r.fulfill({ json: { groups: [group] } });
+  });
+  await page.route("**/api/v2/whatsapp/attendance-target?*", (r) =>
+    r.fulfill({ json: { target: mapped } }),
+  );
+  await page.route("**/api/v2/whatsapp/attendance-report", async (r) => {
+    daily = r.request().postDataJSON();
+    await r.fulfill({
+      status: 202,
+      json: { exito: true, id: "daily-report", status: "pending" },
+    });
+  });
+  await login(page);
+  await navigate(page, "notifications");
+  await page.locator("#wa-group-settings summary").click();
+  await page.fill("#wa-group-search", "manana anaul");
+  await expect(page.locator("#wa-group-select option")).toHaveCount(2);
+  expect(searchQuery).toBe("manana anaul");
+  await page.selectOption("#wa-group-select", group.id);
+  await page.click("#wa-group-save");
+  await expect(page.locator("#wa-group-message")).toContainText("guardado");
+  await navigate(page, "attendance");
+  await page.selectOption("#v2-attendance-cycle", "ANUAL");
+  await page.selectOption("#v2-attendance-shift", "mañana");
+  await expect(page.locator("#v2-attendance-whatsapp")).toBeEnabled();
+  await page.click("#v2-attendance-whatsapp");
+  const modal = page.locator("#report-whatsapp-dialog");
+  await expect(modal).toContainText(group.subject);
+  await modal.getByLabel("Enviar como").selectOption("pdf");
+  await modal.getByRole("button", { name: "Poner reporte en cola" }).click();
+  await expect(modal).toHaveCount(0);
+  expect(daily).toEqual(
+    expect.objectContaining({
+      cycle: "ANUAL",
+      shift: "mañana",
+      format: "pdf",
+      groupId: group.id,
+      date: await page.inputValue("#v2-attendance-date"),
+    }),
+  );
+});
+
+test("WhatsApp connection toast is temporary and repeated health polls do not duplicate it", async ({
+  page,
+}) => {
+  await page.route("**/api/v2/whatsapp/status", (r) =>
+    r.fulfill({
+      json: {
+        state: "connected",
+        connected: true,
+        enabled: false,
+        note: "Conectado",
+      },
+    }),
+  );
+  await login(page);
+  await expect(page.locator(".whatsapp-toast")).toHaveCount(1);
+  await expect(page.locator(".whatsapp-toast")).toContainText(
+    "WhatsApp conectado",
+  );
+  await expect(page.locator(".whatsapp-toast")).toHaveCount(0, {
+    timeout: 10000,
+  });
+  await navigate(page, "attendance");
+  await expect(page.locator("#v2-attendance-load")).toBeEnabled();
+});
+
+test("a WhatsApp connection error shows a dismissible corner notice and leaves attendance usable", async ({
+  page,
+}) => {
+  await page.route("**/api/v2/whatsapp/status", (r) =>
+    r.fulfill({
+      json: {
+        state: "error",
+        connected: false,
+        enabled: false,
+        note: "Revisa el paquete Baileys y su versión. La aplicación sigue funcionando.",
+      },
+    }),
+  );
+  await login(page);
+  await expect(page.locator(".whatsapp-toast.error")).toContainText(
+    "Revisa el paquete Baileys",
+  );
+  await page
+    .locator(".whatsapp-toast")
+    .getByRole("button", { name: "Cerrar aviso de WhatsApp" })
+    .click();
+  await expect(page.locator(".whatsapp-toast")).toHaveCount(0);
+  await navigate(page, "attendance");
+  await expect(page.locator("#v2-attendance-load")).toBeEnabled();
 });

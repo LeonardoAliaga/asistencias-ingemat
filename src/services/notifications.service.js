@@ -3,6 +3,9 @@ const db = require("../database/db");
 const { AppError } = require("../utils/errors");
 const { getConfig, renderMessage } = require("./notification-config.service");
 const baileys = require("./baileys.service");
+const reportStorage = require("./whatsapp-report-storage.service");
+const groups = require("./whatsapp-groups.service");
+const { GROUP_ID } = require("../whatsapp/media.cjs");
 function providerReady() {
   return baileys.status().connected;
 }
@@ -11,7 +14,7 @@ function status() {
     provider: "baileys",
     configured: providerReady(),
     enabled: getConfig().enabled,
-    groupSupport: false,
+    groupSupport: true,
     ...baileys.status(),
   };
 }
@@ -20,9 +23,14 @@ function enqueue({ eventKey, recipient, kind, payload, contactId = null }) {
   const provider = "baileys";
   payload = {
     ...payload,
-    text: renderMessage(kind, payload.parameters, config),
+    text: ["student_report", "attendance_report"].includes(kind)
+      ? String(payload.text || "")
+      : renderMessage(kind, payload.parameters, config),
   };
-  if (!/^\+[1-9]\d{7,14}$/.test(recipient))
+  if (
+    !/^\+[1-9]\d{7,14}$/.test(recipient) &&
+    !(kind === "attendance_report" && GROUP_ID.test(recipient))
+  )
     throw new AppError(
       "El teléfono debe tener formato internacional, por ejemplo +51900111222.",
     );
@@ -143,10 +151,55 @@ function attendanceDeleted(row) {
     !!match && !db.prepare("SELECT 1 FROM attendance WHERE id=?").get(match[1])
   );
 }
+function reportState(row) {
+  if (!["student_report", "attendance_report"].includes(row.kind))
+    return { current: true };
+  try {
+    const payload = JSON.parse(row.payload);
+    if (
+      row.kind === "attendance_report" &&
+      groups.target(payload.cycle)?.id !== row.recipient
+    )
+      return {
+        current: false,
+        cancel: true,
+        error: "El grupo del ciclo cambió. Genera el reporte nuevamente.",
+      };
+    if (
+      row.kind === "student_report" &&
+      !db
+        .prepare(
+          "SELECT 1 FROM contacts WHERE id=? AND user_uid=? AND phone=? AND active=1 AND consent=1",
+        )
+        .get(row.contact_id, payload.studentUid, row.recipient)
+    )
+      return {
+        current: false,
+        cancel: true,
+        error:
+          "El apoderado ya no tiene autorización para recibir este reporte.",
+      };
+    reportStorage.read(payload.attachment);
+    return { current: true };
+  } catch {
+    return {
+      current: false,
+      error:
+        "El archivo del reporte no está disponible. Genera y envía un reporte nuevo.",
+    };
+  }
+}
 async function send(row) {
   if (row.provider !== "baileys")
     throw new AppError("Este aviso es histórico y no se enviará por Baileys.");
   const payload = JSON.parse(row.payload);
+  if (["student_report", "attendance_report"].includes(row.kind))
+    return baileys.sendMedia(
+      row.recipient,
+      payload.text,
+      row.id.replaceAll("-", "").toUpperCase(),
+      payload.attachment,
+    );
   return baileys.sendText(
     row.recipient,
     payload.text,
@@ -156,20 +209,27 @@ async function send(row) {
 let busy = false;
 async function processOutbox(sendImpl = send) {
   const config = getConfig();
-  if (busy || !config.enabled || !providerReady(config.provider)) return;
+  if (busy || !providerReady(config.provider)) return;
   busy = true;
   try {
     const rows = db
       .prepare(
-        "SELECT o.* FROM outbox o LEFT JOIN evaluaciones e ON e.id=json_extract(CASE WHEN json_valid(o.payload) THEN o.payload ELSE '{}' END,'$.evaluationId') WHERE o.provider=? AND o.status IN ('pending','retry') AND o.next_attempt_at<=? AND (o.kind!='results' OR json_extract(CASE WHEN json_valid(o.payload) THEN o.payload ELSE '{}' END,'$.gradeId') IS NULL OR e.estado IN ('publicado','archivado') OR NOT EXISTS (SELECT 1 FROM respuestas_evaluacion r WHERE r.id=json_extract(CASE WHEN json_valid(o.payload) THEN o.payload ELSE '{}' END,'$.gradeId'))) ORDER BY o.created_at LIMIT 5",
+        "SELECT o.* FROM outbox o LEFT JOIN evaluaciones e ON e.id=json_extract(CASE WHEN json_valid(o.payload) THEN o.payload ELSE '{}' END,'$.evaluationId') WHERE o.provider=? AND (?=1 OR o.kind IN ('student_report','attendance_report')) AND o.status IN ('pending','retry') AND o.next_attempt_at<=? AND (o.kind!='results' OR json_extract(CASE WHEN json_valid(o.payload) THEN o.payload ELSE '{}' END,'$.gradeId') IS NULL OR e.estado IN ('publicado','archivado') OR NOT EXISTS (SELECT 1 FROM respuestas_evaluacion r WHERE r.id=json_extract(CASE WHEN json_valid(o.payload) THEN o.payload ELSE '{}' END,'$.gradeId'))) ORDER BY o.created_at LIMIT 5",
       )
-      .all(config.provider, Date.now());
+      .all(config.provider, config.enabled ? 1 : 0, Date.now());
     for (const row of rows) {
       if (config.provider === "baileys" && !providerReady("baileys")) break;
       if (attendanceDeleted(row)) {
         db.prepare(
           "UPDATE outbox SET status='cancelled',error='El registro de asistencia fue eliminado.',updated_at=CURRENT_TIMESTAMP WHERE id=? AND status IN ('pending','retry')",
         ).run(row.id);
+        continue;
+      }
+      const report = reportState(row);
+      if (!report.current) {
+        db.prepare(
+          "UPDATE outbox SET status=?,error=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status IN ('pending','retry')",
+        ).run(report.cancel ? "cancelled" : "failed", report.error, row.id);
         continue;
       }
       let payload;
@@ -311,4 +371,5 @@ module.exports = {
   cancelPendingResults,
   cancelPendingAttendance,
   attendanceDeleted,
+  reportState,
 };

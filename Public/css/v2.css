@@ -144,6 +144,56 @@
   opacity: 0.5;
   cursor: wait;
 }
+.report-whatsapp-dialog {
+  max-width: 640px;
+}
+.report-whatsapp-preview {
+  display: block;
+  max-width: 100%;
+  max-height: 240px;
+  object-fit: contain;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.whatsapp-toast {
+  pointer-events: none;
+  position: fixed;
+  right: 20px;
+  bottom: max(20px, env(safe-area-inset-bottom));
+  z-index: 10050;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: min(380px, calc(100vw - 32px));
+  padding: 14px 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #fff;
+  color: #0f172a;
+  box-shadow: 0 8px 32px #10274826;
+  font: 13px/1.5 var(--font-body);
+}
+.whatsapp-toast.success {
+  border-left: 4px solid #15803d;
+}
+.whatsapp-toast.error {
+  border-left: 4px solid #a92b15;
+}
+.whatsapp-toast button {
+  pointer-events: auto;
+  margin-left: auto;
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: 22px/1 sans-serif;
+  cursor: pointer;
+}
+#wa-group-settings .stack {
+  margin-top: 18px;
+}
 .v2-notice,
 #v2-message {
   border: 1px solid #d0e0f4;

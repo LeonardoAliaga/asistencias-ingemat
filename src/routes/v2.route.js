@@ -23,6 +23,7 @@ const { AppError } = require("../utils/errors");
 const { audit } = require("../services/audit.service");
 const { businessDate } = require("../utils/time");
 const router = express.Router();
+router.use("/whatsapp", require("./whatsapp-reports.route"));
 const read = requirePermission("evaluaciones:read"),
   write = requirePermission("evaluaciones:write");
 const tempDir = path.join(config.dataDir, "temp");
@@ -118,7 +119,7 @@ router.post("/backup", requireAdmin, (req, res) => {
     exito: true,
     filename,
     mensaje:
-      "Copia consistente creada. Incluye también las carpetas imports y scanner y la clave de sesión en tu respaldo protegido.",
+      "Copia consistente creada. Incluye también las carpetas imports, scanner y whatsapp y la clave de sesión en tu respaldo protegido.",
   });
 });
 router.get("/backups/:name", requireAdmin, (req, res) => {

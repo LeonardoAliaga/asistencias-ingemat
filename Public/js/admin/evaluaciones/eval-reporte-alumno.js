@@ -1,6 +1,7 @@
 // Public/js/admin/evaluaciones/eval-reporte-alumno.js
 
 import { evalState } from "./eval-state.js";
+let reportRequest = 0;
 import {
   drawCanvasRoundRect,
   copyCanvasToClipboard,
@@ -35,12 +36,16 @@ export async function buscarYRenderizarReporteAlumno(codigoEstudiante) {
   }
 
   if (!cod) return;
+  const token = ++reportRequest;
+  evalState.currentStudentReportData = null;
+  if (toolbar) toolbar.style.display = "none";
 
   try {
     const res = await fetch(
       `/api/evaluaciones/reporte-estudiante/${encodeURIComponent(cod)}`,
     );
     const data = await res.json();
+    if (token !== reportRequest) return;
 
     if (data.exito) {
       const rawEval = data.historialEvaluaciones || [];
@@ -134,6 +139,36 @@ export function setupBuscadorReporteAlumno() {
     "btn-copiar-imagen-reporte",
   );
   const semanaSelect = document.getElementById("reporte-alumno-semana-select");
+  const sendWhatsApp = document.getElementById("btn-whatsapp-reporte-alumno");
+  window.ingematSession.then((session) => {
+    sendWhatsApp.hidden = session.usuario?.role !== "admin";
+  });
+  sendWhatsApp.onclick = async () => {
+    const errorMessage = document.getElementById("student-report-wa-message");
+    errorMessage.hidden = true;
+    sendWhatsApp.disabled = true;
+    try {
+      const report = structuredClone(evalState.currentStudentReportData);
+      if (!report) throw new Error("Selecciona primero un estudiante.");
+      if (report.evalHist.length + report.tareaHist.length > 500)
+        throw new Error(
+          "Selecciona una semana para reducir el tamaño del reporte.",
+        );
+      const { openStudentReport } = await import("../report-whatsapp.js");
+      const canvas = crearCanvasReporteCompleto(
+        report.estudiante,
+        report.evalHist,
+        report.tareaHist,
+        report.selectedSemanaLabel,
+      );
+      await openStudentReport({ report, canvas });
+    } catch (error) {
+      errorMessage.textContent = error.message;
+      errorMessage.hidden = false;
+    } finally {
+      sendWhatsApp.disabled = false;
+    }
+  };
 
   if (semanaSelect) {
     semanaSelect.onchange = () => {
@@ -669,7 +704,7 @@ export function copiarReporteTareasImagen(
 }
 
 // Generador de Imagen de Reporte Consolidado Completo (Evaluaciones + Tareas) para Copiar al Portapapeles
-export function copiarReporteCompletoImagen(
+export function crearCanvasReporteCompleto(
   est,
   evalHist = [],
   tareaHist = [],
@@ -677,6 +712,7 @@ export function copiarReporteCompletoImagen(
 ) {
   const canvas = document.createElement("canvas");
   const canvasWidth = 1100;
+  canvas.reportPageBreaks = [];
   const rowHeight = 38;
   const sectionTitleHeight = 36;
   const tableHeaderHeight = 36;
@@ -900,6 +936,7 @@ export function copiarReporteCompletoImagen(
       currentY + 24,
     );
     currentY += rowHeight + 14;
+    canvas.reportPageBreaks.push(currentY - 14);
   } else {
     evalHist.forEach((e, idx) => {
       let bgRow = idx % 2 === 0 ? "#FFFFFF" : "#F8FAFC";
@@ -964,6 +1001,7 @@ export function copiarReporteCompletoImagen(
       ctx.fillText(`${e.puntajeTotal} pts`, startX + 965, currentY + 24);
 
       currentY += rowHeight;
+      canvas.reportPageBreaks.push(currentY);
     });
     currentY += 14;
   }
@@ -1020,6 +1058,7 @@ export function copiarReporteCompletoImagen(
       currentY + 24,
     );
     currentY += rowHeight + 14;
+    canvas.reportPageBreaks.push(currentY - 14);
   } else {
     tareaHist.forEach((t, idx) => {
       const isEven = idx % 2 === 0;
@@ -1081,6 +1120,7 @@ export function copiarReporteCompletoImagen(
       ctx.fillText(stInfo.label, badgeX + badgeW / 2, badgeY + 18);
 
       currentY += rowHeight;
+      canvas.reportPageBreaks.push(currentY);
     });
     currentY += 14;
   }
@@ -1120,6 +1160,21 @@ export function copiarReporteCompletoImagen(
     currentY + 62,
   );
 
+  return canvas;
+}
+
+export function copiarReporteCompletoImagen(
+  est,
+  evalHist = [],
+  tareaHist = [],
+  semanaLabel = null,
+) {
+  const canvas = crearCanvasReporteCompleto(
+    est,
+    evalHist,
+    tareaHist,
+    semanaLabel,
+  );
   const sufijo = semanaLabel
     ? `_${semanaLabel.replace(/[^a-zA-Z0-9]/g, "_").slice(0, 25)}`
     : "";

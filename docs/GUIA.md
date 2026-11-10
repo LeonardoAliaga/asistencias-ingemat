@@ -80,6 +80,7 @@ Usa código, lector USB o cámara.
 6. **Consulta la lista.** En Asistencia filtra por fecha, ciclo y turno. Descarga Excel o pulsa Copiar imagen para pegar el reporte PNG con Ctrl+V. Administración y Recepción pueden pulsar la papelera de una fila y confirmar para eliminar un registro incorrecto. Se actualizan los reportes, se cancelan sus avisos pendientes y queda constancia en auditoría; los mensajes ya enviados no se retiran.
 
 - Un aviso en cola no equivale a un mensaje entregado. Consulta Comunicación para comprobar el estado.
+- Para enviar el reporte al grupo del ciclo, selecciona un ciclo con grupo configurado en Comunicación. Enviar reporte del día usa la fecha y turno seleccionados; puedes escoger imagen o PDF. No se envía automáticamente por abrir la lista.
 
 ## Justificar una tardanza
 
@@ -303,7 +304,7 @@ Consulta simulacros y tareas de un alumno.
 3. **Filtra la semana.** La semana académica se cuenta de sábado a viernes.
 4. **Comprueba el contexto.** No compares puntajes brutos entre exámenes con reglas o cantidades diferentes sin revisar sus escalas.
 5. **Exporta o imprime.** Usa los botones disponibles para imagen, documento o impresión del reporte.
-6. **Comparte con cuidado.** Elige el contacto autorizado. No publiques notas individuales en un grupo general por defecto.
+6. **Envía por WhatsApp.** Con una cuenta de administración, pulsa Enviar por WhatsApp. Selecciona un apoderado autorizado y elige Imagen PNG o Documento PDF. Se respeta la semana seleccionada. Pon el reporte en cola y comprueba la entrega en Comunicación.
 
 ## Catálogo, secciones, préstamos y devoluciones
 
@@ -339,9 +340,11 @@ Vincula el teléfono; los fallos de WhatsApp quedan aislados de la operación ac
 5. **Activa cuando esté conectado.** Comprueba el estado Conectado, marca Activar notificaciones y guarda. Vincular el teléfono no activa los avisos automáticamente. Las asistencias generan avisos para contactos autorizados; los resultados se notifican cuando lo solicitas tras publicarlos.
 6. **Recupera una falla.** Si el paquete, la conexión o el proceso fallan, aparece un aviso para revisar Baileys. La app, la asistencia y las notas continúan; los avisos sin enviar se conservan. Ejecuta npm run whatsapp:doctor, revisa la versión y pulsa Conectar / Reintentar. Un envío incierto necesita comprobar la entrega antes de reenviarlo.
 7. **Detén o vuelve a vincular.** Detener conexión desactiva los avisos y conserva la sesión. Volver a vincular, tras confirmar, elimina solo la sesión local de WhatsApp; después conecta y escanea otro QR. No borra asistencias, estudiantes ni calificaciones.
+8. **Asigna un grupo a cada ciclo.** Abre Grupos de reportes por ciclo. Selecciona el ciclo y busca el grupo por palabras, sin tildes o con un pequeño error de escritura. Elige un grupo del teléfono conectado y guarda. En Asistencias, filtra el ciclo, la fecha y el turno; pulsa Enviar reporte del día y confirma el grupo y el formato.
 
 - Baileys se ejecuta en un proceso separado con tiempos de espera, latidos de supervisión y límite de heap. La sesión está en DATA_DIR/whatsapp/baileys-auth.db, separada de la base académica.
 - Es una biblioteca no oficial sujeta a cambios de WhatsApp. La aplicación no instala actualizaciones arbitrarias ni reinicia indefinidamente un proceso que falla. Consulta docs/WHATSAPP.md y docs/ARQUITECTURA.md.
+- La app intenta restaurar la sesión de WhatsApp en cada arranque. Un aviso temporal en la esquina informa de conexión o error. Los reportes solicitados manualmente pueden enviarse sin activar los avisos automáticos de asistencia y resultados.
 
 ## Áreas y apoderados que reciben avisos
 
@@ -353,6 +356,8 @@ Cada alumno puede tener varios contactos autorizados.
 4. **Registra autorización.** Activa Autorizó recibir avisos únicamente cuando tengas esa autorización.
 5. **Revisa destinatarios.** Un contacto sin autorización o desactivado no recibe mensajes.
 6. **Revoca cuando se solicite.** Usa Revocar. El contacto deja de participar en los siguientes avisos.
+
+- Al crear un estudiante también puedes registrar su área, nombre y teléfono del apoderado. Marca la autorización solo si el apoderado la dio. Los datos del estudiante y del contacto se guardan juntos.
 
 ## Reintentos, mensajes fallidos y entrega
 

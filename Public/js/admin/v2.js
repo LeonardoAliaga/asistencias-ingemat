@@ -1279,6 +1279,30 @@ async function loadAttendance() {
     ]),
   );
   $("v2-attendance-export").href = `/api/v2/attendance/excel?${query}`;
+  const shareButton = $("v2-attendance-whatsapp"),
+    groupHint = $("v2-attendance-group-hint");
+  const canShare = ["admin", "recepcion"].includes(state.role);
+  shareButton.hidden = !canShare;
+  shareButton.disabled = true;
+  groupHint.textContent = canShare
+    ? "Selecciona un ciclo para enviar su reporte al grupo de WhatsApp configurado."
+    : "";
+  const cycle = $("v2-attendance-cycle").value;
+  if (canShare && cycle) {
+    try {
+      const { target } = await api(
+        `/api/v2/whatsapp/attendance-target?cycle=${encodeURIComponent(cycle)}`,
+      );
+      if (version !== state.attendanceVersion) return;
+      shareButton.disabled = !target || !data.rows.length;
+      groupHint.textContent = target
+        ? `Destino: ${target.subject}. Se enviará la fecha y turno seleccionados.`
+        : "Este ciclo no tiene grupo. Configúralo en Comunicación → Grupos de reportes por ciclo.";
+    } catch {
+      groupHint.textContent =
+        "No se pudo consultar el grupo del ciclo. Vuelve a consultar la asistencia.";
+    }
+  }
   for (const button of $("v2-attendance").querySelectorAll(
     "[data-delete-attendance]",
   ))
@@ -1749,6 +1773,9 @@ async function initialize() {
   state.role = session.usuario.role;
   state.timezone = session.timezone || "America/Lima";
   document.body.dataset.accountRole = state.role;
+  import("./whatsapp-status.js")
+    .then((m) => m.mountWhatsAppStatus())
+    .catch(() => {});
   if (state.role !== "admin")
     for (const id of [
       "horarios-section",
@@ -1783,9 +1810,14 @@ async function initialize() {
       )
       .catch(() => {
         const warning = $("whatsapp-service-warning");
-        warning.hidden = false;
+        warning.hidden = true;
         warning.textContent =
           "No se pudo cargar Comunicación. Revisa el paquete Baileys y los archivos de la interfaz. La aplicación sigue funcionando.";
+        import("./whatsapp-status.js")
+          .then((m) => m.showWhatsAppToast(warning.textContent, "error"))
+          .catch(() => {
+            warning.hidden = false;
+          });
         return null;
       });
   document.body.append($("v2-dialog"));
@@ -1901,6 +1933,19 @@ async function initialize() {
   bind("v2-guide-search", "input", renderGuides);
   bind("v2-guide-category", "change", renderGuides);
   bind("v2-contact-search", "input", renderContacts);
+  bind("v2-attendance-whatsapp", "click", async () => {
+    const cycle = $("v2-attendance-cycle").value;
+    const { target } = await api(
+      `/api/v2/whatsapp/attendance-target?cycle=${encodeURIComponent(cycle)}`,
+    );
+    const { openDailyReport } = await import("./report-whatsapp.js");
+    await openDailyReport({
+      cycle,
+      target,
+      date: $("v2-attendance-date").value,
+      shift: $("v2-attendance-shift").value,
+    });
+  });
   bind("v2-attendance-load", "click", loadAttendance);
   bind("v2-attendance-image", "click", copyAttendanceImage);
   for (const id of [

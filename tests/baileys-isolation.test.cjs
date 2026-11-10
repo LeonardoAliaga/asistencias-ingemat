@@ -51,6 +51,63 @@ function fixture(options = {}) {
   };
 }
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+test("the installed Baileys package encodes real PNG and PDF media without connecting an account", async (t) => {
+  let baileys;
+  try {
+    baileys = await import("@whiskeysockets/baileys");
+  } catch {
+    return t.skip("Optional Baileys package not installed");
+  }
+  const { createCanvas } = require("@napi-rs/canvas");
+  const PDFDocument = require("pdfkit");
+  const doc = new PDFDocument(),
+    chunks = [];
+  const pdf = new Promise((resolve, reject) => {
+    doc.on("data", (c) => chunks.push(c));
+    doc.on("end", () => resolve(Buffer.concat(chunks)));
+    doc.on("error", reject);
+  });
+  doc.text("Reporte de prueba INGEMAT");
+  doc.end();
+  const options = {
+    upload: async () => ({
+      mediaUrl: "https://example.invalid/media",
+      directPath: "/offline-test",
+    }),
+    logger: {
+      child() {
+        return this;
+      },
+      trace() {},
+      debug() {},
+      info() {},
+      warn() {},
+      error() {},
+    },
+  };
+  const image = await baileys.generateWAMessageContent(
+    {
+      image: createCanvas(40, 40).toBuffer("image/png"),
+      mimetype: "image/png",
+      caption: "Reporte",
+    },
+    options,
+  );
+  assert.equal(image.imageMessage.mimetype, "image/png");
+  assert(Number(image.imageMessage.fileLength) > 0);
+  const document = await baileys.generateWAMessageContent(
+    {
+      document: await pdf,
+      mimetype: "application/pdf",
+      fileName: "Reporte.pdf",
+      caption: "Reporte",
+    },
+    options,
+  );
+  assert.equal(document.documentMessage.fileName, "Reporte.pdf");
+  assert.equal(document.documentMessage.mimetype, "application/pdf");
+  assert(Number(document.documentMessage.fileLength) > 0);
+});
 test("media sends use private bounded files and preserve stable IDs for individual and group recipients", async () => {
   const { randomUUID } = require("node:crypto");
   const { createCanvas } = require("@napi-rs/canvas");

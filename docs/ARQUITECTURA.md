@@ -96,3 +96,10 @@ Los datos de operación, secretos y logs se excluyen de Git. Los HTML de adminis
 ### Escala operativa
 
 Una instancia Node y SQLite local, con procesos externos supervisados. No se introduce Redis ni otra base de datos para esta escala. Antes de distribuir escrituras entre sedes o servidores, planifica una base compartida y reclamación distribuida de trabajos.
+
+
+## Adjuntos y grupos de reportes
+
+`whatsapp-groups.service` mantiene la asignación ciclo/grupo y la búsqueda normalizada; `whatsapp-reports.service` autoriza destinatarios, conserva la identidad de cada intento y crea la cola. `whatsapp-report-storage.service` valida imágenes, pagina PDF y guarda los archivos privados. El worker recibe solo metadatos de adjuntos propios; `src/whatsapp/media.cjs` limita formatos, rutas y tamaños. La consulta de grupos y la subida de medios permanecen en el proceso aislado.
+
+Los reportes manuales tienen tipos propios (`student_report`, `attendance_report`) y pueden salir con los avisos automáticos desactivados. La cola comprueba de nuevo contacto/grupo y archivo antes de entregarlos al transporte. Cambiar una asignación cancela pendientes del destino anterior. Los recibos y estados inciertos conservan las reglas existentes. La sesión se restaura al iniciar; el estado mínimo alimenta un aviso temporal y no expone QR ni credenciales.

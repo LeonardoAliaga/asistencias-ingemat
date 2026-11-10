@@ -72,6 +72,8 @@ router.post("/:id/retry", (req, res) => {
       "El registro de asistencia fue eliminado. Este aviso no se puede reenviar.",
       409,
     );
+  const report = notifications.reportState(row);
+  if (!report.current) throw new AppError(report.error, 409);
   if (
     row.kind === "results" &&
     notifications.resultState(JSON.parse(row.payload)) !== "current"

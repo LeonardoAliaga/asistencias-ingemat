@@ -4,9 +4,8 @@ const imports = require("./imports.service");
 let timers = [];
 function start() {
   if (timers.length) return;
-  const cfg = notifications.getConfig();
-  if (cfg.provider === "baileys" && cfg.enabled)
-    require("./baileys.service").connect();
+  // Connecting restores the session without enabling automatic notifications.
+  require("./baileys.service").connect();
   db.prepare(
     "UPDATE import_batches SET status='queued' WHERE status='processing'",
   ).run();

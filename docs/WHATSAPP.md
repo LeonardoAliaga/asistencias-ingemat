@@ -32,9 +32,9 @@ La sesión está en `DATA_DIR/whatsapp/baileys-auth.db`, separada de `ingemat.db
 
 La copia SQLite del panel corresponde a la base académica. Conserva la carpeta de WhatsApp en privado con la app detenida si necesitas restaurar la vinculación; también puedes vincular de nuevo. No mezcles archivos WAL/SHM de otra ejecución con una restauración.
 
-La cola de avisos reside en la base académica para conservar el evento junto a la asistencia. Solo guarda textos/confirmaciones; el paquete de red nunca accede a la base académica. Los textos quedan fijados al crear el aviso. Un cambio posterior de plantilla no altera lo que ya estaba en cola. Las autorizaciones revocadas y las notas corregidas invalidan los avisos obsoletos.
+La cola de avisos reside en la base académica para conservar el evento junto a la asistencia. Guarda textos, referencias de archivos y confirmaciones; el paquete de red nunca accede a la base académica. Los textos quedan fijados al crear el aviso. Un cambio posterior de plantilla no altera lo que ya estaba en cola. Las autorizaciones revocadas y las notas corregidas invalidan los avisos obsoletos.
 
-Esta interfaz envía a contactos individuales. No incorpora automatización de grupos. Las confirmaciones se muestran cuando WhatsApp las comunica; la aceptación por el componente no equivale a entrega al destinatario.
+Los avisos de asistencia y resultados siguen siendo individuales. Los reportes de alumnos se envían a un apoderado autorizado y los reportes de asistencia al grupo asignado explícitamente al ciclo. Los reportes se envían solo cuando un operador los solicita; no hay una programación diaria automática. Las confirmaciones se muestran cuando WhatsApp las comunica; la aceptación por el componente no equivale a entrega al destinatario.
 
 ## Actualización desde la integración anterior
 
@@ -43,3 +43,20 @@ La migración 006 conserva los avisos históricos y retira la configuración de 
 Las pruebas automatizadas usan contactos ficticios y procesos simulados. El paquete real se comprueba con el diagnóstico sin vincular números ni enviar mensajes. La primera vinculación y prueba de entrega real deben realizarse en la PC de la academia.
 
 Además se verificó una instalación limpia y la ausencia real del paquete en una copia aislada: el componente informó `BAILEYS_PACKAGE_LOAD_ERROR` y el HTTP de la app devolvió 200 con SQLite disponible. Esta comprobación no abrió una conexión a WhatsApp.
+
+
+## Reportes individuales, por ciclo y archivos
+
+- **Nuevo estudiante:** área de postulación, nombre y teléfono del apoderado son campos del formulario cuando se elige Estudiante. El contacto es opcional; si se completa, nombre y teléfono deben ser válidos. La autorización no se marca automáticamente.
+- **Reportes → Por estudiante:** selecciona alumno y semana, pulsa Enviar por WhatsApp, escoge el apoderado autorizado y el formato PNG o PDF. Se conserva el diseño de la ficha integral. El PDF es una instantánea visual en A4 con saltos de página entre filas.
+- **Comunicación → Grupos de reportes por ciclo:** selecciona el ciclo, busca por nombre (palabras en cualquier orden, tildes normalizadas y errores pequeños), elige un grupo y guarda. La sesión debe estar conectada y pertenecer al grupo. La consulta solo devuelve identificador, nombre y cantidad de miembros; no publica sus números ni conversaciones.
+- **Asistencias:** elige ciclo, fecha y turno. Si el ciclo tiene grupo y hay registros, Enviar reporte del día permite confirmar destino y escoger imagen o PDF. Conserva el diseño clásico del reporte de asistencia. Administración configura los grupos; Administración y Recepción pueden enviar la asistencia. Solo Administración envía fichas académicas individuales.
+- **Envío manual y avisos automáticos:** conectar WhatsApp o enviar un reporte no activa los avisos de asistencia/resultados. Los reportes solicitados expresamente se procesan aunque esos avisos automáticos estén desactivados; si no hay conexión, esperan en la cola.
+- **Archivos privados:** PNG/PDF se guardan en `DATA_DIR/whatsapp/reports`, fuera de Public, con nombres internos aleatorios y un límite de 10 MB. Incluye esa carpeta en el respaldo para conservar adjuntos y reintentos. Comunicación permite descargar el archivo del envío con una cuenta autorizada. No se admiten rutas ni URLs de archivos del navegador.
+- **Reintentos:** cada intento tiene identidad estable y una respuesta perdida no duplica la cola. Si cambia el grupo del ciclo o se revoca el permiso del apoderado, se cancela el aviso pendiente. Un archivo faltante obliga a generar un reporte nuevo. Un envío incierto conserva la revisión manual antes de reenviar.
+
+## Reconexión y avisos de estado
+
+En cada arranque el supervisor intenta conectar Baileys con la sesión guardada, aunque los avisos automáticos estén desactivados. Si no hay sesión válida, la vinculación sigue requiriendo el QR privado de Comunicación. Esto no activa envíos automáticos.
+
+La dashboard consulta un estado mínimo y muestra un aviso temporal en una esquina: conectando, conectado, requiere vinculación o error. El aviso se puede cerrar, desaparece por sí solo y no se repite con cada consulta mientras no cambie el estado. Los errores mantienen la indicación de revisar Baileys; la operación académica continúa.

@@ -115,7 +115,7 @@ npm start
 
 El diagnóstico no vincula cuentas ni envía mensajes. Desde **Comunicación**, guarda los mensajes, pulsa **Conectar / Reintentar** y escanea el QR con WhatsApp → Dispositivos vinculados. Cuando aparezca Conectado, activa los avisos y guarda. No se necesitan credenciales de API de pago ni webhooks públicos. La sesión persiste en `DATA_DIR/whatsapp/baileys-auth.db`, separada de la base académica. Conserva esa carpeta en privado o vuelve a vincular el teléfono tras restaurar.
 
-Los avisos requieren contactos autorizados. Los resultados se notifican mediante una acción explícita después de publicarlos. La cola conserva mensajes y sus textos; un envío incierto no se repite automáticamente. Los estados de entrega se actualizan cuando WhatsApp los comunica. Esta interfaz no automatiza grupos.
+Los avisos requieren contactos autorizados. Los resultados se notifican mediante una acción explícita después de publicarlos. La cola conserva mensajes y sus textos; un envío incierto no se repite automáticamente. Los estados de entrega se actualizan cuando WhatsApp los comunica. También puedes enviar expresamente fichas individuales como imagen/PDF y reportes de asistencia al grupo asignado a cada ciclo. Configura el grupo desde Comunicación y envía desde Asistencias. La sesión intenta reconectar en cada arranque; el panel informa su estado mediante un aviso temporal.
 
 La migración retira la configuración y los endpoints de la integración anterior, conserva sus avisos históricos y no los reenvía por Baileys. Las instalaciones anteriores empiezan con los nuevos avisos desactivados hasta vincular el teléfono. La biblioteca no oficial puede requerir mantenimiento; aislarla evita convertir sus fallos en una caída de INGEMAT.
 
