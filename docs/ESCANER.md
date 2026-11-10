@@ -15,7 +15,7 @@ npm run scanner:doctor
 npm run scanner:doctor -- twain
 ```
 
-En Lectura de cartillas selecciona el examen listo y pulsa Buscar escáneres. Prueba WIA y, si es necesario, TWAIN. Elige equipo, origen y área. Escanear y añadir crea una captura en segundo plano; al terminar puedes abrir su PDF, quitarla, cambiar el papel o voltearlo y añadir otra. Cancelar escaneo solicita detener el proceso; comprueba el papel antes de repetir.
+En Lectura de cartillas selecciona el examen listo dentro del panel Escanear con NAPS2 y pulsa Buscar escáneres. El aviso junto al botón indica si falta elegir o validar un simulacro, seleccionar el escáner o esperar otra solicitud. El botón se habilita al completar los requisitos. Prueba WIA y, si es necesario, TWAIN. Elige equipo, origen y área. Escanear y añadir crea una captura en segundo plano; al terminar puedes abrir su PDF, quitarla, cambiar el papel o voltearlo y añadir otra. Cancelar escaneo solicita detener el proceso; comprueba el papel antes de repetir.
 
 ## Brother MFC-T920DW
 

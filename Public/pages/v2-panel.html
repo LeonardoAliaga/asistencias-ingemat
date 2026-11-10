@@ -479,9 +479,6 @@ B:51-100,1-50"
         Tutorial de escáner
       </button>
     </div>
-    <div class="v2-card">
-      <label>Examen listo<select id="v2-import-exam" required></select></label>
-    </div>
     <section
       class="v2-card scanner-card"
       id="v2-scanner"
@@ -493,6 +490,17 @@ B:51-100,1-50"
           Ayuda de conexión
         </button>
       </div>
+      <label
+        >Examen listo<select
+          id="v2-import-exam"
+          required
+          aria-describedby="scanner-exam-help"
+        ></select
+      ></label>
+      <p class="v2-help" id="scanner-exam-help">
+        Selecciona el simulacro validado al que pertenecen las cartillas. Esta
+        selección también se usa al cargar archivos o respuestas CSV.
+      </p>
       <p class="v2-help">
         NAPS2 y el controlador Brother deben estar instalados en la computadora
         donde se ejecuta INGEMAT. Puedes continuar añadiendo hojas al terminar
@@ -536,7 +544,13 @@ B:51-100,1-50"
         alimentador. Se usa 300 ppp en escala de grises.
       </p>
       <div class="v2-toolbar">
-        <button class="v2-button" type="button" id="scanner-start" disabled>
+        <button
+          class="v2-button"
+          type="button"
+          id="scanner-start"
+          aria-describedby="scanner-readiness"
+          disabled
+        >
           Escanear y añadir</button
         ><button
           class="v2-button secondary"
@@ -547,6 +561,12 @@ B:51-100,1-50"
           Procesar capturas
         </button>
       </div>
+      <p
+        id="scanner-readiness"
+        class="v2-help"
+        role="status"
+        aria-live="polite"
+      ></p>
       <p id="scanner-status" role="status" aria-live="polite" class="v2-help">
         Busca el escáner para empezar. Las capturas se conservan al salir de
         esta sección.

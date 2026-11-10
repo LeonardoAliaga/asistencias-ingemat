@@ -5,7 +5,9 @@ export function mountScanner({ api, escape: esc, onUploaded, username }) {
     jobs = [],
     serverBusy = false,
     requesting = false,
-    refreshing = false;
+    refreshing = false,
+    refreshQueued = false,
+    displayedExam = "";
   try {
     pending = JSON.parse(sessionStorage.getItem(key) || "{}") || {};
   } catch {
@@ -38,6 +40,23 @@ export function mountScanner({ api, escape: esc, onUploaded, username }) {
     failed: "Fallida",
     cancelled: "Cancelada",
   };
+  function scanBlockReason() {
+    if (requesting) return "Espera a que termine la solicitud en curso.";
+    if (pending.import)
+      return "Verifica el envío pendiente antes de añadir otra captura.";
+    if (jobs.some((job) => job.status === "scanning"))
+      return "Hay un escaneo en curso. Espera a que termine o pulsa Cancelar escaneo.";
+    if (serverBusy)
+      return "El escáner está ocupado por otra solicitud. El botón se habilitará cuando termine.";
+    if (!pending.start && !$("v2-import-exam").value) {
+      return [...$("v2-import-exam").options].some((option) => option.value)
+        ? "Selecciona un examen listo en este panel para habilitar el escaneo."
+        : "No hay exámenes listos. Primero crea y valida un simulacro en la sección Simulacros.";
+    }
+    if (!pending.start && !$("scanner-device").value)
+      return "Pulsa Buscar escáneres y selecciona el equipo que vas a usar.";
+    return "";
+  }
   function render() {
     const locked =
       requesting ||
@@ -53,12 +72,16 @@ export function mountScanner({ api, escape: esc, onUploaded, username }) {
       "scanner-discover",
     ])
       $(id).disabled = locked;
-    $("scanner-start").disabled =
-      requesting ||
-      !!pending.import ||
-      serverBusy ||
-      (!pending.start &&
-        (!$("scanner-device").value || !$("v2-import-exam").value));
+    const blocked = scanBlockReason();
+    $("scanner-start").disabled = !!blocked;
+    $("scanner-start").title = blocked;
+    const readiness =
+      blocked ||
+      (pending.start
+        ? "Comprueba la captura pendiente para recuperar su estado sin repetir la orden."
+        : "Listo para escanear. Coloca el papel y pulsa Escanear y añadir.");
+    if ($("scanner-readiness").textContent !== readiness)
+      $("scanner-readiness").textContent = readiness;
     $("scanner-start").textContent = pending.start
       ? "Verificar captura pendiente"
       : "Escanear y añadir";
@@ -75,8 +98,17 @@ export function mountScanner({ api, escape: esc, onUploaded, username }) {
       : '<p class="v2-help">Las capturas aparecerán aquí. Cambia o voltea la hoja para añadir otra cara.</p>';
   }
   async function refresh() {
-    if (refreshing) return;
     const examId = $("v2-import-exam").value;
+    if (displayedExam !== examId) {
+      displayedExam = examId;
+      jobs = [];
+      serverBusy = false;
+      render();
+    }
+    if (refreshing) {
+      refreshQueued = true;
+      return;
+    }
     if (!examId) {
       jobs = [];
       serverBusy = false;
@@ -100,6 +132,10 @@ export function mountScanner({ api, escape: esc, onUploaded, username }) {
       status(error.message, true);
     } finally {
       refreshing = false;
+      if (refreshQueued) {
+        refreshQueued = false;
+        void refresh();
+      }
     }
   }
   async function act(fn) {
@@ -131,7 +167,7 @@ export function mountScanner({ api, escape: esc, onUploaded, username }) {
         $("scanner-device").value = data.devices[0];
       status(
         data.devices.length
-          ? `${data.devices.length} escáner(es) disponible(s). Coloca el papel y pulsa Escanear y añadir.`
+          ? `${data.devices.length} escáner(es) disponible(s).`
           : "No se encontraron escáneres. Comprueba el controlador Brother o prueba TWAIN.",
       );
     }),

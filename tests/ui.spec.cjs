@@ -1361,3 +1361,77 @@ test("scanner cancellation and mobile panel remain accessible without camera per
     .analyze();
   expect(result.violations).toEqual([]);
 });
+
+test("scanner explains missing exam beside the disabled button and enables after selection", async ({
+  page,
+}) => {
+  const fixture = await scannerFixture(page);
+  await login(page);
+  await navigate(page, "imports");
+  await expect(page.locator("#v2-scanner #v2-import-exam")).toHaveCount(1);
+  await page.click("#scanner-discover");
+  await expect(page.locator("#scanner-device")).toHaveValue(
+    "Brother MFC-T920DW",
+  );
+  await expect(page.locator("#scanner-start")).toBeDisabled();
+  await expect(page.locator("#scanner-readiness")).toContainText(
+    "Selecciona un examen listo",
+  );
+  await expect(page.locator("#scanner-status")).not.toContainText(
+    "pulsa Escanear",
+  );
+  const option = page
+    .locator("#v2-import-exam option")
+    .filter({ hasText: "SIMULACRO DE DEMOSTRACIÓN" });
+  await page.selectOption(
+    "#v2-import-exam",
+    await option.getAttribute("value"),
+  );
+  await expect(page.locator("#scanner-start")).toBeEnabled();
+  await expect(page.locator("#scanner-readiness")).toContainText(
+    "Listo para escanear",
+  );
+  await page.click("#scanner-start");
+  await expect(page.locator(".scanner-captures li")).toHaveCount(1);
+  expect(fixture.counts().physicalScans).toBe(1);
+});
+
+test("scanner explains that an exam must be validated when no ready exam exists", async ({
+  page,
+}) => {
+  await scannerFixture(page);
+  await page.route("**/api/v2/exams", (route) =>
+    route.fulfill({ contentType: "application/json", body: "[]" }),
+  );
+  await login(page);
+  await navigate(page, "imports");
+  await page.click("#scanner-discover");
+  await expect(page.locator("#scanner-start")).toBeDisabled();
+  await expect(page.locator("#scanner-readiness")).toContainText(
+    "Primero crea y valida un simulacro",
+  );
+});
+
+test("scanner explains a busy device and enables when the other request finishes", async ({
+  page,
+}) => {
+  await scannerFixture(page);
+  let busy = true;
+  await page.route("**/api/v2/scanner/jobs?*", (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ busy, jobs: [] }),
+    }),
+  );
+  await selectScannerExam(page);
+  await page.click("#scanner-discover");
+  await expect(page.locator("#scanner-start")).toBeDisabled();
+  await expect(page.locator("#scanner-readiness")).toContainText(
+    "ocupado por otra solicitud",
+  );
+  busy = false;
+  await expect(page.locator("#scanner-start")).toBeEnabled();
+  await expect(page.locator("#scanner-readiness")).toContainText(
+    "Listo para escanear",
+  );
+});
