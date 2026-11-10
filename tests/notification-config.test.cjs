@@ -73,10 +73,10 @@ test("malformed settings are disabled and unknown fields never leak into the API
 test("multiple message variants remain valid and can select each text without changing variables", () => {
   const settings = config.validateConfig({
     enabled: false,
-    attendanceMessage: "✅ Estudiante: {nombre}, {hora}\\n---\\n📋 Estudiante: {nombre}, {estado}",
+    attendanceMessage: "✅ Estudiante: {nombre}, {hora}\n---\n📋 Estudiante: {nombre}, {estado}",
   }, () => false);
   assert.equal(config.renderMessage("attendance", ["Ana", "2026-11-10", "07:50", "puntual"], settings, () => 0), "✅ Estudiante: Ana, 07:50");
   assert.equal(config.renderMessage("attendance", ["Ana", "2026-11-10", "07:50", "puntual"], settings, () => 1), "📋 Estudiante: Ana, puntual");
-  assert.throws(() => config.validateConfig({ enabled: false, attendanceMessage: "Estudiante: {nombre}\\n---\\nSIN ALUMNO" }, () => false), /nombre/);
-  assert.throws(() => config.validateConfig({ enabled: false, attendanceMessage: Array.from({ length: 11 }, () => "{nombre}").join("\\n---\\n") }, () => false), /10 variantes/);
+  assert.throws(() => config.validateConfig({ enabled: false, attendanceMessage: "Estudiante: {nombre}\n---\nSIN ALUMNO" }, () => false), /nombre/);
+  assert.throws(() => config.validateConfig({ enabled: false, attendanceMessage: Array.from({ length: 11 }, () => "{nombre}").join("\n---\n") }, () => false), /10 variantes/);
 });

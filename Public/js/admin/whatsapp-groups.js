@@ -126,8 +126,8 @@ export function mountWhatsAppGroups({ api, json }) {
   });
   $("wa-group-refresh").onclick = () => {
     clearTimeout(debounce);
-    void find(true);
     search.focus();
+    void find(true);
   };
   async function save(groupId) {
     const button = groupId ? $("wa-group-save") : $("wa-group-remove");

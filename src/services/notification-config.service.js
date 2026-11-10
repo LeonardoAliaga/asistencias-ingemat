@@ -5,15 +5,15 @@ const defaults = {
   enabled: false,
   provider: "baileys",
   attendanceMessage: [
-    "📚 INGEMAT · Asistencia\\nEstudiante: {nombre}\\nFecha: {fecha}\\nHora: {hora}\\nEstado: {estado}",
-    "✅ Registro de ingreso INGEMAT\\nEstudiante: {nombre}\\nFecha: {fecha} · Hora: {hora}\\nEstado: {estado}",
-    "📝 Aviso de asistencia\\nEstudiante: {nombre}\\nRegistró ingreso el {fecha} a las {hora}\\nEstado: {estado}",
-  ].join("\\n---\\n"),
+    "📚 INGEMAT · Asistencia\nEstudiante: {nombre}\nFecha: {fecha}\nHora: {hora}\nEstado: {estado}",
+    "✅ Registro de ingreso INGEMAT\nEstudiante: {nombre}\nFecha: {fecha} · Hora: {hora}\nEstado: {estado}",
+    "📝 Aviso de asistencia\nEstudiante: {nombre}\nRegistró ingreso el {fecha} a las {hora}\nEstado: {estado}",
+  ].join("\n---\n"),
   resultsMessage: [
-    "🎓 INGEMAT · Simulacro\\nEstudiante: {nombre}\\nExamen: {examen}\\nPuntaje: {puntaje}\\nÁrea: {area}",
-    "📊 Resultados INGEMAT\\nEstudiante: {nombre}\\nEvaluación: {examen}\\nPuntaje: {puntaje} · Área: {area}",
-    "📚 Reporte de evaluación\\nEstudiante: {nombre}\\nPrueba: {examen}\\nResultado: {puntaje}\\nÁrea: {area}",
-  ].join("\\n---\\n"),
+    "🎓 INGEMAT · Simulacro\nEstudiante: {nombre}\nExamen: {examen}\nPuntaje: {puntaje}\nÁrea: {area}",
+    "📊 Resultados INGEMAT\nEstudiante: {nombre}\nEvaluación: {examen}\nPuntaje: {puntaje} · Área: {area}",
+    "📚 Reporte de evaluación\nEstudiante: {nombre}\nPrueba: {examen}\nResultado: {puntaje}\nÁrea: {area}",
+  ].join("\n---\n"),
 };
 const fields = {
   attendance: ["nombre", "fecha", "hora", "estado"],
@@ -38,7 +38,7 @@ function getConfig() {
   return config;
 }
 function splitVariants(message) {
-  return message.split(/^\\s*---\\s*$/m).map((item) => item.trim()).filter(Boolean);
+  return message.split(/^\s*---\s*$/m).map((item) => item.trim()).filter(Boolean);
 }
 function renderMessage(kind, parameters, config = getConfig(), chooseIndex = randomInt) {
   if (!fields[kind] || !Array.isArray(parameters) || parameters.length !== 4)
@@ -48,7 +48,7 @@ function renderMessage(kind, parameters, config = getConfig(), chooseIndex = ran
   );
   const variants = splitVariants(config[kind === "attendance" ? "attendanceMessage" : "resultsMessage"]);
   const template = variants[chooseIndex(variants.length)];
-  return template.replace(/\\{([a-z]+)\\}/g, (_, key) => values[key]);
+  return template.replace(/\{([a-z]+)\}/g, (_, key) => values[key]);
 }
 function validateConfig(input, readiness) {
   const c = { ...getConfig(), ...input };
@@ -69,7 +69,7 @@ function validateConfig(input, readiness) {
       variants.some((template) =>
         template.length > 1000 ||
         !template.includes("{nombre}") ||
-        [...template.matchAll(/\\{([^{}]+)\\}/g)].some(
+        [...template.matchAll(/\{([^{}]+)\}/g)].some(
           (match) => !allowed.includes(match[1]),
         )
       )
