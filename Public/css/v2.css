@@ -1754,3 +1754,39 @@ body[data-account-role="docente"] .btn-delete-seccion {
 #wa-group-suggestions .wa-group-option:hover { background: #e0edff; }
 #wa-group-suggestions .wa-group-empty { color: var(--muted); cursor: default; }
 #wa-group-selected:not(:empty) { color: #17633b; font-weight: 600; }
+
+/* Envíos por WhatsApp: verde de marca y estados accesibles. */
+.admin-app .whatsapp-send-button,
+.admin-app #report-whatsapp-dialog .v2-button[type="submit"] {
+  background: #128c7e;
+  border-color: #128c7e;
+  color: #fff;
+}
+.admin-app .whatsapp-send-button:hover:not(:disabled),
+.admin-app #report-whatsapp-dialog .v2-button[type="submit"]:hover:not(:disabled) {
+  background: #075e54;
+  border-color: #075e54;
+  color: #fff;
+}
+.admin-app .whatsapp-send-button:disabled,
+.admin-app #report-whatsapp-dialog .v2-button[type="submit"]:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+.student-area-fieldset { min-width: 0; padding: 0; border: 0; }
+.student-area-fieldset legend { font-size: 13px; font-weight: 650; color: var(--ink); }
+.student-area-fieldset .help { margin: 6px 0 10px; }
+.student-area-options { display: flex; flex-wrap: wrap; gap: 8px; }
+.student-area-options label {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px;
+  background: #fff; cursor: pointer; min-height: 42px;
+}
+.student-area-options label:has(input:checked) {
+  border-color: #17633b; background: #edf7f0; color: #17633b;
+}
+.student-area-options input { accent-color: #17633b; width: 16px; height: 16px; margin: 0; }
+#v2-manual .key-editor { margin-block: 4px; }
+#v2-manual .key-question-grid button.is-blank {
+  background: #fff2da; border-color: #e8c885; color: #7f560a;
+}

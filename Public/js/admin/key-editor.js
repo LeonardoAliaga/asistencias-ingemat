@@ -1,10 +1,13 @@
 // Visual adapter over the same serialized keys used by draft saving and revisions.
 // The textarea remains the source of truth, including when a bulk paste is invalid.
-export function mountKeyEditor(textarea, { getDefinition, parse, escape }) {
+export function mountKeyEditor(textarea, { getDefinition, parse, escape, mode = "keys" }) {
+  const responses = mode === "responses";
+  const noun = responses ? "respuesta" : "clave";
+  const nounPlural = responses ? "respuestas" : "claves";
   const root = document.createElement("div");
   root.className = "key-editor";
   root.setAttribute("role", "group");
-  root.setAttribute("aria-label", "Editor visual de claves");
+  root.setAttribute("aria-label", responses ? "Editor visual de respuestas del estudiante" : "Editor visual de claves");
   textarea.closest("details").before(root);
   let active = 1,
     course = "0",
@@ -23,10 +26,12 @@ export function mountKeyEditor(textarea, { getDefinition, parse, escape }) {
         !Number.isInteger(q) ||
         q < 1 ||
         q > model.totalQuestions ||
-        (answer && !/^[ABCDE](?:\/[ABCDE])*$/.test(answer))
+        (answer && !(responses && answer === "-") && !/^[ABCDE](?:\/[ABCDE])*$/.test(answer))
       )
         throw new Error(
-          "Revisa el texto pegado: usa alternativas A a E y números dentro del cuadernillo. No se reemplazó ninguna clave.",
+          responses
+            ? "Revisa el texto pegado: utiliza A a E, - para blanco y preguntas dentro del cuadernillo. No se reemplazó ninguna respuesta."
+            : "Revisa el texto pegado: usa alternativas A a E y números dentro del cuadernillo. No se reemplazó ninguna clave.",
         );
       if (answer) values[q] = [...new Set(answer.split("/"))].sort().join("/");
     }
@@ -67,11 +72,18 @@ export function mountKeyEditor(textarea, { getDefinition, parse, escape }) {
     }
     render(`[data-answer="${letter}"]`);
   }
+  function blank() {
+    if (!responses) return;
+    try { read(); } catch { return; }
+    write("-");
+    if (automatic && !multiple) navigate(active + 1);
+    render("[data-key-blank]");
+  }
   function render(focus) {
     try {
       read();
     } catch (error) {
-      root.innerHTML = `<p class="field-error" role="status">${escape(error.message)}</p><p class="v2-help">Abre «Pegar una lista de claves» para corregir el texto. El editor visual volverá a aparecer cuando sea válido.</p>`;
+      root.innerHTML = `<p class="field-error" role="status">${escape(error.message)}</p><p class="v2-help">Abre «Pegar una lista de ${nounPlural}» para corregir el texto. El editor visual volverá a aparecer cuando sea válido.</p>`;
       return;
     }
     active = Math.max(1, Math.min(model.totalQuestions, active));
@@ -95,15 +107,16 @@ export function mountKeyEditor(textarea, { getDefinition, parse, escape }) {
     const count = Object.keys(values).length;
     root.innerHTML = `
       <div class="key-editor-toolbar"><label>Curso<select data-key-course><option value="all" ${course === "all" ? "selected" : ""}>Todo el cuadernillo · ${count}/${model.totalQuestions}</option>${model.sections.map((s, i) => `<option value="${i}" ${course === String(i) ? "selected" : ""}>${escape(s.name)} · ${s.questions.filter((q) => values[q]).length}/${s.questions.length}</option>`).join("")}</select></label><button type="button" data-key-pending ${count === model.totalQuestions ? "disabled" : ""}>Ir a una pendiente</button></div>
-      <div class="key-question-heading"><div><p class="v2-eyebrow">${escape(currentCourse?.name || "Cuadernillo")}</p><h4>Pregunta ${active} de ${model.totalQuestions}</h4></div><span class="key-current-answer">${selected[0] ? `Clave: ${escape(values[active])}` : "Sin clave"}</span></div>
-      <p class="v2-help">Elige la respuesta correcta. También puedes usar las teclas A–E mientras estás en este editor.</p>
+      <div class="key-question-heading"><div><p class="v2-eyebrow">${escape(currentCourse?.name || "Cuadernillo")}</p><h4>Pregunta ${active} de ${model.totalQuestions}</h4></div><span class="key-current-answer">${values[active] === "-" ? "En blanco" : selected[0] ? `${responses ? "Respuesta" : "Clave"}: ${escape(values[active])}` : `Sin ${noun}`}</span></div>
+      <p class="v2-help">${responses ? "Marca lo que respondió el estudiante (no la clave correcta)." : "Elige la respuesta correcta."} También puedes usar las teclas A–E mientras estás en este editor.</p>
       <div class="key-alternatives" role="group" aria-label="Alternativas de la pregunta ${active}">${letters.map((l) => `<button type="button" data-answer="${l}" aria-label="${l}, pregunta ${active}" aria-pressed="${selected.includes(l)}">${l}</button>`).join("")}</div>
-      <div class="key-editor-settings"><label class="v2-checkbox"><input type="checkbox" data-key-auto ${automatic ? "checked" : ""} ${multiple ? "disabled" : ""}>Avanzar al elegir</label><label class="v2-checkbox"><input type="checkbox" data-key-multiple ${multiple ? "checked" : ""}>Aceptar varias alternativas</label><button type="button" class="v2-link" data-key-clear ${values[active] ? "" : "disabled"}>Quitar esta clave</button></div>
+      ${responses ? '<button type="button" class="v2-button secondary" data-key-blank>Dejar pregunta en blanco</button>' : ""}
+      <div class="key-editor-settings"><label class="v2-checkbox"><input type="checkbox" data-key-auto ${automatic ? "checked" : ""} ${multiple ? "disabled" : ""}>Avanzar al elegir</label><label class="v2-checkbox"><input type="checkbox" data-key-multiple ${multiple ? "checked" : ""}>Aceptar varias alternativas</label><button type="button" class="v2-link" data-key-clear ${values[active] ? "" : "disabled"}>Quitar esta ${noun}</button></div>
       ${multiple ? '<p class="v2-help">Marca todas las respuestas aceptadas. El avance automático está pausado; pulsa Siguiente al terminar esta pregunta.</p>' : ""}
-      <div class="key-navigation"><button type="button" data-key-prev ${active === 1 ? "disabled" : ""}>Anterior</button><p class="v2-help" role="status" aria-live="polite">${count} de ${model.totalQuestions} con alternativa</p><button type="button" data-key-next ${active === model.totalQuestions ? "disabled" : ""}>Siguiente</button></div>
-      <div class="key-question-grid" role="group" aria-label="Preguntas del curso">${visible.map((q) => `<button type="button" data-key-question="${q}" class="${values[q] ? "has-answer" : ""}" ${q === active ? 'aria-current="true"' : ""} aria-label="Pregunta ${q}: ${escape(values[q] || "pendiente")}"><span>${q}</span><small>${escape(values[q] || "—")}</small></button>`).join("")}</div>
+      <div class="key-navigation"><button type="button" data-key-prev ${active === 1 ? "disabled" : ""}>Anterior</button><p class="v2-help" role="status" aria-live="polite">${count} de ${model.totalQuestions} ${responses ? "registradas (incluye blancos)" : "con alternativa"}</p><button type="button" data-key-next ${active === model.totalQuestions ? "disabled" : ""}>Siguiente</button></div>
+      <div class="key-question-grid" role="group" aria-label="Preguntas del curso">${visible.map((q) => `<button type="button" data-key-question="${q}" class="${values[q] === "-" ? "is-blank" : values[q] ? "has-answer" : ""}" ${q === active ? 'aria-current="true"' : ""} aria-label="Pregunta ${q}: ${escape(values[q] === "-" ? "en blanco" : values[q] || "pendiente")}"><span>${q}</span><small>${escape(values[q] || "—")}</small></button>`).join("")}</div>
       ${questions.length > 20 ? `<div class="key-navigation"><button type="button" data-key-page="${page - 1}" ${page === 0 ? "disabled" : ""}>20 anteriores</button><span class="v2-help">${page * 20 + 1}–${Math.min((page + 1) * 20, questions.length)} de ${questions.length}</span><button type="button" data-key-page="${page + 1}" ${(page + 1) * 20 >= questions.length ? "disabled" : ""}>20 siguientes</button></div>` : ""}
-      <p class="v2-help">Los números muestran tu avance: verde tiene clave; el borde azul indica la pregunta actual. Puedes volver a cualquier pregunta para corregirla.</p>`;
+      <p class="v2-help">Los números muestran el avance: verde = ${noun} registrada${responses ? "; amarillo = en blanco" : ""}; borde azul = pregunta actual. Puedes volver a cualquier pregunta para corregirla.</p>`;
     root.querySelector("[data-key-course]").onchange = (event) => {
       course = event.target.value;
       active =
@@ -134,6 +147,7 @@ export function mountKeyEditor(textarea, { getDefinition, parse, escape }) {
       multiple = event.target.checked;
       render("[data-key-multiple]");
     };
+    if (responses) root.querySelector("[data-key-blank]").onclick = blank;
     root.querySelector("[data-key-clear]").onclick = () => {
       write("");
       render(`[data-key-question="${active}"]`);

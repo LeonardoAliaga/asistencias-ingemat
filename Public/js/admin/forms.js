@@ -180,6 +180,17 @@ if (formAgregarCiclo) {
 const formAgregar = document.getElementById("form-agregar");
 if (formAgregar) {
   const studentDetails = document.getElementById("new-student-details");
+  const areaChoices = [...document.querySelectorAll('#new-student-area-group input[name="student-area"]')];
+  // Visualmente son casillas, pero la ficha del estudiante solo admite un área.
+  for (const choice of areaChoices) choice.addEventListener("change", () => {
+    if (choice.checked) {
+      areaChoices.forEach((other) => {
+        if (other !== choice) other.checked = false;
+      });
+    } else if (!areaChoices.some((option) => option.checked)) {
+      choice.checked = true;
+    }
+  });
   const toggleGuardian = () => {
     const student = document.getElementById("rol").value === "estudiante";
     studentDetails.hidden = !student;
@@ -245,10 +256,7 @@ if (formAgregar) {
       payload.turno = turno;
       payload.ciclo = ciclo;
       payload.dias_asistencia = diasAsistencia;
-      payload.area = document
-        .getElementById("new-student-area")
-        .value.trim()
-        .toUpperCase();
+      payload.area = areaChoices.find((choice) => choice.checked)?.value || "GENERAL";
       payload.guardian = {
         name: document.getElementById("new-guardian-name").value.trim(),
         phone: document.getElementById("new-guardian-phone").value.trim(),

@@ -443,16 +443,19 @@ B:51-100,1-50"
             <label>Área<select id="v2-manual-area"></select></label
             ><label>Versión<select id="v2-manual-form"></select></label>
           </div>
-          <label
-            >Respuestas<textarea
+          <p class="v2-help">Registra las respuestas del estudiante con el editor rápido: haz clic o pulsa A–E y avanzará a la siguiente pregunta. Puedes marcar varias alternativas o registrar una pregunta en blanco.</p>
+          <details id="v2-manual-bulk">
+            <summary>Pegar respuestas manualmente (opcional)</summary>
+            <p class="v2-help">Admite una lista como A B C D o una respuesta por línea (1,A). Usa - para indicar una pregunta en blanco.</p>
+            <label>Lista de respuestas<textarea
               id="v2-manual-answers"
               placeholder="1,A
 2,-
 3,A/B"
-              required=""
               rows="4"
-            ></textarea>
-          </label>
+              spellcheck="false"
+            ></textarea></label>
+          </details>
           <details>
             <summary>Corregir una calificación anterior</summary>
             <label class="v2-checkbox"
@@ -688,7 +691,7 @@ B:51-100,1-50"
       >
         <i class="bi bi-image" aria-hidden="true"></i> Copiar imagen</button
       ><button
-        class="v2-button secondary"
+        class="v2-button secondary whatsapp-send-button"
         id="v2-attendance-whatsapp"
         type="button"
         disabled

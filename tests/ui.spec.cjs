@@ -57,7 +57,9 @@ test("create, validate and grade an exam from the dashboard", async ({
   await expect(page.locator("#v2-message")).toContainText("Examen validado");
   await page.click("#v2-manual-tab");
   await page.selectOption("#v2-manual-student", "DEMO001");
+  await page.locator("#v2-manual-bulk").evaluate((el) => { el.open = true; });
   await page.fill("#v2-manual-answers", Array(100).fill("A").join(" "));
+  await expect(page.locator("#v2-manual .key-editor")).toContainText("100 de 100 registradas");
   await page.click("#v2-manual button[type=submit]");
   await expect(page.locator("#v2-message")).toContainText("2000 puntos");
   await page.click('[data-local-tab="exam-results"]');
@@ -205,7 +207,9 @@ test("legacy user and library forms still save once after repeated navigation", 
   await page.fill("#apellido", "DEMO");
   await page.selectOption("#rol", "estudiante");
   await expect(page.locator("#new-student-details")).toBeVisible();
-  await page.fill("#new-student-area", "E");
+  await expect(page.locator('#new-student-area-group input[value="GENERAL"]')).toBeChecked();
+  await page.locator('#new-student-area-group input[value="E"]').check();
+  await expect(page.locator('#new-student-area-group input:checked')).toHaveCount(1);
   await page.fill("#new-guardian-name", "MARÍA DEMO");
   await page.fill("#new-guardian-phone", "+51900000009");
   await page.check("#new-guardian-consent");
@@ -2292,4 +2296,60 @@ test("a WhatsApp connection error shows a dismissible corner notice and leaves a
   await expect(page.locator(".whatsapp-toast")).toHaveCount(0);
   await navigate(page, "attendance");
   await expect(page.locator("#v2-attendance-load")).toBeEnabled();
+});
+
+test("student area checkboxes select exactly one, including the unspecified area", async ({ page }) => {
+  await login(page);
+  await navigate(page, "people");
+  await page.click("#people-create");
+  await page.selectOption("#rol", "estudiante");
+  const choices = page.locator('#new-student-area-group input[name="student-area"]');
+  await expect(choices).toHaveCount(6);
+  await expect(page.locator('#new-student-area-group')).toContainText("Sin especificar");
+  await page.locator('#new-student-area-group input[value="D"]').check();
+  await expect(page.locator('#new-student-area-group input[value="GENERAL"]')).not.toBeChecked();
+  await expect(page.locator('#new-student-area-group input:checked')).toHaveCount(1);
+  await page.locator('#new-student-area-group input[value="D"]').uncheck();
+  await expect(page.locator('#new-student-area-group input[value="D"]')).toBeChecked();
+  await page.locator('#new-student-area-group input[value="GENERAL"]').check();
+  await expect(page.locator('#new-student-area-group input:checked')).toHaveCount(1);
+});
+
+test("manual answers use the quick visual editor and allow blanks and multiple marks", async ({ page }) => {
+  await login(page);
+  await navigate(page, "exams");
+  await page.click("#v2-new");
+  await page.fill('[name="titulo"]', "RESPUESTAS MANUALES UI");
+  await page.selectOption('[name="ciclo"]', "ANUAL");
+  await page.selectOption("#v2-preset", "100");
+  await nextStep(page, 2);
+  await pasteKeys(page, Array(100).fill("A").join(" "));
+  await nextStep(page, 3);
+  await page.click("#wizard-prepare");
+  await page.click("#v2-manual-tab");
+  const editor = page.locator("#v2-manual .key-editor");
+  await expect(editor.locator("h4")).toHaveText("Pregunta 1 de 100");
+  await editor.locator('[data-answer="C"]').click();
+  await expect(editor.locator("h4")).toHaveText("Pregunta 2 de 100");
+  await page.keyboard.press("D");
+  await expect(editor.locator("h4")).toHaveText("Pregunta 3 de 100");
+  await editor.locator("[data-key-blank]").click();
+  await expect(editor.locator("h4")).toHaveText("Pregunta 4 de 100");
+  await editor.locator("[data-key-multiple]").check();
+  await editor.locator('[data-answer="A"]').click();
+  await editor.locator('[data-answer="B"]').click();
+  await expect(editor.locator("h4")).toHaveText("Pregunta 4 de 100");
+  await expect(page.locator("#v2-manual-answers")).toHaveValue("1,C\n2,D\n3,-\n4,A/B");
+  await expect(editor.locator('[data-key-question="3"]')).toHaveAttribute("aria-label", "Pregunta 3: en blanco");
+  await page.locator("#v2-manual-bulk").evaluate((el) => { el.open = true; });
+  await page.fill("#v2-manual-answers", "1,E\n2,-");
+  await expect(editor.locator('[data-key-question="2"]')).toHaveAttribute("aria-label", "Pregunta 2: en blanco");
+});
+
+test("WhatsApp report buttons have green backgrounds", async ({ page }) => {
+  await login(page);
+  await navigate(page, "attendance");
+  await expect(page.locator("#v2-attendance-whatsapp")).toHaveCSS("background-color", "rgb(18, 140, 126)");
+  await navigate(page, "reports");
+  await expect(page.locator("#btn-whatsapp-reporte-alumno")).toHaveCSS("background-color", "rgb(18, 140, 126)");
 });

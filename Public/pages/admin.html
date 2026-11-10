@@ -1150,7 +1150,7 @@
                   >
                     <i class="bi bi-printer"></i> Generar Reporte PDF
                   </button>
-                  <button class="btn-form-submit" id="btn-whatsapp-reporte-alumno" type="button" hidden><i class="bi bi-whatsapp" aria-hidden="true"></i> Enviar por WhatsApp</button>
+                  <button class="btn-form-submit whatsapp-send-button" id="btn-whatsapp-reporte-alumno" type="button" hidden><i class="bi bi-whatsapp" aria-hidden="true"></i> Enviar por WhatsApp</button>
                 </div>
                 <p id="student-report-wa-message" class="field-error" role="status" hidden></p>
               </div>
@@ -1671,7 +1671,18 @@
           </div>
           <fieldset id="new-student-details" class="card stack" hidden>
             <legend>Postulación y apoderado</legend>
-            <div class="field"><label for="new-student-area">Área de postulación</label><input id="new-student-area" maxlength="20" list="student-area-options" placeholder="A, B, C, D, E o tu área personalizada" /><datalist id="student-area-options"><option value="A"></option><option value="B"></option><option value="C"></option><option value="D"></option><option value="E"></option><option value="GENERAL"></option></datalist></div>
+            <fieldset class="field student-area-fieldset" id="new-student-area-group">
+              <legend>Área de postulación</legend>
+              <p class="help">Marca una opción. Solo se permite un área por estudiante.</p>
+              <div class="student-area-options">
+                <label><input type="checkbox" name="student-area" value="A" /> A</label>
+                <label><input type="checkbox" name="student-area" value="B" /> B</label>
+                <label><input type="checkbox" name="student-area" value="C" /> C</label>
+                <label><input type="checkbox" name="student-area" value="D" /> D</label>
+                <label><input type="checkbox" name="student-area" value="E" /> E</label>
+                <label><input type="checkbox" name="student-area" value="GENERAL" checked /> Sin especificar</label>
+              </div>
+            </fieldset>
             <p class="help">El apoderado es opcional. Si lo registras, completa nombre y teléfono internacional.</p>
             <div class="form-row"><div class="field"><label for="new-guardian-name">Nombre del apoderado</label><input id="new-guardian-name" maxlength="100" autocomplete="name" /></div><div class="field"><label for="new-guardian-phone">Número de WhatsApp del apoderado</label><input id="new-guardian-phone" type="tel" autocomplete="tel" placeholder="+51900111222" /></div></div>
             <label class="v2-checkbox"><input id="new-guardian-consent" type="checkbox" /> El apoderado autorizó recibir avisos de este estudiante</label>

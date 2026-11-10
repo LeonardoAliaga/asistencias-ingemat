@@ -317,6 +317,7 @@ async function selectExam(id) {
   $("v2-exam-editor").hidden = true;
   $("v2-exam-editor").closest(".v2-panel").classList.remove("is-editing");
   $("v2-manual-answers").value = "";
+  state.manualAnswerEditor?.reset();
   $("v2-manual-replace").checked = false;
   $("v2-manual-reason").value = "";
   $("v2-manual-reason").required = false;
@@ -421,6 +422,19 @@ function keyValues(text) {
     raw.split(/[\s,;]+/).forEach((v, i) => (result[i + 1] = v));
   }
   return result;
+}
+function manualAnswerDefinition() {
+  const definition = state.selected?.definition;
+  if (!definition) return { totalQuestions: 1, sections: [{ name: "Preguntas", questions: [1] }] };
+  const order = definition.forms[$("v2-manual-form").value] ||
+    Array.from({ length: definition.totalQuestions }, (_, i) => i + 1);
+  return {
+    totalQuestions: definition.totalQuestions,
+    sections: definition.sections.map((section) => {
+      const originals = new Set(section.questions);
+      return { name: section.name, questions: order.flatMap((question, i) => originals.has(question) ? [i + 1] : []) };
+    }).filter((section) => section.questions.length),
+  };
 }
 function answerValues(text) {
   return Object.fromEntries(
@@ -1895,6 +1909,12 @@ async function initialize() {
     parse: keyValues,
     escape: esc,
   });
+  state.manualAnswerEditor = mountKeyEditor($("v2-manual-answers"), {
+    getDefinition: manualAnswerDefinition,
+    parse: keyValues,
+    escape: esc,
+    mode: "responses",
+  });
   $("v2-exam-editor").addEventListener("input", (event) => {
     if (
       !event.target.matches(
@@ -2154,6 +2174,7 @@ async function initialize() {
   bind("v2-manual-student", "change", (e) => {
     const u = state.students.find((u) => u.codigo === e.target.value);
     $("v2-manual-answers").value = "";
+    state.manualAnswerEditor?.reset();
     $("v2-manual-replace").checked = false;
     if (
       u?.area &&
@@ -2161,6 +2182,7 @@ async function initialize() {
     )
       $("v2-manual-area").value = u.area;
   });
+  bind("v2-manual-form", "change", () => state.manualAnswerEditor?.refresh());
   bind("v2-manual", "submit", async () => {
     const replace = $("v2-manual-replace").checked,
       reason = $("v2-manual-reason").value;
