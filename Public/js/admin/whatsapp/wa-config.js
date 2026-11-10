@@ -80,6 +80,8 @@ export async function loadGroups() {
         a.name.localeCompare(b.name)
       );
       state.setGroups(sortedGroups);
+      renderStudentRules();
+      renderReportRules();
 
       console.log(
         `[wa-config.js] loadGroups: ${state.availableGroups.length} grupos recibidos y guardados en el estado.`
