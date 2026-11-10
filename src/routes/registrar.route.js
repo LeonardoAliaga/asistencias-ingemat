@@ -1,60 +1,27 @@
 // src/routes/registrar.route.js
 const express = require("express");
-const fs = require("fs");
-const path = require("path");
 const { guardarRegistro } = require("../services/excel.service");
-const {
-  estadoAsistencia,
-  getDayAbbreviation,
-  convertTo12Hour,
-  normalizarTexto,
-} = require("../utils/helpers");
-const { getFullName } = require("../utils/helpers");
-const {
-  sendMessage,
-  isWhatsappReady,
-} = require("../../Whatsapp/WhatsappClient");
-
+const { estadoAsistencia, getDayAbbreviation, convertTo12Hour, getFullName } = require("../utils/helpers");
+const db = require("../database/db");
+const { attendanceMessage, teacherMessage } = require("../services/whatsapp-messages");
+const { sendMessage, isWhatsappReady } = require("../../Whatsapp/WhatsappClient");
 const router = express.Router();
-const usuariosPath = path.join(__dirname, "../../data/usuarios.json");
-const whatsappConfigPath = path.join(
-  __dirname,
-  "../../data/whatsappConfig.json"
-);
 
-// Función para leer config de WhatsApp (con nuevos defaults)
-const readWhatsappConfig = () => {
-  const defaultConfig = {
-    enabledGeneral: false,
-    studentNotificationsEnabled: false,
-    teacherNotificationsEnabled: false,
-    studentRules: [],
-    teacherTargetType: "number",
-    teacherTargetId: null,
+function readWhatsappConfig() {
+  const defaults = {
+    enabledGeneral:false, studentNotificationsEnabled:false,
+    teacherNotificationsEnabled:false, studentRules:[], teacherTargetId:null,
   };
   try {
-    if (fs.existsSync(whatsappConfigPath)) {
-      const data = fs.readFileSync(whatsappConfigPath, "utf8");
-      let config = JSON.parse(data);
-
-      if (config.enabled !== undefined) {
-        config.studentNotificationsEnabled = config.enabled;
-        delete config.enabled;
-      }
-
-      return { ...defaultConfig, ...config };
-    }
-    console.log(
-      "Registrar Route: Archivo de config WhatsApp no encontrado, usando default."
-    );
+    const row = db.prepare("SELECT valor FROM config_general WHERE clave = 'whatsapp_config'").get();
+    if (!row?.valor) return defaults;
+    const saved = JSON.parse(row.valor);
+    return { ...defaults, ...saved, studentRules: Array.isArray(saved.studentRules) ? saved.studentRules : [] };
   } catch (error) {
-    console.error(
-      "Registrar Route: Error leyendo configuración de WhatsApp:",
-      error
-    );
+    console.error("Error consultando configuración de WhatsApp:", error);
+    return defaults;
   }
-  return defaultConfig;
-};
+}
 
 router.post("/", async (req, res) => {
   // --- INICIO LÓGICA DE JUSTIFICACIÓN (J) ---
@@ -81,7 +48,6 @@ router.post("/", async (req, res) => {
   }
   // --- FIN LÓGICA DE JUSTIFICACIÓN (J) ---
 
-  const db = require("../database/db");
   let usuario = null;
 
   try {
@@ -180,28 +146,13 @@ router.post("/", async (req, res) => {
       usuario.rol === "estudiante" &&
       whatsappConfig.studentNotificationsEnabled
     ) {
-      // --- MODIFICADO: Pasar 'usuario.ciclo' a estadoAsistencia ---
       const estado = estadoAsistencia(usuario.ciclo, usuario.turno, horaStr);
-      let estadoEmoji = "";
-      if (estado === "puntual") estadoEmoji = "✅";
-      else if (estado === "tolerancia") estadoEmoji = "⚠️";
-      else if (estado === "tarde") estadoEmoji = "❌";
-
-      // --- Añadir (J) al mensaje de WhatsApp si está justificado ---
-      let justificadoStr = "";
-      if (isJustified && (estado === "tarde" || estado === "tolerancia")) {
-        estadoEmoji = "🟠"; // Naranja para justificado
-        justificadoStr = " (J)";
-      }
-
-      mensajeWhatsapp = `*${getFullName(usuario)}* (${usuario.ciclo} - ${
-        usuario.turno
-      })\nIngreso: *${hora12h}${justificadoStr}* ${estadoEmoji}`;
-      // --- Fin modificación WhatsApp ---
-
-      if (!isScheduledToday) {
-        mensajeWhatsapp += `\n_(Registro fuera de día programado)_`;
-      }
+      mensajeWhatsapp = attendanceMessage({
+        nombre: getFullName(usuario), ciclo: usuario.ciclo, turno: usuario.turno,
+        hora: hora12h, estado,
+        justificado: isJustified && (estado === "tarde" || estado === "tolerancia"),
+        fueraDeHorario: !isScheduledToday,
+      });
 
       const regla = whatsappConfig.studentRules.find(
         (r) => r.ciclo === usuario.ciclo && r.turno === usuario.turno
@@ -213,14 +164,10 @@ router.post("/", async (req, res) => {
       usuario.rol === "docente" &&
       whatsappConfig.teacherNotificationsEnabled
     ) {
-      mensajeWhatsapp = `Docente *${getFullName(
-        usuario
-      )}*\nIngreso: *${hora12h}* 👨‍🏫`;
-      const isTeacherScheduled =
-        usuario.dias_asistencia && usuario.dias_asistencia.includes(diaAbbr);
-      if (!isTeacherScheduled) {
-        mensajeWhatsapp += `\n_(Registro fuera de día programado)_`;
-      }
+      const isTeacherScheduled = usuario.dias_asistencia && usuario.dias_asistencia.includes(diaAbbr);
+      mensajeWhatsapp = teacherMessage({
+        nombre: getFullName(usuario), hora: hora12h, fueraDeHorario: !isTeacherScheduled,
+      });
       destinatarioWhatsapp = whatsappConfig.teacherTargetId;
     }
 

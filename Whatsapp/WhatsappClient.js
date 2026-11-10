@@ -159,7 +159,7 @@ const initializeWhatsappClient = () => {
   }
 };
 
-const sendMessage = async (to, message) => {
+const sendMessage = async (to, message, options = {}) => {
   if (!isWhatsappReady || !whatsappClient) {
     console.warn(
       `${color.yellow("Whatsapp")} no está listo. Mensaje no enviado a ${to}.`
@@ -181,7 +181,7 @@ const sendMessage = async (to, message) => {
     if (typeof message === "string") {
       await whatsappClient.sendMessage(chatId, `${message}\n\n_Ingemat_`);
     } else {
-      await whatsappClient.sendMessage(chatId, message);
+      await whatsappClient.sendMessage(chatId, message, options);
     }
 
     console.log(`${color.green("Whatsapp")} Mensaje enviado a ${chatId}`);

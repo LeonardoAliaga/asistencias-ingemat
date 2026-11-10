@@ -23,7 +23,6 @@ import { initManualSend } from "./whatsapp/wa-manual.js";
 /**
  * Inicializa toda la lógica de la pestaña de WhatsApp.
  */
-let listenersInitialized = false;
 export function initWhatsappAdmin() {
   console.log("Inicializando admin WhatsApp (modular v3)...");
 
@@ -37,8 +36,6 @@ export function initWhatsappAdmin() {
   loadWhatsappConfig();
   loadCiclosForRuleSelect();
 
-  if (listenersInitialized) return;
-  listenersInitialized = true;
   // 3. Inicializar todos los listeners
 
   // -- Listeners de Estado y Conexión --

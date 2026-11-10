@@ -10,7 +10,8 @@ const {
   sendMessage,
   MessageMedia,
 } = require("../../Whatsapp/WhatsappClient");
-const { generateReportImage } = require("../services/report-generator"); // Importar generador
+const { generateReportImage } = require("../services/report-generator");
+const { reportMessage, carnetMessage } = require("../services/whatsapp-messages");
 
 const router = express.Router();
 const configPath = path.join(__dirname, "../../data/whatsappConfig.json");
@@ -180,7 +181,7 @@ router.post("/send-report-manual", async (req, res) => {
       `Reporte Asistencia ${ciclo} ${turno}.png`
     );
 
-    const sent = await sendMessage(groupId, media);
+    const sent = await sendMessage(groupId, media, { caption: reportMessage({ ciclo, turno }) });
 
     if (sent) {
       res.json({ exito: true, mensaje: "Reporte enviado exitosamente." });
@@ -222,26 +223,9 @@ router.post("/send-carnet", async (req, res) => {
     const base64Data = imageBase64.replace(/^data:image\/png;base64,/, "");
     const media = new MessageMedia('image/png', base64Data, 'carnet.png');
 
-    // 3. Enviar mensaje
-    // Usamos tu función importada 'sendMessage' que ya maneja la lógica interna
-    const caption = `Hola ${nombre || 'Estudiante'}, aquí tienes tu carnet digital de INGEMAT.`;
-    const sent = await sendMessage(chatId, media);
-    
-    // NOTA: sendMessage actualmente devuelve true/false, pero si envías media
-    // quizás quieras enviar el caption por separado o modificar sendMessage en WhatsappClient.js
-    // Para no complicar, enviamos la imagen y luego el texto si lo deseas, 
-    // o asumimos que la imagen habla por sí sola.
-    // Si tu sendMessage soporta caption en el objeto media (whatsapp-web.js nativo lo hace, pero tu wrapper no parece recibirlo explícitamente).
-    // Por ahora, enviamos solo la imagen.
-    
-    if (sent) {
-        // Opcional: Enviar saludo textual después
-        await sendMessage(chatId, caption); 
-        res.json({ exito: true, mensaje: "Carnet enviado correctamente." });
-    } else {
-        res.status(500).json({ exito: false, mensaje: "No se pudo enviar el mensaje (ver logs)." });
-    }
-
+    const sent = await sendMessage(chatId, media, { caption: carnetMessage(nombre) });
+    if (sent) res.json({ exito: true, mensaje: "Carnet enviado correctamente." });
+    else res.status(500).json({ exito: false, mensaje: "No se pudo enviar el carnet." });
   } catch (error) {
     console.error("Error en /send-carnet:", error);
     res.status(500).json({ exito: false, mensaje: `Error interno: ${error.message}` });

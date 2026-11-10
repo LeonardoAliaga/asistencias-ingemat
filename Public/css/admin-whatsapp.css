@@ -286,8 +286,3 @@ input:checked + .slider:before {
     font-size: 1.1rem;
   }
 }
-
-#vista-whatsapp .autocomplete-container { position: relative; min-width: 0; }
-#vista-whatsapp .autocomplete-container input[type="text"] { width: 100%; box-sizing: border-box; }
-#vista-whatsapp .autocomplete-items { display: none; z-index: 3000; max-height: 250px; overflow-y: auto; }
-#vista-whatsapp .autocomplete-empty { color: #64748b; cursor: default; }
