@@ -2309,7 +2309,7 @@ test("student area checkboxes select exactly one, including the unspecified area
   await page.locator('#new-student-area-group input[value="D"]').check();
   await expect(page.locator('#new-student-area-group input[value="GENERAL"]')).not.toBeChecked();
   await expect(page.locator('#new-student-area-group input:checked')).toHaveCount(1);
-  await page.locator('#new-student-area-group input[value="D"]').uncheck();
+  await page.locator('#new-student-area-group input[value="D"]').click();
   await expect(page.locator('#new-student-area-group input[value="D"]')).toBeChecked();
   await page.locator('#new-student-area-group input[value="GENERAL"]').check();
   await expect(page.locator('#new-student-area-group input:checked')).toHaveCount(1);
