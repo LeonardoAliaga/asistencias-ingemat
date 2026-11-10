@@ -935,3 +935,133 @@ test("batch history cleanup is authenticated, reversible and preserves direct ac
     200,
   );
 });
+
+test("attendance deletion is authorized, atomic, audited and cancels only related unsent notices", async () => {
+  const { randomUUID } = require("node:crypto");
+  const attendance = require("../src/services/attendance.service");
+  const uid = randomUUID();
+  db.prepare(
+    "INSERT INTO usuarios(codigo,nombre,apellido,rol,turno,ciclo,uid) VALUES('DELETE01','ANA','PRUEBA','estudiante','mañana','ANUAL',?)",
+  ).run(uid);
+  attendance.register(
+    "DELETE01",
+    { session: { username: "admin", role: "admin" } },
+    new Date("2032-01-15T13:00:00Z"),
+  );
+  const record = attendance.list("2032-01-15")[0];
+  const addNotice = (
+    status,
+    eventKey = `baileys:asistencia:${record.id}:${randomUUID()}`,
+    kind = "attendance",
+  ) => {
+    const id = randomUUID();
+    db.prepare(
+      "INSERT INTO outbox(id,event_key,recipient,kind,payload,status,provider) VALUES(?,?,'+51900000001',?,'{}',?,'baileys')",
+    ).run(id, eventKey, kind, status);
+    return id;
+  };
+  const pending = ["pending", "retry", "failed"].map((status) =>
+    addNotice(status),
+  );
+  const legacy = addNotice("pending", `asistencia:${record.id}:legacy`);
+  const preserved = [
+    "unknown",
+    "sending",
+    "accepted",
+    "sent",
+    "delivered",
+    "read",
+  ].map((status) => [addNotice(status), status]);
+  const unrelated = addNotice(
+    "pending",
+    `baileys:asistencia:${record.id}extra:other`,
+  );
+  const results = addNotice(
+    "pending",
+    `baileys:asistencia:${record.id}:result`,
+    "results",
+  );
+  const url = `/api/v2/attendance/${record.id}`;
+  assert.equal((await guest(url, undefined, "DELETE")).status, 401);
+  const teacher = await client();
+  await teacher(
+    "/admin/login",
+    { username: "docente", password: "Teacher-test-only-2026" },
+    "POST",
+  );
+  assert.equal((await teacher(url, undefined, "DELETE")).status, 403);
+  const desk = await client();
+  await desk(
+    "/admin/login",
+    { username: "desk-test", password: "Reception-test-only-2026" },
+    "POST",
+  );
+  // If writing the audit fails, both the attendance and its pending notices must remain.
+  db.exec(
+    "CREATE TEMP TRIGGER reject_attendance_delete_audit BEFORE INSERT ON audit_events WHEN NEW.action='eliminar' AND NEW.entity='asistencia' BEGIN SELECT RAISE(ABORT,'synthetic audit failure'); END",
+  );
+  try {
+    assert.equal((await admin(url, undefined, "DELETE")).status, 500);
+    assert(db.prepare("SELECT 1 FROM attendance WHERE id=?").get(record.id));
+    assert.equal(
+      db.prepare("SELECT status FROM outbox WHERE id=?").get(pending[0]).status,
+      "pending",
+    );
+  } finally {
+    db.exec("DROP TRIGGER reject_attendance_delete_audit");
+  }
+  const removed = await desk(url, undefined, "DELETE");
+  assert.equal(removed.status, 200);
+  assert.equal(removed.data.cancelledNotifications, 4);
+  assert.equal(
+    (await admin("/api/v2/attendance?date=2032-01-15")).data.rows.length,
+    0,
+  );
+  assert.equal(attendance.workbook("2032-01-15").getWorksheet(1).rowCount, 1);
+  for (const id of [...pending, legacy])
+    assert.equal(
+      db.prepare("SELECT status FROM outbox WHERE id=?").get(id).status,
+      "cancelled",
+    );
+  for (const [id, status] of [
+    ...preserved,
+    [unrelated, "pending"],
+    [results, "pending"],
+  ])
+    assert.equal(
+      db.prepare("SELECT status FROM outbox WHERE id=?").get(id).status,
+      status,
+    );
+  const audit = db
+    .prepare(
+      "SELECT * FROM audit_events WHERE entity='asistencia' AND entity_id=? AND action='eliminar'",
+    )
+    .get(record.id);
+  assert.equal(audit.actor, "desk-test");
+  assert.deepEqual(JSON.parse(audit.details).record, record);
+  assert.equal(
+    (
+      await admin(
+        `/api/v2/notifications/${preserved[0][0]}/retry`,
+        { confirmNotDelivered: true },
+        "POST",
+      )
+    ).status,
+    409,
+  );
+  assert.equal((await admin(url, undefined, "DELETE")).status, 404);
+  assert.equal(
+    (await admin("/api/registrar", { codigo: "DELETE01" }, "POST")).status,
+    200,
+  );
+  assert.equal(
+    (
+      await admin(
+        `/api/v2/attendance/${db.prepare("SELECT id FROM attendance WHERE student_code='DELETE01'").get().id}`,
+        undefined,
+        "DELETE",
+      )
+    ).status,
+    200,
+  );
+});

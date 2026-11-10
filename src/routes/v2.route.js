@@ -237,6 +237,11 @@ router.post(
     res.json({ exito: true });
   },
 );
+router.delete(
+  "/attendance/:id",
+  requirePermission("asistencias:write"),
+  (req, res) => res.json(attendance.remove(req.params.id, req)),
+);
 router.get("/exams", read, (req, res) =>
   res.json(
     db

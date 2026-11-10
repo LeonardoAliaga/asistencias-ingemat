@@ -1979,3 +1979,88 @@ test("failure to load the optional communication UI does not block the admin app
   await page.click("#v2-new");
   await expect(page.locator("#v2-exam-editor")).toBeVisible();
 });
+
+for (const [width, username, code] of [
+  [1440, "admin", "DEMO003"],
+  [390, "recepcion", "DOC001"],
+])
+  test(`attendance deletion confirms the selected row and keeps filters at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await login(page, username);
+    await navigate(page, "attendance");
+    const table = page.locator("#v2-attendance");
+    const row = table
+      .locator("tbody tr")
+      .filter({ has: page.getByRole("cell", { name: code, exact: true }) });
+    await expect(row).toBeVisible();
+    const button = row.getByRole("button", { name: /^Eliminar asistencia de/ });
+    const id = await button.getAttribute("data-delete-attendance");
+    const date = await page.inputValue("#v2-attendance-date");
+    const cycle = code === "DOC001" ? "" : "ANUAL";
+    const shift = code === "DOC001" ? "docente" : "tarde";
+    await page.selectOption("#v2-attendance-cycle", cycle);
+    await page.selectOption("#v2-attendance-shift", shift);
+    await expect(row).toBeVisible();
+    const size = await button.boundingBox();
+    expect(size.width).toBeGreaterThanOrEqual(32);
+    expect(size.width).toBeLessThanOrEqual(44);
+    let deletes = 0;
+    page.on("request", (request) => {
+      if (
+        request.method() === "DELETE" &&
+        request.url().endsWith(`/attendance/${id}`)
+      )
+        deletes++;
+    });
+    page.once("dialog", async (dialog) => {
+      expect(dialog.type()).toBe("confirm");
+      expect(dialog.message()).toContain(code);
+      expect(dialog.message()).toContain(date);
+      await dialog.dismiss();
+    });
+    await button.click();
+    await expect(row).toBeVisible();
+    expect(deletes).toBe(0);
+    await page.route(
+      `**/api/v2/attendance/${id}`,
+      (route) =>
+        route.fulfill({
+          status: 500,
+          json: { mensaje: "No se pudo eliminar el registro de prueba." },
+        }),
+      { times: 1 },
+    );
+    page.once("dialog", (dialog) => dialog.accept());
+    await button.click();
+    await expect(page.locator("#v2-message")).toContainText(
+      "No se pudo eliminar",
+    );
+    await expect(button).toBeEnabled();
+    await expect(row).toBeVisible();
+    page.once("dialog", (dialog) => dialog.accept());
+    await button.click();
+    await expect(row).toHaveCount(0);
+    await expect(page.locator("#v2-message")).toHaveText(
+      "Registro de asistencia eliminado.",
+    );
+    await expect(page.locator("#v2-attendance-date")).toHaveValue(date);
+    await expect(page.locator("#v2-attendance-cycle")).toHaveValue(cycle);
+    await expect(page.locator("#v2-attendance-shift")).toHaveValue(shift);
+    expect(
+      (
+        await (await page.request.get(`/api/v2/attendance?date=${date}`)).json()
+      ).rows.some((r) => r.id === id),
+    ).toBe(false);
+    expect(deletes).toBe(2);
+  });
+
+test("read-only operators cannot see attendance deletion controls", async ({
+  page,
+}) => {
+  await login(page, "docente");
+  await navigate(page, "attendance");
+  await expect(page.locator("#v2-attendance")).toContainText("DEMO002");
+  await expect(page.locator("[data-delete-attendance]")).toHaveCount(0);
+});

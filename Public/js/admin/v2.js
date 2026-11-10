@@ -1266,7 +1266,7 @@ async function loadAttendance() {
   const data = await api(`/api/v2/attendance?${query}`);
   if (version !== state.attendanceVersion) return;
   $("v2-attendance").innerHTML = table(
-    ["Código", "Persona", "Ciclo / turno", "Hora", "Estado", "Acción"],
+    ["Código", "Persona", "Ciclo / turno", "Hora", "Estado", "Acciones"],
     data.rows.map((r) => [
       esc(r.student_code),
       esc(r.name_snapshot),
@@ -1274,11 +1274,38 @@ async function loadAttendance() {
       esc(r.arrival_time || "-"),
       `${esc(r.status)}${r.justification ? `<br>${esc(r.justification)}` : ""}`,
       ["admin", "recepcion"].includes(state.role)
-        ? `<button class="v2-link" data-justify="${r.id}">Justificar</button>`
+        ? `<div class="v2-attendance-actions"><button type="button" class="v2-link" data-justify="${esc(r.id)}">Justificar</button><button type="button" class="v2-link v2-attendance-delete" data-delete-attendance="${esc(r.id)}" aria-label="Eliminar asistencia de ${esc(r.name_snapshot)} (${esc(r.student_code)})" title="Eliminar registro de asistencia"><i class="bi bi-trash3" aria-hidden="true"></i></button></div>`
         : "",
     ]),
   );
   $("v2-attendance-export").href = `/api/v2/attendance/excel?${query}`;
+  for (const button of $("v2-attendance").querySelectorAll(
+    "[data-delete-attendance]",
+  ))
+    button.onclick = async () => {
+      const row = data.rows.find(
+        (r) => r.id === button.dataset.deleteAttendance,
+      );
+      if (
+        !row ||
+        !confirm(
+          `¿Eliminar la asistencia de ${row.name_snapshot} (${row.student_code}) del ${row.business_date} a las ${row.arrival_time || "—"}?\n\nEl registro se quitará de los reportes. Los avisos de WhatsApp ya enviados no se pueden retirar.`,
+        )
+      )
+        return;
+      button.disabled = true;
+      try {
+        await api(`/api/v2/attendance/${encodeURIComponent(row.id)}`, {
+          method: "DELETE",
+        });
+        await loadAttendance();
+        message("Registro de asistencia eliminado.");
+      } catch (error) {
+        message(error.message, true);
+      } finally {
+        button.disabled = false;
+      }
+    };
   $("v2-attendance")
     .querySelectorAll("[data-justify]")
     .forEach(

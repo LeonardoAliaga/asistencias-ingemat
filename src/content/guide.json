@@ -228,7 +228,7 @@
         },
         {
           "title": "Consulta la lista",
-          "text": "En Asistencia filtra por fecha, ciclo y turno. Descarga Excel o pulsa Copiar imagen para pegar el reporte PNG con Ctrl+V."
+          "text": "En Asistencia filtra por fecha, ciclo y turno. Descarga Excel o pulsa Copiar imagen para pegar el reporte PNG con Ctrl+V. Administración y Recepción pueden pulsar la papelera de una fila y confirmar para eliminar un registro incorrecto. Se actualizan los reportes, se cancelan sus avisos pendientes y queda constancia en auditoría; los mensajes ya enviados no se retiran."
         }
       ],
       "tips": [

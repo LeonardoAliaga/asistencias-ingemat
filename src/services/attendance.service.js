@@ -228,4 +228,25 @@ function justify(id, reason, req) {
   ).run(reason.trim(), id);
   audit(req, "justificar", "asistencia", id, { reason });
 }
-module.exports = { register, list, workbook, imageSections, image, justify };
+function remove(id, req) {
+  return db.transaction(() => {
+    const row = db.prepare("SELECT * FROM attendance WHERE id=?").get(id);
+    if (!row) throw new AppError("Registro de asistencia no encontrado.", 404);
+    const cancelledNotifications = notifications.cancelPendingAttendance(id);
+    db.prepare("DELETE FROM attendance WHERE id=?").run(id);
+    audit(req, "eliminar", "asistencia", id, {
+      record: row,
+      cancelledNotifications,
+    });
+    return { exito: true, cancelledNotifications };
+  })();
+}
+module.exports = {
+  register,
+  list,
+  workbook,
+  imageSections,
+  image,
+  justify,
+  remove,
+};

@@ -129,6 +129,20 @@ function cancelPendingResults(evaluationId, userUid) {
     "UPDATE outbox SET status='cancelled',error='La calificación cambió. Revisa y publica los resultados actualizados.',updated_at=CURRENT_TIMESTAMP WHERE kind='results' AND json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END,'$.evaluationId')=? AND contact_id IN (SELECT id FROM contacts WHERE user_uid=?) AND status IN ('pending','retry','failed')",
   ).run(evaluationId, userUid);
 }
+function cancelPendingAttendance(recordId) {
+  return db
+    .prepare(
+      "UPDATE outbox SET status='cancelled',error='El registro de asistencia fue eliminado.',updated_at=CURRENT_TIMESTAMP WHERE kind='attendance' AND (instr(event_key,?)=1 OR instr(event_key,?)=1) AND status IN ('pending','retry','failed')",
+    )
+    .run(`baileys:asistencia:${recordId}:`, `asistencia:${recordId}:`).changes;
+}
+function attendanceDeleted(row) {
+  if (row.kind !== "attendance") return false;
+  const match = /^(?:baileys:)?asistencia:([^:]+):/.exec(row.event_key);
+  return (
+    !!match && !db.prepare("SELECT 1 FROM attendance WHERE id=?").get(match[1])
+  );
+}
 async function send(row) {
   if (row.provider !== "baileys")
     throw new AppError("Este aviso es histórico y no se enviará por Baileys.");
@@ -152,6 +166,12 @@ async function processOutbox(sendImpl = send) {
       .all(config.provider, Date.now());
     for (const row of rows) {
       if (config.provider === "baileys" && !providerReady("baileys")) break;
+      if (attendanceDeleted(row)) {
+        db.prepare(
+          "UPDATE outbox SET status='cancelled',error='El registro de asistencia fue eliminado.',updated_at=CURRENT_TIMESTAMP WHERE id=? AND status IN ('pending','retry')",
+        ).run(row.id);
+        continue;
+      }
       let payload;
       try {
         payload = JSON.parse(row.payload);
@@ -289,4 +309,6 @@ module.exports = {
   send,
   resultState,
   cancelPendingResults,
+  cancelPendingAttendance,
+  attendanceDeleted,
 };

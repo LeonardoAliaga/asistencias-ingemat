@@ -70,6 +70,15 @@ test("offline service keeps pending jobs and does not occupy academic operations
   await n.processOutbox(async (r) => messageId(r.id));
   assert.equal(row(id).status, "accepted");
 });
+test("deleted attendance cannot be sent even if a stale job returns to the pending queue", async () => {
+  const id = job("baileys:asistencia:deleted-record:contact");
+  let sent = 0;
+  await n.processOutbox(async () => {
+    sent++;
+  });
+  assert.equal(sent, 0);
+  assert.equal(row(id).status, "cancelled");
+});
 test("worker failure or timeout after submission is unknown and never automatically duplicated", async () => {
   const id = job("uncertain");
   await n.processOutbox(async () => {

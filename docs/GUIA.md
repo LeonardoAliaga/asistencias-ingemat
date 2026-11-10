@@ -77,7 +77,7 @@ Usa código, lector USB o cámara.
 3. **Comprueba el resultado.** Revisa nombre, ciclo, turno y hora. La fecha y hora se calculan en America/Lima.
 4. **Evita registros repetidos.** Una segunda lectura del mismo usuario, fecha y turno informa que ya existe un ingreso.
 5. **Continúa aunque falle Internet.** La asistencia se guarda en SQLite. Los avisos quedan en cola y se envían cuando WhatsApp vuelva a estar disponible.
-6. **Consulta la lista.** En Asistencia filtra por fecha, ciclo y turno. Descarga Excel o pulsa Copiar imagen para pegar el reporte PNG con Ctrl+V.
+6. **Consulta la lista.** En Asistencia filtra por fecha, ciclo y turno. Descarga Excel o pulsa Copiar imagen para pegar el reporte PNG con Ctrl+V. Administración y Recepción pueden pulsar la papelera de una fila y confirmar para eliminar un registro incorrecto. Se actualizan los reportes, se cancelan sus avisos pendientes y queda constancia en auditoría; los mensajes ya enviados no se retiran.
 
 - Un aviso en cola no equivale a un mensaje entregado. Consulta Comunicación para comprobar el estado.
 

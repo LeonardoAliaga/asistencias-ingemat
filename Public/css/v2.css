@@ -122,6 +122,28 @@
   color: var(--blue2);
   text-decoration: underline;
 }
+.v2-attendance-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.v2-attendance-delete {
+  width: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 6px;
+  border-radius: 6px;
+  color: #a92b15;
+}
+.v2-attendance-delete:hover:not(:disabled) {
+  color: #8d230f;
+  background: #fff0ed;
+}
+.v2-attendance-delete:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
 .v2-notice,
 #v2-message {
   border: 1px solid #d0e0f4;

@@ -67,6 +67,11 @@ router.post("/:id/retry", (req, res) => {
       "Selecciona el proveedor original del aviso para reintentarlo. No se cambia de proveedor automáticamente.",
       409,
     );
+  if (notifications.attendanceDeleted(row))
+    throw new AppError(
+      "El registro de asistencia fue eliminado. Este aviso no se puede reenviar.",
+      409,
+    );
   if (
     row.kind === "results" &&
     notifications.resultState(JSON.parse(row.payload)) !== "current"
