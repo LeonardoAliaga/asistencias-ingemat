@@ -179,6 +179,15 @@ if (formAgregarCiclo) {
 // Formulario Agregar Usuario
 const formAgregar = document.getElementById("form-agregar");
 if (formAgregar) {
+  const studentDetails = document.getElementById("new-student-details");
+  const toggleGuardian = () => {
+    const student = document.getElementById("rol").value === "estudiante";
+    studentDetails.hidden = !student;
+    for (const control of studentDetails.querySelectorAll("input"))
+      control.disabled = !student;
+  };
+  document.getElementById("rol").addEventListener("change", toggleGuardian);
+  toggleGuardian();
   formAgregar.onsubmit = async function (e) {
     e.preventDefault();
     const botonSubmit = this.querySelector('button[type="submit"]');
@@ -236,6 +245,15 @@ if (formAgregar) {
       payload.turno = turno;
       payload.ciclo = ciclo;
       payload.dias_asistencia = diasAsistencia;
+      payload.area = document
+        .getElementById("new-student-area")
+        .value.trim()
+        .toUpperCase();
+      payload.guardian = {
+        name: document.getElementById("new-guardian-name").value.trim(),
+        phone: document.getElementById("new-guardian-phone").value.trim(),
+        consent: document.getElementById("new-guardian-consent").checked,
+      };
     } else if (rol === "docente") {
       payload.dias_asistencia = diasAsistencia;
       payload.turno = "";

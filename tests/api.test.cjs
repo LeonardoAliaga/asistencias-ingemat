@@ -1065,3 +1065,22 @@ test("attendance deletion is authorized, atomic, audited and cancels only relate
     200,
   );
 });
+
+test("new students store their area and optional authorized guardian atomically", async () => {
+  const input={codigo:"GUARD01",nombre:"ANA",apellido:"MUÑOZ",rol:"estudiante",turno:"mañana",ciclo:"ANUAL",area:"c",guardian:{name:"María Ñahui",phone:"+51 900 000 001",consent:true}};
+  const invalid=await admin("/api/usuarios",{...input,guardian:{name:"Sin teléfono"}},"POST");
+  assert.equal(invalid.status,400);
+  assert(!db.prepare("SELECT 1 FROM usuarios WHERE codigo=?").get(input.codigo));
+  const created=await admin("/api/usuarios",input,"POST");
+  assert.equal(created.status,201,JSON.stringify(created.data));
+  const user=db.prepare("SELECT uid,area FROM usuarios WHERE codigo=?").get(input.codigo);
+  assert.equal(user.area,"C");
+  assert.deepEqual(db.prepare("SELECT name,phone,consent FROM contacts WHERE user_uid=?").get(user.uid),{name:"María Ñahui",phone:"+51900000001",consent:1});
+  db.exec("CREATE TEMP TRIGGER reject_guardian BEFORE INSERT ON contacts BEGIN SELECT RAISE(ABORT,'synthetic contact failure'); END");
+  try {
+    assert.equal((await admin("/api/usuarios",{...input,codigo:"GUARD02"},"POST")).status,500);
+    assert(!db.prepare("SELECT 1 FROM usuarios WHERE codigo='GUARD02'").get());
+  } finally {db.exec("DROP TRIGGER reject_guardian");}
+  db.prepare("DELETE FROM contacts WHERE user_uid=?").run(user.uid);
+  db.prepare("DELETE FROM usuarios WHERE codigo=?").run(input.codigo);
+});

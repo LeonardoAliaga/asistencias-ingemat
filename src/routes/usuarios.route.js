@@ -135,27 +135,72 @@ router.post("/", (req, res) => {
   const apellido = String(nuevoUsuario.apellido || "")
     .trim()
     .toUpperCase();
+  const student = nuevoUsuario.rol === "estudiante";
+  const area = student
+    ? String(nuevoUsuario.area || "")
+        .trim()
+        .toUpperCase()
+    : "";
+  const guardian =
+    student &&
+    nuevoUsuario.guardian &&
+    typeof nuevoUsuario.guardian === "object"
+      ? nuevoUsuario.guardian
+      : {};
+  const guardianName = String(guardian.name || "").trim();
+  const guardianPhone = String(guardian.phone || "").replace(/[\s()-]/g, "");
+  if (
+    (area && !/^[A-Z0-9_-]{1,20}$/.test(area)) ||
+    ((guardianName || guardianPhone || guardian.consent) &&
+      (!guardianName ||
+        guardianName.length > 100 ||
+        !/^\+[1-9]\d{7,14}$/.test(guardianPhone)))
+  )
+    return res
+      .status(400)
+      .json({
+        exito: false,
+        mensaje:
+          "Revisa el área y completa nombre y teléfono internacional del apoderado (+51...).",
+      });
   if (!nombre || nombre.length > 100 || apellido.length > 100)
     return res
       .status(400)
       .json({ exito: false, mensaje: "Nombre o apellido inválido." });
 
   try {
-    db.prepare(
-      `
-      INSERT INTO usuarios (codigo, nombre, apellido, rol, turno, ciclo, dias_asistencia,uid)
-      VALUES (?, ?, ?, ?, ?, ?, ?,?)
+    db.transaction(() => {
+      const uid = randomUUID();
+      db.prepare(
+        `
+      INSERT INTO usuarios (codigo, nombre, apellido, rol, turno, ciclo, dias_asistencia,uid,area)
+      VALUES (?, ?, ?, ?, ?, ?, ?,?,?)
     `,
-    ).run(
-      codigoNuevo,
-      nombre,
-      apellido,
-      nuevoUsuario.rol,
-      turno,
-      ciclo,
-      JSON.stringify(dias_asistencia),
-      randomUUID(),
-    );
+      ).run(
+        codigoNuevo,
+        nombre,
+        apellido,
+        nuevoUsuario.rol,
+        turno,
+        ciclo,
+        JSON.stringify(dias_asistencia),
+        uid,
+        area,
+      );
+      if (guardianName) {
+        const consent = guardian.consent === true ? 1 : 0;
+        db.prepare(
+          "INSERT INTO contacts(id,user_uid,name,phone,consent,consented_at) VALUES(?,?,?,?,?,?)",
+        ).run(
+          randomUUID(),
+          uid,
+          guardianName,
+          guardianPhone,
+          consent,
+          consent ? new Date().toISOString() : null,
+        );
+      }
+    })();
 
     console.log(
       `Usuarios Route: Usuario '${apellido} ${nombre}' (${nuevoUsuario.rol}) guardado en SQLite.`,
