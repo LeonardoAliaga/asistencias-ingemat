@@ -283,8 +283,13 @@ test("Recepción registra asistencia desde búsqueda inteligente por nombre o c�
   const toggle=page.locator("#reception-search-toggle");
   const panel=page.locator("#reception-search-panel");
   await expect(panel).toBeHidden();
+  const studentsResponse = page.waitForResponse(r => r.url().endsWith("/api/v2/attendance/students"));
   await toggle.click();
+  const studentsRead = await studentsResponse;
+  expect(studentsRead.status()).toBe(200);
+  expect((await studentsRead.json()).some(s => s.codigo === "DEMO003")).toBe(true);
   await expect(panel).toBeVisible();
+  await expect(toggle).toHaveAttribute("data-ready", "true");
   const search=page.locator("#reception-student-search");
   await search.fill("fernandez maria");
   await expect(page.locator('#reception-student-results [data-code="DEMO003"]')).toBeVisible();

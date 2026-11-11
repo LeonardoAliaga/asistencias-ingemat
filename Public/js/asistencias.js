@@ -188,6 +188,9 @@ document
               registerSelected.disabled = !receptionStudentSearch?.isSelected();
             },
           });
+          searchToggle.dataset.ready = "true";
+          // Renderiza también lo escrito mientras la búsqueda terminaba de cargarse.
+          searchInput.dispatchEvent(new Event("input", { bubbles: true }));
         } catch (error) {
           searchError.textContent = error.message;
           searchError.hidden = false;
