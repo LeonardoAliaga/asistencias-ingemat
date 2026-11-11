@@ -130,7 +130,7 @@ export function mountNotifications({
       data.outbox.map((r) => [
         esc(stamp(r.created_at)),
         esc(r.recipient),
-        `${esc({ attendance: "Asistencia", results: "Resultado", student_report: "Reporte del alumno", attendance_report: "Reporte del ciclo" }[r.kind] || r.kind)}${r.bulk_batch_id && r.student_code ? ` · ${esc(r.student_code)}` : ""}<br>${r.provider === "baileys" ? "Baileys" : "Histórico anterior"}`,
+        `${esc({ attendance: "Asistencia", results: "Resultado", student_report: "Reporte del alumno", attendance_report: "Reporte del ciclo", exam_group_summary: "Resultados al grupo de WhatsApp" }[r.kind] || r.kind)}${r.bulk_batch_id && r.student_code ? ` · ${esc(r.student_code)}` : ""}<br>${r.provider === "baileys" ? "Baileys" : "Histórico anterior"}`,
         badge(r.status),
         r.bulk_batch_id
           ? ["pending", "retry"].includes(r.status)
