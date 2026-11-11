@@ -208,7 +208,13 @@ async function batchStudentReports(input,req) {
   const pending=db.prepare(
     "SELECT MAX(next_attempt_at) AS latest FROM outbox WHERE kind='student_report' AND status IN ('pending','retry') AND json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END,'$.bulkBatchId') IS NOT NULL"
   ).get();
-  let scheduledAt=Math.max(Date.now(),Number(pending?.latest||0));
+  // El primer envío entra de inmediato si no hay otro lote pendiente.
+  // Si existe cola anterior, se respeta su turno y la separación configurada.
+  const previousDue=Number(pending?.latest||0);
+  let scheduledAt=previousDue>0
+    ? Math.max(Date.now(),previousDue)+BATCH_SPACING_MS
+    : 0;
+  let newItems=0;
   const results=[];
   for(const {code,guardian,user} of prepared){
     const data=studentPdf.load(code,week);
@@ -229,8 +235,9 @@ async function batchStudentReports(input,req) {
       pdf,format:"pdf",requestId:batchId,
     },req);
     if(!sent.duplicate){
-      scheduledAt+=BATCH_SPACING_MS;
+      if(newItems>0) scheduledAt=Math.max(Date.now(),scheduledAt)+BATCH_SPACING_MS;
       db.prepare("UPDATE outbox SET next_attempt_at=? WHERE id=? AND status='pending'").run(scheduledAt,sent.id);
+      newItems++;
     }
     results.push({code,id:sent.id,status:sent.status,duplicate:!!sent.duplicate});
   }

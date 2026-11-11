@@ -507,8 +507,10 @@ test("envío por lote valida el ciclo, el consentimiento, el tamaño y la identi
   assert.equal(sent.status,202,JSON.stringify(sent.data));
   assert.equal(sent.data.enqueued,2);
   const rows=sent.data.results.map(x=>db.prepare("SELECT * FROM outbox WHERE id=?").get(x.id));
-  assert(rows.every(r=>r.kind==="student_report" && r.next_attempt_at>Date.now()+20000));
-  assert(rows[1].next_attempt_at-rows[0].next_attempt_at>=60000);
+  assert(rows.every(r=>r.kind==="student_report"));
+  assert.equal(rows[0].next_attempt_at,0,"El primer reporte del lote debe estar listo para enviarse.");
+  assert(rows[1].next_attempt_at>Date.now()+20_000,"Los siguientes conservan una pausa prudente.");
+  assert(rows[1].next_attempt_at-rows[0].next_attempt_at>=60_000);
   const outboxResponse=await admin("/api/v2/notifications");
   assert.equal(outboxResponse.status,200);
   const entries=sent.data.results.map(item=>outboxResponse.data.outbox.find(row=>row.id===item.id));
@@ -517,6 +519,14 @@ test("envío por lote valida el ciclo, el consentimiento, el tamaño y la identi
   const first=await admin("/api/v2/whatsapp/reports/"+sent.data.results[0].id+"/file");
   assert.equal(first.status,200);
   assert.doesNotMatch(first.bytes.toString("latin1"),/\/Subtype \/Image\b/);
+  // Otro lote no debe adelantarse a los reportes que ya tienen un turno asignado.
+  const another=await admin("/api/v2/whatsapp/batch-student-reports",{
+    method:"POST",
+    body:{...body,requestId:crypto.randomUUID(),items:[{code:"WA02",contactId:"other"}]},
+  });
+  assert.equal(another.status,202,JSON.stringify(another.data));
+  const later=db.prepare("SELECT next_attempt_at FROM outbox WHERE id=?").get(another.data.results[0].id);
+  assert(later.next_attempt_at>=rows[1].next_attempt_at+60_000);
   const same=await admin("/api/v2/whatsapp/batch-student-reports",{method:"POST",body});
   assert.equal(same.status,202,JSON.stringify(same.data));
   assert.equal(same.data.enqueued,0);

@@ -90,8 +90,12 @@ export function mountNotifications({
   function updateCountdowns() {
     for (const item of $("v2-outbox").querySelectorAll(".v2-batch-countdown")) {
       const due = Number(item.dataset.dueMs);
-      if (!Number.isFinite(due) || due <= 0) {
+      if (!Number.isFinite(due) || due < 0) {
         item.textContent = "Pendiente";
+        continue;
+      }
+      if (due === 0) {
+        item.textContent = "0 s · esperando procesamiento";
         continue;
       }
       const seconds = Math.max(0, Math.ceil((due - Date.now()) / 1000));
