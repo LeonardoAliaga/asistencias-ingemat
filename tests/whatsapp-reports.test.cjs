@@ -503,14 +503,17 @@ test("envío por lote valida el ciclo, el consentimiento, el tamaño y la identi
   assert.equal((await admin("/api/v2/whatsapp/batch-student-reports",{
     method:"POST",body:{...body,items:[{code:"WA01",contactId:"guardian"},{code:"WA01",contactId:"guardian"}]},
   })).status,400);
+  const startedAt=Date.now();
   const sent=await admin("/api/v2/whatsapp/batch-student-reports",{method:"POST",body});
+  const finishedAt=Date.now();
   assert.equal(sent.status,202,JSON.stringify(sent.data));
   assert.equal(sent.data.enqueued,2);
+  assert.deepEqual(sent.data.spacingRangeSeconds,{min:10,max:15});
   const rows=sent.data.results.map(x=>db.prepare("SELECT * FROM outbox WHERE id=?").get(x.id));
   assert(rows.every(r=>r.kind==="student_report"));
   assert.equal(rows[0].next_attempt_at,0,"El primer reporte del lote debe estar listo para enviarse.");
-  assert(rows[1].next_attempt_at>Date.now()+15_000,"Los siguientes conservan una pausa prudente.");
-  assert(rows[1].next_attempt_at-rows[0].next_attempt_at>=30_000);
+  assert(rows[1].next_attempt_at>=startedAt+10_000,"El segundo espera al menos 10 segundos.");
+  assert(rows[1].next_attempt_at<=finishedAt+15_000,"El segundo espera como máximo 15 segundos.");
   const outboxResponse=await admin("/api/v2/notifications");
   assert.equal(outboxResponse.status,200);
   const entries=sent.data.results.map(item=>outboxResponse.data.outbox.find(row=>row.id===item.id));
@@ -526,7 +529,8 @@ test("envío por lote valida el ciclo, el consentimiento, el tamaño y la identi
   });
   assert.equal(another.status,202,JSON.stringify(another.data));
   const later=db.prepare("SELECT next_attempt_at FROM outbox WHERE id=?").get(another.data.results[0].id);
-  assert(later.next_attempt_at>=rows[1].next_attempt_at+60_000);
+  assert(later.next_attempt_at>=rows[1].next_attempt_at+10_000);
+  assert(later.next_attempt_at<=rows[1].next_attempt_at+15_000);
   const same=await admin("/api/v2/whatsapp/batch-student-reports",{method:"POST",body});
   assert.equal(same.status,202,JSON.stringify(same.data));
   assert.equal(same.data.enqueued,0);

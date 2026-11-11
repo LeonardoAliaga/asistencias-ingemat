@@ -157,7 +157,22 @@ async function studentReport(input, req) {
 }
 
 const BATCH_MAX = 20;
-const BATCH_SPACING_MS = 30_000; // Cadencia conservadora; no busca eludir restricciones del proveedor.
+// Ajusta aquí el rango de espera entre reportes consecutivos del mismo lote.
+// Son segundos completos e incluyen ambos extremos. El primer envío es inmediato.
+// Respeta siempre las políticas de WhatsApp y la autorización de cada destinatario.
+const BATCH_INTERVAL_SECONDS = Object.freeze({ min: 10, max: 15 });
+if (!Number.isInteger(BATCH_INTERVAL_SECONDS.min) ||
+    !Number.isInteger(BATCH_INTERVAL_SECONDS.max) ||
+    BATCH_INTERVAL_SECONDS.min < 1 ||
+    BATCH_INTERVAL_SECONDS.max < BATCH_INTERVAL_SECONDS.min) {
+  throw new Error("El intervalo de lotes de WhatsApp debe tener mínimo >= 1 y máximo >= mínimo.");
+}
+function nextBatchSpacingMs() {
+  return crypto.randomInt(
+    BATCH_INTERVAL_SECONDS.min,
+    BATCH_INTERVAL_SECONDS.max + 1,
+  ) * 1000;
+}
 function batchStudents(cycle) {
   const normalized=String(cycle||"").trim().toUpperCase();
   if (!normalized || normalized.length>80) throw new AppError("Selecciona un ciclo válido.");
@@ -212,7 +227,7 @@ async function batchStudentReports(input,req) {
   // Si existe cola anterior, se respeta su turno y la separación configurada.
   const previousDue=Number(pending?.latest||0);
   let scheduledAt=Number(pending?.total||0)>0
-    ? Math.max(Date.now(),previousDue)+BATCH_SPACING_MS
+    ? Math.max(Date.now(),previousDue)+nextBatchSpacingMs()
     : 0;
   let newItems=0;
   const results=[];
@@ -235,7 +250,7 @@ async function batchStudentReports(input,req) {
       pdf,format:"pdf",requestId:batchId,
     },req);
     if(!sent.duplicate){
-      if(newItems>0) scheduledAt=Math.max(Date.now(),scheduledAt)+BATCH_SPACING_MS;
+      if(newItems>0) scheduledAt=Math.max(Date.now(),scheduledAt)+nextBatchSpacingMs();
       db.prepare("UPDATE outbox SET next_attempt_at=? WHERE id=? AND status='pending'").run(scheduledAt,sent.id);
       newItems++;
     }
@@ -243,7 +258,7 @@ async function batchStudentReports(input,req) {
   }
   return {exito:true,cycle:collection.cycle,selected:prepared.length,
     enqueued:results.filter(r=>!r.duplicate).length,duplicate:results.filter(r=>r.duplicate).length,
-    results, spacingSeconds:BATCH_SPACING_MS/1000};
+    results, spacingRangeSeconds:{...BATCH_INTERVAL_SECONDS}};
 }
 
 async function dailyReport(input, req) {
