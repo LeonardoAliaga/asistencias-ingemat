@@ -123,7 +123,7 @@ async function setMapping(cycle, groupId, req) {
       "INSERT OR REPLACE INTO config_general(clave,valor) VALUES('whatsapp_attendance_groups',?)",
     ).run(JSON.stringify(map));
     db.prepare(
-      "UPDATE outbox SET status='cancelled',error='El grupo del ciclo cambió; genera el reporte de nuevo.',updated_at=CURRENT_TIMESTAMP WHERE kind='attendance_report' AND json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END,'$.cycle')=? AND recipient!=? AND status IN ('pending','retry','failed')",
+      "UPDATE outbox SET status='cancelled',error='El grupo del ciclo cambió; genera el reporte de nuevo.',updated_at=CURRENT_TIMESTAMP WHERE kind IN ('attendance_report','exam_group_summary') AND json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END,'$.cycle')=? AND recipient!=? AND status IN ('pending','retry','failed')",
     ).run(key, group?.id || "");
     audit(req, "configurar_grupo_asistencia", "ciclo", key, {
       groupId: group?.id || null,

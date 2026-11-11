@@ -23,13 +23,13 @@ function enqueue({ eventKey, recipient, kind, payload, contactId = null }) {
   const provider = "baileys";
   payload = {
     ...payload,
-    text: ["student_report", "attendance_report"].includes(kind)
+    text: ["student_report", "attendance_report", "exam_group_summary"].includes(kind)
       ? String(payload.text || "")
       : renderMessage(kind, payload.parameters, config),
   };
   if (
     !/^\+[1-9]\d{7,14}$/.test(recipient) &&
-    !(kind === "attendance_report" && GROUP_ID.test(recipient))
+    !(["attendance_report", "exam_group_summary"].includes(kind) && GROUP_ID.test(recipient))
   )
     throw new AppError(
       "El teléfono debe tener formato internacional, por ejemplo +51900111222.",
@@ -152,10 +152,19 @@ function attendanceDeleted(row) {
   );
 }
 function reportState(row) {
-  if (!["student_report", "attendance_report"].includes(row.kind))
+  if (!["student_report", "attendance_report", "exam_group_summary"].includes(row.kind))
     return { current: true };
   try {
     const payload = JSON.parse(row.payload);
+    if (row.kind === "exam_group_summary") {
+      const target=groups.target(payload.cycle);
+      const report=require("./exam-group-results.service").snapshot(payload.evaluationId);
+      if (!target || target.id !== row.recipient || report.exam.estado !== "publicado"
+          || report.signature !== payload.signature)
+        return { current:false,cancel:true,
+          error:"El grupo o los resultados cambiaron. Publica nuevamente el resumen actualizado." };
+      return { current:true };
+    }
     if (
       row.kind === "attendance_report" &&
       groups.target(payload.cycle)?.id !== row.recipient
@@ -214,7 +223,7 @@ async function processOutbox(sendImpl = send) {
   try {
     const rows = db
       .prepare(
-        "SELECT o.* FROM outbox o LEFT JOIN evaluaciones e ON e.id=json_extract(CASE WHEN json_valid(o.payload) THEN o.payload ELSE '{}' END,'$.evaluationId') WHERE o.provider=? AND (?=1 OR o.kind IN ('student_report','attendance_report')) AND o.status IN ('pending','retry') AND o.next_attempt_at<=? AND (o.kind!='results' OR json_extract(CASE WHEN json_valid(o.payload) THEN o.payload ELSE '{}' END,'$.gradeId') IS NULL OR e.estado IN ('publicado','archivado') OR NOT EXISTS (SELECT 1 FROM respuestas_evaluacion r WHERE r.id=json_extract(CASE WHEN json_valid(o.payload) THEN o.payload ELSE '{}' END,'$.gradeId'))) ORDER BY o.created_at LIMIT 5",
+        "SELECT o.* FROM outbox o LEFT JOIN evaluaciones e ON e.id=json_extract(CASE WHEN json_valid(o.payload) THEN o.payload ELSE '{}' END,'$.evaluationId') WHERE o.provider=? AND (?=1 OR o.kind IN ('student_report','attendance_report','exam_group_summary')) AND o.status IN ('pending','retry') AND o.next_attempt_at<=? AND (o.kind!='results' OR json_extract(CASE WHEN json_valid(o.payload) THEN o.payload ELSE '{}' END,'$.gradeId') IS NULL OR e.estado IN ('publicado','archivado') OR NOT EXISTS (SELECT 1 FROM respuestas_evaluacion r WHERE r.id=json_extract(CASE WHEN json_valid(o.payload) THEN o.payload ELSE '{}' END,'$.gradeId'))) ORDER BY o.created_at LIMIT 5",
       )
       .all(config.provider, config.enabled ? 1 : 0, Date.now());
     for (const row of rows) {

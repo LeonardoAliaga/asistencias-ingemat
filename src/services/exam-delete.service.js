@@ -39,7 +39,7 @@ function deleteExam(id, confirmation, req) {
     if (scanning || importing)
       throw new AppError("Hay una captura o importación en curso. Finalízala antes de eliminar el simulacro.", 409);
     const sending = db.prepare(
-      "SELECT 1 FROM outbox WHERE kind='results' AND status='sending' AND json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END,'$.evaluationId')=? LIMIT 1",
+      "SELECT 1 FROM outbox WHERE kind IN ('results','exam_group_summary') AND status='sending' AND json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END,'$.evaluationId')=? LIMIT 1",
     ).get(id);
     if (sending)
       throw new AppError("Se está enviando un aviso de este simulacro. Espera a que termine antes de eliminarlo.", 409);
@@ -47,7 +47,7 @@ function deleteExam(id, confirmation, req) {
     artifacts.scans = db.prepare("SELECT id FROM scanner_jobs WHERE evaluation_id=?").all(id).map(r => r.id);
 
     const notices = db.prepare(
-      "DELETE FROM outbox WHERE kind='results' AND json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END,'$.evaluationId')=?",
+      "DELETE FROM outbox WHERE kind IN ('results','exam_group_summary') AND json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END,'$.evaluationId')=?",
     ).run(id).changes;
     const scanner = db.prepare("DELETE FROM scanner_jobs WHERE evaluation_id=?").run(id).changes;
     const importedPages = db.prepare(

@@ -82,6 +82,9 @@ router.get("/batch-students",requireAdmin,(req,res)=>
 router.post("/batch-student-reports",requireAdmin,async(req,res)=>
   res.status(202).json(await reports.batchStudentReports(req.body,req))
 );
+router.post("/exam-group-summary", requireAdmin, (req, res) =>
+  res.status(202).json(require("../services/exam-group-results.service").enqueueSummary(req.body, req)),
+);
 router.post("/attendance-report", operator, async (req, res) =>
   res.status(202).json(await reports.dailyReport(req.body, req)),
 );

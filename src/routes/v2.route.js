@@ -286,6 +286,7 @@ router.post("/exams/:id/ready", write, (req, res) =>
 );
 router.post("/exams/:id/publish", write, (req, res) => {
   const exam = evaluations.getExam(req.params.id);
+  if (exam.estado === "publicado") return res.json({ exito:true, alreadyPublished:true });
   if (exam.estado !== "listo") throw new AppError("Primero valida el examen.");
   if (
     !db
