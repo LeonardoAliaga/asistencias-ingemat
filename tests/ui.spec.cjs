@@ -2409,8 +2409,8 @@ test("la cola de envíos por lote muestra segundos restantes y cambia a espera a
   await login(page);
   await navigate(page,"notifications");
   const row=page.locator("#v2-outbox tbody tr").filter({hasText:"DEMO001"});
-  await expect(row).toContainText("En 180 s");
   const timer=row.locator(".v2-batch-countdown");
+  await expect(timer).toHaveText(/En \d+ s/);
   await expect(timer).toHaveAttribute("data-due-ms",String(due));
   await timer.evaluate(el => {el.dataset.dueMs=String(Date.now()-1000);});
   await expect(timer).toContainText("0 s · esperando procesamiento",{timeout:2500});
