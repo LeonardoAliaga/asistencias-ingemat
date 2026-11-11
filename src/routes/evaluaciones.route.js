@@ -872,6 +872,16 @@ router.post("/tareas", (req, res) => {
   }
 });
 
+// PDF nativo compartido con WhatsApp: texto seleccionable, tablas y paginación.
+router.get("/reporte-estudiante/:codigo/pdf", async (req,res,next) => {
+  try {
+    const pdf = await require("../services/student-report-pdf.service").generate(req.params.codigo,req.query.week||"TODAS");
+    res.set("Cache-Control","no-store")
+      .type("application/pdf")
+      .attachment("Ficha_INGEMAT_"+String(req.params.codigo).replace(/[^a-zA-Z0-9_-]/g,"")+".pdf")
+      .send(pdf);
+  } catch(error){ next(error); }
+});
 // 9. GET /api/evaluaciones/reporte-estudiante/:codigo - Reporte Consolidado del Alumno
 router.get("/reporte-estudiante/:codigo", (req, res) => {
   try {

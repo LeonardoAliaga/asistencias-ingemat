@@ -5,6 +5,7 @@ const notifications = require("./notifications.service");
 const groups = require("./whatsapp-groups.service");
 const storage = require("./whatsapp-report-storage.service");
 const attendance = require("./attendance.service");
+const studentPdf = require("./student-report-pdf.service");
 const { AppError } = require("../utils/errors");
 const { audit } = require("./audit.service");
 function student(code) {
@@ -36,6 +37,7 @@ async function enqueueReport(
     contactId = null,
     payload,
     png,
+    pdf = null,
     format,
     breaks = [],
     requestId,
@@ -48,7 +50,7 @@ async function enqueueReport(
     );
   const fingerprint = crypto
     .createHash("sha256")
-    .update(png)
+    .update(pdf || png)
     .update(JSON.stringify({ recipient, format, payload }))
     .digest("hex");
   const eventKey = `baileys:${kind}:${key}:${requestId}`;
@@ -68,7 +70,7 @@ async function enqueueReport(
       duplicate: true,
     };
   }
-  const file = await storage.convertPNG(png, format, breaks);
+  const file = pdf || await storage.convertPNG(png, format, breaks);
   const attachment = storage.save(
     file,
     format,
@@ -118,7 +120,8 @@ async function studentReport(input, req) {
       "Selecciona un apoderado autorizado de este estudiante.",
       409,
     );
-  if (!Buffer.isBuffer(input.png))
+  if (!["png","pdf"].includes(input.format)) throw new AppError("Selecciona imagen o PDF.");
+  if (input.format === "png" && !Buffer.isBuffer(input.png))
     throw new AppError("No se recibió la imagen del reporte.");
   const period = String(input.period || "Todas las semanas registradas")
     .trim()
@@ -130,6 +133,7 @@ async function studentReport(input, req) {
   } catch {
     throw new AppError("Los saltos de página del reporte no son válidos.");
   }
+  const pdf = input.format === "pdf" ? await studentPdf.generate(user.codigo,input.week||"TODAS") : null;
   return enqueueReport(
     {
       kind: "student_report",
@@ -143,6 +147,7 @@ async function studentReport(input, req) {
         text: studentReportCaption({ name: `${user.apellido} ${user.nombre}`, code: user.codigo, period, requestId: input.requestId }),
       },
       png: input.png,
+      pdf,
       format: input.format,
       breaks,
       requestId: input.requestId,

@@ -184,7 +184,8 @@ export function setupBuscadorReporteAlumno() {
           evalState.currentStudentReportData.evalHist,
           evalState.currentStudentReportData.tareaHist,
           evalState.currentStudentReportData.selectedSemanaLabel,
-        );
+          evalState.currentStudentReportData.selectedSemana,
+        ).catch((error)=>alert(error.message));
       } else {
         window.print();
       }
@@ -238,182 +239,23 @@ export function setupBuscadorReporteAlumno() {
   }
 }
 
-// Generador de Ficha de Alumno en Documento PDF Limpio y Organizado
-export function generarFichaAlumnoPDF(
-  est,
-  evalHist,
-  tareaHist,
-  semanaLabel = null,
-) {
-  const hoyStr = new Date().toLocaleDateString("es-PE", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-  const rangoFechas = semanaLabel
-    ? semanaLabel.replace(/^📅\s*/, "")
-    : calcularRangoFechas(evalHist, tareaHist);
-  const tagReporte = semanaLabel
-    ? "FICHA SEMANAL PDF"
-    : "FICHA CONSOLIDADA PDF";
-
-  let evalRows = "";
-  if (evalHist.length === 0) {
-    evalRows = `<tr><td colspan="7" style="text-align:center; padding:14px; color:#64748b;">${semanaLabel ? "Sin evaluaciones registradas en la semana seleccionada" : "Sin evaluaciones registradas"}</td></tr>`;
-  } else {
-    evalHist.forEach((e) => {
-      evalRows += `
-        <tr>
-          <td style="padding:9px 12px; border-bottom:1px solid #e2e8f0; font-weight:700; color:#0f172a;">${e.titulo}</td>
-          <td style="padding:9px 12px; border-bottom:1px solid #e2e8f0; text-align:center;">${e.fecha}</td>
-          <td style="padding:9px 12px; border-bottom:1px solid #e2e8f0; text-align:center; color:#166534; font-weight:700;">${e.correctas}</td>
-          <td style="padding:9px 12px; border-bottom:1px solid #e2e8f0; text-align:center; color:#dc2626; font-weight:700;">${e.incorrectas}</td>
-          <td style="padding:9px 12px; border-bottom:1px solid #e2e8f0; text-align:center; color:#64748b;">${e.enBlanco}</td>
-          <td style="padding:9px 12px; border-bottom:1px solid #e2e8f0; text-align:center; font-weight:800; color:#b72107;">${e.puntajeTotal} pts</td>
-          <td style="padding:9px 12px; border-bottom:1px solid #e2e8f0; text-align:center; font-weight:700;">Puesto #${e.posicion}</td>
-        </tr>
-      `;
-    });
+// La descarga comparte exactamente el mismo generador PDF que el envío por WhatsApp.
+export async function generarFichaAlumnoPDF(est, evalHist, tareaHist, semanaLabel=null, week="TODAS") {
+  if(!est?.codigo) throw new Error("Selecciona un estudiante para generar su ficha.");
+  const url="/api/evaluaciones/reporte-estudiante/"+encodeURIComponent(est.codigo)+"/pdf?week="+encodeURIComponent(week||"TODAS");
+  const response=await fetch(url,{cache:"no-store"});
+  if(!response.ok){
+    const error=await response.json().catch(()=>({}));
+    throw new Error(error.mensaje||"No se pudo descargar el PDF del estudiante.");
   }
-
-  let tareaRows = "";
-  if (tareaHist.length === 0) {
-    tareaRows = `<tr><td colspan="4" style="text-align:center; padding:14px; color:#64748b;">${semanaLabel ? "Sin tareas registradas en la semana seleccionada" : "Sin tareas registradas"}</td></tr>`;
-  } else {
-    tareaHist.forEach((t) => {
-      const stInfo = getTareaEstadoInfo(t);
-      const calif = `<span style="background:${stInfo.badgeBg}; color:${stInfo.badgeText}; border:1px solid ${stInfo.badgeBorder}; padding:2px 8px; border-radius:4px; font-weight:700;">${stInfo.label}</span>`;
-      tareaRows += `
-        <tr>
-          <td style="padding:9px 12px; border-bottom:1px solid #e2e8f0; font-weight:700; color:#0f172a;">${t.curso}</td>
-          <td style="padding:9px 12px; border-bottom:1px solid #e2e8f0; text-align:center;">${formatFechaTarea(t.fecha)}</td>
-          <td style="padding:9px 12px; border-bottom:1px solid #e2e8f0; text-align:center;">${t.ciclo}</td>
-          <td style="padding:9px 12px; border-bottom:1px solid #e2e8f0; text-align:center;">${calif}</td>
-        </tr>
-      `;
-    });
-  }
-
-  const printWindow = window.open("", "_blank");
-  if (!printWindow) return;
-
-  printWindow.document.write(`
-    <!DOCTYPE html>
-    <html lang="es">
-    <head>
-      <meta charset="UTF-8">
-      <title>Ficha Académica PDF - ${est.nombre} (${est.codigo})</title>
-      <style>
-        @page { size: A4 portrait; margin: 12mm; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #0f172a; margin: 0; padding: 24px; background: #ffffff; }
-        .header-report { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #b72107; padding-bottom: 14px; margin-bottom: 22px; }
-        .brand-title { font-size: 22px; font-weight: 800; color: #b72107; text-transform: uppercase; margin: 0; letter-spacing: 0.5px; }
-        .brand-sub { font-size: 13px; color: #475569; margin-top: 3px; font-weight: 600; }
-        .report-tag { background: #0f172a; color: #ffffff; padding: 6px 16px; font-weight: 700; border-radius: 6px; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
-        
-        .student-box { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; padding: 16px 20px; margin-bottom: 22px; display: flex; justify-content: space-between; align-items: center; }
-        .student-info h2 { margin: 0 0 6px 0; font-size: 20px; color: #0f172a; font-weight: 800; }
-        .student-info p { margin: 3px 0; font-size: 13.5px; color: #475569; }
-        
-        .metrics-grid { display: flex; gap: 16px; margin-bottom: 26px; }
-        .metric-card { flex: 1; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 14px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
-        .metric-num { font-size: 24px; font-weight: 800; color: #b72107; line-height: 1.1; }
-        .metric-lbl { font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 700; margin-top: 4px; letter-spacing: 0.5px; }
-        
-        .section-title { font-size: 14px; font-weight: 800; color: #0f172a; margin: 24px 0 12px 0; border-left: 4px solid #b72107; padding-left: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
-        table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 24px; }
-        th { background: #f1f5f9; color: #334155; font-weight: 800; padding: 10px 12px; text-align: left; border-bottom: 2px solid #cbd5e1; text-transform: uppercase; font-size: 11px; }
-        
-        .footer-signatures { margin-top: 50px; display: flex; justify-content: space-around; text-align: center; page-break-inside: avoid; }
-        .sig-line { width: 220px; border-top: 1px dashed #94a3b8; padding-top: 8px; font-size: 12px; color: #475569; font-weight: 700; }
-      </style>
-    </head>
-    <body>
-      <div class="header-report">
-        <div>
-          <h1 class="brand-title">ACADEMIA PREUNIVERSITARIA INGEMAT</h1>
-          <div class="brand-sub">Sistema de Evaluación Integral y Reporte de Desempeño</div>
-        </div>
-        <div class="report-tag">${tagReporte}</div>
-      </div>
-
-      <div class="student-box">
-        <div class="student-info">
-          <h2>${est.nombre}</h2>
-          <p><b>Código de Estudiante:</b> ${est.codigo} &nbsp;|&nbsp; <b>Ciclo / Salón:</b> ${est.ciclo}</p>
-          <p><b>Turno:</b> ${est.turno} &nbsp;|&nbsp; <b>${semanaLabel ? "Semana Evaluada" : "Periodo Evaluado"}:</b> <span style="color:#b72107; font-weight:700;">${rangoFechas}</span></p>
-          <p><b>Fecha de Emisión:</b> ${hoyStr}</p>
-        </div>
-      </div>
-
-      <div class="metrics-grid">
-        <div class="metric-card">
-          <div class="metric-num">${evalHist.length}</div>
-          <div class="metric-lbl">Exámenes Rendidos</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-num">${tareaHist.length}</div>
-          <div class="metric-lbl">Tareas Calificadas</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-num" style="font-size: 15px; padding-top: 4px;">${rangoFechas}</div>
-          <div class="metric-lbl">${semanaLabel ? "Semana Evaluada" : "Periodo Evaluado"}</div>
-        </div>
-      </div>
-
-      <div class="section-title">Historial de Evaluaciones y Simulacros</div>
-      <table>
-        <thead>
-          <tr>
-            <th>Examen / Simulacro</th>
-            <th style="text-align:center;">Fecha</th>
-            <th style="text-align:center;">Correctas</th>
-            <th style="text-align:center;">Incorrectas</th>
-            <th style="text-align:center;">En Blanco</th>
-            <th style="text-align:center;">Puntaje Total</th>
-            <th style="text-align:center;">Puesto</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${evalRows}
-        </tbody>
-      </table>
-
-      <div class="section-title">Historial de Calificación de Tareas por Curso</div>
-      <table>
-        <thead>
-          <tr>
-            <th>Curso / Asignatura</th>
-            <th style="text-align:center;">Fecha</th>
-            <th style="text-align:center;">Ciclo</th>
-            <th style="text-align:center;">Calificación / Estado</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${tareaRows}
-        </tbody>
-      </table>
-
-      <div class="pdf-thankyou-box" style="margin-top: 36px; padding: 16px 20px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; text-align: center; page-break-inside: avoid;">
-        <div style="font-size: 13.5px; font-weight: 800; color: #b72107; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">
-          🎓 ¡Agradecimiento Especial por su Confianza!
-        </div>
-        <p style="margin: 0; font-size: 12px; color: #334155; line-height: 1.5;">
-          Expresamos nuestro sincero agradecimiento al padre de familia y/o tutor de <b>${est.nombre}</b> por depositar su entera confianza en la <b>Academia Preuniversitaria INGEMAT</b>. Reafirmamos nuestro compromiso con la excelencia académica y el éxito en el ingreso universitario.
-        </p>
-      </div>
-
-      <script>
-        window.onload = function() {
-          setTimeout(function() {
-            window.print();
-          }, 300);
-        };
-      </script>
-    </body>
-    </html>
-  `);
-  printWindow.document.close();
+  const file=await response.blob();
+  const a=document.createElement("a"),href=URL.createObjectURL(file);
+  a.href=href;
+  a.download="Ficha_INGEMAT_"+est.codigo+".pdf";
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(href),10000);
 }
 
 // Generador de Imagen de Reporte Exclusivo de Tareas (Entregadas y No Entregadas) para Copiar al Portapapeles
