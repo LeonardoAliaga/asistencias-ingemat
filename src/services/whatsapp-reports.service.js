@@ -206,12 +206,12 @@ async function batchStudentReports(input,req) {
   if(existing+prepared.length-duplicates>40)
     throw new AppError("Hay demasiados reportes en cola. Revisa su entrega en Comunicación antes de crear otro lote.",409);
   const pending=db.prepare(
-    "SELECT MAX(next_attempt_at) AS latest FROM outbox WHERE kind='student_report' AND status IN ('pending','retry') AND json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END,'$.bulkBatchId') IS NOT NULL"
+    "SELECT MAX(next_attempt_at) AS latest, COUNT(*) AS total FROM outbox WHERE kind='student_report' AND status IN ('pending','retry') AND json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END,'$.bulkBatchId') IS NOT NULL"
   ).get();
   // El primer envío entra de inmediato si no hay otro lote pendiente.
   // Si existe cola anterior, se respeta su turno y la separación configurada.
   const previousDue=Number(pending?.latest||0);
-  let scheduledAt=previousDue>0
+  let scheduledAt=Number(pending?.total||0)>0
     ? Math.max(Date.now(),previousDue)+BATCH_SPACING_MS
     : 0;
   let newItems=0;
