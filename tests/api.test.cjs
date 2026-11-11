@@ -1195,3 +1195,99 @@ test("archiving students preserves historical attendance and excludes them from 
   assert.equal(db.prepare("SELECT archived_at FROM usuarios WHERE codigo=?").get(code).archived_at,null);
   assert.equal((await admin("/api/registrar",{codigo:code},"POST")).status,409);
 });
+
+test("simulate manual correction, delete one grade, and permanently purge only one exam", async () => {
+  const { randomUUID } = require("node:crypto");
+  const def={totalQuestions:4,keys:{1:"A",2:"B",3:"C",4:"D"}};
+  const create=await admin("/api/v2/exams", {
+    titulo:"BORRAR SOLO SIMULACRO TEST",ciclo:"ANUAL",fecha:"2026-11-11",definition:def,
+  },"POST");
+  assert.equal(create.status,201,JSON.stringify(create.data));
+  const id=create.data.id;
+  assert.equal((await admin(`/api/v2/exams/${id}/ready`,{},"POST")).status,200);
+  for(const code of ["T001","T002"]){
+    const result=await admin(`/api/v2/exams/${id}/grade`,{
+      codigoEstudiante:code,area:"GENERAL",form:"A",
+      respuestas:{1:"A",2:"B",3:"C",4:"D"},
+    },"POST");
+    assert.equal(result.status,200,JSON.stringify(result.data));
+  }
+  const corrected=await admin(`/api/v2/exams/${id}/grade`,{
+    codigoEstudiante:"T001",area:"GENERAL",form:"A",
+    respuestas:{1:{status:"single",options:["B"]},2:{status:"blank",options:[]},3:"C",4:"D"},
+    allowReplace:true,reason:"Corrección de marca en escáner",
+  },"POST");
+  assert.equal(corrected.status,200,JSON.stringify(corrected.data));
+  const stored=await admin(`/api/v2/exams/${id}/student/T001/responses`);
+  assert.equal(stored.status,200);
+  assert.equal(stored.headers.get("cache-control"),"no-store");
+  assert.equal(stored.data.form,"A");
+  assert.equal(stored.data.area,"GENERAL");
+  assert.deepEqual(stored.data.respuestas["1"],{status:"single",options:["B"]});
+  assert.deepEqual(stored.data.respuestas["2"],{status:"blank",options:[]});
+  assert.equal((await admin(`/api/v2/exams/${id}/student/T003/responses`)).status,404);
+  assert.equal((await guest(`/api/v2/exams/${id}/student/T001/responses`)).status,401);
+  assert.equal((await guest(`/api/v2/exams/${id}/student/T001/grade`,undefined,"DELETE")).status,401);
+
+  const row=db.prepare("SELECT id FROM respuestas_evaluacion WHERE evaluacion_id=? AND codigoEstudiante=?").get(id,"T001");
+  const messageId=randomUUID(), otherId=randomUUID();
+  db.prepare("INSERT INTO outbox(id,event_key,recipient,kind,payload,status,provider) VALUES(?,?,'+51900000001','results',?,'pending','baileys')").run(
+    messageId, "test:exam-delete:"+messageId, JSON.stringify({evaluationId:id,gradeId:row.id,revision:1}));
+  db.prepare("INSERT INTO outbox(id,event_key,recipient,kind,payload,status,provider) VALUES(?,?,'+51900000002','results',?,'pending','baileys')").run(
+    otherId, "test:exam-delete:"+otherId, JSON.stringify({evaluationId:id,gradeId:row.id+9999,revision:1}));
+  assert.equal((await admin(`/api/v2/exams/${id}/student/T003/grade`,undefined,"DELETE")).status,404);
+  const remove=await admin(`/api/v2/exams/${id}/student/T001/grade`,undefined,"DELETE");
+  assert.equal(remove.status,200,JSON.stringify(remove.data));
+  assert.equal(remove.data.grades,1);
+  assert.equal(remove.data.history,1);
+  assert.equal(remove.data.cancelled,1);
+  assert.equal(db.prepare("SELECT 1 FROM respuestas_evaluacion WHERE evaluacion_id=? AND codigoEstudiante='T001'").get(id),undefined);
+  assert.equal(db.prepare("SELECT COUNT(*) n FROM grade_history WHERE evaluation_id=? AND student_code='T001'").get(id).n,0);
+  assert.equal(db.prepare("SELECT posicion FROM respuestas_evaluacion WHERE evaluacion_id=? AND codigoEstudiante='T002'").get(id).posicion,1);
+  assert.equal(db.prepare("SELECT status FROM outbox WHERE id=?").get(messageId).status,"cancelled");
+  assert.equal(db.prepare("SELECT status FROM outbox WHERE id=?").get(otherId).status,"pending");
+  assert.equal((await admin(`/api/v2/exams/${id}/student/T001/responses`)).status,404);
+  // Permite volver a registrar al alumno tras eliminar su registro.
+  assert.equal((await admin(`/api/v2/exams/${id}/grade`,{
+    codigoEstudiante:"T001",area:"GENERAL",form:"A",respuestas:{1:"A"},
+  },"POST")).status,200);
+  assert(db.prepare("SELECT 1 FROM respuestas_evaluacion WHERE evaluacion_id=? AND codigoEstudiante='T001'").get(id));
+  const batchId=randomUUID(),sheetId=randomUUID(),jobId=randomUUID(),requestId=randomUUID();
+  db.prepare("INSERT INTO omr_sheets(id,evaluation_id,student_code,revision) VALUES(?,?,?,1)").run(sheetId,id,"T001");
+  db.prepare("INSERT INTO import_batches(id,evaluation_id,revision,source,status,actor) VALUES(?,?,1,'omr','ready','admin')").run(batchId,id);
+  db.prepare("INSERT INTO imported_sheets(sheet_id,page,batch_id) VALUES(?,?,?)").run(sheetId,1,batchId);
+  db.prepare("INSERT INTO scan_requests(actor,request_id,evaluation_id,batch_id) VALUES('admin',?,?,?)").run(requestId,id,batchId);
+  db.prepare("INSERT INTO scanner_jobs(id,evaluation_id,revision,actor,driver,device,source,page_size,status,batch_id) VALUES(?,?,1,'admin','wia','test','glass','A4','ready',?)").run(jobId,id,batchId);
+  const folder=path.join(dir,"imports",batchId);
+  fs.mkdirSync(folder,{recursive:true});
+  fs.writeFileSync(path.join(folder,"test.txt"),"test-only");
+  const scannerPath=path.join(dir,"scanner",jobId+".pdf");
+  fs.mkdirSync(path.dirname(scannerPath),{recursive:true});
+  fs.writeFileSync(scannerPath,"test-only");
+  const bad=await admin(`/api/v2/exams/${id}/permanent`,{confirmation:"INCORRECTO"},"DELETE");
+  assert.equal(bad.status,400);
+  db.prepare("UPDATE scanner_jobs SET status='scanning' WHERE id=?").run(jobId);
+  const busy=await admin(`/api/v2/exams/${id}/permanent`,{confirmation:"BORRAR SOLO SIMULACRO TEST"},"DELETE");
+  assert.equal(busy.status,409);
+  assert(db.prepare("SELECT 1 FROM evaluaciones WHERE id=?").get(id));
+  db.prepare("UPDATE scanner_jobs SET status='ready' WHERE id=?").run(jobId);
+  const complete=await admin(`/api/v2/exams/${id}/permanent`,{confirmation:"BORRAR SOLO SIMULACRO TEST"},"DELETE");
+  assert.equal(complete.status,200,JSON.stringify(complete.data));
+  assert.equal(complete.data.exito,true);
+  assert.deepEqual(complete.data.cleanupWarnings,[]);
+  for(const [table,column] of [
+    ["evaluaciones","id"],["respuestas_evaluacion","evaluacion_id"],
+    ["grade_history","evaluation_id"],["evaluation_revisions","evaluation_id"],
+    ["omr_sheets","evaluation_id"],["exam_roster","evaluation_id"],
+    ["import_batches","evaluation_id"],["scanner_jobs","evaluation_id"],
+    ["scan_requests","evaluation_id"],
+  ]) assert.equal(db.prepare(`SELECT COUNT(*) n FROM ${table} WHERE ${column}=?`).get(id).n,0,table);
+  assert.equal(db.prepare("SELECT COUNT(*) n FROM imported_sheets WHERE batch_id=?").get(batchId).n,0);
+  assert.equal(db.prepare("SELECT COUNT(*) n FROM outbox WHERE id IN (?,?)").get(messageId,otherId).n,0);
+  assert.equal(fs.existsSync(folder),false);
+  assert.equal(fs.existsSync(scannerPath),false);
+  assert.equal((await admin(`/api/v2/exams/${id}`)).status,404);
+  assert(db.prepare("SELECT 1 FROM evaluaciones WHERE id=?").get(exam.id),"Otro simulacro no debe eliminarse.");
+  assert(db.prepare("SELECT 1 FROM usuarios WHERE codigo='T001'").get(),"El alumno debe conservarse.");
+  assert.equal((await guest(`/api/v2/exams/${exam.id}/permanent`,{confirmation:"X"},"DELETE")).status,401);
+});

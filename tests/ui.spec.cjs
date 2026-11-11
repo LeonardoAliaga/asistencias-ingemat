@@ -94,6 +94,31 @@ test("create, validate and grade an exam from the dashboard", async ({
   await expect(page.locator("#v2-message")).toContainText("2000 puntos");
   await page.click('[data-local-tab="exam-results"]');
   await expect(page.locator("#v2-results")).toContainText("ALUMNO ANA DEMO");
+  // El editor manual debe recuperar las respuestas escaneadas o registradas.
+  await page.click("#v2-manual-tab");
+  await page.fill("#v2-manual-student-search", "DEMO001");
+  await expect(page.locator('#v2-manual-student-results [role="option"]')).toHaveCount(1);
+  await page.locator("#v2-manual-student-search").press("ArrowDown");
+  await page.locator("#v2-manual-student-search").press("Enter");
+  await expect(page.locator("#v2-manual-existing")).toContainText("Respuestas anteriores cargadas");
+  await expect(page.locator("#v2-manual-replace")).toBeChecked();
+  await expect(page.locator("#v2-manual-answers")).toContainText("1,A");
+  await page.fill("#v2-manual-answers","1,B\n2,A");
+  await page.fill("#v2-manual-reason","Corrección de marca omitida en cartilla escaneada");
+  await page.click("#v2-manual button[type=submit]");
+  await expect(page.locator("#v2-message")).toContainText("Calificación guardada");
+  await page.click('[data-local-tab="exam-results"]');
+  await expect(page.locator("#v2-results [data-delete-grade='DEMO001']")).toHaveCount(1);
+  page.once("dialog", dialog => dialog.accept());
+  await page.locator("#v2-results [data-delete-grade='DEMO001']").click();
+  await expect(page.locator("#v2-message")).toContainText("Ranking recalculado");
+  await expect(page.locator("#v2-results")).not.toContainText("DEMO001");
+  // La eliminación de un examen es una acción separada de Archivarlo.
+  await expect(page.locator("#v2-delete-permanent")).toBeVisible();
+  page.once("dialog", dialog => dialog.accept("SIMULACRO UI"));
+  await page.locator("#v2-delete-permanent").click();
+  await expect(page.locator("#v2-message")).toContainText("Simulacro eliminado definitivamente");
+  await expect(page.locator("#v2-exam-select")).not.toContainText("SIMULACRO UI");
   expect(errors).toEqual([]);
 });
 for (const width of [1440, 390])
