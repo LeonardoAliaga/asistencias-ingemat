@@ -102,7 +102,7 @@ test("create, validate and grade an exam from the dashboard", async ({
   await page.locator("#v2-manual-student-search").press("Enter");
   await expect(page.locator("#v2-manual-existing")).toContainText("Respuestas anteriores cargadas");
   await expect(page.locator("#v2-manual-replace")).toBeChecked();
-  await expect(page.locator("#v2-manual-answers")).toContainText("1,A");
+  await expect(page.locator("#v2-manual-answers")).toHaveValue(/1,A/);
   await page.fill("#v2-manual-answers","1,B\n2,A");
   await page.fill("#v2-manual-reason","Corrección de marca omitida en cartilla escaneada");
   await page.click("#v2-manual button[type=submit]");
