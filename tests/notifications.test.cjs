@@ -238,6 +238,9 @@ test("attendance, grades and corrections continue when the optional WhatsApp ser
 });
 
 test("actual Baileys send failures show a safe code without exposing messages or recipients", async () => {
+  // Aislamos la cola de otros escenarios y activamos el procesamiento del aviso.
+  settings.storeConfig({ ...settings.getConfig(), enabled: true });
+  db.prepare("UPDATE outbox SET status='cancelled' WHERE status IN ('pending','retry')").run();
   const id=n.enqueue({
     eventKey:"wa-test-failure-"+Date.now(),
     recipient:"+51900111222",
