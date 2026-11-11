@@ -91,7 +91,7 @@ router.post("/attendance-report", operator, async (req, res) =>
 router.get("/reports/:id/file", (req, res) => {
   const row = db
     .prepare(
-      "SELECT * FROM outbox WHERE id=? AND kind IN ('student_report','attendance_report')",
+      "SELECT * FROM outbox WHERE id=? AND kind IN ('student_report','attendance_report','exam_group_summary')",
     )
     .get(req.params.id);
   if (!row) throw new AppError("Reporte no encontrado.", 404);

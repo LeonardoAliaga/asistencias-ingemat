@@ -6,6 +6,7 @@ const db = require("../database/db");
 const { dataDir } = require("../config");
 const { AppError } = require("../utils/errors");
 const { audit } = require("./audit.service");
+const storage = require("./whatsapp-report-storage.service");
 
 function removeLocalArtifact(folder, name, ext = "") {
   // Los identificadores son generados internamente; nunca aceptamos rutas de entrada.
@@ -27,7 +28,7 @@ function deleteExam(id, confirmation, req) {
   if (confirmation !== exam.titulo)
     throw new AppError("Escribe el título exacto del simulacro para confirmar la eliminación definitiva.", 400);
 
-  const artifacts = { batches: [], scans: [] };
+  const artifacts = { batches: [], scans: [], rankings: [] };
   const deleted = db.transaction(() => {
     // Nunca dejamos que el lector OMR o NAPS2 escriban resultados sobre un examen eliminado.
     const scanning = db.prepare(
@@ -45,6 +46,11 @@ function deleteExam(id, confirmation, req) {
       throw new AppError("Se está enviando un aviso de este simulacro. Espera a que termine antes de eliminarlo.", 409);
     artifacts.batches = db.prepare("SELECT id FROM import_batches WHERE evaluation_id=?").all(id).map(r => r.id);
     artifacts.scans = db.prepare("SELECT id FROM scanner_jobs WHERE evaluation_id=?").all(id).map(r => r.id);
+    artifacts.rankings = db.prepare(
+      "SELECT payload FROM outbox WHERE kind='exam_group_summary' AND json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END,'$.evaluationId')=?",
+    ).all(id).map(r => {
+      try { return JSON.parse(r.payload).attachment; } catch { return null; }
+    }).filter(Boolean);
 
     const notices = db.prepare(
       "DELETE FROM outbox WHERE kind IN ('results','exam_group_summary') AND json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END,'$.evaluationId')=?",
@@ -74,6 +80,7 @@ function deleteExam(id, confirmation, req) {
     ...artifacts.batches.map(id => removeLocalArtifact("imports", id)),
     ...artifacts.scans.map(id => removeLocalArtifact("scanner", id, ".pdf")),
   ].filter(Boolean);
+  for (const attachment of artifacts.rankings) storage.remove(attachment);
   return { exito: true, deleted, cleanupWarnings };
 }
 module.exports = { deleteExam };

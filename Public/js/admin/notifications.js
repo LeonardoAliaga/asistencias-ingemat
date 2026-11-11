@@ -130,7 +130,8 @@ export function mountNotifications({
       data.outbox.map((r) => [
         esc(stamp(r.created_at)),
         esc(r.recipient),
-        `${esc({ attendance: "Asistencia", results: "Resultado", student_report: "Reporte del alumno", attendance_report: "Reporte del ciclo", exam_group_summary: "Resultados al grupo de WhatsApp" }[r.kind] || r.kind)}${r.bulk_batch_id && r.student_code ? ` · ${esc(r.student_code)}` : ""}<br>${r.provider === "baileys" ? "Baileys" : "Histórico anterior"}`,
+        `${esc({ attendance: "Asistencia", results: "Resultado", student_report: "Reporte del alumno", attendance_report: "Reporte del ciclo", exam_group_summary: "Ranking por área al grupo" }[r.kind] || r.kind)}${r.bulk_batch_id && r.student_code ? ` · ${esc(r.student_code)}`
+            : r.ranking_area ? ` · ${esc(r.ranking_area)} (imagen ${Number(r.ranking_page) || 1}/${Number(r.ranking_pages) || 1})` : ""}<br>${r.provider === "baileys" ? "Baileys" : "Histórico anterior"}`,
         badge(r.status),
         r.bulk_batch_id
           ? ["pending", "retry"].includes(r.status)
@@ -138,7 +139,7 @@ export function mountNotifications({
             : esc({ sending: "Enviando", accepted: "Aceptado", sent: "Enviado", delivered: "Entregado", read: "Leído", unknown: "Por comprobar", failed: "Fallido", cancelled: "Cancelado" }[r.status] || r.status)
           : "—",
         esc(r.error) +
-          (["student_report", "attendance_report"].includes(r.kind)
+          (["student_report", "attendance_report", "exam_group_summary"].includes(r.kind)
             ? `<br><a href="/api/v2/whatsapp/reports/${encodeURIComponent(r.id)}/file">Descargar archivo del envío</a>`
             : ""),
         r.provider === "baileys" && ["failed", "unknown"].includes(r.status)

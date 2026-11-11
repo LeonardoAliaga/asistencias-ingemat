@@ -2071,6 +2071,7 @@ async function initialize() {
     if (!confirm(`¿Enviar imágenes del ranking de "${exam.titulo}" al grupo "${target.subject}"?\n\nCada área tendrá su propia imagen (con páginas si hay muchos alumnos). Se mostrarán nombres, buenas, malas, vacías y puntajes, SIN códigos. Confirma que todos los estudiantes cuentan con autorización para compartir estas calificaciones en ese grupo.`)) return;
     const result=await api("/api/v2/whatsapp/exam-group-summary",json({
       examId:exam.id,groupId:target.id,requestId:crypto.randomUUID(),
+      confirmAuthorized:true,
     }));
     message(result.duplicate
       ? "Esta solicitud ya estaba registrada. Consulta su estado en Comunicación."

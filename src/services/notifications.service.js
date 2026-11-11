@@ -148,7 +148,8 @@ function reportState(row) {
       if (!target || target.id !== row.recipient || !["listo", "publicado"].includes(report.exam.estado)
           || report.signature !== payload.signature)
         return { current:false,cancel:true,
-          error:"El grupo o los resultados cambiaron. Publica nuevamente el resumen actualizado." };
+          error:"El grupo o las calificaciones cambiaron. Genera nuevamente el ranking por área." };
+      reportStorage.read(payload.attachment);
       return { current:true };
     }
     if (
@@ -188,7 +189,7 @@ async function send(row) {
   if (row.provider !== "baileys")
     throw new AppError("Este aviso es histórico y no se enviará por Baileys.");
   const payload = JSON.parse(row.payload);
-  if (["student_report", "attendance_report"].includes(row.kind))
+  if (["student_report", "attendance_report", "exam_group_summary"].includes(row.kind))
     return baileys.sendMedia(
       row.recipient,
       payload.text,
@@ -214,6 +215,12 @@ async function processOutbox(sendImpl = send) {
       .all(config.provider, config.enabled ? 1 : 0, Date.now());
     for (const row of rows) {
       if (config.provider === "baileys" && !providerReady("baileys")) break;
+      if (row.kind === "results") {
+        db.prepare(
+          "UPDATE outbox SET status='cancelled',error='Los avisos individuales de simulacros ya no están habilitados.',updated_at=CURRENT_TIMESTAMP WHERE id=? AND status IN ('pending','retry')",
+        ).run(row.id);
+        continue;
+      }
       if (attendanceDeleted(row)) {
         db.prepare(
           "UPDATE outbox SET status='cancelled',error='El registro de asistencia fue eliminado.',updated_at=CURRENT_TIMESTAMP WHERE id=? AND status IN ('pending','retry')",
