@@ -454,12 +454,13 @@ async function processScanQueue() {
         page.imagePath = path.relative(config.dataDir, page.imagePath);
     const state = buildRows(exam, result, b.id);
     writeResult(b.id, result, state);
-    console.info("[OMR] Lote procesado", {
-      batchId: b.id,
-      status: state,
-      pages: result.pages.length,
-      readyRows: result.rows?.length || 0,
-    });
+    if (process.env.OMR_DEBUG === "1")
+      console.info("[OMR] Lote procesado", {
+        batchId: b.id,
+        status: state,
+        pages: result.pages.length,
+        readyRows: result.rows?.length || 0,
+      });
   } catch (error) {
     console.error("[OMR] Lote fallido", {
       batchId: b.id,
