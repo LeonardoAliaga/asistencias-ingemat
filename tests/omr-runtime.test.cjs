@@ -199,3 +199,20 @@ test("doctor CLI returns a failure code with real startup error and never prints
   assert.match(text, /not-installed.exe/);
   assert(!text.includes("PRIVATE_ACCESS_TOKEN"));
 });
+
+test("OMR successful runs are quiet unless debug is explicitly enabled", async () => {
+  const original=process.env.OMR_DEBUG;
+  delete process.env.OMR_DEBUG;
+  try {
+    const captured=capture();
+    await executePython(["-e","process.stdout.write('OK')"], nodeOptions(captured));
+    assert.equal(captured.entries.length,0);
+    process.env.OMR_DEBUG="1";
+    const debug=capture();
+    await executePython(["-e","process.stdout.write('OK')"], nodeOptions(debug));
+    assert(debug.entries.some(entry=>entry.level==="info"));
+  } finally {
+    if(original===undefined) delete process.env.OMR_DEBUG;
+    else process.env.OMR_DEBUG=original;
+  }
+});

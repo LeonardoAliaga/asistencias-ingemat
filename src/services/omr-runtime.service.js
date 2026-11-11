@@ -35,7 +35,9 @@ function executePython(
     platform: process.platform,
     node: process.version,
   };
-  logger.info(`[OMR] Inicio de ${label}`, context);
+  // Durante la operación normal se registran solo fallos y advertencias reales.
+  if (process.env.OMR_DEBUG === "1")
+    logger.info(`[OMR] Inicio de ${label}`, context);
   return new Promise((resolve, reject) => {
     let child,
       timer,
@@ -68,12 +70,11 @@ function executePython(
       } else {
         if (stderr)
           logger.warn(`[OMR] Salida de diagnóstico de ${label}`, details);
-        logger.info(`[OMR] Finalizó ${label}`, {
-          batchId,
-          exitCode: result.code,
-          durationMs: details.durationMs,
-          stdoutBytes: outputBytes,
-        });
+        if (process.env.OMR_DEBUG === "1")
+          logger.info(`[OMR] Finalizó ${label}`, {
+            batchId, exitCode: result.code,
+            durationMs: details.durationMs, stdoutBytes: outputBytes,
+          });
         resolve(result);
       }
     };
@@ -194,11 +195,11 @@ async function runReader(
         error: page.error,
       });
   }
-  logger.info("[OMR] Lectura recibida", {
-    batchId,
-    pages: result.pages.length,
-    unreadable: result.pages.filter((p) => p.error).length,
-  });
+  if (process.env.OMR_DEBUG === "1")
+    logger.info("[OMR] Lectura recibida", {
+      batchId, pages: result.pages.length,
+      unreadable: result.pages.filter((p) => p.error).length,
+    });
   return result;
 }
 
@@ -221,10 +222,13 @@ async function checkRuntime() {
     )
       throw new Error("Respuesta de diagnóstico inválida.");
     if (code !== 0) report.ok = false;
-    console[report.ok ? "info" : "error"](
-      "[OMR] Diagnóstico de Python y dependencias",
-      report,
-    );
+    if (!report.ok)
+      console.error("[OMR] Faltan dependencias de Python", {
+        python: report.python?.executable,
+        missing: report.dependencies.filter(d => !d.ok).map(d => d.package || d.module),
+      });
+    else if (process.env.OMR_DEBUG === "1")
+      console.info("[OMR] Diagnóstico completo", report);
     if (!report.ok)
       console.error(
         "[OMR] Instala src/omr/requirements.txt con el ejecutable indicado en PYTHON_BIN. La asistencia y el panel siguen disponibles.",
