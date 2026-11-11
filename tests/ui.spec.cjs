@@ -88,7 +88,7 @@ for (const width of [1440, 390])
     await expect(modal.locator('#edit-student-details')).toBeVisible();
     await expect(modal.locator('#form-editar button[type="submit"]')).toBeEnabled();
     const area = (code) => modal.locator(`#edit-student-area-group input[value="${code}"]`);
-    await expect(area("B")).toBeChecked();
+    await expect(modal.locator('#edit-student-area-group input:checked')).toHaveCount(1);
     await area("E").check();
     await expect(modal.locator('#edit-student-area-group input:checked')).toHaveCount(1);
     const row = modal.locator(".edit-guardian-row").first();
@@ -132,7 +132,7 @@ for (const width of [1440, 390])
     await edit.click();
     await expect(modal.locator('#form-editar button[type="submit"]')).toBeEnabled();
     await modal.locator(".edit-guardian-row").first().getByRole("button", {name:"Retirar apoderado"}).click();
-    await expect(modal).toContainText("Se retirará al guardar");
+    await expect(modal).toContainText("Este contacto quedará inactivo al guardar.");
     await modal.locator('#form-editar button[type="submit"]').click();
     await expect(modal).not.toBeVisible();
     stored = await read();

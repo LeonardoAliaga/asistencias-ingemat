@@ -1364,6 +1364,53 @@ async function loadAttendance() {
         }),
     );
 }
+async function loadNotifications() {
+  const ui = await state.notificationsUI;
+  if (ui) await ui.load();
+}
+async function loadSettings() {
+  const [accounts, audit] = await Promise.all([
+    api("/api/v2/accounts"),
+    api("/api/v2/audit"),
+  ]);
+  $("v2-accounts").innerHTML = table(
+    ["Usuario", "Rol", "Estado", "Acción"],
+    accounts.map((a) => [
+      esc(a.username),
+      esc(a.role),
+      a.active ? "Activa" : "Desactivada",
+      a.username === state.username
+        ? "Tu cuenta"
+        : `<button class="v2-link" data-account="${a.id}" data-active="${a.active}">${a.active ? "Desactivar" : "Activar"}</button>`,
+    ]),
+  );
+  $("v2-audit").innerHTML = table(
+    ["Fecha", "Operador", "Acción", "Entidad"],
+    audit.map((a) => [
+      esc(stamp(a.created_at)),
+      esc(a.actor),
+      esc(a.action),
+      `${esc(a.entity)} · ${esc(a.entity_id)}`,
+    ]),
+  );
+  $("v2-accounts")
+    .querySelectorAll("[data-account]")
+    .forEach(
+      (b) =>
+        (b.onclick = async () => {
+          try {
+            await api(
+              `/api/v2/accounts/${b.dataset.account}`,
+              json({ active: b.dataset.active !== "1" }, "PATCH"),
+            );
+            await loadSettings();
+            message("Estado de cuenta actualizado.");
+          } catch (e) {
+            message(e.message, true);
+          }
+        }),
+    );
+}
 function renderGuides() {
   const q = $("v2-guide-search").value.toLowerCase(),
     category = $("v2-guide-category").value;
