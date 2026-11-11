@@ -1,5 +1,6 @@
 import { cargarUsuarios, cargarHorarios } from "./users.js";
 import { cargarCiclos } from "./excel-preview.js";
+import { getEditStudentDetails } from "./user-edit-guardians.js";
 // Muestra mensajes globales
 function showGlobalMessage(elementId, message, isError = false) {
   const element = document.getElementById(elementId);
@@ -373,6 +374,7 @@ if (formEditar) {
       payload.turno = turno;
       payload.ciclo = ciclo;
       payload.dias_asistencia = diasAsistencia;
+      Object.assign(payload, getEditStudentDetails());
     } else if (rol === "docente") {
       payload.dias_asistencia = diasAsistencia;
       payload.turno = "";

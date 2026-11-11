@@ -275,6 +275,45 @@ router.put("/:codigo", (req, res) => {
     return res
       .status(400)
       .json({ exito: false, mensaje: "Turno o ciclo inválido." });
+  const isStudent = updatedUsuario.rol === "estudiante";
+  const hasArea = Object.hasOwn(updatedUsuario, "area");
+  const area = isStudent && hasArea
+    ? String(updatedUsuario.area || "GENERAL").trim().toUpperCase()
+    : userExistente.area || "";
+  if (isStudent && !/^[A-Z0-9_-]{1,20}$/.test(area))
+    return res.status(400).json({ exito: false, mensaje: "Selecciona un área válida." });
+
+  const hasGuardians = isStudent && Object.hasOwn(updatedUsuario, "guardians");
+  const rawGuardians = updatedUsuario.guardians;
+  let guardians = [];
+  if (hasGuardians) {
+    if (!Array.isArray(rawGuardians) || rawGuardians.length > 20)
+      return res.status(400).json({ exito: false, mensaje: "Lista de apoderados inválida (máximo 20)." });
+    const current = db.prepare("SELECT id FROM contacts WHERE user_uid=? AND active=1").all(userExistente.uid);
+    const known = new Set(current.map(c => c.id));
+    const seenIds = new Set(), seenPhones = new Set();
+    for (const item of rawGuardians) {
+      if (!item || typeof item !== "object" || Array.isArray(item))
+        return res.status(400).json({ exito: false, mensaje: "Datos de apoderado inválidos." });
+      const id = item.id ? String(item.id) : null;
+      if (id && (!known.has(id) || seenIds.has(id)))
+        return res.status(400).json({ exito: false, mensaje: "El apoderado seleccionado no pertenece a este estudiante." });
+      if (id) seenIds.add(id);
+      if (item.remove === true) {
+        if (!id) return res.status(400).json({ exito: false, mensaje: "No se puede retirar un apoderado no guardado." });
+        guardians.push({ id, remove: true });
+        continue;
+      }
+      const name = String(item.name || "").trim(),
+        phone = String(item.phone || "").replace(/[\s()-]/g, "");
+      if (!name || name.length > 100 || !/^\+[1-9]\d{7,14}$/.test(phone) || seenPhones.has(phone))
+        return res.status(400).json({ exito: false, mensaje: "Revisa el nombre y teléfono internacional (+51...) de cada apoderado; no repitas números." });
+      seenPhones.add(phone);
+      guardians.push({ id, name, phone, consent: item.consent === true });
+    }
+    if (current.some(c => !seenIds.has(c.id)))
+      return res.status(409).json({ exito: false, mensaje: "La lista de apoderados cambió. Vuelve a abrir el formulario para evitar perder datos." });
+  }
   let dias_asistencia =
     updatedUsuario.dias_asistencia ||
     JSON.parse(userExistente.dias_asistencia || "[]");
@@ -311,7 +350,7 @@ router.put("/:codigo", (req, res) => {
           );
       }
       db.prepare(
-        "UPDATE usuarios SET codigo=?,nombre=?,apellido=?,rol=?,turno=?,ciclo=?,dias_asistencia=? WHERE codigo=?",
+        "UPDATE usuarios SET codigo=?,nombre=?,apellido=?,rol=?,turno=?,ciclo=?,dias_asistencia=?,area=? WHERE codigo=?",
       ).run(
         nuevoCodigo,
         nombre,
@@ -320,8 +359,24 @@ router.put("/:codigo", (req, res) => {
         turno,
         ciclo,
         JSON.stringify(dias_asistencia),
+        area,
         originalCodigo,
       );
+      if (hasGuardians) {
+        const now = new Date().toISOString();
+        for (const guardian of guardians) {
+          if (guardian.remove) {
+            db.prepare("UPDATE contacts SET active=0,consent=0,consented_at=NULL WHERE id=? AND user_uid=?")
+              .run(guardian.id, userExistente.uid);
+          } else if (guardian.id) {
+            db.prepare("UPDATE contacts SET name=?,phone=?,consent=?,consented_at=CASE WHEN ?=1 THEN COALESCE(consented_at,?) ELSE NULL END WHERE id=? AND user_uid=?")
+              .run(guardian.name, guardian.phone, Number(guardian.consent), Number(guardian.consent), now, guardian.id, userExistente.uid);
+          } else {
+            db.prepare("INSERT INTO contacts(id,user_uid,name,phone,consent,consented_at,active) VALUES(?,?,?,?,?,?,1) ON CONFLICT(user_uid,phone) DO UPDATE SET name=excluded.name,consent=excluded.consent,consented_at=excluded.consented_at,active=1")
+              .run(randomUUID(), userExistente.uid, guardian.name, guardian.phone, Number(guardian.consent), guardian.consent ? now : null);
+          }
+        }
+      }
     })();
 
     console.log(
@@ -329,7 +384,11 @@ router.put("/:codigo", (req, res) => {
     );
     res.json({ exito: true, mensaje: "Usuario actualizado correctamente." });
   } catch (err) {
-    res.status(500).json({ exito: false, mensaje: err.message });
+    const conflict = String(err.message).includes("UNIQUE constraint");
+    res.status(conflict ? 409 : 500).json({
+      exito: false,
+      mensaje: conflict ? "Ese número de WhatsApp ya está registrado para este estudiante." : "No se pudieron guardar los cambios del usuario.",
+    });
   }
 });
 

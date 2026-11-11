@@ -1,6 +1,7 @@
 // Proyecto/Public/js/admin/users.js
 
 import { initAccordion } from "./accordion.js";
+import { initEditStudentDetails, populateEditStudentDetails } from "./user-edit-guardians.js";
 
 export let allUserOptions = []; // Exportado para usar en otros módulos
 let currentAutocompleteFocus = -1; // Para navegación por teclado
@@ -369,7 +370,7 @@ function mostrarBarcodeModal(codigo) {
 }
 
 // --- NUEVA FUNCIÓN PARA ABRIR Y POBLAR EL MODAL DE EDICIÓN ---
-function abrirModalEditar(codigo) {
+async function abrirModalEditar(codigo) {
   const modal = document.getElementById("edit-user-modal");
   if (!modal) return;
 
@@ -419,11 +420,34 @@ function abrirModalEditar(codigo) {
     }
   });
 
-  // Limpiar mensaje de estado previo
-  document.getElementById("msg-editar-usuario").style.display = "none";
-
-  // Mostrar modal
+  // Cargar apoderados y área antes de permitir guardar, para no sobrescribir datos anteriores.
+  const feedback = document.getElementById("msg-editar-usuario");
+  feedback.style.display = "none";
+  populateEditStudentDetails();
+  const editor = document.getElementById("edit-student-details");
+  editor.hidden = !esEstudiante;
+  editor.disabled = !esEstudiante;
   modal.style.display = "block";
+  const submit = modal.querySelector('#form-editar button[type="submit"]');
+  submit.disabled = esEstudiante;
+  if (esEstudiante) {
+    try {
+      const response = await fetch("/api/v2/students");
+      if (!response.ok) throw new Error("No se pudieron consultar los apoderados.");
+      const students = await response.json();
+      const student = students.find(item => item.codigo === user.codigo);
+      if (!student) throw new Error("No se encontraron los datos actuales del estudiante.");
+      // Una búsqueda antigua no debe poblar el formulario de otro usuario.
+      if (modal.style.display !== "block" ||
+          document.getElementById("edit-original-codigo").value !== user.codigo) return;
+      populateEditStudentDetails(student);
+      submit.disabled = false;
+    } catch (error) {
+      feedback.textContent = error.message + " Cierra y vuelve a abrir el formulario.";
+      feedback.className = "form-message error";
+      feedback.style.display = "block";
+    }
+  }
 }
 
 // --- INICIO LÓGICA DE AUTOCOMPLETADO ---
@@ -927,6 +951,7 @@ export function initUserFormEvents() {
   // --- NUEVO: Lógica para el Modal de Edición ---
   const modal = document.getElementById("edit-user-modal");
   if (modal) {
+    initEditStudentDetails();
     // 6. Botones de Día (Formulario Editar)
     document
       .querySelectorAll("#edit-dias-asistencia-selector .day-btn")
@@ -948,6 +973,11 @@ export function initUserFormEvents() {
         const diasSelector = document.getElementById(
           "edit-dias-asistencia-selector",
         );
+        const studentDetails = document.getElementById("edit-student-details");
+        if (studentDetails) {
+          studentDetails.hidden = !esEstudiante;
+          studentDetails.disabled = !esEstudiante;
+        }
 
         if (turno) turno.disabled = !esEstudiante;
         if (ciclo) ciclo.disabled = !esEstudiante;

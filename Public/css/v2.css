@@ -1819,3 +1819,17 @@ body[data-account-role="docente"] .btn-delete-seccion {
 }
 .manual-student-search .manual-student-empty { color: var(--muted); cursor: default; }
 #v2-manual-student-selected:not(:empty) { color: #17633b; font-weight: 600; }
+
+/* Edición de apoderados dentro del formulario de usuario. */
+#edit-user-modal .edit-guardians-list { display: grid; gap: 12px; }
+#edit-user-modal .edit-guardian-row {
+  padding: 14px; border: 1px solid var(--line);
+  border-radius: 10px; background: var(--surface);
+  display: grid; gap: 10px; min-width: 0;
+}
+#edit-user-modal .edit-guardian-row .form-row { min-width: 0; }
+#edit-user-modal .edit-guardian-row input[type="tel"],
+#edit-user-modal .edit-guardian-row input[type="text"] { width: 100%; }
+#edit-user-modal .edit-guardian-row > .v2-link { justify-self: start; }
+#edit-user-modal #edit-add-guardian { justify-self: start; }
+#edit-user-modal #edit-student-details { min-width: 0; }
