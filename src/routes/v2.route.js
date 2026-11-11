@@ -38,7 +38,7 @@ router.get("/summary", (req, res) =>
     version: "2.0.0",
     timezone: config.timezone,
     today: businessDate(),
-    usuarios: db.prepare("SELECT COUNT(*) n FROM usuarios").get().n,
+    usuarios: db.prepare("SELECT COUNT(*) n FROM usuarios WHERE archived_at IS NULL").get().n,
     evaluaciones: db
       .prepare("SELECT COUNT(*) n FROM evaluaciones WHERE estado!='archivado'")
       .get().n,
@@ -130,7 +130,7 @@ router.get("/backups/:name", requireAdmin, (req, res) => {
 router.get("/students", requirePermission("usuarios:read"), (req, res) => {
   const rows = db
     .prepare(
-      "SELECT codigo,nombre,apellido,ciclo,turno,area,uid FROM usuarios WHERE rol='estudiante' ORDER BY apellido,nombre",
+      "SELECT codigo,nombre,apellido,ciclo,turno,area,uid FROM usuarios WHERE rol='estudiante' AND archived_at IS NULL ORDER BY apellido,nombre",
     )
     .all();
   res.json(
@@ -152,7 +152,7 @@ router.patch("/students/:code", requireAdmin, (req, res) => {
   if (area && !/^[A-Z0-9_-]{1,20}$/.test(area))
     throw new AppError("Código de área inválido.");
   if (
-    !db.prepare("UPDATE usuarios SET area=? WHERE codigo=?").run(area, code)
+    !db.prepare("UPDATE usuarios SET area=? WHERE codigo=? AND archived_at IS NULL").run(area, code)
       .changes
   )
     throw new AppError("Estudiante no encontrado.", 404);
@@ -193,7 +193,7 @@ router.delete("/contacts/:id", requireAdmin, (req, res) => {
 router.get("/attendance/students", requirePermission("asistencias:write"), (req, res) => {
   res.set("Cache-Control", "no-store").json(
     db.prepare(
-      "SELECT codigo,nombre,apellido,ciclo,turno FROM usuarios WHERE rol='estudiante' ORDER BY apellido,nombre,codigo",
+      "SELECT codigo,nombre,apellido,ciclo,turno FROM usuarios WHERE rol='estudiante' AND archived_at IS NULL ORDER BY apellido,nombre,codigo",
     ).all(),
   );
 });

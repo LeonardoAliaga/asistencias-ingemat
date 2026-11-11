@@ -88,7 +88,7 @@ function readyExam(id, req) {
       "UPDATE evaluaciones SET estado='listo',definition=? WHERE id=?",
     ).run(JSON.stringify(def), id);
     db.prepare(
-      "INSERT OR IGNORE INTO exam_roster(evaluation_id,user_uid,code_snapshot,name_snapshot,cycle_snapshot) SELECT ?,uid,codigo,TRIM(apellido||' '||nombre),ciclo FROM usuarios WHERE rol='estudiante' AND UPPER(ciclo)=UPPER(?)",
+      "INSERT OR IGNORE INTO exam_roster(evaluation_id,user_uid,code_snapshot,name_snapshot,cycle_snapshot) SELECT ?,uid,codigo,TRIM(apellido||' '||nombre),ciclo FROM usuarios WHERE rol='estudiante' AND archived_at IS NULL AND UPPER(ciclo)=UPPER(?)",
     ).run(id, exam.ciclo);
     db.prepare(
       "INSERT INTO evaluation_revisions(evaluation_id,revision,definition,key_snapshot,actor,reason) VALUES(?,?,?,?,?,?)",
@@ -138,6 +138,7 @@ function saveGrade(
   const user = db.prepare("SELECT * FROM usuarios WHERE codigo=?").get(code);
   if (!user || user.rol !== "estudiante")
     throw new AppError("Estudiante no encontrado.", 404);
+  if (user.archived_at) throw new AppError("El estudiante está archivado. Restáuralo antes de registrar nuevas notas.", 409);
   if (
     String(user.ciclo).toUpperCase() !== String(exam.ciclo).toUpperCase() &&
     !db

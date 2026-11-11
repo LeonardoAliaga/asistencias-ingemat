@@ -5,11 +5,15 @@ const { normalizarTexto, getCiclosData } = require("../utils/helpers");
 
 const router = express.Router();
 const { randomUUID } = require("node:crypto");
+const { requireAdmin } = require("../middleware/auth.middleware");
+const { audit } = require("../services/audit.service");
 
 // Helper para leer usuarios desde SQLite
-function readUsuarios() {
+function readUsuarios(archived = false) {
   const rows = db
-    .prepare("SELECT * FROM usuarios ORDER BY apellido ASC, nombre ASC")
+    .prepare(archived
+      ? "SELECT * FROM usuarios WHERE rol='estudiante' AND archived_at IS NOT NULL ORDER BY archived_at DESC,apellido,nombre"
+      : "SELECT * FROM usuarios WHERE archived_at IS NULL ORDER BY apellido ASC, nombre ASC")
     .all();
   return rows.map((u) => {
     const nombre = u.nombre ? String(u.nombre).trim().toUpperCase() : "";
@@ -35,18 +39,50 @@ function readUsuarios() {
       dias_asistencia,
       area: u.area || "",
       uid: u.uid,
+      archived_at: u.archived_at || null,
     };
   });
 }
 
 // GET /api/usuarios - Obtener todos los usuarios
-router.get("/", (req, res) => {
+router.get("/", (req, res, next) => {
+  if (req.query.archived === "1")
+    return requireAdmin(req, res, () => {
+      try { res.set("Cache-Control", "no-store").json(readUsuarios(true)); }
+      catch (error) { next(error); }
+    });
   try {
-    const usuarios = readUsuarios();
+    const usuarios = readUsuarios(false);
     res.json(usuarios);
   } catch (err) {
     res.status(500).json({ exito: false, mensaje: err.message });
   }
+});
+
+// Archivar conserva historial académico y permite restaurar sin crear otro perfil.
+router.patch("/:codigo/archive", requireAdmin, (req, res, next) => {
+  try {
+    if (typeof req.body?.archived !== "boolean")
+      return res.status(400).json({ exito: false, mensaje: "Indica si deseas archivar o restaurar." });
+    const codigo = String(req.params.codigo || "").trim().toUpperCase();
+    const archived = req.body.archived;
+    const result = db.transaction(() => {
+      const row = db.prepare("SELECT codigo,uid,rol,archived_at FROM usuarios WHERE codigo=?").get(codigo);
+      if (!row) return { status: 404, mensaje: "Estudiante no encontrado." };
+      if (row.rol !== "estudiante") return { status: 409, mensaje: "Solo se pueden archivar estudiantes." };
+      if (Boolean(row.archived_at) === archived)
+        return { exito: true, changed: false, archived };
+      db.prepare("UPDATE usuarios SET archived_at=? WHERE codigo=?").run(archived ? new Date().toISOString() : null, codigo);
+      if (archived) {
+        // No borra avisos enviados; cancela solo los reportes aún en cola.
+        db.prepare("UPDATE outbox SET status='cancelled',error='Estudiante archivado',updated_at=CURRENT_TIMESTAMP WHERE contact_id IN (SELECT id FROM contacts WHERE user_uid=?) AND status IN ('pending','retry') AND kind IN ('attendance','results','student_report')").run(row.uid);
+      }
+      audit(req, archived ? "archivar" : "restaurar", "estudiante", codigo);
+      return { exito: true, changed: true, archived };
+    })();
+    if (result.status) return res.status(result.status).json({ exito: false, mensaje: result.mensaje });
+    return res.json({ ...result, mensaje: archived ? "Estudiante archivado." : "Estudiante restaurado." });
+  } catch (error) { next(error); }
 });
 
 // POST /api/usuarios - Agregar usuario
@@ -242,6 +278,8 @@ router.put("/:codigo", (req, res) => {
       .status(404)
       .json({ exito: false, mensaje: "Usuario original no encontrado." });
   }
+  if (userExistente.archived_at)
+    return res.status(409).json({ exito: false, mensaje: "Restaura el estudiante antes de editarlo." });
 
   if (originalCodigo !== nuevoCodigo) {
     const dup = db

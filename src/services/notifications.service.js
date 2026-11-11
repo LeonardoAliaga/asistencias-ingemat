@@ -88,7 +88,7 @@ function notifyResults(exam, req) {
   let queued = 0;
   for (const r of db
     .prepare(
-      "SELECT r.*,u.uid FROM respuestas_evaluacion r JOIN usuarios u ON u.codigo=r.codigoEstudiante WHERE r.evaluacion_id=?",
+      "SELECT r.*,u.uid FROM respuestas_evaluacion r JOIN usuarios u ON u.codigo=r.codigoEstudiante WHERE r.evaluacion_id=? AND u.archived_at IS NULL",
     )
     .all(exam.id)) {
     for (const c of db

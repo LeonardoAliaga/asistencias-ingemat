@@ -34,6 +34,7 @@ function register(code, req, date = new Date()) {
     );
   const user = db.prepare("SELECT * FROM usuarios WHERE codigo=?").get(codigo);
   if (!user) throw new AppError("Código no encontrado.", 404);
+  if (user.archived_at) throw new AppError("Este estudiante está archivado. Restáuralo para registrar nuevas asistencias.", 409);
   const day = businessDate(date),
     time = businessTime(date),
     shift = user.turno || "docente";

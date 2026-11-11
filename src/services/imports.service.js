@@ -33,7 +33,7 @@ function batchView(id) {
     matched = new Map(),
     cache = new Map(),
     lookup = db.prepare(
-      "SELECT u.codigo,u.nombre,u.apellido,r.name_snapshot FROM usuarios u LEFT JOIN exam_roster r ON r.evaluation_id=? AND r.user_uid=u.uid WHERE u.codigo=? AND u.rol='estudiante' AND (UPPER(u.ciclo)=UPPER(?) OR r.user_uid IS NOT NULL)",
+      "SELECT u.codigo,u.nombre,u.apellido,r.name_snapshot FROM usuarios u LEFT JOIN exam_roster r ON r.evaluation_id=? AND r.user_uid=u.uid WHERE u.codigo=? AND u.rol='estudiante' AND u.archived_at IS NULL AND (UPPER(u.ciclo)=UPPER(?) OR r.user_uid IS NOT NULL)",
     );
   const findStudent = (code) => {
     if (typeof code !== "string" || !code) return null;
@@ -150,7 +150,7 @@ function createCSV(id, text, req) {
         throw new AppError(`Código duplicado en fila ${index + 2}: ${code}`);
       codes.add(code);
       const user = db
-        .prepare("SELECT * FROM usuarios WHERE codigo=? AND rol='estudiante'")
+        .prepare("SELECT * FROM usuarios WHERE codigo=? AND rol='estudiante' AND archived_at IS NULL")
         .get(code);
       if (
         !user ||

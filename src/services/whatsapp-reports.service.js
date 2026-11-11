@@ -11,7 +11,7 @@ const { audit } = require("./audit.service");
 function student(code) {
   const row = db
     .prepare(
-      "SELECT uid,codigo,nombre,apellido FROM usuarios WHERE codigo=? AND rol='estudiante'",
+      "SELECT uid,codigo,nombre,apellido FROM usuarios WHERE codigo=? AND rol='estudiante' AND archived_at IS NULL",
     )
     .get(
       String(code || "")
@@ -179,7 +179,7 @@ function batchStudents(cycle) {
   const found=db.prepare("SELECT 1 FROM ciclos WHERE UPPER(nombre)=?").get(normalized);
   if (!found) throw new AppError("El ciclo no existe.",404);
   const students=db.prepare(
-    "SELECT codigo,apellido,nombre,ciclo FROM usuarios WHERE rol='estudiante' AND UPPER(ciclo)=? ORDER BY apellido,nombre,codigo"
+    "SELECT codigo,apellido,nombre,ciclo FROM usuarios WHERE rol='estudiante' AND archived_at IS NULL AND UPPER(ciclo)=? ORDER BY apellido,nombre,codigo"
   ).all(normalized);
   const getContacts=db.prepare(
     "SELECT id,name,phone FROM contacts WHERE user_uid=(SELECT uid FROM usuarios WHERE codigo=?) AND active=1 AND consent=1 ORDER BY name"

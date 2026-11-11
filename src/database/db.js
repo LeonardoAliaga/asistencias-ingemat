@@ -43,6 +43,7 @@ for (const [table, name, definition] of [
   ["respuestas_evaluacion", "revision", "INTEGER DEFAULT 1"],
   ["usuarios", "uid", "TEXT DEFAULT ''"],
   ["usuarios", "area", "TEXT DEFAULT ''"],
+  ["usuarios", "archived_at", "TEXT DEFAULT NULL"],
 ])
   addColumn(table, name, definition);
 db.exec(fs.readFileSync(path.join(__dirname, "migrations/002-v2.sql"), "utf8"));

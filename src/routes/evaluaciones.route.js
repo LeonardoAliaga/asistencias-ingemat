@@ -294,6 +294,8 @@ router.post("/:id/respuesta", (req, res) => {
         mensaje: `El estudiante con código '${codigoEstudiante}' no existe.`,
       });
     }
+    if (usuario.archived_at)
+      return res.status(409).json({ exito: false, mensaje: "El estudiante está archivado. Restáuralo para registrar notas." });
 
     const evalObj = getEvaluacionCompleta(id);
     if (!evalObj) {
@@ -825,8 +827,10 @@ router.post("/tareas", (req, res) => {
           .trim()
           .toUpperCase();
         const u = db
-          .prepare("SELECT nombre, apellido FROM usuarios WHERE codigo = ?")
+          .prepare("SELECT nombre, apellido, archived_at FROM usuarios WHERE codigo = ?")
           .get(codeUpper);
+        if (u?.archived_at)
+          throw new Error("El estudiante " + codeUpper + " está archivado.");
         const nombreEstudiante = u
           ? `${u.apellido}${u.apellido && u.nombre ? " " : ""}${u.nombre}`.trim()
           : `Alumno [${codeUpper}]`;
@@ -1166,7 +1170,7 @@ router.get("/tareas/excel-salon", async (req, res) => {
         `
       SELECT codigo, nombre, apellido, ciclo
       FROM usuarios
-      WHERE UPPER(rol) = 'ESTUDIANTE' AND UPPER(ciclo) = UPPER(?)
+      WHERE UPPER(rol) = 'ESTUDIANTE' AND archived_at IS NULL AND UPPER(ciclo) = UPPER(?)
       ORDER BY apellido ASC, nombre ASC
     `,
       )

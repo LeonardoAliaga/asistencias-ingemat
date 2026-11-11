@@ -346,7 +346,7 @@ router.post("/prestamo", (req, res) => {
   const codUsuarioNorm = String(codigoUsuario).trim().toUpperCase();
 
   const usuario = db
-    .prepare("SELECT * FROM usuarios WHERE codigo = ?")
+    .prepare("SELECT * FROM usuarios WHERE codigo = ? AND archived_at IS NULL")
     .get(codUsuarioNorm);
   if (!usuario) {
     return res.status(404).json({
