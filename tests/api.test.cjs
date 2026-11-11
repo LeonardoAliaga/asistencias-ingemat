@@ -275,6 +275,14 @@ test("attendance requires an authorized account, rejects duplicates and removes 
     { username: "desk-test", password: "Reception-test-only-2026" },
     "POST",
   );
+  assert.equal((await guest("/api/v2/attendance/students")).status,401);
+  const allowed = await desk("/api/v2/attendance/students");
+  assert.equal(allowed.status, 200);
+  assert.equal(allowed.headers.get("cache-control"), "no-store");
+  assert(allowed.data.some(student=>student.codigo==="T001" && student.rol===undefined));
+  assert(allowed.data.every(student=>
+    Object.keys(student).every(key=>["codigo","nombre","apellido","ciclo","turno"].includes(key))
+  ));
   assert.equal(
     (await desk("/api/registrar", { codigo: "T001" }, "POST")).status,
     200,

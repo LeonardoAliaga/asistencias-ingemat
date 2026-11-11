@@ -4,7 +4,7 @@ const normalize = (text) => String(text || "")
   .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
   .toLocaleLowerCase("es").trim();
 
-export function mountManualStudentSearch({ input, hidden, list, summary, getStudents, onChange }) {
+export function mountManualStudentSearch({ input, hidden, list, summary, getStudents, onChange, emptyMessage = "No hay estudiantes que coincidan con la búsqueda en este simulacro." }) {
   let matches = [], active = -1;
   function close() {
     list.replaceChildren();
@@ -46,7 +46,7 @@ export function mountManualStudentSearch({ input, hidden, list, summary, getStud
     if (!matches.length) {
       const notice = document.createElement("div");
       notice.className = "student-autocomplete-item manual-student-empty";
-      notice.textContent = "No hay estudiantes que coincidan con la búsqueda en este simulacro.";
+      notice.textContent = emptyMessage;
       list.append(notice);
     } else {
       matches.forEach((student, index) => {
@@ -94,10 +94,15 @@ export function mountManualStudentSearch({ input, hidden, list, summary, getStud
       choose(matches[active < 0 ? 0 : active]);
     }
   });
-  document.addEventListener("pointerdown", (event) => {
+  const onOutsidePointerDown = (event) => {
     if (!input.contains(event.target) && !list.contains(event.target)) close();
-  });
+  };
+  document.addEventListener("pointerdown", onOutsidePointerDown);
   return {
+    destroy() {
+      document.removeEventListener("pointerdown", onOutsidePointerDown);
+      close();
+    },
     reset() {
       input.value = "";
       clearSelection();

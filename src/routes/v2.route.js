@@ -190,6 +190,13 @@ router.delete("/contacts/:id", requireAdmin, (req, res) => {
   audit(req, "revocar_contacto", "contacto", req.params.id);
   res.json({ exito: true });
 });
+router.get("/attendance/students", requirePermission("asistencias:write"), (req, res) => {
+  res.set("Cache-Control", "no-store").json(
+    db.prepare(
+      "SELECT codigo,nombre,apellido,ciclo,turno FROM usuarios WHERE rol='estudiante' ORDER BY apellido,nombre,codigo",
+    ).all(),
+  );
+});
 router.get("/attendance", requirePermission("reportes:read"), (req, res) =>
   res.json({
     exito: true,

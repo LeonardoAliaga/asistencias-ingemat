@@ -1,6 +1,11 @@
 // Variable global para manejar el scanner
 let html5QrCode = null; // CUIDADO: Cambié el nombre de la variable para reflejar que usamos la clase base
 let isCooldown = false;
+let receptionStudentSearch = null;
+function destroyReceptionSearch() {
+  receptionStudentSearch?.destroy?.();
+  receptionStudentSearch = null;
+}
 
 // =========================================================
 // FUNCIÓN COMPARTIDA PARA REGISTRAR CÓDIGOS (Sin cambios)
@@ -59,12 +64,15 @@ const registrarCodigo = async (codigo, resultadoDiv, inputToRefocus = null) => {
           </div>
         `;
       }
+      return true;
     } else {
-      resultadoDiv.innerHTML = `<span style="color: #ff6b6b; font-weight: bold;">❌ ${data.mensaje}</span>`;
+      resultadoDiv.textContent = `❌ ${data.mensaje || "No se pudo registrar la asistencia."}`;
+      return false;
     }
   } catch (error) {
     console.error("Error en fetch:", error);
-    resultadoDiv.innerHTML = `❌ Error de conexión.`;
+    resultadoDiv.textContent = "❌ Error de conexión.";
+    return false;
   } finally {
     if (inputToRefocus) {
       inputToRefocus.value = "";
@@ -80,6 +88,7 @@ document
   .getElementById("btn-asistencias")
   .addEventListener("click", async function (e) {
     e.preventDefault();
+    destroyReceptionSearch();
 
     // Detener escáner si está activo
     if (html5QrCode) {
@@ -99,7 +108,23 @@ document
       <div style="display:flex; flex-direction:column; align-items:center; gap:10px;">
         <div id="resultado" style="margin-top:20px; font-size:20px; display: grid; justify-items:center;"></div>
         <input type="text" id="codigo" placeholder="Introduce o escanea el código" style="padding:10px; font-size:18px;"/>
-        <button id="registrar-btn" class="btn-red">Registrar</button>
+        <div class="reception-register-actions">
+          <button id="registrar-btn" class="btn-red" type="button">Registrar</button>
+          <button id="reception-search-toggle" class="reception-search-toggle" type="button" aria-controls="reception-search-panel" aria-expanded="false">
+            <i class="bi bi-search" aria-hidden="true"></i> Buscar alumno
+          </button>
+        </div>
+        <div id="reception-search-panel" class="reception-search-panel" hidden>
+          <label for="reception-student-search">Buscar por nombre, apellido o código</label>
+          <div class="reception-search-field">
+            <input id="reception-student-search" type="search" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="reception-student-results" aria-expanded="false" placeholder="Ej.: María Fernández o 00001234" />
+            <div id="reception-student-results" class="reception-student-results" role="listbox" hidden></div>
+          </div>
+          <input id="reception-student-code" type="hidden" />
+          <p id="reception-student-selected" class="reception-search-status" role="status" aria-live="polite"></p>
+          <button id="reception-register-student" type="button" class="btn-red reception-register-student" disabled>Registrar alumno seleccionado</button>
+        </div>
+        <p id="reception-search-error" class="reception-search-status" role="status" hidden></p>
       </div>
     `;
 
@@ -123,6 +148,72 @@ document
       }
     });
 
+    const searchToggle = document.getElementById("reception-search-toggle"),
+      searchPanel = document.getElementById("reception-search-panel"),
+      searchError = document.getElementById("reception-search-error"),
+      selectedCode = document.getElementById("reception-student-code"),
+      searchInput = document.getElementById("reception-student-search"),
+      registerSelected = document.getElementById("reception-register-student");
+    searchToggle.addEventListener("click", async () => {
+      const opening = searchPanel.hidden;
+      searchPanel.hidden = !opening;
+      searchToggle.setAttribute("aria-expanded", String(opening));
+      if (!opening) {
+        codigoInput.focus();
+        return;
+      }
+      searchError.hidden = true;
+      if (!receptionStudentSearch) {
+        searchToggle.disabled = true;
+        try {
+          // Solo Recepción y Administración pueden consultar nombres y códigos.
+          const response = await fetch("/api/v2/attendance/students", { cache: "no-store" });
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403)
+              throw new Error("Inicia sesión con una cuenta de Recepción o Administración para buscar alumnos.");
+            throw new Error("No se pudo cargar el listado de alumnos.");
+          }
+          const students = await response.json();
+          if (!Array.isArray(students)) throw new Error("El listado de alumnos no es válido.");
+          const { mountManualStudentSearch } = await import("/js/admin/manual-student-search.js");
+          if (!searchPanel.isConnected) return;
+          receptionStudentSearch = mountManualStudentSearch({
+            input: searchInput,
+            hidden: selectedCode,
+            list: document.getElementById("reception-student-results"),
+            summary: document.getElementById("reception-student-selected"),
+            getStudents: () => students,
+            emptyMessage: "No hay estudiantes que coincidan con la búsqueda.",
+            onChange: () => {
+              registerSelected.disabled = !receptionStudentSearch?.isSelected();
+            },
+          });
+        } catch (error) {
+          searchError.textContent = error.message;
+          searchError.hidden = false;
+          searchPanel.hidden = true;
+          searchToggle.setAttribute("aria-expanded", "false");
+          return;
+        } finally {
+          searchToggle.disabled = false;
+        }
+      }
+      searchInput.focus();
+    });
+    registerSelected.addEventListener("click", async () => {
+      if (!receptionStudentSearch?.isSelected()) return;
+      registerSelected.disabled = true;
+      try {
+        const recorded = await registrarCodigo(selectedCode.value, resultadoDiv);
+        if (recorded) {
+          receptionStudentSearch.reset();
+          if (!searchPanel.hidden) searchInput.focus();
+        }
+      } finally {
+        registerSelected.disabled = !receptionStudentSearch?.isSelected();
+      }
+    });
+
     codigoInput.focus();
   });
 
@@ -133,6 +224,7 @@ document
   .getElementById("btn-scan")
   .addEventListener("click", async function (e) {
     e.preventDefault();
+    destroyReceptionSearch();
 
     // Limpieza previa
     if (html5QrCode) {
@@ -212,6 +304,7 @@ const btnPrestamoLibros = document.getElementById("btn-prestamo-libros");
 if (btnPrestamoLibros) {
   btnPrestamoLibros.addEventListener("click", async function (e) {
     e.preventDefault();
+    destroyReceptionSearch();
 
     // Detener escáner si está activo
     if (html5QrCode) {

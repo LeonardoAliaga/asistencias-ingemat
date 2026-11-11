@@ -250,6 +250,46 @@ test("legacy user and library forms still save once after repeated navigation", 
     "Física: edición corregida",
   );
 });
+test("Recepción registra asistencia desde búsqueda inteligente por nombre o código", async ({ page }) => {
+  await login(page, "recepcion");
+  await page.goto("/");
+  await page.click("#btn-asistencias");
+  const toggle=page.locator("#reception-search-toggle");
+  const panel=page.locator("#reception-search-panel");
+  await expect(panel).toBeHidden();
+  await toggle.click();
+  await expect(panel).toBeVisible();
+  const search=page.locator("#reception-student-search");
+  await search.fill("fernandez maria");
+  await expect(page.locator('#reception-student-results [data-code="DEMO003"]')).toBeVisible();
+  await page.locator('#reception-student-results [data-code="DEMO003"]').click();
+  const register=page.locator("#reception-register-student");
+  await expect(register).toBeEnabled();
+  await expect(page.locator("#reception-student-code")).toHaveValue("DEMO003");
+  await search.fill("no existe");
+  await expect(register).toBeDisabled();
+  await search.fill("DEMO003");
+  await search.press("ArrowDown");
+  await search.press("Enter");
+  await expect(register).toBeEnabled();
+  let requestData=null;
+  await page.route("**/api/registrar", (r) => {
+    requestData=r.request().postDataJSON();
+    return r.fulfill({ json: {
+      exito:true,rol:"estudiante",ciclo:"ANUAL",turno:"tarde",
+      nombre:"FERNÁNDEZ DE LA CRUZ MARÍA FERNANDA",hora:"10:00",estado:"puntual",
+    } });
+  });
+  await register.click();
+  expect(requestData).toEqual({codigo:"DEMO003"});
+  await expect(page.locator("#resultado")).toContainText("registrado");
+  await expect(search).toHaveValue("");
+  await expect(register).toBeDisabled();
+  await toggle.click();
+  await expect(panel).toBeHidden();
+  await expect(page.locator("#codigo")).toBeFocused();
+});
+
 test("public library explains account access without reception pairing", async ({
   page,
 }) => {
