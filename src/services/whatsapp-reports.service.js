@@ -155,6 +155,90 @@ async function studentReport(input, req) {
     req,
   );
 }
+
+const BATCH_MAX = 20;
+const BATCH_SPACING_MS = 60_000; // Cadencia conservadora; no busca eludir restricciones del proveedor.
+function batchStudents(cycle) {
+  const normalized=String(cycle||"").trim().toUpperCase();
+  if (!normalized || normalized.length>80) throw new AppError("Selecciona un ciclo válido.");
+  const found=db.prepare("SELECT 1 FROM ciclos WHERE UPPER(nombre)=?").get(normalized);
+  if (!found) throw new AppError("El ciclo no existe.",404);
+  const students=db.prepare(
+    "SELECT codigo,apellido,nombre,ciclo FROM usuarios WHERE rol='estudiante' AND UPPER(ciclo)=? ORDER BY apellido,nombre,codigo"
+  ).all(normalized);
+  const getContacts=db.prepare(
+    "SELECT id,name,phone FROM contacts WHERE user_uid=(SELECT uid FROM usuarios WHERE codigo=?) AND active=1 AND consent=1 ORDER BY name"
+  );
+  return {cycle:normalized,students:students.map(user=>({
+    codigo:user.codigo,nombre:[user.apellido,user.nombre].filter(Boolean).join(" "),
+    ciclo:user.ciclo,contacts:getContacts.all(user.codigo)
+  }))};
+}
+async function batchStudentReports(input,req) {
+  const collection=batchStudents(input?.cycle);
+  const items=input?.items;
+  if(!Array.isArray(items)||items.length<1||items.length>BATCH_MAX)
+    throw new AppError("Selecciona de 1 a "+BATCH_MAX+" estudiantes por lote.");
+  const batchId=String(input.requestId||"");
+  if(!/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(batchId))
+    throw new AppError("Identificador de lote inválido.");
+  if(input.format !== "pdf")
+    throw new AppError("Los reportes individuales en lote se envían como PDF académico.");
+  const week=studentPdf.weekValue(input.week||"TODAS");
+  const byCode=new Map(collection.students.map(s=>[s.codigo,s]));
+  const seen=new Set(),prepared=[];
+  for(const item of items){
+    if(!item||typeof item!=="object"||Array.isArray(item)) throw new AppError("Selección de estudiantes inválida.");
+    const code=String(item.code||"").trim().toUpperCase();
+    const selected=byCode.get(code);
+    if(!selected||seen.has(code)) throw new AppError("Hay estudiantes repetidos o fuera del ciclo.");
+    seen.add(code);
+    const guardian=selected.contacts.find(c=>c.id===item.contactId);
+    if(!guardian) throw new AppError("Un apoderado no está autorizado o ya no pertenece al estudiante "+code+".",409);
+    prepared.push({code,guardian,user:student(code)});
+  }
+  // No admite sobrecargar la cola. Un nuevo lote se podrá preparar al liberar los anteriores.
+  const existing=db.prepare(
+    "SELECT COUNT(*) AS n FROM outbox WHERE kind='student_report' AND status IN ('pending','retry','sending') AND json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END,'$.bulkBatchId') IS NOT NULL"
+  ).get().n;
+  const keys=prepared.map(({user,guardian})=>"baileys:student_report:"+user.uid+":"+guardian.id+":"+batchId);
+  const duplicates=keys.filter(key=>db.prepare("SELECT 1 FROM outbox WHERE event_key=?").get(key)).length;
+  if(existing+prepared.length-duplicates>40)
+    throw new AppError("Hay demasiados reportes en cola. Revisa su entrega en Comunicación antes de crear otro lote.",409);
+  const pending=db.prepare(
+    "SELECT MAX(next_attempt_at) AS latest FROM outbox WHERE kind='student_report' AND status IN ('pending','retry') AND json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END,'$.bulkBatchId') IS NOT NULL"
+  ).get();
+  let scheduledAt=Math.max(Date.now(),Number(pending?.latest||0));
+  const results=[];
+  for(const {code,guardian,user} of prepared){
+    const data=studentPdf.load(code,week);
+    const pdf=await studentPdf.render(data);
+    const sent=await enqueueReport({
+      kind:"student_report",
+      key:user.uid+":"+guardian.id,
+      recipient:guardian.phone,
+      contactId:guardian.id,
+      payload:{
+        studentUid:user.uid,studentCode:code,bulkBatchId:batchId,
+        period:data.period,
+        text:studentReportCaption({
+          name:[user.apellido,user.nombre].filter(Boolean).join(" "),
+          code,period:data.period,requestId:batchId+":"+code,
+        }),
+      },
+      pdf,format:"pdf",requestId:batchId,
+    },req);
+    if(!sent.duplicate){
+      scheduledAt+=BATCH_SPACING_MS;
+      db.prepare("UPDATE outbox SET next_attempt_at=? WHERE id=? AND status='pending'").run(scheduledAt,sent.id);
+    }
+    results.push({code,id:sent.id,status:sent.status,duplicate:!!sent.duplicate});
+  }
+  return {exito:true,cycle:collection.cycle,selected:prepared.length,
+    enqueued:results.filter(r=>!r.duplicate).length,duplicate:results.filter(r=>r.duplicate).length,
+    results, spacingSeconds:BATCH_SPACING_MS/1000};
+}
+
 async function dailyReport(input, req) {
   if (typeof input.date !== "string")
     throw new AppError("Selecciona la fecha del reporte.");
@@ -203,4 +287,4 @@ async function dailyReport(input, req) {
     req,
   );
 }
-module.exports = { contacts, studentReport, dailyReport };
+module.exports = { contacts, studentReport, dailyReport, batchStudents, batchStudentReports, BATCH_MAX };

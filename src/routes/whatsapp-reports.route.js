@@ -75,6 +75,13 @@ router.post("/student-report", requireAdmin, receiveReport, async (req, res) =>
       await reports.studentReport({ ...req.body, png: req.file?.buffer }, req),
     ),
 );
+// Previsualización sin efectos: incluye alumnos sin contacto autorizado para indicar exclusiones.
+router.get("/batch-students",requireAdmin,(req,res)=>
+  res.set("Cache-Control","no-store").json(reports.batchStudents(req.query.cycle))
+);
+router.post("/batch-student-reports",requireAdmin,async(req,res)=>
+  res.status(202).json(await reports.batchStudentReports(req.body,req))
+);
 router.post("/attendance-report", operator, async (req, res) =>
   res.status(202).json(await reports.dailyReport(req.body, req)),
 );
