@@ -337,6 +337,23 @@ router.get("/exams/:id/results", read, (req, res) => {
     })),
   });
 });
+router.get("/exams/:id/student/:code/responses", read, (req, res) => {
+  const exam = evaluations.getExam(req.params.id);
+  const code = String(req.params.code || "").trim().toUpperCase();
+  const row = db.prepare(
+    "SELECT area,respuestas,detail,revision FROM respuestas_evaluacion WHERE evaluacion_id=? AND codigoEstudiante=? ORDER BY id DESC LIMIT 1",
+  ).get(exam.id, code);
+  if (!row) throw new AppError("Este alumno aún no tiene respuestas registradas en el simulacro.", 404);
+  const detail = JSON.parse(row.detail || "{}");
+  res.set("Cache-Control", "no-store").json({
+    codigoEstudiante: code,
+    area: row.area,
+    form: detail.form || "A",
+    revision: row.revision,
+    respuestas: JSON.parse(row.respuestas || "{}"),
+    source: detail.source || "histórico",
+  });
+});
 router.get("/exams/:id/history/:code", read, (req, res) =>
   res.json(
     db
@@ -346,6 +363,11 @@ router.get("/exams/:id/history/:code", read, (req, res) =>
       .all(req.params.id, req.params.code.toUpperCase()),
   ),
 );
+router.delete("/exams/:id/permanent", requireAdmin, (req, res) => {
+  res.json(require("../services/exam-delete.service").deleteExam(
+    req.params.id, req.body?.confirmation, req,
+  ));
+});
 router.delete("/exams/:id", write, (req, res) => {
   db.prepare("UPDATE evaluaciones SET estado='archivado' WHERE id=?").run(
     req.params.id,

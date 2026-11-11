@@ -24,6 +24,7 @@ const state = {
   areas: [],
   sections: [],
   poll: null,
+  manualLoadToken: 0,
 };
 const today = () => {
   const p = Object.fromEntries(
@@ -320,6 +321,9 @@ async function selectExam(id) {
   $("v2-exam-workspace").hidden = !e?.definition;
   $("v2-exam-editor").hidden = true;
   $("v2-exam-editor").closest(".v2-panel").classList.remove("is-editing");
+  state.manualLoadToken++;
+  $("v2-manual-existing").hidden = true;
+  $("v2-manual-existing").textContent = "";
   $("v2-manual-answers").value = "";
   state.manualAnswerEditor?.reset();
   $("v2-manual-replace").checked = false;
@@ -339,6 +343,7 @@ async function selectExam(id) {
     !["listo", "publicado"].includes(e.estado) || !e.definition || !canWrite;
   $("v2-notify").hidden = e.estado !== "publicado" || state.role !== "admin";
   $("v2-archive").hidden = !canWrite;
+  $("v2-delete-permanent").hidden = state.role !== "admin";
   if (!e.definition) return;
   const students = manualEligibleStudents();
   const options = students
@@ -2019,6 +2024,22 @@ async function initialize() {
       "Resultados publicados. Los avisos se envían solo cuando pulses Notificar resultados.",
     );
   });
+  bind("v2-delete-permanent", "click", async () => {
+    const e = state.selected;
+    if (!e || state.role !== "admin") return;
+    const text = prompt(
+      `Se eliminará DEFINITIVAMENTE "${e.titulo}" con sus notas, respuestas, cartillas, lotes, historial y avisos de resultados. Esta operación no se puede deshacer.\n\nEscribe el título exacto del simulacro para confirmar:`,
+    );
+    if (text === null) return;
+    if (text !== e.titulo) throw new Error("El título no coincide. No se eliminó ningún registro.");
+    const result = await api(`/api/v2/exams/${encodeURIComponent(e.id)}/permanent`,
+      json({ confirmation: text }, "DELETE"));
+    await loadExams();
+    await selectExam("");
+    message(result.cleanupWarnings?.length
+      ? `Simulacro y registros eliminados. Aviso: ${result.cleanupWarnings.join(" · ")}`
+      : "Simulacro eliminado definitivamente junto con sus registros.");
+  });
   bind("v2-archive", "click", async () => {
     if (!confirm("¿Archivar este examen? Sus notas e historial se conservan."))
       return;
@@ -2090,16 +2111,60 @@ async function initialize() {
     updateCSVLink();
   });
   bind("v2-import-exam", "change", updateCSVLink);
-  bind("v2-manual-student", "change", (e) => {
-    const u = state.students.find((u) => u.codigo === e.target.value);
+  bind("v2-manual-student", "change", async (event) => {
+    const code = event.target.value;
+    const examId = state.selected?.id;
+    const token = ++state.manualLoadToken;
+    const u = state.students.find((student) => student.codigo === code);
+    const info = $("v2-manual-existing");
+    info.hidden = true;
+    info.textContent = "";
     $("v2-manual-answers").value = "";
     state.manualAnswerEditor?.reset();
     $("v2-manual-replace").checked = false;
+    $("v2-manual-reason").value = "";
+    $("v2-replace-reason").hidden = true;
+    $("v2-manual-reason").required = false;
     if (
       u?.area &&
       state.selected.definition.areas.some((a) => a.code === u.area)
-    )
-      $("v2-manual-area").value = u.area;
+    ) $("v2-manual-area").value = u.area;
+    if (!code || !examId) return;
+    info.textContent = "Buscando respuestas registradas...";
+    info.hidden = false;
+    try {
+      const response = await fetch(`/api/v2/exams/${encodeURIComponent(examId)}/student/${encodeURIComponent(code)}/responses`, { cache: "no-store" });
+      if (token !== state.manualLoadToken || $("v2-manual-student").value !== code || state.selected?.id !== examId) return;
+      if (response.status === 404) {
+        info.textContent = "Este estudiante todavía no tiene respuestas registradas. Puedes ingresar respuestas nuevas.";
+        return;
+      }
+      const stored = await response.json();
+      if (!response.ok) throw new Error(stored.mensaje || "No se pudieron cargar las respuestas.");
+      if (token !== state.manualLoadToken || $("v2-manual-student").value !== code || state.selected?.id !== examId) return;
+      if ([...$("v2-manual-area").options].some(option => option.value === stored.area))
+        $("v2-manual-area").value = stored.area;
+      if ([...$("v2-manual-form").options].some(option => option.value === stored.form))
+        $("v2-manual-form").value = stored.form;
+      const values = Object.entries(stored.respuestas).map(([q, r]) => {
+        if (typeof r === "string") return `${q},${r || "-"}`;
+        if (r?.status === "blank") return `${q},-`;
+        if (r?.status === "uncertain") return null; // Requiere una revisión manual antes de guardar.
+        return `${q},${Array.isArray(r?.options) ? r.options.join("/") || "-" : "-"}`;
+      }).filter(Boolean).join("\n");
+      $("v2-manual-answers").value = values;
+      state.manualAnswerEditor?.reset();
+      $("v2-manual-replace").checked = true;
+      $("v2-replace-reason").hidden = false;
+      $("v2-manual-reason").required = true;
+      info.textContent = "Respuestas anteriores cargadas (" + Object.keys(stored.respuestas).length
+        + " preguntas). Corrige las marcas necesarias y escribe el motivo antes de guardar. El historial anterior se conservará.";
+    } catch (error) {
+      if (token === state.manualLoadToken) {
+        info.textContent = error.message;
+        info.classList.add("warning");
+      }
+    }
   });
   bind("v2-manual-form", "change", () => state.manualAnswerEditor?.refresh());
   bind("v2-manual", "submit", async () => {

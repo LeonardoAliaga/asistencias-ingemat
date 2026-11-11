@@ -23,6 +23,7 @@
       ><button class="v2-button secondary" id="v2-revise">
         Revisar claves y reglas</button
       ><button class="v2-button danger" id="v2-archive">Archivar</button
+      ><button class="v2-button danger" data-admin="" id="v2-delete-permanent" type="button" title="Eliminar este simulacro y todos sus registros">Eliminar definitivamente</button
       ><button class="v2-button secondary" data-admin="" id="v2-notify">
         Notificar resultados
       </button>
@@ -448,6 +449,7 @@ B:51-100,1-50"
             </div>
             <input id="v2-manual-student" type="hidden" />
             <p id="v2-manual-student-selected" class="v2-help" role="status"></p>
+            <p id="v2-manual-existing" class="v2-notice" role="status" hidden></p>
           </div>
           <div class="v2-form-grid">
             <label>Área<select id="v2-manual-area"></select></label
