@@ -1,6 +1,10 @@
 // src/routes/api.route.js
 const express = require("express");
-const { requireAdmin } = require("../middleware/auth.middleware");
+const {
+  requireAdmin,
+  requireAuthenticated,
+  requirePermission,
+} = require("../middleware/auth.middleware");
 
 const registrarRouter = require("./registrar.route");
 const usuariosRouter = require("./usuarios.route");
@@ -16,17 +20,57 @@ const evaluacionesRouter = require("./evaluaciones.route");
 const router = express.Router();
 
 // Rutas Públicas
-router.use("/registrar", registrarRouter);
+router.use(
+  "/registrar",
+  requirePermission("asistencias:write"),
+  registrarRouter,
+);
 router.use("/ciclos-visual", ciclosVisualRouter);
 router.use("/ciclos", ciclosRouter);
 router.use("/horarios", horariosRouter);
 router.use("/carousel", carouselRouter);
-router.use("/biblioteca", bibliotecaRouter);
-router.use("/evaluaciones", evaluacionesRouter);
+router.use(
+  "/biblioteca",
+  requireAuthenticated,
+  (req, res, next) =>
+    req.method === "GET"
+      ? next()
+      : requirePermission("biblioteca:write")(req, res, next),
+  bibliotecaRouter,
+);
+router.use(
+  "/evaluaciones",
+  requireAuthenticated,
+  (req, res, next) =>
+    req.method === "GET"
+      ? requirePermission("evaluaciones:read")(req, res, next)
+      : requirePermission(
+          req.path.startsWith("/tareas")
+            ? "tareas:write"
+            : "evaluaciones:write",
+        )(req, res, next),
+  evaluacionesRouter,
+);
 
 // Rutas Protegidas (Solo Administración)
-router.use("/usuarios", requireAdmin, usuariosRouter);
-router.use("/excel", requireAdmin, excelRouter);
+router.use(
+  "/usuarios",
+  (req, res, next) =>
+    requirePermission(req.method === "GET" ? "usuarios:read" : "admin")(
+      req,
+      res,
+      next,
+    ),
+  usuariosRouter,
+);
+router.use(
+  "/excel",
+  (req, res, next) =>
+    requirePermission(
+      req.method === "GET" ? "reportes:read" : "asistencias:justify",
+    )(req, res, next),
+  excelRouter,
+);
 router.use("/notes", requireAdmin, notesRouter);
 
 module.exports = router;

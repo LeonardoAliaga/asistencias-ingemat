@@ -1,102 +1,26 @@
 @echo off
-
-:: 1. Cambiar al directorio donde se encuentra este script (.bat)
-::    (Soluciona el error de C:\Windows\System32)
-cd /d %~dp0
-
-:: 2. Verificar permisos de Administrador
-::    (Soluciona el error 'EPERM' y 'EBUSY')
-net session >nul 2>&1
-if %errorLevel% NEQ 0 (
-    echo ERROR: Este script debe ser ejecutado como Administrador.
-    echo.
-    echo Por favor, cierra esta ventana, haz clic derecho en el archivo .bat
-    echo y selecciona "Ejecutar como administrador".
-    echo.
-    pause
-    goto :eof
+setlocal
+cd /d "%~dp0"
+where node >nul 2>&1
+if errorlevel 1 (
+  echo Instala Node.js 24 LTS o 26 LTS y vuelve a abrir esta ventana.
+  pause
+  exit /b 1
 )
-
-:: 3. Bucle del Menu
-:menu
-cls
-echo ===========================================
-echo  ADMINISTRADOR DE PROYECTO (app.js) CON PM2
-echo ===========================================
-echo.
-echo Ubicacion actual: %cd%
-echo.
-echo Elige una opcion:
-echo.
-echo   [1] Reiniciar (Mata, borra, inicia 'mi-app' y guarda)
-echo   [2] Ver Logs en vivo (de 'mi-app')
-echo   [3] Detener todo (Mata el servicio y borra la lista)
-echo   [4] Salir
-echo.
-
-set /p opcion="Escribe el numero (1, 2, 3 o 4) y presiona Enter: "
-
-if "%opcion%"=="1" goto reiniciar
-if "%opcion%"=="2" goto logs
-if "%opcion%"=="3" goto detener
-if "%opcion%"=="4" goto :eof
-
-echo.
-echo Opcion invalida. Intentalo de nuevo.
+if not exist "node_modules" (
+  echo Primero ejecuta npm ci. Consulta README.md para configurar Python y WhatsApp.
+  pause
+  exit /b 1
+)
+where pm2 >nul 2>&1
+if errorlevel 1 (
+  echo PM2 no esta instalado. La app se iniciara con Node; manten esta ventana abierta.
+  node app.js
+) else (
+  if not exist "data\logs" mkdir "data\logs"
+  call pm2 startOrReload ecosystem.config.cjs --only ingemat
+  if errorlevel 1 exit /b 1
+  call pm2 save
+  echo INGEMAT iniciado. Usa pm2 logs ingemat para consultar el registro.
+)
 pause
-goto menu
-
-:: --- Seccion REINICIAR ---
-:reiniciar
-cls
-echo --- [1] REINICIANDO EL PROYECTO 'mi-app' ---
-echo.
-echo 1. Matando el servicio de PM2 (pm2 kill)...
-call pm2 kill
-echo.
-echo 2. Borrando todos los procesos antiguos (pm2 delete all)...
-call pm2 delete all
-echo.
-echo 3. Iniciando 'app.js' con el nombre 'mi-app' (pm2 start)...
-call pm2 start app.js --name "mi-app"
-echo.
-echo 4. Guardando la lista de procesos (pm2 save)...
-call pm2 save
-echo.
-echo ----------------------------------------------------
-echo  PROCESO REINICIADO Y GUARDADO CORRECTAMENTE.
-echo ----------------------------------------------------
-echo.
-pause
-goto menu
-
-:: --- Seccion LOGS ---
-:logs
-cls
-echo --- [2] MOSTRANDO LOGS EN VIVO PARA 'mi-app' ---
-echo.
-echo (Presiona CTRL+C para detener los logs y volver al menu)
-echo.
-call pm2 logs "mi-app"
-echo.
-echo (Volviendo al menu...)
-timeout /t 1 >nul
-goto menu
-
-:: --- Seccion DETENER ---
-:detener
-cls
-echo --- [3] DETENIENDO TODOS LOS SERVICIOS DE PM2 ---
-echo.
-echo 1. Matando el servicio de PM2 (pm2 kill)...
-call pm2 kill
-echo.
-echo 2. Borrando todos los procesos de la lista (pm2 delete all)...
-call pm2 delete all
-echo.
-echo ----------------------------------------------------
-echo  TODOS LOS PROCESOS HAN SIDO DETENIDOS.
-echo ----------------------------------------------------
-echo.
-pause
-goto menu

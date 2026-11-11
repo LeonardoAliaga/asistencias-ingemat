@@ -34,9 +34,17 @@ function updateAttendanceRecord(hoja, usuario, horaStr, isJustified = false) {
 
     let nombreCelda = celdaNombre.value;
     // Manejo de RichText si Excel lo parsea así
-    if (typeof nombreCelda === "object" && nombreCelda && nombreCelda.richText) {
+    if (
+      typeof nombreCelda === "object" &&
+      nombreCelda &&
+      nombreCelda.richText
+    ) {
       nombreCelda = nombreCelda.richText.map((t) => t.text).join("");
-    } else if (typeof nombreCelda === "object" && nombreCelda && nombreCelda.text) {
+    } else if (
+      typeof nombreCelda === "object" &&
+      nombreCelda &&
+      nombreCelda.text
+    ) {
       nombreCelda = nombreCelda.text;
     }
 
@@ -48,14 +56,14 @@ function updateAttendanceRecord(hoja, usuario, horaStr, isJustified = false) {
       filaEncontrada = row;
       numFila = rowNumber;
       // return false en eachRow detiene la iteración (equivalente a break)
-      return false; 
+      return false;
     }
   });
 
   // 2. LÓGICA DE AUTO-INSERCIÓN
   if (!filaEncontrada) {
     console.log(
-      `⚠️ Usuario nuevo detectado en pleno registro: ${getFullName(usuario)}. Insertando en Excel...`
+      `⚠️ Usuario nuevo detectado en pleno registro: ${getFullName(usuario)}. Insertando en Excel...`,
     );
 
     // Determinar dónde insertar y con qué número correlativo
@@ -64,18 +72,20 @@ function updateAttendanceRecord(hoja, usuario, horaStr, isJustified = false) {
     const nuevoNumero = datosInsercion.numero;
 
     // Preparar datos de la nueva fila
-    const diasAsistencia = usuario.dias_asistencia ? usuario.dias_asistencia.join(", ") : "";
+    const diasAsistencia = usuario.dias_asistencia
+      ? usuario.dias_asistencia.join(", ")
+      : "";
     const rowData = [
-        nuevoNumero, 
-        getFullName(usuario), 
-        usuario.turno || "", 
-        diasAsistencia, 
-        "" // Hora vacía por ahora, se llena más abajo
+      nuevoNumero,
+      getFullName(usuario),
+      usuario.turno || "",
+      diasAsistencia,
+      "", // Hora vacía por ahora, se llena más abajo
     ];
 
     // Insertar la fila desplazando las de abajo (spliceRows)
     hoja.spliceRows(numFila, 0, rowData);
-    
+
     // Obtener la referencia a la nueva fila creada
     filaEncontrada = hoja.getRow(numFila);
 
@@ -84,7 +94,7 @@ function updateAttendanceRecord(hoja, usuario, horaStr, isJustified = false) {
       filaEncontrada,
       estiloDatosBase,
       centerAlignment,
-      leftAlignment
+      leftAlignment,
     );
   }
 
@@ -101,7 +111,7 @@ function updateAttendanceRecord(hoja, usuario, horaStr, isJustified = false) {
     !valorCelda.endsWith("(J)")
   ) {
     console.log(
-      `⚠️ ${getFullName(usuario)} ya tiene registro: ${valorCelda}. Rechazado.`
+      `⚠️ ${getFullName(usuario)} ya tiene registro: ${valorCelda}. Rechazado.`,
     );
     return false;
   }
@@ -118,7 +128,8 @@ function updateAttendanceRecord(hoja, usuario, horaStr, isJustified = false) {
       valorHoraParaExcel = `${hora12h} (J)`;
       estiloCeldaHora = estiloTardanzaJustificada;
     } else {
-      estiloCeldaHora = estilosEstadoEstudiante[estado] || estilosEstadoEstudiante.tarde;
+      estiloCeldaHora =
+        estilosEstadoEstudiante[estado] || estilosEstadoEstudiante.tarde;
     }
   } else {
     // Docente
@@ -145,11 +156,11 @@ function updateAttendanceRecord(hoja, usuario, horaStr, isJustified = false) {
     filaEncontrada,
     estiloDatosBase,
     centerAlignment,
-    leftAlignment
+    leftAlignment,
   );
 
   console.log(
-    `✅ Registro actualizado/creado para ${getFullName(usuario)} a ${valorHoraParaExcel}.`
+    `✅ Registro actualizado/creado para ${getFullName(usuario)} a ${valorHoraParaExcel}.`,
   );
   return true;
 }
@@ -158,67 +169,70 @@ function updateAttendanceRecord(hoja, usuario, horaStr, isJustified = false) {
  * Helper auxiliar para encontrar dónde meter al alumno nuevo sin romper el orden.
  */
 function encontrarPosicionInsercion(hoja, usuario) {
-    let insertRowIdx = hoja.rowCount + 1; // Por defecto al final
-    let nuevoNumero = 1;
+  let insertRowIdx = hoja.rowCount + 1; // Por defecto al final
+  let nuevoNumero = 1;
 
-    if (usuario.rol === 'estudiante' && usuario.ciclo) {
-        // Buscar el encabezado del ciclo específico
-        const tituloCiclo = `REGISTRO DE ASISTENCIA - ${usuario.ciclo.toUpperCase()} - ${usuario.turno.toUpperCase()}`;
-        let filaTitulo = -1;
-        
-        hoja.eachRow((row, rIdx) => {
-            const val = row.getCell(1).value;
-            if (val && val.toString().trim() === tituloCiclo) {
-                filaTitulo = rIdx;
-            }
-        });
+  if (usuario.rol === "estudiante" && usuario.ciclo) {
+    // Buscar el encabezado del ciclo específico
+    const tituloCiclo = `REGISTRO DE ASISTENCIA - ${usuario.ciclo.toUpperCase()} - ${usuario.turno.toUpperCase()}`;
+    let filaTitulo = -1;
 
-        if (filaTitulo !== -1) {
-            // Ciclo encontrado. Buscar dónde termina la lista de alumnos de este ciclo.
-            // (Iteramos desde el encabezado hacia abajo)
-            let r = filaTitulo + 2; // +1 encabezados, +2 primer alumno potencial
-            let ultimoNumero = 0;
-            
-            // Buscamos hasta encontrar una fila vacía o el inicio de otro bloque
-            while(r <= hoja.rowCount + 1) { 
-                const row = hoja.getRow(r);
-                const valNro = row.getCell(1).value;
-                const valNombre = row.getCell(2).value; // Chequear nombre también por si acaso
+    hoja.eachRow((row, rIdx) => {
+      const val = row.getCell(1).value;
+      if (val && val.toString().trim() === tituloCiclo) {
+        filaTitulo = rIdx;
+      }
+    });
 
-                // Si la celda N° está vacía o empieza un nuevo título "REGISTRO...", ahí termina este bloque
-                if (!valNro || (typeof valNro === 'string' && valNro.startsWith('REGISTRO'))) {
-                    insertRowIdx = r;
-                    break;
-                }
-                
-                // Si es un número, lo guardamos para calcular el siguiente correlativo
-                if (typeof valNro === 'number') {
-                    ultimoNumero = valNro;
-                }
-                
-                r++;
-            }
-            // Si llegamos al final del loop, insertRowIdx será r
-            insertRowIdx = r;
-            nuevoNumero = ultimoNumero + 1;
-        } else {
-            // Caso raro: El ciclo no existe en la hoja (ej. primer alumno de un ciclo nuevo creado hoy).
-            // Lo agregamos al final para no perder el dato.
-            insertRowIdx = hoja.rowCount + 1;
-            nuevoNumero = 1; 
+    if (filaTitulo !== -1) {
+      // Ciclo encontrado. Buscar dónde termina la lista de alumnos de este ciclo.
+      // (Iteramos desde el encabezado hacia abajo)
+      let r = filaTitulo + 2; // +1 encabezados, +2 primer alumno potencial
+      let ultimoNumero = 0;
+
+      // Buscamos hasta encontrar una fila vacía o el inicio de otro bloque
+      while (r <= hoja.rowCount + 1) {
+        const row = hoja.getRow(r);
+        const valNro = row.getCell(1).value;
+        const valNombre = row.getCell(2).value; // Chequear nombre también por si acaso
+
+        // Si la celda N° está vacía o empieza un nuevo título "REGISTRO...", ahí termina este bloque
+        if (
+          !valNro ||
+          (typeof valNro === "string" && valNro.startsWith("REGISTRO"))
+        ) {
+          insertRowIdx = r;
+          break;
         }
-    } else {
-        // Docentes: Buscar el último número correlativo en toda la hoja
-        let ultimoNumero = 0;
-         hoja.eachRow((row) => {
-            const val = row.getCell(1).value;
-             if (typeof val === 'number') ultimoNumero = val;
-         });
-         nuevoNumero = ultimoNumero + 1;
-         insertRowIdx = hoja.rowCount + 1;
-    }
 
-    return { fila: insertRowIdx, numero: nuevoNumero };
+        // Si es un número, lo guardamos para calcular el siguiente correlativo
+        if (typeof valNro === "number") {
+          ultimoNumero = valNro;
+        }
+
+        r++;
+      }
+      // Si llegamos al final del loop, insertRowIdx será r
+      insertRowIdx = r;
+      nuevoNumero = ultimoNumero + 1;
+    } else {
+      // Caso raro: El ciclo no existe en la hoja (ej. primer alumno de un ciclo nuevo creado hoy).
+      // Lo agregamos al final para no perder el dato.
+      insertRowIdx = hoja.rowCount + 1;
+      nuevoNumero = 1;
+    }
+  } else {
+    // Docentes: Buscar el último número correlativo en toda la hoja
+    let ultimoNumero = 0;
+    hoja.eachRow((row) => {
+      const val = row.getCell(1).value;
+      if (typeof val === "number") ultimoNumero = val;
+    });
+    nuevoNumero = ultimoNumero + 1;
+    insertRowIdx = hoja.rowCount + 1;
+  }
+
+  return { fila: insertRowIdx, numero: nuevoNumero };
 }
 
 module.exports = {

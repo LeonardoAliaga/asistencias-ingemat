@@ -12,7 +12,9 @@ export function setupFormRegistrarRespuesta() {
   const statusEl = document.getElementById("eval-respuestas-estudiante-status");
   const areaWrapper = document.getElementById("eval-area-postulante-wrapper");
   const testWrapper = document.getElementById("eval-modo-test-wrapper");
-  const respuestasContainer = document.getElementById("eval-respuestas-estudiante-container");
+  const respuestasContainer = document.getElementById(
+    "eval-respuestas-estudiante-container",
+  );
   const notaDirectaInput = document.getElementById("eval-nota-directa-input");
   const areaSelect = document.getElementById("eval-estudiante-area");
 
@@ -22,6 +24,8 @@ export function setupFormRegistrarRespuesta() {
       const evalId = evalSelect.value;
       const evalObj = evalState.globalEvaluaciones.find((e) => e.id === evalId);
 
+      evalState.responseDraft = null;
+      evalState.modalState.respuestas = {};
       // Limpiar datos del alumno previamente buscado
       searchInput.value = "";
       if (hiddenCodeInput) hiddenCodeInput.value = "";
@@ -55,11 +59,12 @@ export function setupFormRegistrarRespuesta() {
         }
       } else {
         if (testWrapper) testWrapper.style.display = "none";
-        if (respuestasContainer) respuestasContainer.style.display = "block";
+        if (respuestasContainer) respuestasContainer.style.display = "none";
         if (areaWrapper) areaWrapper.style.display = "none";
         searchInput.placeholder = "🔍 Selecciona primero un examen arriba...";
         if (statusEl) {
-          statusEl.innerHTML = "⚪ <i>Selecciona un examen y abre el Pop-Up o ingresa la nota.</i>";
+          statusEl.innerHTML =
+            "⚪ <i>Selecciona un examen y abre el Pop-Up o ingresa la nota.</i>";
         }
       }
     });
@@ -73,11 +78,14 @@ export function setupFormRegistrarRespuesta() {
       const codigoEstudiante = hiddenCodeInput?.value.trim();
 
       if (!evalId || !codigoEstudiante) {
-        msg.innerHTML = '<span style="color:red;">Selecciona una evaluación e ingresa/selecciona el estudiante.</span>';
+        msg.innerHTML =
+          '<span style="color:red;">Selecciona una evaluación e ingresa/selecciona el estudiante.</span>';
         return;
       }
 
-      const evalObj = evalState.globalEvaluaciones.find((ev) => ev.id === evalId);
+      const evalObj = evalState.globalEvaluaciones.find(
+        (ev) => ev.id === evalId,
+      );
       const isTest = evalObj && evalObj.tipo === "test";
       const isAreas = evalObj && evalObj.tipo === "simulacro_areas";
 
@@ -86,12 +94,19 @@ export function setupFormRegistrarRespuesta() {
       if (isTest) {
         const notaVal = notaDirectaInput ? notaDirectaInput.value : "";
         if (notaVal === "" || isNaN(parseFloat(notaVal))) {
-          msg.innerHTML = '<span style="color:red;">⚠️ Ingresa la nota del estudiante antes de guardar.</span>';
+          msg.innerHTML =
+            '<span style="color:red;">⚠️ Ingresa la nota del estudiante antes de guardar.</span>';
           return;
         }
         requestBody.notaManual = parseFloat(notaVal);
       } else {
-        const respuestas = evalState.modalState.mode === "respuesta_estudiante" ? evalState.modalState.respuestas : {};
+        const draft = evalState.responseDraft;
+        const respuestas =
+          draft &&
+          draft.evalId === evalId &&
+          draft.codigo === codigoEstudiante.toUpperCase()
+            ? draft.respuestas
+            : {};
         requestBody.respuestas = respuestas;
         if (isAreas && areaSelect) {
           requestBody.area = areaSelect.value;
@@ -109,8 +124,12 @@ export function setupFormRegistrarRespuesta() {
         if (data.exito) {
           const resObj = data.resultado;
           const puestoText =
-            resObj.posicion !== undefined && resObj.posicion !== null ? `(Puesto #${resObj.posicion})` : "";
-          const areaBadge = resObj.area ? `<span style="background:#e0f2fe; color:#0369a1; padding:2px 6px; border-radius:4px; font-size:0.8rem; font-weight:700;">Área ${resObj.area}</span>` : "";
+            resObj.posicion !== undefined && resObj.posicion !== null
+              ? `(Puesto #${resObj.posicion})`
+              : "";
+          const areaBadge = resObj.area
+            ? `<span style="background:#e0f2fe; color:#0369a1; padding:2px 6px; border-radius:4px; font-size:0.8rem; font-weight:700;">Área ${resObj.area}</span>`
+            : "";
 
           let detallesHtml = "";
           if (isTest) {
@@ -133,7 +152,8 @@ export function setupFormRegistrarRespuesta() {
           await cargarDatosEvaluaciones();
 
           // Ocultar mensaje automáticamente tras unos segundos con animación suave
-          if (window._evalSuccessMsgTimeout) clearTimeout(window._evalSuccessMsgTimeout);
+          if (window._evalSuccessMsgTimeout)
+            clearTimeout(window._evalSuccessMsgTimeout);
           window._evalSuccessMsgTimeout = setTimeout(() => {
             const alertEl = document.getElementById("eval-success-alert");
             if (alertEl) {
@@ -147,7 +167,8 @@ export function setupFormRegistrarRespuesta() {
           msg.innerHTML = `<span style="color:red;">❌ ${data.mensaje}</span>`;
         }
       } catch (err) {
-        msg.innerHTML = '<span style="color:red;">❌ Error al conectar con el servidor.</span>';
+        msg.innerHTML =
+          '<span style="color:red;">❌ Error al conectar con el servidor.</span>';
       }
     });
   }

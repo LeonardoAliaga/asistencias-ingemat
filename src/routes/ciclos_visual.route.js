@@ -5,7 +5,9 @@ const router = express.Router();
 
 function readData() {
   try {
-    const row = db.prepare("SELECT valor FROM config_general WHERE clave = 'ciclos_visual'").get();
+    const row = db
+      .prepare("SELECT valor FROM config_general WHERE clave = 'ciclos_visual'")
+      .get();
     if (row && row.valor) {
       return JSON.parse(row.valor);
     }
@@ -17,9 +19,9 @@ function readData() {
 
 function writeData(obj) {
   try {
-    db.prepare("INSERT OR REPLACE INTO config_general (clave, valor) VALUES ('ciclos_visual', ?)").run(
-      JSON.stringify(obj, null, 2)
-    );
+    db.prepare(
+      "INSERT OR REPLACE INTO config_general (clave, valor) VALUES ('ciclos_visual', ?)",
+    ).run(JSON.stringify(obj, null, 2));
     return true;
   } catch (err) {
     console.error("Error escribiendo ciclos_visual en SQLite", err);
@@ -43,7 +45,8 @@ router.get("/", (req, res) => {
 router.get("/:slug", (req, res) => {
   const data = readData();
   const c = (data.ciclos || []).find((x) => x.slug === req.params.slug);
-  if (!c) return res.status(404).json({ exito: false, mensaje: "No encontrado" });
+  if (!c)
+    return res.status(404).json({ exito: false, mensaje: "No encontrado" });
   res.json({ exito: true, ciclo: c });
 });
 
@@ -54,9 +57,12 @@ function requireAdmin(req, res, next) {
 
 // Create
 router.post("/", requireAdmin, (req, res) => {
-  const { titulo, slug, descripcion, beneficios, orden, published, price } = req.body;
+  const { titulo, slug, descripcion, beneficios, orden, published, price } =
+    req.body;
   if (!titulo || !slug) {
-    return res.status(400).json({ exito: false, mensaje: "Título y slug requeridos" });
+    return res
+      .status(400)
+      .json({ exito: false, mensaje: "Título y slug requeridos" });
   }
 
   const data = readData();
@@ -89,10 +95,12 @@ router.post("/", requireAdmin, (req, res) => {
 router.put("/:id", requireAdmin, (req, res) => {
   const data = readData();
   const idx = (data.ciclos || []).findIndex((x) => x.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ exito: false, mensaje: "No encontrado" });
+  if (idx === -1)
+    return res.status(404).json({ exito: false, mensaje: "No encontrado" });
 
   const current = data.ciclos[idx];
-  const { titulo, slug, descripcion, beneficios, orden, published, price } = req.body;
+  const { titulo, slug, descripcion, beneficios, orden, published, price } =
+    req.body;
 
   if (slug && slug !== current.slug) {
     if (data.ciclos.some((x) => x.slug === slug && x.id !== current.id)) {

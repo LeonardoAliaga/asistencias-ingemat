@@ -1,44 +1,73 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <title>Acceso Admin</title>
-    <link rel="stylesheet" href="../css/admin.css" />
-    <link rel="stylesheet" href="../css/admin-forms.css" />
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Iniciar sesión · INGEMAT</title>
+    <link rel="stylesheet" href="/css/admin.css" />
+    <script src="/vendor/purify.min.js"></script>
+    <script src="/js/session.js"></script>
   </head>
-  <body>
-    <div class="container-login">
-      <img src="../img/Logo 1x4 b&w.svg" alt="Logo ingemat" />
-      <h2>Acceso al panel de administración</h2>
+  <body class="login-page">
+    <main class="container-login">
+      <img src="/img/Logo 1x4 b&w.svg" alt="Academia INGEMAT" />
+      <div class="login-heading">
+        <h1>Bienvenido al panel</h1>
+        <p>Ingresa con tu cuenta de operador.</p>
+      </div>
       <form id="login-form">
-        <input
-          type="password"
-          id="password"
-          placeholder="Contraseña"
-          required
-        />
-        <button type="submit">Entrar</button>
+        <div class="field">
+          <label for="username">Usuario</label
+          ><input
+            type="text"
+            id="username"
+            value="admin"
+            autocomplete="username"
+            required
+          />
+        </div>
+        <div class="field">
+          <label for="password">Contraseña</label
+          ><input
+            autocomplete="current-password"
+            type="password"
+            id="password"
+            required
+          />
+        </div>
+        <button class="primary" type="submit">Iniciar sesión</button>
+        <p id="msg" role="alert" class="login-message" hidden></p>
       </form>
-      <div id="msg"></div>
-    </div>
+      <p class="login-help">
+        Solicita tu acceso al administrador de la academia.
+      </p>
+    </main>
     <script>
       document.getElementById("login-form").onsubmit = async function (e) {
         e.preventDefault();
-        const pass = document.getElementById("password").value;
-        const res = await fetch("/admin/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ password: pass }),
-        });
-        const data = await res.json();
-        if (data.exito) {
-          window.location.href = "/admin";
-        } else {
-          document.getElementById("msg").textContent = data.mensaje;
+        const button = this.querySelector('button[type="submit"]'),
+          message = document.getElementById("msg");
+        button.disabled = true;
+        button.textContent = "Ingresando…";
+        message.hidden = true;
+        try {
+          const res = await fetch("/admin/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              username: document.getElementById("username").value,
+              password: document.getElementById("password").value,
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok || !data.exito)
+            throw new Error(data.mensaje || "No se pudo iniciar sesión.");
+          window.location.assign("/admin");
+        } catch (error) {
+          message.textContent = error.message;
+          message.hidden = false;
+          button.disabled = false;
+          button.textContent = "Iniciar sesión";
         }
       };
     </script>

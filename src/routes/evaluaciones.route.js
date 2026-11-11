@@ -5,6 +5,19 @@ const db = require("../database/db.js");
 const { getFullName } = require("../utils/helpers.js");
 
 const router = express.Router();
+const v2 = require("../services/evaluations.service");
+const { businessDate } = require("../utils/time");
+const { AppError } = require("../utils/errors");
+const { randomUUID } = require("node:crypto");
+function ranks(rows) {
+  let previous,
+    rank = 0;
+  return rows.map((r, i) => {
+    if (r.puntajeTotal !== previous) rank = i + 1;
+    previous = r.puntajeTotal;
+    return { ...r, posicion: rank };
+  });
+}
 
 // Helper para obtener una evaluación completa con sus respuestas
 function getEvaluacionCompleta(id) {
@@ -12,7 +25,9 @@ function getEvaluacionCompleta(id) {
   if (!evalRow) return null;
 
   const respRows = db
-    .prepare("SELECT * FROM respuestas_evaluacion WHERE evaluacion_id = ? ORDER BY puntajeTotal DESC")
+    .prepare(
+      "SELECT * FROM respuestas_evaluacion WHERE evaluacion_id = ? ORDER BY puntajeTotal DESC",
+    )
     .all(id);
 
   let claves = {};
@@ -30,7 +45,7 @@ function getEvaluacionCompleta(id) {
     preguntasSinDescuento = JSON.parse(evalRow.preguntasSinDescuento || "{}");
   } catch (e) {}
 
-  const respuestasEstudiantes = respRows.map((r, i) => {
+  const respuestasEstudiantes = ranks(respRows).map((r, i) => {
     let respuestas = {};
     try {
       respuestas = JSON.parse(r.respuestas || "{}");
@@ -44,7 +59,7 @@ function getEvaluacionCompleta(id) {
       incorrectas: r.incorrectas,
       enBlanco: r.enBlanco,
       puntajeTotal: r.puntajeTotal,
-      posicion: i + 1,
+      posicion: r.posicion || i + 1,
       respuestas,
     };
   });
@@ -56,7 +71,8 @@ function getEvaluacionCompleta(id) {
     fecha: evalRow.fecha,
     tipo: evalRow.tipo || "simulacro_estandar",
     numPreguntas: evalRow.numPreguntas,
-    totalPreguntasCuadernillo: evalRow.totalPreguntasCuadernillo || evalRow.numPreguntas,
+    totalPreguntasCuadernillo:
+      evalRow.totalPreguntasCuadernillo || evalRow.numPreguntas,
     puntajeCorrecta: evalRow.puntajeCorrecta,
     puntajeIncorrecta: evalRow.puntajeIncorrecta,
     claveRespuestas: claves,
@@ -69,8 +85,14 @@ function getEvaluacionCompleta(id) {
 // 1. GET /api/evaluaciones - Listar todas las evaluaciones
 router.get("/", (req, res) => {
   try {
-    const rows = db.prepare("SELECT id FROM evaluaciones ORDER BY creado_en DESC").all();
-    const evaluaciones = rows.map((r) => getEvaluacionCompleta(r.id)).filter(Boolean);
+    const rows = db
+      .prepare(
+        "SELECT id FROM evaluaciones WHERE estado != 'archivado' ORDER BY creado_en DESC",
+      )
+      .all();
+    const evaluaciones = rows
+      .map((r) => getEvaluacionCompleta(r.id))
+      .filter(Boolean);
     res.json({ exito: true, evaluaciones });
   } catch (err) {
     res.status(500).json({ exito: false, mensaje: err.message });
@@ -101,22 +123,94 @@ router.post("/", (req, res) => {
       });
     }
 
-    if (tipo !== "test" && (!numPreguntas || (!claveRespuestas && !preguntasPorArea))) {
+    if (
+      tipo !== "test" &&
+      (!numPreguntas || (!claveRespuestas && !preguntasPorArea))
+    ) {
       return res.status(400).json({
         exito: false,
         mensaje: "Faltan datos de preguntas o claves para crear la evaluación.",
       });
     }
 
-    const newId = `EVAL-${Date.now()}`;
-    const fechaUsar = fecha || new Date().toISOString().split("T")[0];
-    const nPreg = tipo === "test" ? (parseInt(numPreguntas, 10) || 20) : (parseInt(numPreguntas, 10) || 100);
+    if (tipo !== "test") {
+      const total = Number(totalPreguntasCuadernillo || numPreguntas);
+      const areas =
+        tipo === "simulacro_areas"
+          ? Object.keys(preguntasPorArea || {}).map((code) => ({
+              code,
+              name: code,
+              requiredQuestions: Number(numPreguntas),
+            }))
+          : [
+              {
+                code: "GENERAL",
+                name: "General",
+                requiredQuestions: Number(numPreguntas),
+              },
+            ];
+      const questions = Array.from({ length: total }, (_, i) => i + 1);
+      const rules = Object.fromEntries(
+        areas.map((a) => [
+          a.code,
+          {
+            questions:
+              tipo === "simulacro_areas"
+                ? Object.keys(preguntasPorArea[a.code] || {}).map(Number)
+                : questions,
+            selection: "fixed",
+          },
+        ]),
+      );
+      const keys = Object.fromEntries(
+        questions.map((q) => [
+          q,
+          {
+            answers: claveRespuestas?.[q] ? [claveRespuestas[q]] : [],
+            noPenalty: !!preguntasSinDescuento?.[q],
+          },
+        ]),
+      );
+      const created = v2.saveExam(
+        {
+          titulo,
+          ciclo,
+          fecha,
+          definition: {
+            totalQuestions: total,
+            areas,
+            sections: [{ name: "General", questions, rules }],
+            keys,
+            scoring: {
+              correct: Number(puntajeCorrecta),
+              wrong: Number(puntajeIncorrecta),
+              blank: 0,
+            },
+          },
+        },
+        req,
+      );
+      v2.readyExam(created.id, req);
+      return res.json({
+        exito: true,
+        mensaje: "Evaluación creada y validada.",
+        evaluacion: getEvaluacionCompleta(created.id),
+      });
+    }
+    const newId = `EVAL-${randomUUID()}`;
+    const fechaUsar = fecha || businessDate();
+    const nPreg =
+      tipo === "test"
+        ? parseInt(numPreguntas, 10) || 20
+        : parseInt(numPreguntas, 10) || 100;
     const totalCuadernillo = parseInt(totalPreguntasCuadernillo, 10) || nPreg;
 
-    db.prepare(`
+    db.prepare(
+      `
       INSERT INTO evaluaciones (id, titulo, ciclo, fecha, tipo, numPreguntas, totalPreguntasCuadernillo, puntajeCorrecta, puntajeIncorrecta, claves, preguntasPorArea, preguntasSinDescuento)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
+    `,
+    ).run(
       newId,
       titulo.trim(),
       ciclo.trim(),
@@ -128,7 +222,7 @@ router.post("/", (req, res) => {
       Math.abs(parseFloat(puntajeIncorrecta) || 0),
       JSON.stringify(claveRespuestas || {}),
       JSON.stringify(preguntasPorArea || {}),
-      JSON.stringify(preguntasSinDescuento || {})
+      JSON.stringify(preguntasSinDescuento || {}),
     );
 
     const nuevaEval = getEvaluacionCompleta(newId);
@@ -139,7 +233,13 @@ router.post("/", (req, res) => {
     });
   } catch (err) {
     console.error("Error al crear evaluación en SQLite:", err);
-    res.status(500).json({ exito: false, mensaje: "Error interno del servidor." });
+    res
+      .status(err.status || 500)
+      .json({
+        exito: false,
+        mensaje:
+          err instanceof AppError ? err.message : "Error interno del servidor.",
+      });
   }
 });
 
@@ -147,16 +247,26 @@ router.post("/", (req, res) => {
 router.delete("/:id", (req, res) => {
   try {
     const { id } = req.params;
-    const info = db.prepare("DELETE FROM evaluaciones WHERE id = ?").run(id);
+    const info = db
+      .prepare("UPDATE evaluaciones SET estado='archivado' WHERE id=?")
+      .run(id);
 
     if (info.changes === 0) {
-      return res.status(404).json({ exito: false, mensaje: "Evaluación no encontrada." });
+      return res
+        .status(404)
+        .json({ exito: false, mensaje: "Evaluación no encontrada." });
     }
 
     res.json({ exito: true, mensaje: "Evaluación eliminada correctamente." });
   } catch (err) {
     console.error("Error al eliminar evaluación en SQLite:", err);
-    res.status(500).json({ exito: false, mensaje: "Error interno del servidor." });
+    res
+      .status(err.status || 500)
+      .json({
+        exito: false,
+        mensaje:
+          err instanceof AppError ? err.message : "Error interno del servidor.",
+      });
   }
 });
 
@@ -174,7 +284,9 @@ router.post("/:id/respuesta", (req, res) => {
     }
 
     const codeUpper = String(codigoEstudiante).trim().toUpperCase();
-    const usuario = db.prepare("SELECT * FROM usuarios WHERE codigo = ?").get(codeUpper);
+    const usuario = db
+      .prepare("SELECT * FROM usuarios WHERE codigo = ?")
+      .get(codeUpper);
 
     if (!usuario) {
       return res.status(404).json({
@@ -182,12 +294,34 @@ router.post("/:id/respuesta", (req, res) => {
         mensaje: `El estudiante con código '${codigoEstudiante}' no existe.`,
       });
     }
+    if (usuario.archived_at)
+      return res.status(409).json({ exito: false, mensaje: "El estudiante está archivado. Restáuralo para registrar notas." });
 
     const evalObj = getEvaluacionCompleta(id);
     if (!evalObj) {
-      return res.status(404).json({ exito: false, mensaje: "Evaluación no encontrada." });
+      return res
+        .status(404)
+        .json({ exito: false, mensaje: "Evaluación no encontrada." });
     }
 
+    if (evalObj.tipo !== "test") {
+      const row = v2.getExam(id);
+      if (row.definition)
+        return res.json({
+          exito: true,
+          resultado: v2.saveGrade(id, req.body, req, {
+            allowReplace: req.body.allowReplace === true,
+            reason: req.body.reason || "Registro manual",
+          }),
+        });
+      return res
+        .status(409)
+        .json({
+          exito: false,
+          mensaje:
+            "Este simulacro pertenece al formato anterior. Sus notas se conservan; crea una evaluación v2 para nuevas calificaciones.",
+        });
+    }
     let correctas = 0;
     let incorrectas = 0;
     let enBlanco = 0;
@@ -197,8 +331,14 @@ router.post("/:id/respuesta", (req, res) => {
     if (evalObj.tipo === "test") {
       // Test de calificación directa
       const notaNum = parseFloat(notaManual);
-      if (isNaN(notaNum) || notaNum < 0) {
-        return res.status(400).json({ exito: false, mensaje: "Ingresa una nota numérica válida." });
+      if (
+        !Number.isFinite(notaNum) ||
+        notaNum < 0 ||
+        notaNum > (evalObj.puntajeCorrecta || 20)
+      ) {
+        return res
+          .status(400)
+          .json({ exito: false, mensaje: "Ingresa una nota numérica válida." });
       }
       puntajeTotal = notaNum;
       correctas = notaNum;
@@ -206,17 +346,22 @@ router.post("/:id/respuesta", (req, res) => {
       enBlanco = 0;
     } else if (evalObj.tipo === "simulacro_areas") {
       // Simulacro con Áreas (A, B, C, D, E)
-      const areaUsar = String(area || "").trim().toUpperCase();
-      const clavesArea = (evalObj.preguntasPorArea && evalObj.preguntasPorArea[areaUsar])
-        ? evalObj.preguntasPorArea[areaUsar]
-        : evalObj.claveRespuestas;
+      const areaUsar = String(area || "")
+        .trim()
+        .toUpperCase();
+      const clavesArea =
+        evalObj.preguntasPorArea && evalObj.preguntasPorArea[areaUsar]
+          ? evalObj.preguntasPorArea[areaUsar]
+          : evalObj.claveRespuestas;
 
       const pregKeys = Object.keys(clavesArea);
       const sinDescuentoMap = evalObj.preguntasSinDescuento || {};
 
       if (pregKeys.length > 0) {
         pregKeys.forEach((qKey) => {
-          const respAlumno = (respuestasGuardar[qKey] || "").trim().toUpperCase();
+          const respAlumno = (respuestasGuardar[qKey] || "")
+            .trim()
+            .toUpperCase();
           const respOficial = (clavesArea[qKey] || "").trim().toUpperCase();
           const esSinDescuento = !!sinDescuentoMap[qKey];
           if (!respAlumno) {
@@ -234,8 +379,12 @@ router.post("/:id/respuesta", (req, res) => {
       } else {
         for (let i = 1; i <= evalObj.numPreguntas; i++) {
           const qKey = i.toString();
-          const respAlumno = (respuestasGuardar[qKey] || "").trim().toUpperCase();
-          const respOficial = (evalObj.claveRespuestas[qKey] || "").trim().toUpperCase();
+          const respAlumno = (respuestasGuardar[qKey] || "")
+            .trim()
+            .toUpperCase();
+          const respOficial = (evalObj.claveRespuestas[qKey] || "")
+            .trim()
+            .toUpperCase();
           const esSinDescuento = !!sinDescuentoMap[qKey];
           if (!respAlumno) {
             enBlanco++;
@@ -258,7 +407,9 @@ router.post("/:id/respuesta", (req, res) => {
       for (let i = 1; i <= evalObj.numPreguntas; i++) {
         const qKey = i.toString();
         const respAlumno = (respuestasGuardar[qKey] || "").trim().toUpperCase();
-        const respOficial = (evalObj.claveRespuestas[qKey] || "").trim().toUpperCase();
+        const respOficial = (evalObj.claveRespuestas[qKey] || "")
+          .trim()
+          .toUpperCase();
         const esSinDescuento = !!sinDescuentoMap[qKey];
         if (!respAlumno) {
           enBlanco++;
@@ -276,22 +427,26 @@ router.post("/:id/respuesta", (req, res) => {
       puntajeTotal = parseFloat(puntajeTotal.toFixed(3));
     }
 
-    const nombreEstudiante = `${usuario.apellido}${usuario.apellido && usuario.nombre ? " " : ""}${usuario.nombre}`.trim();
+    const nombreEstudiante =
+      `${usuario.apellido}${usuario.apellido && usuario.nombre ? " " : ""}${usuario.nombre}`.trim();
     const cicloEstudiante = usuario.ciclo || evalObj.ciclo;
-    const areaFinal = String(area || "").trim().toUpperCase();
+    const areaFinal = String(area || "")
+      .trim()
+      .toUpperCase();
 
     let miPosicion = 1;
 
     db.transaction(() => {
-      db.prepare("DELETE FROM respuestas_evaluacion WHERE evaluacion_id = ? AND codigoEstudiante = ?").run(
-        id,
-        codeUpper
-      );
+      db.prepare(
+        "DELETE FROM respuestas_evaluacion WHERE evaluacion_id = ? AND codigoEstudiante = ?",
+      ).run(id, codeUpper);
 
-      db.prepare(`
+      db.prepare(
+        `
         INSERT INTO respuestas_evaluacion (evaluacion_id, codigoEstudiante, nombreEstudiante, ciclo, area, correctas, incorrectas, enBlanco, puntajeTotal, respuestas)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
+      `,
+      ).run(
         id,
         codeUpper,
         nombreEstudiante,
@@ -301,21 +456,21 @@ router.post("/:id/respuesta", (req, res) => {
         incorrectas,
         enBlanco,
         puntajeTotal,
-        JSON.stringify(respuestasGuardar)
+        JSON.stringify(respuestasGuardar),
       );
 
       const respRows = db
-        .prepare("SELECT id, codigoEstudiante FROM respuestas_evaluacion WHERE evaluacion_id = ? ORDER BY puntajeTotal DESC")
+        .prepare(
+          "SELECT id, codigoEstudiante FROM respuestas_evaluacion WHERE evaluacion_id = ? ORDER BY puntajeTotal DESC",
+        )
         .all(id);
 
-      const updatePos = db.prepare("UPDATE respuestas_evaluacion SET posicion = ? WHERE id = ?");
-      respRows.forEach((r, idx) => {
-        const pos = idx + 1;
-        updatePos.run(pos, r.id);
-        if (r.codigoEstudiante === codeUpper) {
-          miPosicion = pos;
-        }
-      });
+      v2.rankExam(id);
+      miPosicion = db
+        .prepare(
+          "SELECT posicion FROM respuestas_evaluacion WHERE evaluacion_id=? AND codigoEstudiante=?",
+        )
+        .get(id, codeUpper).posicion;
     })();
 
     const registroEstudiante = {
@@ -338,7 +493,13 @@ router.post("/:id/respuesta", (req, res) => {
     });
   } catch (err) {
     console.error("Error al registrar calificación en SQLite:", err);
-    res.status(500).json({ exito: false, mensaje: "Error interno del servidor." });
+    res
+      .status(err.status || 500)
+      .json({
+        exito: false,
+        mensaje:
+          err instanceof AppError ? err.message : "Error interno del servidor.",
+      });
   }
 });
 
@@ -350,7 +511,9 @@ router.get("/:id/ranking", (req, res) => {
     const evalObj = getEvaluacionCompleta(id);
 
     if (!evalObj) {
-      return res.status(404).json({ exito: false, mensaje: "Evaluación no encontrada." });
+      return res
+        .status(404)
+        .json({ exito: false, mensaje: "Evaluación no encontrada." });
     }
 
     let ranking = evalObj.respuestasEstudiantes;
@@ -358,7 +521,8 @@ router.get("/:id/ranking", (req, res) => {
       const areaFiltro = area.trim().toUpperCase();
       ranking = ranking
         .filter((r) => String(r.area || "").toUpperCase() === areaFiltro)
-        .map((r, idx) => ({ ...r, posicion: idx + 1 }));
+        .map((r) => ({ ...r }));
+      ranking = ranks(ranking);
     }
 
     res.json({
@@ -379,7 +543,13 @@ router.get("/:id/ranking", (req, res) => {
     });
   } catch (err) {
     console.error("Error al obtener ranking:", err);
-    res.status(500).json({ exito: false, mensaje: "Error interno del servidor." });
+    res
+      .status(err.status || 500)
+      .json({
+        exito: false,
+        mensaje:
+          err instanceof AppError ? err.message : "Error interno del servidor.",
+      });
   }
 });
 
@@ -396,13 +566,15 @@ router.get("/:id/excel", async (req, res) => {
 
     let estudiantes = evalObj.respuestasEstudiantes;
     let sheetName = "Ranking General";
-    let tituloBanner = "ACADEMIA PREUNIVERSITARIA INGEMAT - CUADRO GENERAL DE MÉRITO Y RANKING";
+    let tituloBanner =
+      "ACADEMIA PREUNIVERSITARIA INGEMAT - CUADRO GENERAL DE MÉRITO Y RANKING";
 
     if (area && area.trim() !== "" && area.toUpperCase() !== "TODOS") {
       const areaUpper = area.trim().toUpperCase();
       estudiantes = estudiantes
         .filter((r) => String(r.area || "").toUpperCase() === areaUpper)
-        .map((r, idx) => ({ ...r, posicion: idx + 1 }));
+        .map((r) => ({ ...r }));
+      estudiantes = ranks(estudiantes);
       sheetName = `Ranking Área ${areaUpper}`;
       tituloBanner = `ACADEMIA PREUNIVERSITARIA INGEMAT - CUADRO DE MÉRITO ÁREA ${areaUpper}`;
     }
@@ -425,8 +597,17 @@ router.get("/:id/excel", async (req, res) => {
     sheet.mergeCells("A1:G1");
     const titleCell = sheet.getCell("A1");
     titleCell.value = tituloBanner;
-    titleCell.font = { name: "Arial", size: 13, bold: true, color: { argb: "FFFFFFFF" } };
-    titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0A2240" } };
+    titleCell.font = {
+      name: "Arial",
+      size: 13,
+      bold: true,
+      color: { argb: "FFFFFFFF" },
+    };
+    titleCell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FF0A2240" },
+    };
     titleCell.alignment = { horizontal: "center", vertical: "middle" };
     sheet.getRow(1).height = 34;
 
@@ -434,23 +615,49 @@ router.get("/:id/excel", async (req, res) => {
     sheet.mergeCells("A2:G2");
     const subTitleCell = sheet.getCell("A2");
     subTitleCell.value = `EXAMEN: ${evalObj.titulo.toUpperCase()} | CICLO: ${evalObj.ciclo} | FECHA: ${evalObj.fecha} | PREGUNTAS: ${evalObj.numPreguntas}`;
-    subTitleCell.font = { name: "Arial", size: 10, bold: true, color: { argb: "FF475569" } };
-    subTitleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF1F5F9" } };
+    subTitleCell.font = {
+      name: "Arial",
+      size: 10,
+      bold: true,
+      color: { argb: "FF475569" },
+    };
+    subTitleCell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FFF1F5F9" },
+    };
     subTitleCell.alignment = { horizontal: "center", vertical: "middle" };
     sheet.getRow(2).height = 22;
 
     sheet.getRow(3).height = 10;
 
     // Cabecera
-    const headers = ["POSICIÓN", "ESTUDIANTE", "ÁREA", "CORRECTAS", "INCORRECTAS", "EN BLANCO", "PUNTAJE TOTAL"];
+    const headers = [
+      "POSICIÓN",
+      "ESTUDIANTE",
+      "ÁREA",
+      "CORRECTAS",
+      "INCORRECTAS",
+      "EN BLANCO",
+      "PUNTAJE TOTAL",
+    ];
     const headerRow = sheet.getRow(4);
     headerRow.height = 28;
 
     headers.forEach((h, idx) => {
       const cell = headerRow.getCell(idx + 1);
       cell.value = h;
-      cell.font = { name: "Arial", size: 10, bold: true, color: { argb: "FFFFFFFF" } };
-      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFB72107" } };
+      cell.font = {
+        name: "Arial",
+        size: 10,
+        bold: true,
+        color: { argb: "FFFFFFFF" },
+      };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFB72107" },
+      };
       cell.alignment = { horizontal: "center", vertical: "middle" };
       cell.border = {
         top: { style: "thin", color: { argb: "FFCBD5E1" } },
@@ -462,7 +669,7 @@ router.get("/:id/excel", async (req, res) => {
 
     // Filas
     estudiantes.forEach((item, index) => {
-      const pos = index + 1;
+      const pos = item.posicion || index + 1;
       let posText = `#${pos}`;
       if (pos === 1) posText = "🥇 1°";
       if (pos === 2) posText = "🥈 2°";
@@ -490,7 +697,11 @@ router.get("/:id/excel", async (req, res) => {
       }
 
       row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: rowBg } };
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: rowBg },
+        };
         cell.font = {
           name: "Arial",
           size: 10,
@@ -509,10 +720,13 @@ router.get("/:id/excel", async (req, res) => {
       });
     });
 
-    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    );
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="Ranking_${evalObj.titulo.replace(/[^a-zA-Z0-9]/g, "_")}.xlsx"`
+      `attachment; filename="Ranking_${evalObj.titulo.replace(/[^a-zA-Z0-9]/g, "_")}.xlsx"`,
     );
 
     await workbook.xlsx.write(res);
@@ -526,8 +740,12 @@ router.get("/:id/excel", async (req, res) => {
 // 7. GET /api/evaluaciones/tareas/list - Listar Tareas Registradas
 router.get("/tareas/list", (req, res) => {
   try {
-    const tareaRows = db.prepare("SELECT * FROM tareas ORDER BY creado_en DESC").all();
-    const getRegs = db.prepare("SELECT id, codigoEstudiante, nombreEstudiante, nota, estado FROM registros_tarea WHERE tarea_id = ?");
+    const tareaRows = db
+      .prepare("SELECT * FROM tareas ORDER BY creado_en DESC")
+      .all();
+    const getRegs = db.prepare(
+      "SELECT id, codigoEstudiante, nombreEstudiante, nota, estado FROM registros_tarea WHERE tarea_id = ?",
+    );
 
     const tareas = tareaRows.map((t) => ({
       id: t.id,
@@ -556,7 +774,7 @@ router.post("/tareas", (req, res) => {
       });
     }
 
-    const fechaUsar = fecha || new Date().toISOString().split("T")[0];
+    const fechaUsar = fecha || businessDate();
     const cursoTrim = curso.trim();
     const cicloTrim = ciclo.trim();
 
@@ -564,20 +782,35 @@ router.post("/tareas", (req, res) => {
 
     db.transaction(() => {
       // Buscar si ya existe una tarea registrada para el mismo curso, ciclo y fecha
-      const tareaExistente = db.prepare(`
+      const tareaExistente = db
+        .prepare(
+          `
         SELECT id FROM tareas 
         WHERE UPPER(curso) = UPPER(?) AND UPPER(ciclo) = UPPER(?) AND fecha = ?
-      `).get(cursoTrim, cicloTrim, fechaUsar);
+      `,
+        )
+        .get(cursoTrim, cicloTrim, fechaUsar);
 
       if (tareaExistente) {
         targetTareaId = tareaExistente.id;
-        db.prepare(`UPDATE tareas SET tipoEvaluacion = ? WHERE id = ?`).run(tipoEvaluacion || "vigesimal", targetTareaId);
+        db.prepare(`UPDATE tareas SET tipoEvaluacion = ? WHERE id = ?`).run(
+          tipoEvaluacion || "vigesimal",
+          targetTareaId,
+        );
       } else {
-        targetTareaId = `TAR-${Date.now()}`;
-        db.prepare(`
+        targetTareaId = `TAR-${randomUUID()}`;
+        db.prepare(
+          `
           INSERT INTO tareas (id, curso, ciclo, fecha, tipoEvaluacion)
           VALUES (?, ?, ?, ?, ?)
-        `).run(targetTareaId, cursoTrim, cicloTrim, fechaUsar, tipoEvaluacion || "vigesimal");
+        `,
+        ).run(
+          targetTareaId,
+          cursoTrim,
+          cicloTrim,
+          fechaUsar,
+          tipoEvaluacion || "vigesimal",
+        );
       }
 
       const deletePrevReg = db.prepare(`
@@ -590,12 +823,26 @@ router.post("/tareas", (req, res) => {
       `);
 
       for (const r of registros) {
-        const codeUpper = String(r.codigoEstudiante || "").trim().toUpperCase();
-        const u = db.prepare("SELECT nombre, apellido FROM usuarios WHERE codigo = ?").get(codeUpper);
-        const nombreEstudiante = u ? `${u.apellido}${u.apellido && u.nombre ? " " : ""}${u.nombre}`.trim() : `Alumno [${codeUpper}]`;
+        const codeUpper = String(r.codigoEstudiante || "")
+          .trim()
+          .toUpperCase();
+        const u = db
+          .prepare("SELECT nombre, apellido, archived_at FROM usuarios WHERE codigo = ?")
+          .get(codeUpper);
+        if (u?.archived_at)
+          throw new Error("El estudiante " + codeUpper + " está archivado.");
+        const nombreEstudiante = u
+          ? `${u.apellido}${u.apellido && u.nombre ? " " : ""}${u.nombre}`.trim()
+          : `Alumno [${codeUpper}]`;
 
         deletePrevReg.run(targetTareaId, codeUpper);
-        insertReg.run(targetTareaId, codeUpper, nombreEstudiante, r.nota !== undefined ? r.nota : null, r.estado || "EVALUADO");
+        insertReg.run(
+          targetTareaId,
+          codeUpper,
+          nombreEstudiante,
+          r.nota !== undefined ? r.nota : null,
+          r.estado || "EVALUADO",
+        );
       }
     })();
 
@@ -605,7 +852,11 @@ router.post("/tareas", (req, res) => {
       ciclo: cicloTrim,
       fecha: fechaUsar,
       tipoEvaluacion: tipoEvaluacion || "vigesimal",
-      registros: db.prepare("SELECT id, codigoEstudiante, nombreEstudiante, nota, estado FROM registros_tarea WHERE tarea_id = ?").all(targetTareaId),
+      registros: db
+        .prepare(
+          "SELECT id, codigoEstudiante, nombreEstudiante, nota, estado FROM registros_tarea WHERE tarea_id = ?",
+        )
+        .all(targetTareaId),
     };
 
     res.json({
@@ -615,17 +866,35 @@ router.post("/tareas", (req, res) => {
     });
   } catch (err) {
     console.error("Error al guardar tareas en SQLite:", err);
-    res.status(500).json({ exito: false, mensaje: "Error interno del servidor." });
+    res
+      .status(err.status || 500)
+      .json({
+        exito: false,
+        mensaje:
+          err instanceof AppError ? err.message : "Error interno del servidor.",
+      });
   }
 });
 
+// PDF nativo compartido con WhatsApp: texto seleccionable, tablas y paginación.
+router.get("/reporte-estudiante/:codigo/pdf", async (req,res,next) => {
+  try {
+    const pdf = await require("../services/student-report-pdf.service").generate(req.params.codigo,req.query.week||"TODAS");
+    res.set("Cache-Control","no-store")
+      .type("application/pdf")
+      .attachment("Ficha_INGEMAT_"+String(req.params.codigo).replace(/[^a-zA-Z0-9_-]/g,"")+".pdf")
+      .send(pdf);
+  } catch(error){ next(error); }
+});
 // 9. GET /api/evaluaciones/reporte-estudiante/:codigo - Reporte Consolidado del Alumno
 router.get("/reporte-estudiante/:codigo", (req, res) => {
   try {
     const { codigo } = req.params;
     const codeUpper = String(codigo).trim().toUpperCase();
 
-    const usuario = db.prepare("SELECT * FROM usuarios WHERE codigo = ?").get(codeUpper);
+    const usuario = db
+      .prepare("SELECT * FROM usuarios WHERE codigo = ?")
+      .get(codeUpper);
     if (!usuario) {
       return res.status(404).json({
         exito: false,
@@ -633,10 +902,13 @@ router.get("/reporte-estudiante/:codigo", (req, res) => {
       });
     }
 
-    const nombreEstudiante = `${usuario.apellido}${usuario.apellido && usuario.nombre ? " " : ""}${usuario.nombre}`.trim();
+    const nombreEstudiante =
+      `${usuario.apellido}${usuario.apellido && usuario.nombre ? " " : ""}${usuario.nombre}`.trim();
 
     // 1. Evaluaciones
-    const evalRows = db.prepare(`
+    const evalRows = db
+      .prepare(
+        `
       SELECT e.id as evaluacionId, e.titulo, e.ciclo, e.fecha, e.tipo, e.numPreguntas,
              r.area, r.correctas, r.incorrectas, r.enBlanco, r.puntajeTotal, r.posicion,
              (SELECT COUNT(*) FROM respuestas_evaluacion re WHERE re.evaluacion_id = e.id) as totalParticipantes
@@ -644,11 +916,17 @@ router.get("/reporte-estudiante/:codigo", (req, res) => {
       JOIN evaluaciones e ON r.evaluacion_id = e.id
       WHERE r.codigoEstudiante = ?
       ORDER BY e.creado_en DESC
-    `).all(codeUpper);
+    `,
+      )
+      .all(codeUpper);
 
     // 2. Tareas (Incluye todas las tareas registradas en el ciclo del alumno; si no tiene registro individual, figura como NO PRESENTÓ)
-    const cicloEstudiante = String(usuario.ciclo || "").trim().toUpperCase();
-    const tareaRows = db.prepare(`
+    const cicloEstudiante = String(usuario.ciclo || "")
+      .trim()
+      .toUpperCase();
+    const tareaRows = db
+      .prepare(
+        `
       SELECT 
         t.id as tareaId, 
         t.curso, 
@@ -665,7 +943,9 @@ router.get("/reporte-estudiante/:codigo", (req, res) => {
       WHERE (UPPER(t.ciclo) = ? AND ? <> '') OR r.id IS NOT NULL
       GROUP BY t.id
       ORDER BY t.fecha DESC, t.creado_en DESC
-    `).all(codeUpper, cicloEstudiante, cicloEstudiante);
+    `,
+      )
+      .all(codeUpper, cicloEstudiante, cicloEstudiante);
 
     res.json({
       exito: true,
@@ -681,32 +961,13 @@ router.get("/reporte-estudiante/:codigo", (req, res) => {
     });
   } catch (err) {
     console.error("Error al obtener reporte de estudiante en SQLite:", err);
-    res.status(500).json({ exito: false, mensaje: "Error interno del servidor." });
-  }
-});
-
-// 10. DELETE /api/evaluaciones/tareas/registro/:id - Eliminar un Registro Individual de Tarea
-router.delete("/tareas/registro/:id", (req, res) => {
-  try {
-    const { id } = req.params;
-    const reg = db.prepare("SELECT tarea_id FROM registros_tarea WHERE id = ?").get(id);
-    if (!reg) {
-      return res.status(404).json({ exito: false, mensaje: "Registro de tarea no encontrado." });
-    }
-
-    const tareaId = reg.tarea_id;
-    db.prepare("DELETE FROM registros_tarea WHERE id = ?").run(id);
-
-    // Si ya no quedan registros para esta tarea, limpiar la tarea padre
-    const countRemaining = db.prepare("SELECT COUNT(*) as count FROM registros_tarea WHERE tarea_id = ?").get(tareaId);
-    if (countRemaining && countRemaining.count === 0) {
-      db.prepare("DELETE FROM tareas WHERE id = ?").run(tareaId);
-    }
-
-    res.json({ exito: true, mensaje: "Registro de tarea eliminado correctamente." });
-  } catch (err) {
-    console.error("Error al eliminar registro de tarea:", err);
-    res.status(500).json({ exito: false, mensaje: err.message });
+    res
+      .status(err.status || 500)
+      .json({
+        exito: false,
+        mensaje:
+          err instanceof AppError ? err.message : "Error interno del servidor.",
+      });
   }
 });
 
@@ -726,20 +987,33 @@ function getRangoSemanaSabadoVie(fechaStr) {
   } else {
     const p = fechaStr.split("-");
     if (p.length === 3) {
-      date = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+      date = new Date(
+        parseInt(p[0], 10),
+        parseInt(p[1], 10) - 1,
+        parseInt(p[2], 10),
+      );
     } else {
       date = new Date();
     }
   }
 
   const day = date.getDay(); // 0: Dom, 1: Lun, ..., 6: Sab
-  const diffToSabado = day === 6 ? 0 : (day + 1);
+  const diffToSabado = day === 6 ? 0 : day + 1;
 
-  const sabado = new Date(date.getFullYear(), date.getMonth(), date.getDate() - diffToSabado);
-  const viernes = new Date(sabado.getFullYear(), sabado.getMonth(), sabado.getDate() + 6);
+  const sabado = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate() - diffToSabado,
+  );
+  const viernes = new Date(
+    sabado.getFullYear(),
+    sabado.getMonth(),
+    sabado.getDate() + 6,
+  );
 
   const pad = (n) => String(n).padStart(2, "0");
-  const formatISO = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const formatISO = (d) =>
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
   const start = formatISO(sabado);
   const end = formatISO(viernes);
@@ -760,14 +1034,18 @@ function formatSemanaLabel(startISO, endISO) {
 
 // Migración automática: Normalizar cualquier fecha diaria previa en la tabla tareas a rango semanal
 try {
-  const legacyTareas = db.prepare("SELECT id, fecha FROM tareas WHERE INSTR(fecha, '_') = 0").all();
+  const legacyTareas = db
+    .prepare("SELECT id, fecha FROM tareas WHERE INSTR(fecha, '_') = 0")
+    .all();
   if (legacyTareas && legacyTareas.length > 0) {
     const updateFecha = db.prepare("UPDATE tareas SET fecha = ? WHERE id = ?");
     legacyTareas.forEach((t) => {
       const rango = getRangoSemanaSabadoVie(t.fecha);
       updateFecha.run(rango.key, t.id);
     });
-    console.log(`🔄 Se normalizaron ${legacyTareas.length} registros de tareas previas al formato semanal.`);
+    console.log(
+      `🔄 Se normalizaron ${legacyTareas.length} registros de tareas previas al formato semanal.`,
+    );
   }
 } catch (e) {
   // Ignorar si la tabla aún no existe
@@ -777,21 +1055,32 @@ try {
 router.delete("/tareas/registro/:id", (req, res) => {
   try {
     const { id } = req.params;
-    const reg = db.prepare("SELECT tarea_id FROM registros_tarea WHERE id = ?").get(id);
+    const reg = db
+      .prepare("SELECT tarea_id FROM registros_tarea WHERE id = ?")
+      .get(id);
     if (!reg) {
-      return res.status(404).json({ exito: false, mensaje: "Registro de tarea no encontrado." });
+      return res
+        .status(404)
+        .json({ exito: false, mensaje: "Registro de tarea no encontrado." });
     }
 
     const tareaId = reg.tarea_id;
     db.prepare("DELETE FROM registros_tarea WHERE id = ?").run(id);
 
     // Si ya no quedan registros para esta tarea, limpiar la tarea padre
-    const countRemaining = db.prepare("SELECT COUNT(*) as count FROM registros_tarea WHERE tarea_id = ?").get(tareaId);
+    const countRemaining = db
+      .prepare(
+        "SELECT COUNT(*) as count FROM registros_tarea WHERE tarea_id = ?",
+      )
+      .get(tareaId);
     if (countRemaining && countRemaining.count === 0) {
       db.prepare("DELETE FROM tareas WHERE id = ?").run(tareaId);
     }
 
-    res.json({ exito: true, mensaje: "Registro de tarea eliminado correctamente." });
+    res.json({
+      exito: true,
+      mensaje: "Registro de tarea eliminado correctamente.",
+    });
   } catch (err) {
     console.error("Error al eliminar registro de tarea:", err);
     res.status(500).json({ exito: false, mensaje: err.message });
@@ -803,7 +1092,10 @@ router.delete("/tareas/:id", (req, res) => {
   try {
     const { id } = req.params;
     db.prepare("DELETE FROM tareas WHERE id = ?").run(id);
-    res.json({ exito: true, mensaje: "Tarea y sus registros eliminados correctamente." });
+    res.json({
+      exito: true,
+      mensaje: "Tarea y sus registros eliminados correctamente.",
+    });
   } catch (err) {
     console.error("Error al eliminar grupo de tarea:", err);
     res.status(500).json({ exito: false, mensaje: err.message });
@@ -851,7 +1143,9 @@ router.get("/tareas/excel-salon", async (req, res) => {
   try {
     const { ciclo, semana } = req.query;
     if (!ciclo || !ciclo.trim()) {
-      return res.status(400).send("Debe especificar un ciclo o salón para exportar.");
+      return res
+        .status(400)
+        .send("Debe especificar un ciclo o salón para exportar.");
     }
     const cicloNorm = ciclo.trim();
 
@@ -860,20 +1154,32 @@ router.get("/tareas/excel-salon", async (req, res) => {
     if (semana && semana.trim()) {
       semanaObj = getRangoSemanaSabadoVie(semana.trim());
     } else {
-      const ultimaTarea = db.prepare("SELECT fecha FROM tareas WHERE UPPER(ciclo) = UPPER(?) ORDER BY fecha DESC LIMIT 1").get(cicloNorm);
-      semanaObj = ultimaTarea ? getRangoSemanaSabadoVie(ultimaTarea.fecha) : getRangoSemanaSabadoVie();
+      const ultimaTarea = db
+        .prepare(
+          "SELECT fecha FROM tareas WHERE UPPER(ciclo) = UPPER(?) ORDER BY fecha DESC LIMIT 1",
+        )
+        .get(cicloNorm);
+      semanaObj = ultimaTarea
+        ? getRangoSemanaSabadoVie(ultimaTarea.fecha)
+        : getRangoSemanaSabadoVie();
     }
 
     // 1. Obtener todos los estudiantes del ciclo desde usuarios
-    const estudiantes = db.prepare(`
+    const estudiantes = db
+      .prepare(
+        `
       SELECT codigo, nombre, apellido, ciclo
       FROM usuarios
-      WHERE UPPER(rol) = 'ESTUDIANTE' AND UPPER(ciclo) = UPPER(?)
+      WHERE UPPER(rol) = 'ESTUDIANTE' AND archived_at IS NULL AND UPPER(ciclo) = UPPER(?)
       ORDER BY apellido ASC, nombre ASC
-    `).all(cicloNorm);
+    `,
+      )
+      .all(cicloNorm);
 
     // 2. Obtener cursos evaluados en esa semana para ese salón
-    const columnasCursos = db.prepare(`
+    const columnasCursos = db
+      .prepare(
+        `
       SELECT 
         UPPER(t.curso) as cursoUpper,
         t.curso,
@@ -885,17 +1191,23 @@ router.get("/tareas/excel-salon", async (req, res) => {
       GROUP BY UPPER(t.curso)
       HAVING totalRegistros > 0
       ORDER BY t.curso ASC
-    `).all(cicloNorm, semanaObj.key, semanaObj.start, semanaObj.end);
+    `,
+      )
+      .all(cicloNorm, semanaObj.key, semanaObj.start, semanaObj.end);
 
     // 3. Obtener todos los registros de tareas para este ciclo y semana
-    const registrosRows = db.prepare(`
+    const registrosRows = db
+      .prepare(
+        `
       SELECT UPPER(t.curso) as cursoUpper, r.codigoEstudiante, r.nota, r.estado
       FROM registros_tarea r
       JOIN tareas t ON r.tarea_id = t.id
       WHERE UPPER(t.ciclo) = UPPER(?)
         AND (t.fecha = ? OR t.fecha BETWEEN ? AND ?)
       ORDER BY r.id DESC
-    `).all(cicloNorm, semanaObj.key, semanaObj.start, semanaObj.end);
+    `,
+      )
+      .all(cicloNorm, semanaObj.key, semanaObj.start, semanaObj.end);
 
     // Mapa de registros: `${cursoUpper}_${codigoEstudiante}` -> { nota, estado }
     const mapaRegistros = new Map();
@@ -907,11 +1219,17 @@ router.get("/tareas/excel-salon", async (req, res) => {
     });
 
     // Si algún alumno registrado en tareas no figura en la tabla usuarios con ese ciclo, incluirlo
-    const codigosEstudiantesSet = new Set(estudiantes.map((e) => e.codigo.toUpperCase()));
+    const codigosEstudiantesSet = new Set(
+      estudiantes.map((e) => e.codigo.toUpperCase()),
+    );
     registrosRows.forEach((reg) => {
       const cod = String(reg.codigoEstudiante).toUpperCase();
       if (!codigosEstudiantesSet.has(cod)) {
-        const u = db.prepare("SELECT codigo, nombre, apellido, ciclo FROM usuarios WHERE codigo = ?").get(cod);
+        const u = db
+          .prepare(
+            "SELECT codigo, nombre, apellido, ciclo FROM usuarios WHERE codigo = ?",
+          )
+          .get(cod);
         estudiantes.push({
           codigo: cod,
           nombre: u ? u.nombre : "",
@@ -923,12 +1241,18 @@ router.get("/tareas/excel-salon", async (req, res) => {
     });
 
     if (estudiantes.length === 0 && columnasCursos.length === 0) {
-      return res.status(404).send(`No se encontraron registros de tareas ni estudiantes para el ciclo "${cicloNorm}" en la semana seleccionada.`);
+      return res
+        .status(404)
+        .send(
+          `No se encontraron registros de tareas ni estudiantes para el ciclo "${cicloNorm}" en la semana seleccionada.`,
+        );
     }
 
     const ExcelJS = require("exceljs");
     const workbook = new ExcelJS.Workbook();
-    const sheet = workbook.addWorksheet(`Tareas - ${cicloNorm.substring(0, 20)}`);
+    const sheet = workbook.addWorksheet(
+      `Tareas - ${cicloNorm.substring(0, 20)}`,
+    );
 
     const totalCols = Math.max(3 + columnasCursos.length + 2, 5);
     const semanaLabel = formatSemanaLabel(semanaObj.start, semanaObj.end);
@@ -937,18 +1261,40 @@ router.get("/tareas/excel-salon", async (req, res) => {
     sheet.mergeCells(1, 1, 1, totalCols);
     const titleCell = sheet.getCell(1, 1);
     titleCell.value = `ACADEMIA INGEMAT - CONSOLIDADO SEMANAL DE TAREAS`;
-    titleCell.font = { name: "Arial", size: 14, bold: true, color: { argb: "FFFFFFFF" } };
-    titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0F172A" } };
+    titleCell.font = {
+      name: "Arial",
+      size: 14,
+      bold: true,
+      color: { argb: "FFFFFFFF" },
+    };
+    titleCell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FF0F172A" },
+    };
     titleCell.alignment = { horizontal: "center", vertical: "middle" };
     sheet.getRow(1).height = 32;
 
     // Fila 2: Subtítulo Informativo
     sheet.mergeCells(2, 1, 2, totalCols);
     const subtitleCell = sheet.getCell(2, 1);
-    const todayStr = new Date().toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", year: "numeric" });
+    const todayStr = new Date().toLocaleDateString("es-PE", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
     subtitleCell.value = `Ciclo / Salón: ${cicloNorm.toUpperCase()} | Período: ${semanaLabel} | Total Estudiantes: ${estudiantes.length} | Cursos Evaluados: ${columnasCursos.length} | Fecha de Emisión: ${todayStr}`;
-    subtitleCell.font = { name: "Arial", size: 10, italic: true, color: { argb: "FF475569" } };
-    subtitleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF1F5F9" } };
+    subtitleCell.font = {
+      name: "Arial",
+      size: 10,
+      italic: true,
+      color: { argb: "FF475569" },
+    };
+    subtitleCell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FFF1F5F9" },
+    };
     subtitleCell.alignment = { horizontal: "center", vertical: "middle" };
     sheet.getRow(2).height = 22;
 
@@ -964,8 +1310,17 @@ router.get("/tareas/excel-salon", async (req, res) => {
     const headerRow = sheet.addRow(headers);
     headerRow.height = 28;
     headerRow.eachCell((cell) => {
-      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1E293B" } };
-      cell.font = { name: "Arial", size: 10, bold: true, color: { argb: "FFFFFFFF" } };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF1E293B" },
+      };
+      cell.font = {
+        name: "Arial",
+        size: 10,
+        bold: true,
+        color: { argb: "FFFFFFFF" },
+      };
       cell.alignment = { horizontal: "center", vertical: "middle" };
       cell.border = {
         top: { style: "thin", color: { argb: "FF94A3B8" } },
@@ -977,12 +1332,10 @@ router.get("/tareas/excel-salon", async (req, res) => {
 
     // Filas de Alumnos
     estudiantes.forEach((est, idx) => {
-      const nombreCompleto = `${est.apellido || ""}${est.apellido && est.nombre ? " " : ""}${est.nombre || ""}`.trim() || `Alumno [${est.codigo}]`;
-      const rowData = [
-        idx + 1,
-        est.codigo,
-        nombreCompleto,
-      ];
+      const nombreCompleto =
+        `${est.apellido || ""}${est.apellido && est.nombre ? " " : ""}${est.nombre || ""}`.trim() ||
+        `Alumno [${est.codigo}]`;
+      const rowData = [idx + 1, est.codigo, nombreCompleto];
 
       let countEntregadas = 0;
       let countNP = 0;
@@ -1026,8 +1379,10 @@ router.get("/tareas/excel-salon", async (req, res) => {
         cell.font = {
           name: "Arial",
           size: 9.5,
-          bold: colNumber <= 2 || isNP || colNumber > (3 + columnasCursos.length),
-          color: { argb: isNP ? "FF991B1B" : (colNumber === 3 ? "FF0F172A" : "FF334155") },
+          bold: colNumber <= 2 || isNP || colNumber > 3 + columnasCursos.length,
+          color: {
+            argb: isNP ? "FF991B1B" : colNumber === 3 ? "FF0F172A" : "FF334155",
+          },
         };
         cell.alignment = {
           horizontal: colNumber === 3 ? "left" : "center",
@@ -1043,27 +1398,35 @@ router.get("/tareas/excel-salon", async (req, res) => {
     });
 
     // Ajuste de anchos de columna
-    sheet.getColumn(1).width = 6;   // N°
-    sheet.getColumn(2).width = 14;  // CÓDIGO
-    sheet.getColumn(3).width = 34;  // ESTUDIANTE
+    sheet.getColumn(1).width = 6; // N°
+    sheet.getColumn(2).width = 14; // CÓDIGO
+    sheet.getColumn(3).width = 34; // ESTUDIANTE
     columnasCursos.forEach((col, i) => {
       sheet.getColumn(4 + i).width = Math.max(col.curso.length + 4, 15);
     });
-    sheet.getColumn(4 + columnasCursos.length).width = 16;     // ENTREGADAS
-    sheet.getColumn(5 + columnasCursos.length).width = 18;     // NO PRESENTÓ (NP)
+    sheet.getColumn(4 + columnasCursos.length).width = 16; // ENTREGADAS
+    sheet.getColumn(5 + columnasCursos.length).width = 18; // NO PRESENTÓ (NP)
 
-    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-    const fileSemanaTag = `${semanaObj.start}_${semanaObj.end}`.replace(/[^a-zA-Z0-9]/g, "_");
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    );
+    const fileSemanaTag = `${semanaObj.start}_${semanaObj.end}`.replace(
+      /[^a-zA-Z0-9]/g,
+      "_",
+    );
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="Consolidado_Tareas_${cicloNorm.replace(/[^a-zA-Z0-9]/g, "_")}_${fileSemanaTag}.xlsx"`
+      `attachment; filename="Consolidado_Tareas_${cicloNorm.replace(/[^a-zA-Z0-9]/g, "_")}_${fileSemanaTag}.xlsx"`,
     );
 
     await workbook.xlsx.write(res);
     res.end();
   } catch (err) {
     console.error("Error al exportar Excel de tareas de salón en SQLite:", err);
-    res.status(500).send("Error interno al generar el archivo Excel de tareas.");
+    res
+      .status(500)
+      .send("Error interno al generar el archivo Excel de tareas.");
   }
 });
 

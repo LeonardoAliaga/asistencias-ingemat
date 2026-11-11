@@ -16,37 +16,43 @@
   }
   .navbar img {
     display: block;
-    top: 15%;
-    width: 10rem;
+    width: 8.5rem;
+    max-height: 3.5rem;
   }
   .navbar .toggle {
     display: block;
     margin: auto 0;
     position: relative;
-    width: 30px;
-    height: 30px;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--white1);
     cursor: pointer;
   }
   .navbar .toggle:before {
     content: "";
     position: absolute;
-    top: 4px;
-    width: 100%;
+    top: 12px;
+    left: 9px;
+    width: 26px;
     height: 2px;
     background: var(--white1);
     transition: 0.5s;
     z-index: 1;
-    box-shadow: 0 10px 0 var(--white1);
+    box-shadow: 0 9px 0 var(--white1);
   }
   .navbar.sticky .toggle:before {
     background: #000;
-    box-shadow: 0 10px 0 #000;
+    box-shadow: 0 9px 0 #000;
   }
   .navbar .toggle::after {
     content: "";
     position: absolute;
-    bottom: 4px;
-    width: 100%;
+    bottom: 12px;
+    left: 9px;
+    width: 26px;
     height: 2px;
     background: var(--white1);
     transition: 0.5s;
@@ -60,9 +66,9 @@
     width: 100%;
     height: calc(100vh - 5rem);
     text-align: center;
-    overflow: auto;
+    height: calc(100dvh - 5rem);
+    overflow-y: auto;
     background: var(--white1);
-    overflow: hidden;
     visibility: hidden;
     opacity: 0;
   }
@@ -70,12 +76,29 @@
   .navbar.sticky .toggle::after {
     background: #000;
   }
+  .navbar .toggle:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 3px;
+  }
+  .navbar.sticky .toggle {
+    color: #000;
+  }
+  .navbar.active .toggle::before {
+    top: 21px;
+    box-shadow: none;
+    transform: rotate(45deg);
+  }
+  .navbar.active .toggle::after {
+    bottom: 21px;
+    transform: rotate(-45deg);
+  }
   .navbar.active ul {
     visibility: visible;
     opacity: 1;
     flex-direction: column;
+    justify-content: flex-start;
+    padding: 16px 24px;
     gap: 0.5rem;
-    /* padding-top: 20px; */
   }
   .navbar.active ul li a {
     margin: 5px 0;

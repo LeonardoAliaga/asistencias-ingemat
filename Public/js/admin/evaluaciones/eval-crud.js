@@ -51,7 +51,8 @@ export async function cargarDatosEvaluaciones() {
       renderListaEvaluaciones(evalState.globalEvaluaciones);
     }
 
-    const listCiclos = dataCiclos.ciclos || (Array.isArray(dataCiclos) ? dataCiclos : []);
+    const listCiclos =
+      dataCiclos.ciclos || (Array.isArray(dataCiclos) ? dataCiclos : []);
     if (listCiclos.length > 0) {
       evalState.globalCiclos = listCiclos;
       populateSelectsCiclos(evalState.globalCiclos);
@@ -59,7 +60,9 @@ export async function cargarDatosEvaluaciones() {
 
     if (resUsers.ok) {
       const dataUsers = await resUsers.json();
-      evalState.globalUsuarios = Array.isArray(dataUsers) ? dataUsers : (dataUsers.usuarios || []);
+      evalState.globalUsuarios = Array.isArray(dataUsers)
+        ? dataUsers
+        : dataUsers.usuarios || [];
     }
   } catch (err) {
     console.error("Error al cargar datos de evaluaciones:", err);
@@ -67,7 +70,11 @@ export async function cargarDatosEvaluaciones() {
 }
 
 export function populateSelectsCiclos(ciclos) {
-  const selects = ["eval-ciclo-select", "tarea-ciclo-select", "excel-tareas-ciclo-select"];
+  const selects = [
+    "eval-ciclo-select",
+    "tarea-ciclo-select",
+    "excel-tareas-ciclo-select",
+  ];
 
   selects.forEach((id) => {
     const sel = document.getElementById(id);
@@ -85,7 +92,11 @@ export function populateSelectsCiclos(ciclos) {
   });
 
   const excelCicloSel = document.getElementById("excel-tareas-ciclo-select");
-  if (excelCicloSel && excelCicloSel.value && window._cargarSemanasExcelConsolidado) {
+  if (
+    excelCicloSel &&
+    excelCicloSel.value &&
+    window._cargarSemanasExcelConsolidado
+  ) {
     window._cargarSemanasExcelConsolidado(excelCicloSel.value);
   }
 }
@@ -96,13 +107,18 @@ export function populateSelectsEvaluaciones(evals) {
   selects.forEach((id) => {
     const sel = document.getElementById(id);
     if (!sel) return;
-    if (evals.length === 0) {
-      sel.innerHTML = '<option value="">No hay evaluaciones registradas</option>';
+    const available =
+      id === "eval-select-respuesta"
+        ? evals.filter((e) => e.tipo === "test")
+        : evals;
+    if (available.length === 0) {
+      sel.innerHTML =
+        '<option value="">No hay evaluaciones registradas</option>';
       return;
     }
     sel.innerHTML =
       '<option value="">-- Seleccionar Evaluación --</option>' +
-      evals
+      available
         .map((e) => {
           let badge = "";
           if (e.tipo === "test") badge = " [TEST]";
@@ -118,15 +134,23 @@ export function setupFormCrearEvaluacion() {
   const form = document.getElementById("form-crear-evaluacion");
   const tipoSelect = document.getElementById("eval-tipo-select");
   const fechaInput = document.getElementById("eval-fecha-input");
-  const areasCuadernilloRow = document.getElementById("eval-areas-cuadernillo-row");
-  const estandarPreguntasRow = document.getElementById("eval-estandar-preguntas-row");
-  const configPuntajesWrapper = document.getElementById("eval-config-puntajes-wrapper");
+  const areasCuadernilloRow = document.getElementById(
+    "eval-areas-cuadernillo-row",
+  );
+  const estandarPreguntasRow = document.getElementById(
+    "eval-estandar-preguntas-row",
+  );
+  const configPuntajesWrapper = document.getElementById(
+    "eval-config-puntajes-wrapper",
+  );
   const configTestWrapper = document.getElementById("eval-config-test-wrapper");
-  const configClavesWrapper = document.getElementById("eval-config-claves-wrapper");
+  const configClavesWrapper = document.getElementById(
+    "eval-config-claves-wrapper",
+  );
 
   // Establecer fecha por defecto (hoy)
   if (fechaInput && !fechaInput.value) {
-    fechaInput.value = new Date().toISOString().split("T")[0];
+    fechaInput.value = window.ingematToday();
   }
 
   const actualizarCamposPorTipo = () => {
@@ -180,7 +204,7 @@ export function setupFormCrearEvaluacion() {
       const titulo = document.getElementById("eval-titulo-input").value.trim();
       const ciclo = document.getElementById("eval-ciclo-select").value;
       const tipo = tipoSelect ? tipoSelect.value : "simulacro_estandar";
-      const fecha = fechaInput ? fechaInput.value : new Date().toISOString().split("T")[0];
+      const fecha = fechaInput ? fechaInput.value : window.ingematToday();
 
       let numPreguntas = 100;
       let totalPreguntasCuadernillo = 100;
@@ -193,23 +217,39 @@ export function setupFormCrearEvaluacion() {
         puntajeCorrecta = 20;
         puntajeIncorrecta = 0;
       } else if (tipo === "simulacro_areas") {
-        totalPreguntasCuadernillo = parseInt(document.getElementById("eval-total-preguntas-areas")?.value, 10) || 120;
-        numPreguntas = parseInt(document.getElementById("eval-num-preguntas-areas")?.value, 10) || 100;
-        puntajeCorrecta = parseFloat(document.getElementById("eval-pts-correcta")?.value) || 20;
-        puntajeIncorrecta = parseFloat(document.getElementById("eval-pts-incorrecta")?.value) || 1.125;
+        totalPreguntasCuadernillo =
+          parseInt(
+            document.getElementById("eval-total-preguntas-areas")?.value,
+            10,
+          ) || 120;
+        numPreguntas =
+          parseInt(
+            document.getElementById("eval-num-preguntas-areas")?.value,
+            10,
+          ) || 100;
+        puntajeCorrecta =
+          parseFloat(document.getElementById("eval-pts-correcta")?.value) || 20;
+        puntajeIncorrecta = Number(
+          document.getElementById("eval-pts-incorrecta")?.value ?? 1.125,
+        );
       } else {
         // simulacro_estandar: Lee el input de preguntas a responder
-        numPreguntas = parseInt(document.getElementById("eval-num-preguntas")?.value, 10) || 100;
+        numPreguntas =
+          parseInt(document.getElementById("eval-num-preguntas")?.value, 10) ||
+          100;
         totalPreguntasCuadernillo = numPreguntas;
-        puntajeCorrecta = parseFloat(document.getElementById("eval-pts-correcta")?.value) || 20;
-        puntajeIncorrecta = parseFloat(document.getElementById("eval-pts-incorrecta")?.value) || 1.125;
+        puntajeCorrecta =
+          parseFloat(document.getElementById("eval-pts-correcta")?.value) || 20;
+        puntajeIncorrecta = Number(
+          document.getElementById("eval-pts-incorrecta")?.value ?? 1.125,
+        );
       }
 
       let claveRespuestas = {};
       let preguntasPorArea = {};
 
       if (tipo !== "test") {
-        claveRespuestas = evalState.modalState.respuestas || {};
+        claveRespuestas = evalState.keyDraft || {};
 
         if (tipo === "simulacro_areas") {
           const areasConfig = evalState.modalState.areasPorPregunta || {};
@@ -230,12 +270,14 @@ export function setupFormCrearEvaluacion() {
           }
 
           if (Object.keys(claveRespuestas).length === 0) {
-            msg.innerHTML = '<span style="color:red;">⚠️ Abre el Pop-Up y configura las claves del simulacro.</span>';
+            msg.innerHTML =
+              '<span style="color:red;">⚠️ Abre el Pop-Up y configura las claves del simulacro.</span>';
             return;
           }
         } else {
           if (Object.keys(claveRespuestas).length === 0) {
-            msg.innerHTML = '<span style="color:red;">⚠️ Abre el Pop-Up y configura al menos una respuesta clave.</span>';
+            msg.innerHTML =
+              '<span style="color:red;">⚠️ Abre el Pop-Up y configura al menos una respuesta clave.</span>';
             return;
           }
         }
@@ -256,7 +298,8 @@ export function setupFormCrearEvaluacion() {
             puntajeIncorrecta,
             claveRespuestas,
             preguntasPorArea,
-            preguntasSinDescuento: evalState.modalState.preguntasSinDescuento || {},
+            preguntasSinDescuento:
+              evalState.modalState.preguntasSinDescuento || {},
           }),
         });
 
@@ -264,99 +307,79 @@ export function setupFormCrearEvaluacion() {
         if (data.exito) {
           msg.innerHTML = `<span style="color:green;">✅ ${data.mensaje}</span>`;
           form.reset();
-          if (fechaInput) fechaInput.value = new Date().toISOString().split("T")[0];
+          if (fechaInput) fechaInput.value = window.ingematToday();
           evalState.modalState.respuestas = {};
+          evalState.keyDraft = {};
           evalState.modalState.areasPorPregunta = {};
           evalState.modalState.preguntasSinDescuento = {};
           evalState.modalState.mostrarActitudinales = false;
           actualizarCamposPorTipo();
           const statusEl = document.getElementById("eval-clave-resumen-status");
-          if (statusEl) statusEl.innerHTML = "⚪ <i>Ingresa la cantidad de preguntas y abre el Pop-Up.</i>";
+          if (statusEl)
+            statusEl.innerHTML =
+              "⚪ <i>Ingresa la cantidad de preguntas y abre el Pop-Up.</i>";
           await cargarDatosEvaluaciones();
         } else {
           msg.innerHTML = `<span style="color:red;">❌ ${data.mensaje}</span>`;
         }
       } catch (err) {
-        msg.innerHTML = '<span style="color:red;">❌ Error al conectar con el servidor.</span>';
+        msg.innerHTML =
+          '<span style="color:red;">❌ Error al conectar con el servidor.</span>';
       }
     });
   }
 }
 
 // 4. Renderizar Lista de Evaluaciones Creadas
+const escapeEval = (value) =>
+  String(value ?? "").replace(
+    /[&<>"']/g,
+    (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        c
+      ],
+  );
 export function renderListaEvaluaciones(evals) {
   const container = document.getElementById("evaluaciones-list-container");
   if (!container) return;
-
-  if (evals.length === 0) {
-    container.innerHTML = "<i>No hay evaluaciones creadas.</i>";
-    return;
-  }
-
-  let html = `<div style="display:flex; flex-direction:column; gap:10px;">`;
-  evals.forEach((e) => {
-    let tipoBadge = `<span style="background:#e0f2fe; color:#0369a1; padding:2px 7px; border-radius:4px; font-size:0.75rem; font-weight:700;">Simulacro estándar</span>`;
-    if (e.tipo === "test") {
-      tipoBadge = `<span style="background:#dcfce7; color:#166534; padding:2px 7px; border-radius:4px; font-size:0.75rem; font-weight:700;">Test</span>`;
-    } else if (e.tipo === "simulacro_areas") {
-      tipoBadge = `<span style="background:#fef3c7; color:#b45309; padding:2px 7px; border-radius:4px; font-size:0.75rem; font-weight:700;">Áreas A-E (${e.totalPreguntasCuadernillo || e.numPreguntas}p)</span>`;
-    }
-
-    const evaluadosCount = (e.respuestasEstudiantes || []).length;
-
-    html += `
-      <div style="background:#fff; border:1px solid #e2e8f0; padding:12px 16px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-        <div>
-          <div style="display:flex; align-items:center; gap:8px; margin-bottom:3px;">
-            <b style="color:#0f172a; font-size:0.95rem;">${e.titulo}</b>
-            <span style="background:#f1f5f9; color:#475569; padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:700;">${e.ciclo}</span>
-            ${tipoBadge}
-          </div>
-          <small style="color:#64748b;">📅 ${e.fecha} | ${e.tipo === 'test' ? 'Nota directa' : `Preguntas: ${e.numPreguntas} (+${e.puntajeCorrecta} / -${e.puntajeIncorrecta})`} | Evaluados: <b>${evaluadosCount}</b></small>
-        </div>
-        <div style="display:flex; gap:6px; align-items:center;">
-          ${e.tipo !== 'test' ? `<button class="btn-download-cartilla" data-id="${e.id}" style="background:#f1f5f9; border:1px solid #cbd5e1; color:#0f172a; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:0.8rem; font-weight:600;" title="Previsualizar / Imprimir Cartilla OMR"><i class="bi bi-file-earmark-pdf"></i> Cartilla</button>` : ''}
-          <button class="btn-delete-eval" data-id="${e.id}" style="background:#fef2f2; border:1px solid #fca5a5; color:#dc2626; padding:4px 8px; border-radius:4px; cursor:pointer;" title="Eliminar Examen"><i class="bi bi-trash"></i></button>
-        </div>
-      </div>
-    `;
-  });
-  html += `</div>`;
-  container.innerHTML = html;
-
-  container.querySelectorAll(".btn-download-cartilla").forEach((btn) => {
-    btn.addEventListener("click", (ev) => {
-      const id = ev.currentTarget.getAttribute("data-id");
-      const evalObj = evals.find((e) => e.id === id);
-      if (evalObj && window._abrirPrevisualizacionCartilla) {
-        window._abrirPrevisualizacionCartilla(evalObj);
+  const tests = evals.filter((e) => e.tipo === "test");
+  container.innerHTML = tests.length
+    ? `<div class="test-list">${tests.map((e) => `<article class="test-list-card"><div><strong>${escapeEval(e.titulo)}</strong><p>${escapeEval(e.ciclo)} · ${escapeEval(e.fecha)}</p><p>Nota directa · ${(e.respuestasEstudiantes || []).length} evaluados</p></div><button type="button" class="btn-delete-eval" data-id="${escapeEval(e.id)}" aria-label="Eliminar ${escapeEval(e.titulo)}"><i class="bi bi-trash" aria-hidden="true"></i></button></article>`).join("")}</div>`
+    : '<div class="v2-empty">Todavía no hay tests o prácticas con nota directa.</div>';
+  for (const button of container.querySelectorAll(".btn-delete-eval"))
+    button.onclick = async () => {
+      if (!confirm("¿Eliminar esta práctica?")) return;
+      const response = await fetch(
+        `/api/evaluaciones/${encodeURIComponent(button.dataset.id)}`,
+        { method: "DELETE" },
+      );
+      if (!response.ok) {
+        const error = await response.json();
+        alert(error.mensaje || "No se pudo eliminar la práctica.");
+        return;
       }
-    });
-  });
-
-  container.querySelectorAll(".btn-delete-eval").forEach((btn) => {
-    btn.addEventListener("click", async (ev) => {
-      const id = ev.currentTarget.getAttribute("data-id");
-      if (confirm("¿Seguro que deseas eliminar esta evaluación?")) {
-        await fetch(`/api/evaluaciones/${id}`, { method: "DELETE" });
-        await cargarDatosEvaluaciones();
-      }
-    });
-  });
+      await cargarDatosEvaluaciones();
+    };
 }
 
 // 5. Pop-Up Modal de Registro de Claves y Respuestas
 export function setupModalClavePopup() {
   const dialog = document.getElementById("modal-clave-popup");
   const btnAbrirClave = document.getElementById("btn-abrir-modal-clave");
-  const btnAbrirRespEstudiante = document.getElementById("btn-abrir-modal-respuestas-estudiante");
+  const btnAbrirRespEstudiante = document.getElementById(
+    "btn-abrir-modal-respuestas-estudiante",
+  );
   const btnCerrar = document.getElementById("btn-cerrar-modal-clave");
   const btnGuardar = document.getElementById("btn-guardar-modal-clave");
   const btnClear = document.getElementById("btn-quick-clear");
   const btnQuickAllAreas = document.getElementById("btn-quick-all-areas");
-  const btnToggleActitudinal = document.getElementById("btn-toggle-modo-actitudinal");
+  const btnToggleActitudinal = document.getElementById(
+    "btn-toggle-modo-actitudinal",
+  );
   const quickFillBtns = document.querySelectorAll(".btn-quick-fill");
-  const checklistContainer = document.getElementById("modal-clave-checklist-container");
+  const checklistContainer = document.getElementById(
+    "modal-clave-checklist-container",
+  );
 
   if (!dialog) return;
 
@@ -378,7 +401,8 @@ export function setupModalClavePopup() {
 
   if (btnToggleActitudinal) {
     btnToggleActitudinal.onclick = () => {
-      evalState.modalState.mostrarActitudinales = !evalState.modalState.mostrarActitudinales;
+      evalState.modalState.mostrarActitudinales =
+        !evalState.modalState.mostrarActitudinales;
       updateToggleBtnState();
       renderModalChecklist();
     };
@@ -387,7 +411,13 @@ export function setupModalClavePopup() {
   if (btnQuickAllAreas) {
     btnQuickAllAreas.onclick = () => {
       for (let i = 1; i <= evalState.modalState.numPreguntas; i++) {
-        evalState.modalState.areasPorPregunta[String(i)] = ["A", "B", "C", "D", "E"];
+        evalState.modalState.areasPorPregunta[String(i)] = [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E",
+        ];
       }
       renderModalChecklist();
     };
@@ -395,15 +425,23 @@ export function setupModalClavePopup() {
 
   if (btnAbrirClave) {
     btnAbrirClave.addEventListener("click", () => {
-      const tipo = document.getElementById("eval-tipo-select")?.value || "simulacro_estandar";
+      const tipo =
+        document.getElementById("eval-tipo-select")?.value ||
+        "simulacro_estandar";
       let numPreg = 100;
 
       if (tipo === "simulacro_areas") {
-        numPreg = parseInt(document.getElementById("eval-total-preguntas-areas")?.value, 10) || 120;
+        numPreg =
+          parseInt(
+            document.getElementById("eval-total-preguntas-areas")?.value,
+            10,
+          ) || 120;
         evalState.modalState.isAreasMode = true;
         if (btnQuickAllAreas) btnQuickAllAreas.style.display = "inline-block";
       } else {
-        numPreg = parseInt(document.getElementById("eval-num-preguntas")?.value, 10) || 100;
+        numPreg =
+          parseInt(document.getElementById("eval-num-preguntas")?.value, 10) ||
+          100;
         evalState.modalState.isAreasMode = false;
         if (btnQuickAllAreas) btnQuickAllAreas.style.display = "none";
       }
@@ -423,13 +461,23 @@ export function setupModalClavePopup() {
       }
 
       evalState.modalState.mode = "clave";
+      evalState.modalState.respuestas = structuredClone(
+        evalState.keyDraft || {},
+      );
       evalState.modalState.numPreguntas = numPreg;
 
       // Inicializar áreas por defecto si no existen
-      if (!evalState.modalState.areasPorPregunta) evalState.modalState.areasPorPregunta = {};
+      if (!evalState.modalState.areasPorPregunta)
+        evalState.modalState.areasPorPregunta = {};
       for (let i = 1; i <= numPreg; i++) {
         if (!evalState.modalState.areasPorPregunta[String(i)]) {
-          evalState.modalState.areasPorPregunta[String(i)] = ["A", "B", "C", "D", "E"];
+          evalState.modalState.areasPorPregunta[String(i)] = [
+            "A",
+            "B",
+            "C",
+            "D",
+            "E",
+          ];
         }
       }
 
@@ -437,9 +485,8 @@ export function setupModalClavePopup() {
         evalState.modalState.preguntasSinDescuento = {};
       }
 
-      document.getElementById(
-        "modal-clave-popup-title"
-      ).innerHTML = `<i class="bi bi-ui-checks-grid"></i> Configurar Claves Oficiales (${numPreg} Preguntas Totales)`;
+      document.getElementById("modal-clave-popup-title").innerHTML =
+        `<i class="bi bi-ui-checks-grid"></i> Configurar Claves Oficiales (${numPreg} Preguntas Totales)`;
       renderModalChecklist();
       dialog.showModal();
     });
@@ -450,11 +497,19 @@ export function setupModalClavePopup() {
       const evalSelect = document.getElementById("eval-select-respuesta");
       const evalId = evalSelect?.value;
       const evalObj = evalState.globalEvaluaciones.find((e) => e.id === evalId);
-      const codigoEst = (document.getElementById("eval-codigo-estudiante")?.value || "").trim().toUpperCase();
-      const statusEl = document.getElementById("eval-respuestas-estudiante-status");
+      const codigoEst = (
+        document.getElementById("eval-codigo-estudiante")?.value || ""
+      )
+        .trim()
+        .toUpperCase();
+      const statusEl = document.getElementById(
+        "eval-respuestas-estudiante-status",
+      );
 
       if (!evalObj) {
-        if (statusEl) statusEl.innerHTML = '<span style="color:#dc2626;">⚠️ Selecciona un examen registrado arriba.</span>';
+        if (statusEl)
+          statusEl.innerHTML =
+            '<span style="color:#dc2626;">⚠️ Selecciona un examen registrado arriba.</span>';
         return;
       }
 
@@ -463,14 +518,23 @@ export function setupModalClavePopup() {
 
       evalState.modalState.mode = "respuesta_estudiante";
       evalState.modalState.isAreasMode = false;
-      evalState.modalState.numPreguntas = evalObj.totalPreguntasCuadernillo || evalObj.numPreguntas;
+      evalState.modalState.numPreguntas =
+        evalObj.totalPreguntasCuadernillo || evalObj.numPreguntas;
 
-      const hasScannedAnswers = evalState.modalState.respuestas && Object.keys(evalState.modalState.respuestas).length > 0;
+      const draft = evalState.responseDraft;
+      const hasScannedAnswers = !!(
+        draft &&
+        draft.evalId === evalId &&
+        draft.codigo === codigoEst
+      );
+      evalState.modalState.respuestas = hasScannedAnswers
+        ? structuredClone(draft.respuestas)
+        : {};
 
       let prevReg = null;
       if (codigoEst && Array.isArray(evalObj.respuestasEstudiantes)) {
         prevReg = evalObj.respuestasEstudiantes.find(
-          (r) => String(r.codigoEstudiante).toUpperCase() === codigoEst
+          (r) => String(r.codigoEstudiante).toUpperCase() === codigoEst,
         );
       }
 
@@ -482,20 +546,19 @@ export function setupModalClavePopup() {
         }
       }
 
-      const count = Object.keys(evalState.modalState.respuestas).filter((k) => evalState.modalState.respuestas[k]).length;
+      const count = Object.keys(evalState.modalState.respuestas).filter(
+        (k) => evalState.modalState.respuestas[k],
+      ).length;
 
       if (hasScannedAnswers) {
-        document.getElementById(
-          "modal-clave-popup-title"
-        ).innerHTML = `<i class="bi bi-camera-fill"></i> Respuestas Escaneadas: ${codigoEst} (${count}/${evalState.modalState.numPreguntas})`;
+        document.getElementById("modal-clave-popup-title").innerHTML =
+          `<i class="bi bi-camera-fill"></i> Respuestas Escaneadas: ${codigoEst} (${count}/${evalState.modalState.numPreguntas})`;
       } else if (prevReg && prevReg.respuestas) {
-        document.getElementById(
-          "modal-clave-popup-title"
-        ).innerHTML = `<i class="bi bi-pencil-square"></i> Modificar Respuestas: ${prevReg.nombreEstudiante || codigoEst} (${evalState.modalState.numPreguntas} Preguntas)`;
+        document.getElementById("modal-clave-popup-title").innerHTML =
+          `<i class="bi bi-pencil-square"></i> Modificar Respuestas: ${prevReg.nombreEstudiante || codigoEst} (${evalState.modalState.numPreguntas} Preguntas)`;
       } else {
-        document.getElementById(
-          "modal-clave-popup-title"
-        ).innerHTML = `<i class="bi bi-person-check-fill"></i> Registrar Respuestas Alumno: ${evalObj.titulo} (${evalState.modalState.numPreguntas} Preguntas)`;
+        document.getElementById("modal-clave-popup-title").innerHTML =
+          `<i class="bi bi-person-check-fill"></i> Registrar Respuestas Alumno: ${evalObj.titulo} (${evalState.modalState.numPreguntas} Preguntas)`;
       }
 
       renderModalChecklist();
@@ -527,17 +590,35 @@ export function setupModalClavePopup() {
 
   if (btnGuardar) {
     btnGuardar.onclick = () => {
-      const count = Object.keys(evalState.modalState.respuestas).filter((k) => evalState.modalState.respuestas[k]).length;
+      const count = Object.keys(evalState.modalState.respuestas).filter(
+        (k) => evalState.modalState.respuestas[k],
+      ).length;
 
       if (evalState.modalState.mode === "clave") {
+        evalState.keyDraft = structuredClone(evalState.modalState.respuestas);
         const statusEl = document.getElementById("eval-clave-resumen-status");
-        const countSinDesc = Object.keys(evalState.modalState.preguntasSinDescuento || {}).filter((k) => evalState.modalState.preguntasSinDescuento[k]).length;
+        const countSinDesc = Object.keys(
+          evalState.modalState.preguntasSinDescuento || {},
+        ).filter((k) => evalState.modalState.preguntasSinDescuento[k]).length;
         if (statusEl) {
-          const actitudinalText = countSinDesc > 0 ? ` (${countSinDesc} actitudinales sin descuento)` : "";
+          const actitudinalText =
+            countSinDesc > 0
+              ? ` (${countSinDesc} actitudinales sin descuento)`
+              : "";
           statusEl.innerHTML = `<b style="color:#166534;">✅ Clave configurada: ${count} de ${evalState.modalState.numPreguntas} respuestas marcadas en el Pop-Up${actitudinalText}.</b>`;
         }
       } else {
-        const statusEl = document.getElementById("eval-respuestas-estudiante-status");
+        evalState.responseDraft = {
+          evalId: document.getElementById("eval-select-respuesta").value,
+          codigo: document
+            .getElementById("eval-codigo-estudiante")
+            .value.trim()
+            .toUpperCase(),
+          respuestas: structuredClone(evalState.modalState.respuestas),
+        };
+        const statusEl = document.getElementById(
+          "eval-respuestas-estudiante-status",
+        );
         if (statusEl) {
           statusEl.innerHTML = `<b style="color:#166534;">✅ Respuestas del estudiante: ${count} de ${evalState.modalState.numPreguntas} alternativas marcadas en el Pop-Up.</b>`;
         }
@@ -555,13 +636,16 @@ export function setupModalClavePopup() {
     const allAreas = ["A", "B", "C", "D", "E"];
     const isClaveMode = evalState.modalState.mode === "clave";
     const isClaveAreas = isClaveMode && evalState.modalState.isAreasMode;
-    const showActitudinalCol = isClaveMode && !!evalState.modalState.mostrarActitudinales;
+    const showActitudinalCol =
+      isClaveMode && !!evalState.modalState.mostrarActitudinales;
 
     for (let i = 1; i <= evalState.modalState.numPreguntas; i++) {
       const qStr = String(i);
       const currentSelected = evalState.modalState.respuestas[i] || "";
-      const currentAreas = evalState.modalState.areasPorPregunta?.[qStr] || allAreas;
-      const isSinDescuento = isClaveMode && !!(evalState.modalState.preguntasSinDescuento?.[qStr]);
+      const currentAreas =
+        evalState.modalState.areasPorPregunta?.[qStr] || allAreas;
+      const isSinDescuento =
+        isClaveMode && !!evalState.modalState.preguntasSinDescuento?.[qStr];
 
       let areasHtml = "";
       if (isClaveAreas) {
@@ -575,7 +659,7 @@ export function setupModalClavePopup() {
                 <input type="checkbox" class="chk-area-opt" data-q="${i}" data-area="${a}" ${currentAreas.includes(a) ? "checked" : ""} />
                 ${a}
               </label>
-            `
+            `,
               )
               .join("")}
           </div>
@@ -602,7 +686,7 @@ export function setupModalClavePopup() {
               <div class="opt-pill ${currentSelected === opt ? "selected" : ""}" data-q="${i}" data-opt="${opt}">
                 ${opt}
               </div>
-            `
+            `,
               )
               .join("")}
           </div>
@@ -637,7 +721,13 @@ export function setupModalClavePopup() {
           const q = chk.getAttribute("data-q");
           const area = chk.getAttribute("data-area");
           if (!evalState.modalState.areasPorPregunta[q]) {
-            evalState.modalState.areasPorPregunta[q] = ["A", "B", "C", "D", "E"];
+            evalState.modalState.areasPorPregunta[q] = [
+              "A",
+              "B",
+              "C",
+              "D",
+              "E",
+            ];
           }
 
           let arr = evalState.modalState.areasPorPregunta[q];
@@ -653,25 +743,31 @@ export function setupModalClavePopup() {
 
     // Listeners de checkboxes de actitudinal (sin descuento)
     if (showActitudinalCol) {
-      checklistContainer.querySelectorAll(".chk-no-descuento-opt").forEach((chk) => {
-        chk.onchange = () => {
-          const q = chk.getAttribute("data-q");
-          if (!evalState.modalState.preguntasSinDescuento) {
-            evalState.modalState.preguntasSinDescuento = {};
-          }
-          if (chk.checked) {
-            evalState.modalState.preguntasSinDescuento[q] = true;
-          } else {
-            delete evalState.modalState.preguntasSinDescuento[q];
-          }
-          renderModalChecklist();
-        };
-      });
+      checklistContainer
+        .querySelectorAll(".chk-no-descuento-opt")
+        .forEach((chk) => {
+          chk.onchange = () => {
+            const q = chk.getAttribute("data-q");
+            if (!evalState.modalState.preguntasSinDescuento) {
+              evalState.modalState.preguntasSinDescuento = {};
+            }
+            if (chk.checked) {
+              evalState.modalState.preguntasSinDescuento[q] = true;
+            } else {
+              delete evalState.modalState.preguntasSinDescuento[q];
+            }
+            renderModalChecklist();
+          };
+        });
     }
 
     const counterEl = document.getElementById("modal-clave-counter-status");
-    const count = Object.keys(evalState.modalState.respuestas).filter((k) => evalState.modalState.respuestas[k]).length;
-    const countSinDesc = Object.keys(evalState.modalState.preguntasSinDescuento || {}).filter((k) => evalState.modalState.preguntasSinDescuento[k]).length;
+    const count = Object.keys(evalState.modalState.respuestas).filter(
+      (k) => evalState.modalState.respuestas[k],
+    ).length;
+    const countSinDesc = Object.keys(
+      evalState.modalState.preguntasSinDescuento || {},
+    ).filter((k) => evalState.modalState.preguntasSinDescuento[k]).length;
     if (counterEl) {
       if (isClaveMode && countSinDesc > 0) {
         counterEl.textContent = `${count} de ${evalState.modalState.numPreguntas} preguntas marcadas (${countSinDesc} actitudinales sin descuento)`;

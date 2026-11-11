@@ -17,7 +17,7 @@ function ensureIngresantesDir() {
   } catch (err) {
     console.error(
       "Carousel Route: Error al crear carpeta 'img/ingresantes':",
-      err
+      err,
     );
   }
 }
@@ -33,7 +33,7 @@ router.get("/", (req, res) => {
           file.startsWith(carouselPrefix) &&
           (file.endsWith(".png") ||
             file.endsWith(".jpg") ||
-            file.endsWith(".jpeg"))
+            file.endsWith(".jpeg")),
       )
       .sort((a, b) => {
         const timeA = parseInt(a.substring(1).split(".")[0] || "0");
@@ -132,7 +132,7 @@ router.delete("/:filename", requireAdmin, (req, res) => {
   if (
     !filename.startsWith(carouselPrefix) ||
     filename.includes("..") ||
-    filename.includes("/")
+    /[\\/]/.test(filename)
   ) {
     return res
       .status(400)

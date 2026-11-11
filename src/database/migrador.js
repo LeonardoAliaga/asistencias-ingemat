@@ -3,17 +3,31 @@ const fs = require("fs");
 const path = require("path");
 const db = require("./db.js");
 
-function ejecutarMigracionInicial(force = false) {
-  const dataDir = path.join(__dirname, "../../data");
+function ejecutarMigracionInicial() {
+  const { dataDir } = require("../config");
+  if (
+    db
+      .prepare("SELECT valor FROM config_general WHERE clave = ?")
+      .get("legacy_json_imported")
+  )
+    return;
 
   // 1. Migrar Usuarios
   const usuariosPath = path.join(dataDir, "usuarios.json");
   if (fs.existsSync(usuariosPath)) {
     try {
       const usuarios = JSON.parse(fs.readFileSync(usuariosPath, "utf8"));
-      const stmtCount = db.prepare("SELECT COUNT(*) as count FROM usuarios").get();
-      if ((force || stmtCount.count === 0) && Array.isArray(usuarios) && usuarios.length > 0) {
-        console.log(`📦 Migrando ${usuarios.length} usuarios desde usuarios.json a SQLite...`);
+      const stmtCount = db
+        .prepare("SELECT COUNT(*) as count FROM usuarios")
+        .get();
+      if (
+        stmtCount.count === 0 &&
+        Array.isArray(usuarios) &&
+        usuarios.length > 0
+      ) {
+        console.log(
+          `📦 Migrando ${usuarios.length} usuarios desde usuarios.json a SQLite...`,
+        );
         const insert = db.prepare(`
           INSERT OR REPLACE INTO usuarios (codigo, nombre, apellido, rol, turno, ciclo, dias_asistencia)
           VALUES (@codigo, @nombre, @apellido, @rol, @turno, @ciclo, @dias_asistencia)
@@ -37,6 +51,7 @@ function ejecutarMigracionInicial(force = false) {
       }
     } catch (e) {
       console.error("⚠️ Error migrando usuarios.json:", e.message);
+      throw e;
     }
   }
 
@@ -45,11 +60,17 @@ function ejecutarMigracionInicial(force = false) {
   if (fs.existsSync(ciclosPath)) {
     try {
       const ciclosObj = JSON.parse(fs.readFileSync(ciclosPath, "utf8"));
-      const ciclos = Array.isArray(ciclosObj) ? ciclosObj : (ciclosObj.ciclos || []);
-      const stmtCount = db.prepare("SELECT COUNT(*) as count FROM ciclos").get();
-      if ((force || stmtCount.count === 0) && Array.isArray(ciclos) && ciclos.length > 0) {
+      const ciclos = Array.isArray(ciclosObj)
+        ? ciclosObj
+        : ciclosObj.ciclos || [];
+      const stmtCount = db
+        .prepare("SELECT COUNT(*) as count FROM ciclos")
+        .get();
+      if (stmtCount.count === 0 && Array.isArray(ciclos) && ciclos.length > 0) {
         console.log(`📦 Migrando ${ciclos.length} ciclos a SQLite...`);
-        const insert = db.prepare("INSERT OR IGNORE INTO ciclos (nombre) VALUES (?)");
+        const insert = db.prepare(
+          "INSERT OR IGNORE INTO ciclos (nombre) VALUES (?)",
+        );
         const insertMany = db.transaction((cList) => {
           for (const c of cList) insert.run(String(c).toUpperCase());
         });
@@ -58,6 +79,7 @@ function ejecutarMigracionInicial(force = false) {
       }
     } catch (e) {
       console.error("⚠️ Error migrando ciclos.json:", e.message);
+      throw e;
     }
   }
 
@@ -66,16 +88,21 @@ function ejecutarMigracionInicial(force = false) {
   if (fs.existsSync(ciclosVisualPath)) {
     try {
       const cvObj = JSON.parse(fs.readFileSync(ciclosVisualPath, "utf8"));
-      const row = db.prepare("SELECT valor FROM config_general WHERE clave = 'ciclos_visual'").get();
-      if (force || !row) {
+      const row = db
+        .prepare(
+          "SELECT valor FROM config_general WHERE clave = 'ciclos_visual'",
+        )
+        .get();
+      if (!row) {
         console.log("📦 Migrando ciclos_visual.json a SQLite...");
-        db.prepare("INSERT OR REPLACE INTO config_general (clave, valor) VALUES ('ciclos_visual', ?)").run(
-          JSON.stringify(cvObj, null, 2)
-        );
+        db.prepare(
+          "INSERT OR REPLACE INTO config_general (clave, valor) VALUES ('ciclos_visual', ?)",
+        ).run(JSON.stringify(cvObj, null, 2));
         console.log("✅ Ciclos visuales migrados exitosamente.");
       }
     } catch (e) {
       console.error("⚠️ Error migrando ciclos_visual.json:", e.message);
+      throw e;
     }
   }
 
@@ -84,9 +111,14 @@ function ejecutarMigracionInicial(force = false) {
   if (fs.existsSync(horariosPath)) {
     try {
       const data = JSON.parse(fs.readFileSync(horariosPath, "utf8"));
-      const stmtCount = db.prepare("SELECT COUNT(*) as count FROM horarios").get();
-      const horariosObj = data.ciclos || data.horarios || {};
-      if ((force || stmtCount.count === 0) && Object.keys(horariosObj).length > 0) {
+      const stmtCount = db
+        .prepare("SELECT COUNT(*) as count FROM horarios")
+        .get();
+      const horariosObj = {
+        ...(data.ciclos || data.horarios || {}),
+        ...(data.default ? { DEFAULT: data.default } : {}),
+      };
+      if (stmtCount.count === 0 && Object.keys(horariosObj).length > 0) {
         console.log("📦 Migrando configuración de horarios a SQLite...");
         const insert = db.prepare(`
           INSERT OR REPLACE INTO horarios (ciclo, manana_entrada, manana_tolerancia, tarde_entrada, tarde_tolerancia)
@@ -99,7 +131,7 @@ function ejecutarMigracionInicial(force = false) {
               h.mañana?.entrada || "08:30",
               h.mañana?.tolerancia || "08:35",
               h.tarde?.entrada || "15:00",
-              h.tarde?.tolerancia || "15:15"
+              h.tarde?.tolerancia || "15:15",
             );
           }
         });
@@ -108,6 +140,7 @@ function ejecutarMigracionInicial(force = false) {
       }
     } catch (e) {
       console.error("⚠️ Error migrando horarios.json:", e.message);
+      throw e;
     }
   }
 
@@ -116,18 +149,22 @@ function ejecutarMigracionInicial(force = false) {
   if (fs.existsSync(evalPath)) {
     try {
       const data = JSON.parse(fs.readFileSync(evalPath, "utf8"));
-      const stmtCount = db.prepare("SELECT COUNT(*) as count FROM evaluaciones").get();
-      if ((force || stmtCount.count === 0) && data && Array.isArray(data.evaluaciones)) {
-        console.log(`📦 Migrando ${data.evaluaciones.length} evaluaciones a SQLite...`);
+      const stmtCount = db
+        .prepare("SELECT COUNT(*) as count FROM evaluaciones")
+        .get();
+      if (stmtCount.count === 0 && data && Array.isArray(data.evaluaciones)) {
+        console.log(
+          `📦 Migrando ${data.evaluaciones.length} evaluaciones a SQLite...`,
+        );
 
         const insertEval = db.prepare(`
-          INSERT OR REPLACE INTO evaluaciones (id, titulo, ciclo, fecha, numPreguntas, puntajeCorrecta, puntajeIncorrecta, claves)
-          VALUES (@id, @titulo, @ciclo, @fecha, @numPreguntas, @puntajeCorrecta, @puntajeIncorrecta, @claves)
+          INSERT OR REPLACE INTO evaluaciones (id, titulo, ciclo, fecha, numPreguntas, puntajeCorrecta, puntajeIncorrecta, claves,tipo,totalPreguntasCuadernillo,preguntasPorArea,preguntasSinDescuento)
+          VALUES (@id, @titulo, @ciclo, @fecha, @numPreguntas, @puntajeCorrecta, @puntajeIncorrecta, @claves,@tipo,@totalPreguntasCuadernillo,@preguntasPorArea,@preguntasSinDescuento)
         `);
 
         const insertResp = db.prepare(`
-          INSERT INTO respuestas_evaluacion (evaluacion_id, codigoEstudiante, nombreEstudiante, ciclo, correctas, incorrectas, enBlanco, puntajeTotal, posicion, respuestas)
-          VALUES (@evaluacion_id, @codigoEstudiante, @nombreEstudiante, @ciclo, @correctas, @incorrectas, @enBlanco, @puntajeTotal, @posicion, @respuestas)
+          INSERT INTO respuestas_evaluacion (evaluacion_id, codigoEstudiante, nombreEstudiante, ciclo, correctas, incorrectas, enBlanco, puntajeTotal, posicion, respuestas,area)
+          VALUES (@evaluacion_id, @codigoEstudiante, @nombreEstudiante, @ciclo, @correctas, @incorrectas, @enBlanco, @puntajeTotal, @posicion, @respuestas,@area)
         `);
 
         const insertMany = db.transaction((evals) => {
@@ -141,6 +178,13 @@ function ejecutarMigracionInicial(force = false) {
               puntajeCorrecta: e.puntajeCorrecta,
               puntajeIncorrecta: e.puntajeIncorrecta,
               claves: JSON.stringify(e.claves || e.claveRespuestas || {}),
+              tipo: e.tipo || "simulacro_estandar",
+              totalPreguntasCuadernillo:
+                e.totalPreguntasCuadernillo || e.numPreguntas,
+              preguntasPorArea: JSON.stringify(e.preguntasPorArea || {}),
+              preguntasSinDescuento: JSON.stringify(
+                e.preguntasSinDescuento || {},
+              ),
             });
 
             if (Array.isArray(e.respuestasEstudiantes)) {
@@ -156,6 +200,7 @@ function ejecutarMigracionInicial(force = false) {
                   puntajeTotal: r.puntajeTotal || 0,
                   posicion: r.posicion || 0,
                   respuestas: JSON.stringify(r.respuestas || {}),
+                  area: r.area || "",
                 });
               }
             }
@@ -166,6 +211,7 @@ function ejecutarMigracionInicial(force = false) {
       }
     } catch (e) {
       console.error("⚠️ Error migrando evaluaciones.json:", e.message);
+      throw e;
     }
   }
 
@@ -174,10 +220,14 @@ function ejecutarMigracionInicial(force = false) {
   if (fs.existsSync(tareasPath)) {
     try {
       const dataObj = JSON.parse(fs.readFileSync(tareasPath, "utf8"));
-      const tareas = Array.isArray(dataObj) ? dataObj : (dataObj.tareas || []);
-      const stmtCount = db.prepare("SELECT COUNT(*) as count FROM tareas").get();
-      if ((force || stmtCount.count === 0) && Array.isArray(tareas) && tareas.length > 0) {
-        console.log(`📦 Migrando ${tareas.length} grupos de tareas a SQLite...`);
+      const tareas = Array.isArray(dataObj) ? dataObj : dataObj.tareas || [];
+      const stmtCount = db
+        .prepare("SELECT COUNT(*) as count FROM tareas")
+        .get();
+      if (stmtCount.count === 0 && Array.isArray(tareas) && tareas.length > 0) {
+        console.log(
+          `📦 Migrando ${tareas.length} grupos de tareas a SQLite...`,
+        );
 
         const insertTarea = db.prepare(`
           INSERT OR REPLACE INTO tareas (id, curso, ciclo, fecha, tipoEvaluacion)
@@ -217,6 +267,7 @@ function ejecutarMigracionInicial(force = false) {
       }
     } catch (e) {
       console.error("⚠️ Error migrando tareas.json:", e.message);
+      throw e;
     }
   }
 
@@ -225,9 +276,11 @@ function ejecutarMigracionInicial(force = false) {
   if (fs.existsSync(biblioPath)) {
     try {
       const dataObj = JSON.parse(fs.readFileSync(biblioPath, "utf8"));
-      const libros = Array.isArray(dataObj) ? dataObj : (dataObj.libros || []);
-      const stmtCount = db.prepare("SELECT COUNT(*) as count FROM libros").get();
-      if ((force || stmtCount.count === 0) && Array.isArray(libros) && libros.length > 0) {
+      const libros = Array.isArray(dataObj) ? dataObj : dataObj.libros || [];
+      const stmtCount = db
+        .prepare("SELECT COUNT(*) as count FROM libros")
+        .get();
+      if (stmtCount.count === 0 && Array.isArray(libros) && libros.length > 0) {
         console.log(`📦 Migrando ${libros.length} libros a SQLite...`);
         const insert = db.prepare(`
           INSERT OR REPLACE INTO libros (id, codigo, titulo, autor, categoria, editorial, stock, prestados)
@@ -252,6 +305,7 @@ function ejecutarMigracionInicial(force = false) {
       }
     } catch (e) {
       console.error("⚠️ Error migrando biblioteca.json:", e.message);
+      throw e;
     }
   }
 
@@ -260,9 +314,17 @@ function ejecutarMigracionInicial(force = false) {
   if (fs.existsSync(prestamosPath)) {
     try {
       const dataObj = JSON.parse(fs.readFileSync(prestamosPath, "utf8"));
-      const prestamos = Array.isArray(dataObj) ? dataObj : (dataObj.prestamos || []);
-      const stmtCount = db.prepare("SELECT COUNT(*) as count FROM prestamos").get();
-      if ((force || stmtCount.count === 0) && Array.isArray(prestamos) && prestamos.length > 0) {
+      const prestamos = Array.isArray(dataObj)
+        ? dataObj
+        : dataObj.prestamos || [];
+      const stmtCount = db
+        .prepare("SELECT COUNT(*) as count FROM prestamos")
+        .get();
+      if (
+        stmtCount.count === 0 &&
+        Array.isArray(prestamos) &&
+        prestamos.length > 0
+      ) {
         console.log(`📦 Migrando ${prestamos.length} préstamos a SQLite...`);
         const insert = db.prepare(`
           INSERT OR REPLACE INTO prestamos (id, libroCodigo, estudianteCodigo, estudianteNombre, fechaPrestamo, fechaDevolucion, estado)
@@ -286,6 +348,7 @@ function ejecutarMigracionInicial(force = false) {
       }
     } catch (e) {
       console.error("⚠️ Error migrando prestamos.json:", e.message);
+      throw e;
     }
   }
 
@@ -294,31 +357,20 @@ function ejecutarMigracionInicial(force = false) {
   if (fs.existsSync(waPath)) {
     try {
       const waConfig = JSON.parse(fs.readFileSync(waPath, "utf8"));
-      const row = db.prepare("SELECT valor FROM config_general WHERE clave = 'whatsapp_config'").get();
-      if (force || !row) {
-        db.prepare("INSERT OR REPLACE INTO config_general (clave, valor) VALUES ('whatsapp_config', ?)").run(
-          JSON.stringify(waConfig, null, 2)
-        );
+      const row = db
+        .prepare(
+          "SELECT valor FROM config_general WHERE clave = 'whatsapp_config'",
+        )
+        .get();
+      if (!row) {
+        db.prepare(
+          "INSERT OR REPLACE INTO config_general (clave, valor) VALUES ('whatsapp_config', ?)",
+        ).run(JSON.stringify(waConfig, null, 2));
         console.log("✅ Configuración de WhatsApp migrada exitosamente.");
       }
     } catch (e) {
       console.error("⚠️ Error migrando whatsappConfig.json:", e.message);
-    }
-  }
-
-  // 10. Migrar Password de Admin
-  const passPath = path.join(dataDir, "password.json");
-  if (fs.existsSync(passPath)) {
-    try {
-      const passObj = JSON.parse(fs.readFileSync(passPath, "utf8"));
-      if (passObj && passObj.password) {
-        db.prepare("INSERT OR REPLACE INTO config_general (clave, valor) VALUES ('admin_password', ?)").run(
-          passObj.password
-        );
-        console.log("✅ Contraseña de Admin migrada exitosamente.");
-      }
-    } catch (e) {
-      console.error("⚠️ Error migrando password.json:", e.message);
+      throw e;
     }
   }
 
@@ -328,7 +380,9 @@ function ejecutarMigracionInicial(force = false) {
     try {
       const notesObj = JSON.parse(fs.readFileSync(notesPath, "utf8"));
       if (notesObj && typeof notesObj === "object") {
-        const stmt = db.prepare("INSERT OR REPLACE INTO config_general (clave, valor) VALUES (?, ?)");
+        const stmt = db.prepare(
+          "INSERT OR REPLACE INTO config_general (clave, valor) VALUES (?, ?)",
+        );
         for (const [codigo, nota] of Object.entries(notesObj)) {
           if (nota) stmt.run(`note_${codigo}`, String(nota));
         }
@@ -336,15 +390,46 @@ function ejecutarMigracionInicial(force = false) {
       }
     } catch (e) {
       console.error("⚠️ Error migrando notes.json:", e.message);
+      throw e;
     }
   }
+  for (const row of db
+    .prepare(
+      "SELECT * FROM respuestas_evaluacion WHERE id NOT IN (SELECT MAX(id) FROM respuestas_evaluacion GROUP BY evaluacion_id,codigoEstudiante)",
+    )
+    .all()) {
+    db.prepare(
+      "INSERT INTO grade_history(evaluation_id,student_code,revision,snapshot,actor,reason) VALUES(?,?,?,?,?,?)",
+    ).run(
+      row.evaluacion_id,
+      row.codigoEstudiante,
+      row.revision || 1,
+      JSON.stringify(row),
+      "migracion",
+      "Registro duplicado conservado antes de crear la restricción de unicidad",
+    );
+    db.prepare("DELETE FROM respuestas_evaluacion WHERE id=?").run(row.id);
+  }
+  db.exec(
+    "CREATE UNIQUE INDEX IF NOT EXISTS respuesta_unica ON respuestas_evaluacion(evaluacion_id,codigoEstudiante)",
+  );
+  db.prepare(
+    "INSERT OR REPLACE INTO config_general(clave,valor) VALUES(?,?)",
+  ).run("legacy_json_imported", new Date().toISOString());
+  const { randomUUID } = require("node:crypto");
+  for (const u of db
+    .prepare("SELECT codigo FROM usuarios WHERE uid = '' OR uid IS NULL")
+    .all())
+    db.prepare("UPDATE usuarios SET uid=? WHERE codigo=?").run(
+      randomUUID(),
+      u.codigo,
+    );
 }
 
-// Permitir ejecución directa por línea de comandos: `node src/database/migrador.js --force`
+// Migración idempotente: los datos ya importados nunca se reemplazan.
 if (require.main === module) {
-  const isForce = process.argv.includes("--force");
-  console.log(`🚀 Ejecutando migración de datos (modo forzado: ${isForce})...`);
-  ejecutarMigracionInicial(isForce);
+  console.log("Ejecutando migración idempotente...");
+  ejecutarMigracionInicial();
   console.log("🎉 Proceso de migración finalizado.");
 }
 

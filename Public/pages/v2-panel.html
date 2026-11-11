@@ -1,0 +1,948 @@
+<div class="v2-shell">
+  <div aria-live="polite" hidden="" id="v2-message" role="status"></div>
+  <section class="v2-panel" data-v2-panel="exams">
+    <div class="v2-toolbar">
+      <label
+        >Examen<select id="v2-exam-select">
+          <option value="">Selecciona una evaluación</option>
+        </select></label
+      ><button class="v2-button" id="v2-new">Nuevo examen</button
+      ><button class="v2-button secondary" id="v2-reload">Actualizar</button
+      ><button class="v2-link" data-guide="simulacro-120">
+        Guía de áreas y cursos
+      </button>
+    </div>
+    <div class="v2-notice" id="v2-exam-summary">
+      Selecciona un examen para imprimir cartillas, cargar respuestas o
+      consultar resultados.
+    </div>
+    <div class="v2-toolbar" hidden="" id="v2-exam-actions">
+      <button class="v2-button secondary" id="v2-edit">Editar borrador</button
+      ><button class="v2-button" id="v2-ready">Validar y preparar</button
+      ><button class="v2-button secondary" id="v2-revise">
+        Revisar claves y reglas</button
+      ><button class="v2-button danger" id="v2-archive">Archivar</button
+      ><button class="v2-button danger" data-admin="" id="v2-delete-permanent" type="button" title="Eliminar este simulacro y todos sus registros">Eliminar definitivamente</button
+      ><button class="v2-button secondary whatsapp-send-button" data-admin="" id="v2-share-results-group" type="button">
+        <i class="bi bi-whatsapp" aria-hidden="true"></i> Enviar ranking por área a WhatsApp
+      </button>
+    </div>
+    <form class="v2-card exam-wizard" hidden="" id="v2-exam-editor">
+      <div class="wizard-heading">
+        <h3>Diseñar simulacro</h3>
+        <button class="v2-link" data-guide="simulacro-100" type="button">
+          Tutorial paso a paso
+        </button>
+        <button class="v2-link" id="v2-cancel-edit" type="button">
+          Cerrar editor
+        </button>
+      </div>
+      <nav aria-label="Pasos del simulacro" class="wizard-steps">
+        <button
+          aria-current="step"
+          class="wizard-step"
+          data-wizard-step="0"
+          type="button"
+        >
+          <span class="wizard-number">1</span><span>Datos</span></button
+        ><button
+          aria-current="false"
+          class="wizard-step"
+          data-wizard-step="1"
+          type="button"
+        >
+          <span class="wizard-number">2</span
+          ><span>Cursos y áreas</span></button
+        ><button
+          aria-current="false"
+          class="wizard-step"
+          data-wizard-step="2"
+          type="button"
+        >
+          <span class="wizard-number">3</span><span>Claves</span></button
+        ><button
+          aria-current="false"
+          class="wizard-step"
+          data-wizard-step="3"
+          type="button"
+        >
+          <span class="wizard-number">4</span><span>Revisión</span>
+        </button>
+      </nav>
+      <div class="wizard-pane" data-wizard-pane="0">
+        <h3>Empieza por los datos del examen</h3>
+        <p class="v2-help">
+          Completa título, ciclo y fecha. Elige una plantilla y revisa los
+          puntajes.
+        </p>
+        <div class="v2-form-grid">
+          <label
+            >Título<input
+              maxlength="180"
+              name="titulo"
+              placeholder="Simulacro de admisión · semana 1"
+              required="" /></label
+          ><label>Ciclo<select name="ciclo" required=""></select></label
+          ><label>Fecha<input name="fecha" required="" type="date" /></label
+          ><label
+            >Plantilla<select id="v2-preset">
+              <option value="repaso-unmsm">Simulacro tipo UNMSM</option>
+              <option value="100">Estándar de 100 preguntas</option>
+              <option value="120">Estándar de 120 preguntas</option>
+              <option value="areas">
+                Por áreas · 120 impresas / 100 evaluables
+              </option>
+              <option value="custom">Personalizado · empezar desde cero</option>
+            </select></label
+          ><label
+            >Preguntas del cuadernillo<input
+              max="200"
+              min="1"
+              name="total"
+              required=""
+              type="number"
+              value="100"
+          /></label>
+        </div>
+        <div id="v2-fixed-preset" class="v2-notice" hidden>
+          <strong>Simulacro tipo UNMSM: configuración establecida</strong>
+          <p id="v2-preset-source" class="v2-help">
+            120 preguntas, 19 cursos y áreas A–E ya distribuidos según los PDF
+            de repaso; 100 evaluables por área. Continuar te lleva a Claves. Las
+            actitudinales solo suman por acierto. Para crear otra distribución,
+            elige una base o Personalizado y empieza desde cero.
+          </p>
+        </div>
+        <div id="v2-format-confirm" class="v2-notice warning" hidden>
+          <p>
+            Aplicar esta plantilla reemplazará los cursos, áreas y claves que
+            estás editando.
+          </p>
+          <div class="v2-toolbar">
+            <button id="v2-format-apply" class="v2-button" type="button">
+              Aplicar plantilla</button
+            ><button
+              id="v2-format-keep"
+              class="v2-button secondary"
+              type="button"
+            >
+              Conservar mi configuración
+            </button>
+          </div>
+        </div>
+        <section class="wizard-scoring" aria-labelledby="wizard-scoring-title">
+          <h4 id="wizard-scoring-title">Puntajes del simulacro</h4>
+          <p class="v2-help" id="wizard-scoring-help">
+            Valores generales del simulacro.
+          </p>
+          <div class="v2-form-grid">
+            <label
+              >Puntos por correcta<input
+                name="correct"
+                required=""
+                step=".001"
+                type="number"
+                value="20" /></label
+            ><label
+              >Penalización por incorrecta<input
+                min="0"
+                name="wrong"
+                required=""
+                step=".001"
+                type="number"
+                value="1.125" /></label
+            ><label
+              >Puntos por blanco<input
+                name="blank"
+                required=""
+                step=".001"
+                type="number"
+                value="0"
+            /></label>
+          </div>
+        </section>
+      </div>
+      <div class="wizard-pane" data-wizard-pane="1" hidden="">
+        <h3>Distribuye las preguntas por curso</h3>
+        <p class="v2-help">
+          Abre un curso para editarlo. Las preguntas deben cubrir el cuadernillo
+          completo, sin repetirse.
+        </p>
+        <details id="wizard-areas">
+          <summary>Áreas y cantidad evaluable</summary>
+          <p class="v2-help">
+            La cantidad evaluable puede ser diferente para cada área. Los
+            códigos deben coincidir con los asignados a tus estudiantes.
+          </p>
+          <div id="v2-areas"></div>
+          <button class="v2-button secondary" id="v2-add-area" type="button">
+            Agregar área
+          </button>
+        </details>
+        <p class="v2-help">
+          Cada pregunta pertenece a un curso. Para cada área indica los números
+          aplicables. Ejemplo: 1-10,15,18-20. En «Elegir cupo» el estudiante
+          elige qué responder, hasta el límite definido.
+        </p>
+        <div id="v2-sections"></div>
+        <button class="v2-button secondary" id="v2-add-section" type="button">
+          Agregar curso
+        </button>
+        <details>
+          <summary>Ajustes de puntaje para todos los cursos</summary>
+          <button
+            class="v2-button secondary"
+            id="v2-apply-scoring"
+            type="button"
+          >
+            Aplicar puntajes generales a todos los cursos
+          </button>
+        </details>
+
+        <div
+          class="structure-summary"
+          id="v2-structure-summary"
+          role="status"
+        ></div>
+      </div>
+      <div class="wizard-pane" data-wizard-pane="2" hidden="">
+        <h3>Carga la clave de respuestas</h3>
+        <p class="v2-help">
+          Selecciona un curso y marca A, B, C, D o E para cada pregunta. El
+          editor avanza solo y muestra las pendientes. Puedes guardar el
+          borrador y continuar después.
+        </p>
+        <p class="v2-help" id="v2-keys-count" role="status"></p>
+        <details id="v2-keys-bulk">
+          <summary>Pegar una lista de claves (opcional)</summary>
+          <p class="v2-help">
+            Si ya tienes las respuestas, pega A B C D E… en orden, sin escribir
+            números. Reemplaza la lista completa; revisa el contador y las
+            preguntas en el editor visual. Para corregir preguntas sueltas
+            también se admite una línea por pregunta, como 1,B.
+          </p>
+          <label
+            >Lista de alternativas<textarea
+              id="v2-keys"
+              placeholder="A B C D E…"
+              rows="5"
+              spellcheck="false"
+            ></textarea>
+          </label>
+          <p class="v2-help">
+            B/D acepta ambas alternativas. Las anulaciones y puntajes por
+            alternativa se configuran en las excepciones.
+          </p>
+        </details>
+        <details>
+          <summary>Excepciones de puntaje y versiones del cuadernillo</summary>
+          <div class="v2-form-grid">
+            <label
+              >Preguntas sin penalización<input
+                id="v2-no-penalty"
+                placeholder="Ej.: 1-10" /></label
+            ><label
+              >Preguntas anuladas<input
+                id="v2-void"
+                placeholder="Ej.: 42,67" /></label
+            ><label
+              >Regla de anulación<select id="v2-void-policy">
+                <option value="credit">Otorgar puntos</option>
+                <option value="exclude">Excluir del puntaje</option>
+              </select></label
+            >
+          </div>
+          <label
+            >Puntos por alternativa (número,A,B,C,D,E)<textarea
+              id="v2-option-scores"
+              placeholder="15,20,15,10,5,0"
+              rows="3"
+            ></textarea></label
+          ><label
+            >Versiones (código: orden de preguntas originales)<textarea
+              id="v2-forms"
+              placeholder="A:1-100
+B:51-100,1-50"
+              rows="3"
+            ></textarea>
+          </label>
+          <p class="v2-help">
+            Una versión modifica el orden de las preguntas y conserva las
+            alternativas. Deja vacío para usar A en el orden original.
+          </p>
+        </details>
+      </div>
+      <div class="wizard-pane" data-wizard-pane="3" hidden="">
+        <h3>Revisa antes de preparar</h3>
+        <p class="v2-help">
+          Comprueba cantidades, cursos y claves. Una vez validado, el examen
+          estará listo para imprimir y calificar.
+        </p>
+        <div id="v2-wizard-review"></div>
+        <label
+          >Nombre de la plantilla<input
+            id="v2-template-name"
+            maxlength="100"
+            placeholder="Ej.: Simulacro semanal de ciencias"
+        /></label>
+        <button class="v2-button secondary" id="v2-save-template" type="button">
+          Guardar como plantilla
+        </button>
+        <p class="v2-help" id="v2-template-feedback" role="status"></p>
+      </div>
+      <footer class="wizard-footer">
+        <button
+          class="v2-button secondary"
+          hidden=""
+          id="wizard-back"
+          type="button"
+        >
+          Anterior</button
+        ><span class="help" id="wizard-progress">Paso 1 de 4</span>
+        <div>
+          <button class="v2-button" id="wizard-next" type="button">
+            Continuar <i class="bi bi-arrow-right"></i></button
+          ><button
+            class="v2-button secondary"
+            hidden=""
+            id="wizard-save"
+            type="submit"
+          >
+            Guardar borrador</button
+          ><button
+            class="v2-button"
+            hidden=""
+            id="wizard-prepare"
+            type="submit"
+          >
+            Guardar y validar
+          </button>
+        </div>
+      </footer>
+    </form>
+    <div hidden="" id="v2-exam-workspace">
+      <div aria-label="Trabajo del simulacro" class="local-tabs" role="tablist">
+        <button
+          aria-selected="true"
+          data-local-tab="exam-results"
+          role="tab"
+          type="button"
+        >
+          Resultados</button
+        ><button
+          aria-selected="false"
+          data-local-tab="exam-sheets"
+          role="tab"
+          type="button"
+        >
+          Imprimir cartillas</button
+        ><button
+          aria-selected="false"
+          data-local-tab="exam-manual"
+          id="v2-manual-tab"
+          role="tab"
+          type="button"
+        >
+          Ingreso manual
+        </button>
+      </div>
+
+      <div data-local-panel="exam-results">
+        <div class="v2-card">
+          <div class="v2-card-title">
+            <h3>Resultados y cursos</h3>
+            <div class="v2-toolbar">
+              <label
+                >Área<select id="v2-result-area">
+                  <option value="">Todas las áreas</option>
+                </select></label
+              ><a class="v2-button secondary" href="#" id="v2-ranking-excel"
+                >Descargar ranking Excel</a
+              >
+            </div>
+          </div>
+          <div id="v2-results"></div>
+        </div>
+      </div>
+      <div data-local-panel="exam-sheets" hidden="">
+        <div class="v2-card">
+          <div class="v2-card-title">
+            <h3>Generar cartillas</h3>
+            <button class="v2-link" data-guide="imprimir-cartillas">
+              Tutorial
+            </button>
+          </div>
+          <p>
+            El alumno escribe sus datos y marca su código de 8 dígitos y su
+            área. Los QR vinculan las caras con el examen, sin contener nombres.
+            Cada cartilla es única: genera la cantidad necesaria, no fotocopies
+            una sola.
+          </p>
+          <label
+            >Identificación<select id="v2-sheet-mode">
+              <option value="blank">
+                El alumno completa sus datos y código
+              </option>
+              <option value="personalized">
+                QR por estudiante · formato anterior A4
+              </option>
+            </select></label
+          >
+          <div id="v2-sheet-blank" class="v2-form-grid">
+            <label
+              >Tamaño y caras<select id="v2-sheet-format">
+                <option value="quarter-duplex">
+                  Cuarto de A4 horizontal · doble cara · 4 por hoja
+                </option>
+                <option value="half-single">
+                  Media A4 horizontal · una cara · 2 por hoja
+                </option>
+              </select></label
+            >
+            <label
+              >Cantidad de cartillas<input
+                id="v2-sheet-count"
+                type="number"
+                min="1"
+                max="500"
+                value="4"
+                required
+            /></label>
+            <label id="v2-sheet-edge-label"
+              >Impresión a doble cara<select id="v2-sheet-edge">
+                <option value="short">Voltear por borde corto</option>
+                <option value="long">Voltear por borde largo</option>
+              </select></label
+            >
+          </div>
+          <p id="v2-sheet-instructions" class="v2-help" role="status"></p>
+          <label id="v2-sheet-student-label" hidden
+            >Estudiante<select id="v2-sheet-student">
+              <option value="">Todo el ciclo</option>
+            </select></label
+          ><label>Versión<select id="v2-sheet-form"></select></label
+          ><button class="v2-button" id="v2-print">
+            Descargar PDF de cartillas</button
+          ><button class="v2-button secondary" id="v2-scan-open">
+            Cargar lote escaneado
+          </button>
+        </div>
+      </div>
+      <div data-local-panel="exam-manual" hidden="">
+        <form class="v2-card" id="v2-manual">
+          <div class="v2-card-title">
+            <h3>Calificación manual</h3>
+            <button class="v2-link" data-guide="manual" type="button">
+              Tutorial
+            </button>
+          </div>
+          <div class="field">
+            <label for="v2-manual-student-search">Estudiante</label>
+            <div class="manual-student-search">
+              <input id="v2-manual-student-search" type="search"
+                     autocomplete="off" role="combobox" aria-autocomplete="list"
+                     aria-controls="v2-manual-student-results"
+                     aria-expanded="false" placeholder="Escribe nombre, apellido o código" />
+              <div id="v2-manual-student-results" class="student-autocomplete-dropdown"
+                   role="listbox" hidden></div>
+            </div>
+            <input id="v2-manual-student" type="hidden" />
+            <p id="v2-manual-student-selected" class="v2-help" role="status"></p>
+            <p id="v2-manual-existing" class="v2-notice" role="status" hidden></p>
+          </div>
+          <div class="v2-form-grid">
+            <label>Área<select id="v2-manual-area"></select></label
+            ><label>Versión<select id="v2-manual-form"></select></label>
+          </div>
+          <p class="v2-help">Registra las respuestas del estudiante con el editor rápido: haz clic o pulsa A–E y avanzará a la siguiente pregunta. Puedes marcar varias alternativas o registrar una pregunta en blanco.</p>
+          <details id="v2-manual-bulk">
+            <summary>Pegar respuestas manualmente (opcional)</summary>
+            <p class="v2-help">Admite una lista como A B C D o una respuesta por línea (1,A). Usa - para indicar una pregunta en blanco.</p>
+            <label>Lista de respuestas<textarea
+              id="v2-manual-answers"
+              placeholder="1,A
+2,-
+3,A/B"
+              rows="4"
+              spellcheck="false"
+            ></textarea></label>
+          </details>
+          <details>
+            <summary>Corregir una calificación anterior</summary>
+            <label class="v2-checkbox"
+              ><input id="v2-manual-replace" type="checkbox" /> Corregir una
+              calificación existente</label
+            ><label hidden="" id="v2-replace-reason"
+              >Motivo si corriges<input
+                id="v2-manual-reason"
+                placeholder="Explica qué estás corrigiendo"
+            /></label>
+          </details>
+          <button class="v2-button" type="submit">Calificar y guardar</button>
+        </form>
+      </div>
+    </div>
+  </section>
+  <section class="v2-panel" data-v2-panel="imports" hidden="">
+    <div class="v2-notice">
+      <strong>Escanea y revisa antes de guardar notas.</strong> Usa el cristal
+      para cartillas de un cuarto de hoja; para media hoja o A4 puedes usar el
+      alimentador. Incluye ambas caras de cada cartilla de cuarto en el mismo
+      lote.
+      <button class="v2-link" data-guide="escanear-naps2">
+        Tutorial de escáner
+      </button>
+    </div>
+    <section
+      class="v2-card scanner-card"
+      id="v2-scanner"
+      aria-labelledby="scanner-title"
+    >
+      <div class="v2-card-title">
+        <h3 id="scanner-title">Escanear con NAPS2</h3>
+        <button type="button" class="v2-link" data-guide="escanear-naps2">
+          Ayuda de conexión
+        </button>
+      </div>
+      <label
+        >Examen listo<select
+          id="v2-import-exam"
+          required
+          aria-describedby="scanner-exam-help"
+        ></select
+      ></label>
+      <p class="v2-help" id="scanner-exam-help">
+        Selecciona el simulacro validado al que pertenecen las cartillas. Esta
+        selección también se usa al cargar archivos o respuestas CSV.
+      </p>
+      <p class="v2-help">
+        NAPS2 y el controlador Brother deben estar instalados en la computadora
+        donde se ejecuta INGEMAT. Puedes continuar añadiendo hojas al terminar
+        cada captura.
+      </p>
+      <div class="v2-form-grid">
+        <label
+          >Controlador<select id="scanner-driver">
+            <option value="wia">WIA · Windows</option>
+            <option value="twain">TWAIN · alternativa</option>
+          </select></label
+        ><label
+          >Escáner<select id="scanner-device">
+            <option value="">Busca los escáneres disponibles</option>
+          </select></label
+        >
+      </div>
+      <button class="v2-button secondary" type="button" id="scanner-discover">
+        Buscar escáneres
+      </button>
+      <div class="v2-form-grid">
+        <label
+          >Origen<select id="scanner-source">
+            <option value="glass">
+              Cristal · colocar y voltear manualmente
+            </option>
+            <option value="feeder">Alimentador · una cara</option>
+          </select></label
+        ><label
+          >Área de escaneo<select id="scanner-size">
+            <option value="a4">
+              A4 · hoja completa o cartillas sobre el cristal
+            </option>
+            <option value="a5">Media hoja · A5</option>
+          </select></label
+        >
+      </div>
+      <p class="v2-help">
+        Brother MFC-T920DW: alimentador de hasta 20 hojas, sin escaneo dúplex
+        automático. El cuarto recortado es demasiado pequeño para su
+        alimentador. Se usa 300 ppp en escala de grises.
+      </p>
+      <div class="v2-toolbar">
+        <button
+          class="v2-button"
+          type="button"
+          id="scanner-start"
+          aria-describedby="scanner-readiness"
+          disabled
+        >
+          Escanear y añadir</button
+        ><button
+          class="v2-button secondary"
+          type="button"
+          id="scanner-process"
+          disabled
+        >
+          Procesar capturas
+        </button>
+      </div>
+      <p
+        id="scanner-readiness"
+        class="v2-help"
+        role="status"
+        aria-live="polite"
+      ></p>
+      <p id="scanner-status" role="status" aria-live="polite" class="v2-help">
+        Busca el escáner para empezar. Las capturas se conservan al salir de
+        esta sección.
+      </p>
+      <div class="v2-toolbar">
+        <strong>Capturas pendientes</strong>
+        <button
+          class="v2-link"
+          type="button"
+          id="scanner-clear-failed"
+          disabled
+        >
+          Limpiar intentos fallidos
+        </button>
+      </div>
+      <div id="scanner-queue"></div>
+    </section>
+    <section
+      class="v2-card"
+      hidden
+      id="v2-batch-detail"
+      aria-label="Estado del lote OMR"
+    ></section>
+    <section class="v2-card" aria-labelledby="batch-history-title">
+      <div class="v2-card-title">
+        <h3 id="batch-history-title">Lotes recientes</h3>
+        <button class="v2-link" id="v2-refresh-batches" type="button">
+          Actualizar
+        </button>
+      </div>
+      <div id="v2-batches"></div>
+      <div class="v2-toolbar">
+        <button class="v2-button secondary" id="v2-clear-batches" type="button">
+          Limpiar finalizados
+        </button>
+        <button class="v2-link" id="v2-restore-batches" type="button">
+          Restaurar lista
+        </button>
+      </div>
+      <p class="v2-help">
+        Limpiar oculta los lotes importados o fallidos solo de tu lista.
+        Conserva archivos, notas e historial; los pendientes siguen visibles.
+      </p>
+      <p
+        class="v2-help"
+        id="v2-history-status"
+        role="status"
+        aria-live="polite"
+      ></p>
+    </section>
+    <details class="v2-card">
+      <summary>Cargar PDF o imágenes ya escaneadas</summary>
+      <form id="v2-scan-form">
+        <label
+          >PDF o imágenes<input
+            accept=".pdf,.jpg,.jpeg,.png"
+            id="v2-scan-files"
+            multiple
+            required
+            type="file"
+        /></label>
+        <p class="v2-help">
+          Hasta 10 archivos de 20 MB. El lector admite hasta 100 caras de
+          cartilla por lote.
+        </p>
+        <button class="v2-button" type="submit">Procesar archivos</button>
+      </form>
+    </details>
+    <details class="v2-card">
+      <summary>Importar respuestas CSV de otro lector</summary>
+      <form id="v2-csv-form">
+        <p>
+          Las columnas son codigo,area,version,1,2,… y deben cubrir todo el
+          cuadernillo. INGEMAT aplica sus reglas al importar.
+        </p>
+        <a class="v2-button secondary" href="#" id="v2-csv-template"
+          >Descargar plantilla CSV</a
+        ><label
+          >CSV UTF-8<input
+            accept=".csv,text/csv"
+            id="v2-csv-file"
+            required=""
+            type="file" /></label
+        ><button class="v2-button" type="submit">
+          Validar y previsualizar CSV
+        </button>
+      </form>
+    </details>
+  </section>
+  <section class="v2-panel" data-v2-panel="attendance" hidden="">
+    <div class="section-toolbar">
+      <strong>Registros de asistencia</strong
+      ><a class="button secondary" data-route="archives" href="#archives"
+        >Archivos históricos</a
+      ><a class="button secondary" href="/" rel="noopener" target="_blank"
+        >Abrir recepción</a
+      >
+    </div>
+    <div class="v2-toolbar">
+      <label>Fecha<input id="v2-attendance-date" type="date" /></label
+      ><label
+        >Ciclo<select id="v2-attendance-cycle">
+          <option value="">Todos los ciclos</option>
+        </select></label
+      ><label
+        >Turno<select id="v2-attendance-shift">
+          <option value="">Todos los turnos</option>
+          <option value="mañana">Mañana</option>
+          <option value="tarde">Tarde</option>
+          <option value="docente">Docentes</option>
+        </select></label
+      ><button class="v2-button" id="v2-attendance-load">Consultar</button
+      ><a class="v2-button secondary" href="#" id="v2-attendance-export"
+        >Exportar Excel</a
+      ><button
+        class="v2-button secondary"
+        id="v2-attendance-image"
+        type="button"
+      >
+        <i class="bi bi-image" aria-hidden="true"></i> Copiar imagen</button
+      ><button
+        class="v2-button secondary whatsapp-send-button"
+        id="v2-attendance-whatsapp"
+        type="button"
+        disabled
+      >
+        <i class="bi bi-whatsapp" aria-hidden="true"></i> Enviar reporte del día</button
+      ><button class="v2-link" data-guide="asistencia">
+        Tutorial de recepción
+      </button>
+    </div>
+    <div class="v2-notice">
+      Consulta ingresos por fecha y ciclo. Para justificar una tardanza, abre el
+      registro correspondiente.
+    </div>
+    <p class="v2-help" id="v2-attendance-group-hint" role="status"></p>
+    <div class="v2-card" id="v2-attendance"></div>
+  </section>
+  <section class="v2-panel" data-v2-panel="notifications" hidden>
+    <details class="v2-card" id="wa-group-settings">
+      <summary>Grupos de reportes por ciclo</summary>
+      <div class="stack">
+        <p>
+          Asigna un grupo del teléfono vinculado a cada ciclo. El reporte se
+          enviará cuando pulses el botón en Asistencias.
+        </p>
+        <label>Ciclo del grupo<select id="wa-group-cycle"></select></label>
+        <p class="v2-help" id="wa-group-current"></p>
+        <div class="wa-group-combobox">
+          <label for="wa-group-search">Buscar grupo de WhatsApp</label>
+          <input id="wa-group-search" type="search"
+                 placeholder="Escribe parte del nombre del grupo…"
+                 autocomplete="off" role="combobox" aria-autocomplete="list"
+                 aria-controls="wa-group-suggestions" aria-expanded="false" />
+          <div id="wa-group-suggestions" class="student-autocomplete-dropdown"
+               role="listbox" hidden></div>
+        </div>
+        <input type="hidden" id="wa-group-select" />
+        <p class="v2-help" id="wa-group-selected" role="status"></p>
+        <button class="v2-button secondary" id="wa-group-refresh" type="button">
+          Buscar / actualizar grupos
+        </button>
+        <div class="v2-toolbar">
+          <button class="v2-button" id="wa-group-save" type="button">
+            Guardar grupo del ciclo</button
+          ><button class="v2-link" id="wa-group-remove" type="button">
+            Quitar grupo
+          </button>
+        </div>
+        <p class="v2-help" id="wa-group-message" role="status"></p>
+      </div>
+    </details>
+    <div class="v2-notice" id="v2-wa-status" role="status">
+      Consultando el estado de WhatsApp…
+    </div>
+    <div class="v2-two-columns">
+      <form class="v2-card" id="v2-wa-config">
+        <h3>Notificaciones automáticas</h3>
+        <p>
+          Vincula el teléfono de la academia y activa o desactiva los avisos.
+          Los mensajes de asistencia y resultados usan las plantillas internas de INGEMAT.
+        </p>
+        <div id="v2-baileys-fields">
+          <p>
+            Baileys se ejecuta sin navegador en la PC del servidor. Es una
+            biblioteca no oficial que puede necesitar actualizaciones; sus
+            fallos se aíslan del sistema académico.
+          </p>
+        </div>
+        <label class="v2-checkbox"
+          ><input name="enabled" type="checkbox" /> Activar
+          notificaciones</label
+        >
+        <button class="v2-button" type="submit">Guardar configuración</button>
+        <button class="v2-link" data-guide="whatsapp-configurar" type="button">
+          Guía de conexión
+        </button>
+      </form>
+      <div class="v2-card" id="v2-baileys-connection">
+        <h3>Vincular WhatsApp</h3>
+        <p id="v2-baileys-status" role="status" aria-live="polite">
+          Pulsa Conectar para vincular el teléfono de la academia.
+        </p>
+        <div class="whatsapp-qr" id="v2-baileys-qr" hidden>
+          <img
+            id="v2-baileys-qr-image"
+            width="280"
+            height="280"
+            alt="QR privado para vincular WhatsApp de la academia"
+          />
+          <p class="v2-help">
+            WhatsApp del teléfono → Dispositivos vinculados → Vincular un
+            dispositivo. El QR caduca y se renueva automáticamente.
+          </p>
+        </div>
+        <div class="v2-toolbar">
+          <button class="v2-button" id="v2-baileys-connect" type="button">
+            Conectar / Reintentar</button
+          ><button
+            class="v2-button secondary"
+            id="v2-baileys-stop"
+            type="button"
+          >
+            Detener conexión</button
+          ><button class="v2-link" id="v2-baileys-reset" type="button">
+            Volver a vincular
+          </button>
+        </div>
+        <p class="v2-help">
+          Primero vincula el teléfono; después activa los avisos. Detener la
+          conexión desactiva los envíos y conserva la sesión. Volver a vincular
+          elimina solo la sesión local de WhatsApp.
+        </p>
+        <p>
+          Las asistencias y calificaciones se guardan aunque WhatsApp falle. Los
+          avisos quedan en cola; una entrega incierta requiere revisión antes de
+          reenviar.
+        </p>
+        <p class="v2-help">
+          Si falla el componente, revisa el paquete Baileys y su versión.
+          Diagnóstico en la PC del servidor:
+          <code>npm run whatsapp:doctor</code>.
+        </p>
+      </div>
+    </div>
+    <div class="v2-card">
+      <div class="v2-card-title">
+        <h3>Avisos y entregas</h3>
+        <button
+          class="v2-button secondary"
+          id="v2-refresh-notifications"
+          type="button"
+        >
+          Actualizar
+        </button>
+      </div>
+      <p class="v2-help">Los reportes por lote muestran los segundos restantes hasta su turno de envío. Al llegar a 0 s pueden seguir pendientes si la conexión o la cola no están disponibles. Pulsa Actualizar para consultar el estado real.</p>
+      <div id="v2-outbox"></div>
+    </div>
+  </section>
+  <section class="v2-panel" data-v2-panel="settings" hidden="">
+    <div aria-label="Administración" class="local-tabs" role="tablist">
+      <button aria-selected="true" data-local-tab="operators" role="tab">
+        Operadores</button
+      ><button aria-selected="false" data-local-tab="backups" role="tab">
+        Copias de seguridad</button
+      ><button aria-selected="false" data-local-tab="audit" role="tab">
+        Actividad y auditoría
+      </button>
+    </div>
+    <div data-local-panel="operators">
+      <div class="v2-two-columns">
+        <form class="v2-card" id="v2-account-form">
+          <h3>Crear cuenta de operador</h3>
+          <label
+            >Usuario<input
+              autocomplete="off"
+              maxlength="40"
+              minlength="3"
+              name="username"
+              required="" /></label
+          ><label
+            >Contraseña temporal<input
+              autocomplete="new-password"
+              minlength="12"
+              name="password"
+              required=""
+              type="password" /></label
+          ><label
+            >Rol<select name="role">
+              <option value="corrector">Corrección</option>
+              <option value="docente">Docencia</option>
+              <option value="recepcion">Recepción</option>
+              <option value="admin">Administración</option>
+            </select></label
+          ><button class="v2-button" type="submit">Crear cuenta</button
+          ><button class="v2-link" data-guide="roles" type="button">
+            Ver permisos y tutorial
+          </button>
+        </form>
+        <div class="v2-card">
+          <h3>Cuentas existentes</h3>
+          <div id="v2-accounts"></div>
+        </div>
+      </div>
+    </div>
+    <div data-local-panel="backups" hidden="">
+      <div class="v2-card">
+        <h3>Copias de seguridad</h3>
+        <p>
+          Crea una copia consistente de la base de datos antes de actualizar o
+          modificar datos importantes.
+        </p>
+        <button class="v2-button" id="v2-backup">
+          Crear copia de seguridad
+        </button>
+        <div id="v2-backup-result"></div>
+        <button class="v2-link" data-guide="backup">
+          Cómo restaurar y comprobar una copia
+        </button>
+      </div>
+    </div>
+    <div data-local-panel="audit" hidden="">
+      <div class="v2-card">
+        <h3>Auditoría reciente</h3>
+        <div id="v2-audit"></div>
+      </div>
+    </div>
+  </section>
+  <section class="v2-panel" data-v2-panel="guide" hidden="">
+    <div class="v2-guide-hero">
+      <p class="v2-eyebrow">CENTRO DE AYUDA</p>
+      <h3>Todo lo que necesitas para operar INGEMAT</h3>
+      <p>Tutoriales por tarea, ejemplos y solución de problemas.</p>
+      <label
+        >Buscar un tutorial<input
+          id="v2-guide-search"
+          placeholder="Ej.: 120 preguntas, escáner, apoderado, justificar…"
+          type="search"
+      /></label>
+    </div>
+    <div class="v2-toolbar">
+      <label
+        >Categoría<select id="v2-guide-category">
+          <option value="">Todos los temas</option>
+        </select></label
+      ><span id="v2-guide-count"></span>
+    </div>
+    <div class="v2-guide-grid" id="v2-guide-list"></div>
+  </section>
+</div>
+<dialog aria-labelledby="v2-dialog-title" class="v2-dialog" id="v2-dialog">
+  <div class="v2-card-title">
+    <h3 id="v2-dialog-title"></h3>
+    <button
+      aria-label="Cerrar ventana"
+      class="v2-button secondary"
+      id="v2-dialog-close"
+      type="button"
+    >
+      Cerrar
+    </button>
+  </div>
+  <div id="v2-dialog-body"></div>
+</dialog>

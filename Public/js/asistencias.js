@@ -1,6 +1,11 @@
 // Variable global para manejar el scanner
 let html5QrCode = null; // CUIDADO: Cambié el nombre de la variable para reflejar que usamos la clase base
 let isCooldown = false;
+let receptionStudentSearch = null;
+function destroyReceptionSearch() {
+  receptionStudentSearch?.destroy?.();
+  receptionStudentSearch = null;
+}
 
 // =========================================================
 // FUNCIÓN COMPARTIDA PARA REGISTRAR CÓDIGOS (Sin cambios)
@@ -35,8 +40,8 @@ const registrarCodigo = async (codigo, resultadoDiv, inputToRefocus = null) => {
         resultadoDiv.innerHTML = `
           <div style="padding: 10px; letter-spacing: 1px; border-radius: 8px; width: 100%;">
             <span><b>Ciclo:</b> ${data.ciclo} | <b>Turno:</b> ${
-          data.turno
-        }</span>
+              data.turno
+            }</span>
             <br>
             <span>📚 <b>${data.nombre}</b> registrado</span>
             <br>
@@ -59,12 +64,15 @@ const registrarCodigo = async (codigo, resultadoDiv, inputToRefocus = null) => {
           </div>
         `;
       }
+      return true;
     } else {
-      resultadoDiv.innerHTML = `<span style="color: #ff6b6b; font-weight: bold;">❌ ${data.mensaje}</span>`;
+      resultadoDiv.textContent = `❌ ${data.mensaje || "No se pudo registrar la asistencia."}`;
+      return false;
     }
   } catch (error) {
     console.error("Error en fetch:", error);
-    resultadoDiv.innerHTML = `❌ Error de conexión.`;
+    resultadoDiv.textContent = "❌ Error de conexión.";
+    return false;
   } finally {
     if (inputToRefocus) {
       inputToRefocus.value = "";
@@ -80,6 +88,7 @@ document
   .getElementById("btn-asistencias")
   .addEventListener("click", async function (e) {
     e.preventDefault();
+    destroyReceptionSearch();
 
     // Detener escáner si está activo
     if (html5QrCode) {
@@ -99,7 +108,23 @@ document
       <div style="display:flex; flex-direction:column; align-items:center; gap:10px;">
         <div id="resultado" style="margin-top:20px; font-size:20px; display: grid; justify-items:center;"></div>
         <input type="text" id="codigo" placeholder="Introduce o escanea el código" style="padding:10px; font-size:18px;"/>
-        <button id="registrar-btn" class="btn-red">Registrar</button>
+        <div class="reception-register-actions">
+          <button id="registrar-btn" class="btn-red" type="button">Registrar</button>
+          <button id="reception-search-toggle" class="reception-search-toggle" type="button" aria-controls="reception-search-panel" aria-expanded="false">
+            <i class="bi bi-search" aria-hidden="true"></i> Buscar alumno
+          </button>
+        </div>
+        <div id="reception-search-panel" class="reception-search-panel" hidden>
+          <label for="reception-student-search">Buscar por nombre, apellido o código</label>
+          <div class="reception-search-field">
+            <input id="reception-student-search" type="search" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="reception-student-results" aria-expanded="false" placeholder="Ej.: María Fernández o 00001234" />
+            <div id="reception-student-results" class="reception-student-results" role="listbox" hidden></div>
+          </div>
+          <input id="reception-student-code" type="hidden" />
+          <p id="reception-student-selected" class="reception-search-status" role="status" aria-live="polite"></p>
+          <button id="reception-register-student" type="button" class="btn-red reception-register-student" disabled>Registrar alumno seleccionado</button>
+        </div>
+        <p id="reception-search-error" class="reception-search-status" role="status" hidden></p>
       </div>
     `;
 
@@ -123,6 +148,75 @@ document
       }
     });
 
+    const searchToggle = document.getElementById("reception-search-toggle"),
+      searchPanel = document.getElementById("reception-search-panel"),
+      searchError = document.getElementById("reception-search-error"),
+      selectedCode = document.getElementById("reception-student-code"),
+      searchInput = document.getElementById("reception-student-search"),
+      registerSelected = document.getElementById("reception-register-student");
+    searchToggle.addEventListener("click", async () => {
+      const opening = searchPanel.hidden;
+      searchPanel.hidden = !opening;
+      searchToggle.setAttribute("aria-expanded", String(opening));
+      if (!opening) {
+        codigoInput.focus();
+        return;
+      }
+      searchError.hidden = true;
+      if (!receptionStudentSearch) {
+        searchToggle.disabled = true;
+        try {
+          // Solo Recepción y Administración pueden consultar nombres y códigos.
+          const response = await fetch("/api/v2/attendance/students", { cache: "no-store" });
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403)
+              throw new Error("Inicia sesión con una cuenta de Recepción o Administración para buscar alumnos.");
+            throw new Error("No se pudo cargar el listado de alumnos.");
+          }
+          const students = await response.json();
+          if (!Array.isArray(students)) throw new Error("El listado de alumnos no es válido.");
+          const { mountManualStudentSearch } = await import("/js/admin/manual-student-search.js");
+          if (!searchPanel.isConnected) return;
+          receptionStudentSearch = mountManualStudentSearch({
+            input: searchInput,
+            hidden: selectedCode,
+            list: document.getElementById("reception-student-results"),
+            summary: document.getElementById("reception-student-selected"),
+            getStudents: () => students,
+            emptyMessage: "No hay estudiantes que coincidan con la búsqueda.",
+            onChange: () => {
+              registerSelected.disabled = !receptionStudentSearch?.isSelected();
+            },
+          });
+          searchToggle.dataset.ready = "true";
+          // Renderiza también lo escrito mientras la búsqueda terminaba de cargarse.
+          searchInput.dispatchEvent(new Event("input", { bubbles: true }));
+        } catch (error) {
+          searchError.textContent = error.message;
+          searchError.hidden = false;
+          searchPanel.hidden = true;
+          searchToggle.setAttribute("aria-expanded", "false");
+          return;
+        } finally {
+          searchToggle.disabled = false;
+        }
+      }
+      searchInput.focus();
+    });
+    registerSelected.addEventListener("click", async () => {
+      if (!receptionStudentSearch?.isSelected()) return;
+      registerSelected.disabled = true;
+      try {
+        const recorded = await registrarCodigo(selectedCode.value, resultadoDiv);
+        if (recorded) {
+          receptionStudentSearch.reset();
+          if (!searchPanel.hidden) searchInput.focus();
+        }
+      } finally {
+        registerSelected.disabled = !receptionStudentSearch?.isSelected();
+      }
+    });
+
     codigoInput.focus();
   });
 
@@ -133,6 +227,7 @@ document
   .getElementById("btn-scan")
   .addEventListener("click", async function (e) {
     e.preventDefault();
+    destroyReceptionSearch();
 
     // Limpieza previa
     if (html5QrCode) {
@@ -195,7 +290,7 @@ document
       await html5QrCode.start(
         { facingMode: "environment" },
         config,
-        onScanSuccess
+        onScanSuccess,
       );
       // Ocultar mensaje de espera si la cámara arranca bien
       // resultadoDiv.innerHTML = "<span>¡Cámara lista!</span>";
@@ -212,6 +307,7 @@ const btnPrestamoLibros = document.getElementById("btn-prestamo-libros");
 if (btnPrestamoLibros) {
   btnPrestamoLibros.addEventListener("click", async function (e) {
     e.preventDefault();
+    destroyReceptionSearch();
 
     // Detener escáner si está activo
     if (html5QrCode) {
@@ -223,6 +319,15 @@ if (btnPrestamoLibros) {
     }
 
     const box = document.querySelector(".box-header");
+    const session = await window.ingematSession;
+    if (
+      !session?.usuario ||
+      !["admin", "recepcion"].includes(session.usuario.role)
+    ) {
+      box.innerHTML =
+        '<h2>Préstamos de biblioteca</h2><p>Una cuenta de recepción o administración debe registrar los préstamos.</p><a class="btn-red" href="/admin">Iniciar sesión</a>';
+      return;
+    }
     box.innerHTML = `
       <img src="./img/Logo 1x1 nb.png" alt="Logo Ingemat" style="width:14rem;"/>
       <h2 style="margin: 10px 0; color: var(--red); font-family: var(--font-heading);">📚 Préstamo de Libros</h2>
@@ -259,7 +364,12 @@ if (btnPrestamoLibros) {
     libroInput.focus();
 
     // Inicializar autocompletado inteligente de libros
-    setupIntelligentBookSearch(libroInput, estudianteInput, previewEl, dropdownEl);
+    setupIntelligentBookSearch(
+      libroInput,
+      estudianteInput,
+      previewEl,
+      dropdownEl,
+    );
 
     const handleRegistrarPrestamo = async () => {
       const codLibro = libroInput.value.trim().toUpperCase();
@@ -276,7 +386,10 @@ if (btnPrestamoLibros) {
         const response = await fetch("/api/biblioteca/prestamo", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ codigoLibro: codLibro, codigoUsuario: codEstudiante }),
+          body: JSON.stringify({
+            codigoLibro: codLibro,
+            codigoUsuario: codEstudiante,
+          }),
         });
 
         const data = await response.json();
@@ -319,7 +432,12 @@ if (btnPrestamoLibros) {
 }
 
 // Búsqueda inteligente / predictiva de libros para préstamos
-async function setupIntelligentBookSearch(libroInput, estudianteInput, previewEl, dropdownEl) {
+async function setupIntelligentBookSearch(
+  libroInput,
+  estudianteInput,
+  previewEl,
+  dropdownEl,
+) {
   if (!libroInput || !dropdownEl) return;
 
   let librosList = [];
@@ -345,7 +463,7 @@ async function setupIntelligentBookSearch(libroInput, estudianteInput, previewEl
           l.codigo.toLowerCase().includes(q) ||
           l.titulo.toLowerCase().includes(q) ||
           (l.editorial && l.editorial.toLowerCase().includes(q)) ||
-          (l.seccion && l.seccion.toLowerCase().includes(q))
+          (l.seccion && l.seccion.toLowerCase().includes(q)),
       );
     }
 
@@ -405,7 +523,9 @@ async function setupIntelligentBookSearch(libroInput, estudianteInput, previewEl
   }
 
   function seleccionarLibro(codigo) {
-    const libro = librosList.find((l) => l.codigo.toUpperCase() === codigo.toUpperCase());
+    const libro = librosList.find(
+      (l) => l.codigo.toUpperCase() === codigo.toUpperCase(),
+    );
     if (libro) {
       libroInput.value = libro.codigo;
       if (previewEl) {
@@ -436,13 +556,17 @@ async function setupIntelligentBookSearch(libroInput, estudianteInput, previewEl
       e.preventDefault();
       if (items.length === 0) return;
       selectedIndex = (selectedIndex + 1) % items.length;
-      items.forEach((it, i) => it.classList.toggle("active", i === selectedIndex));
+      items.forEach((it, i) =>
+        it.classList.toggle("active", i === selectedIndex),
+      );
       items[selectedIndex]?.scrollIntoView({ block: "nearest" });
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       if (items.length === 0) return;
       selectedIndex = (selectedIndex - 1 + items.length) % items.length;
-      items.forEach((it, i) => it.classList.toggle("active", i === selectedIndex));
+      items.forEach((it, i) =>
+        it.classList.toggle("active", i === selectedIndex),
+      );
       items[selectedIndex]?.scrollIntoView({ block: "nearest" });
     } else if (e.key === "Enter" || e.keyCode === 13) {
       if (selectedIndex >= 0 && items[selectedIndex]) {
@@ -473,13 +597,29 @@ function ordenarLibrosPublico(libros, sortKey = "titulo_asc") {
   const lista = [...libros];
   switch (sortKey) {
     case "titulo_asc":
-      return lista.sort((a, b) => (a.titulo || "").localeCompare(b.titulo || "", "es", { sensitivity: "base" }));
+      return lista.sort((a, b) =>
+        (a.titulo || "").localeCompare(b.titulo || "", "es", {
+          sensitivity: "base",
+        }),
+      );
     case "titulo_desc":
-      return lista.sort((a, b) => (b.titulo || "").localeCompare(a.titulo || "", "es", { sensitivity: "base" }));
+      return lista.sort((a, b) =>
+        (b.titulo || "").localeCompare(a.titulo || "", "es", {
+          sensitivity: "base",
+        }),
+      );
     case "codigo_asc":
-      return lista.sort((a, b) => (a.codigo || "").localeCompare(b.codigo || "", undefined, { numeric: true }));
+      return lista.sort((a, b) =>
+        (a.codigo || "").localeCompare(b.codigo || "", undefined, {
+          numeric: true,
+        }),
+      );
     case "codigo_desc":
-      return lista.sort((a, b) => (b.codigo || "").localeCompare(a.codigo || "", undefined, { numeric: true }));
+      return lista.sort((a, b) =>
+        (b.codigo || "").localeCompare(a.codigo || "", undefined, {
+          numeric: true,
+        }),
+      );
     case "disponible":
       return lista.sort((a, b) => {
         if (a.estado === "disponible" && b.estado !== "disponible") return -1;
@@ -499,6 +639,12 @@ async function cargarEstantePublico() {
   if (!container) return;
 
   try {
+    const session = await window.ingematSession;
+    if (!session?.usuario) {
+      container.innerHTML =
+        '<p>El catálogo y los préstamos están disponibles para el personal autorizado. <a href="/admin">Iniciar sesión</a></p>';
+      return;
+    }
     const res = await fetch("/api/biblioteca");
     const data = await res.json();
 
@@ -509,7 +655,9 @@ async function cargarEstantePublico() {
 
     const { secciones, libros } = data;
     const filterInput = document.getElementById("public-book-search");
-    const searchTerm = filterInput ? filterInput.value.trim().toLowerCase() : "";
+    const searchTerm = filterInput
+      ? filterInput.value.trim().toLowerCase()
+      : "";
 
     let html = "";
 
@@ -520,7 +668,7 @@ async function cargarEstantePublico() {
           (!searchTerm ||
             (l.titulo && l.titulo.toLowerCase().includes(searchTerm)) ||
             (l.codigo && l.codigo.toLowerCase().includes(searchTerm)) ||
-            (l.editorial && l.editorial.toLowerCase().includes(searchTerm)))
+            (l.editorial && l.editorial.toLowerCase().includes(searchTerm))),
       );
 
       if (searchTerm && librosSeccion.length === 0) {

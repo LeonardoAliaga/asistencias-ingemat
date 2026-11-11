@@ -1,1549 +1,960 @@
-<!DOCTYPE html>
+<!doctype html>
+
 <html lang="es">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Administrar Asistencia INGEMAT</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="../css/admin.css" />
-    <link rel="stylesheet" href="../css/admin-forms.css" />
-    <link rel="stylesheet" href="../css/admin-views.css" />
-    <link rel="stylesheet" href="../css/admin-biblioteca.css" />
-    <link rel="stylesheet" href="../css/admin-evaluaciones.css" />
-    <link rel="stylesheet" href="../css/admin-whatsapp.css" />
-    <link rel="stylesheet" href="../css/admin-whatsapp-rules.css" />
-    <link rel="stylesheet" href="../css/admin-responsive.css" />
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
-    />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.1/qrcode.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1" name="viewport" />
+    <title>INGEMAT · Administración</title>
+    <link href="/img/Logo 1x1 b&amp;w.jpg" rel="icon" />
+    <link href="/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet" />
+    <link href="/css/admin.css" rel="stylesheet" />
+    <link href="/css/v2.css" rel="stylesheet" />
+    <script src="/vendor/JsBarcode.all.min.js"></script>
+    <script src="/vendor/jszip.min.js"></script>
+    <script src="/vendor/jspdf.umd.min.js"></script>
+    <script src="/vendor/purify.min.js"></script>
+    <script src="/js/session.js"></script>
   </head>
-  <body>
-    <nav class="navbar">
-      <div class="logo-ingemat">
-        <a href="/"
-          ><img href="/" src="../img/Logo 1x4 b&w.svg" alt="Logo INGEMAT"
-        /></a>
-      </div>
-      <div class="nav-links">
-        <button class="nav-button active" id="btn-vista-inicio">
-          <i class="bi bi-house-door-fill"></i> INICIO
-        </button>
-        <button class="nav-button" id="btn-vista-usuarios">
-          <i class="bi bi-people-fill"></i> USUARIOS
-        </button>
-        <button class="nav-button" id="btn-vista-whatsapp">
-          <i class="bi bi-whatsapp"></i> WHATSAPP
-        </button>
-        <button class="nav-button" id="btn-vista-biblioteca">
-          <i class="bi bi-book-half"></i> BIBLIOTECA
-        </button>
-        <button class="nav-button" id="btn-vista-evaluaciones">
-          <i class="bi bi-journal-check"></i> EVALUACIONES
-        </button>
-        <button class="nav-button" id="btn-vista-info">
-          <i class="bi bi-info-circle-fill"></i> INFO
-        </button>
-        <button id="btn-logout" title="Cerrar Sesión">
-          <i class="bi bi-box-arrow-right"></i>
-        </button>
-      </div>
-    </nav>
-
-    <div class="container">
-      <div class="hero-header">
-        <h1>PANEL DE CONTROL</h1>
-        <div class="hero-sub">
-          Resumen rápido • Usuarios activos • Últimos archivos
-        </div>
-      </div>
-
-      <div id="vista-principal" class="vista-content">
-        <div class="admin-grid">
-          <section id="horarios-section">
-            <h2><i class="bi bi-clock-fill"></i> CONFIGURAR HORARIOS</h2>
-            <form id="form-horarios">
-              <div
-                class="form-group"
-                style="margin-bottom: 15px; flex-wrap: wrap"
-              >
-                <label
-                  for="horarios-ciclo-select"
-                  style="font-weight: bold; font-size: 1rem"
-                  >Configurar horarios para:</label
-                >
-                <select id="horarios-ciclo-select" required>
-                  <option value="">Cargando ciclos...</option>
-                </select>
-                <small
-                  style="
-                    color: #555;
-                    font-size: 0.85rem;
-                    width: 100%;
-                    margin-top: 5px;
-                  "
-                  >El horario 'Default' se usa si un ciclo no tiene horario
-                  propio.</small
-                >
-              </div>
-
-              <div>
-                <div class="time-picker-group">
-                  <label for="entrada-manana-hr">Mañana - Entrada:</label>
-                  <div class="time-picker-inputs">
-                    <select
-                      id="entrada-manana-hr"
-                      aria-label="Hora de entrada mañana"
-                      required
-                    ></select>
-                    <span>:</span>
-                    <select
-                      id="entrada-manana-min"
-                      aria-label="Minuto de entrada mañana"
-                      required
-                    ></select>
-                    <select
-                      id="entrada-manana-ampm"
-                      aria-label="AM/PM de entrada mañana"
-                      required
-                    >
-                      <option value="AM">AM</option>
-                      <option value="PM">PM</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div class="time-picker-group">
-                  <label for="tolerancia-manana-hr">Mañana - Tolerancia:</label>
-                  <div class="time-picker-inputs">
-                    <select
-                      id="tolerancia-manana-hr"
-                      aria-label="Hora de tolerancia mañana"
-                      required
-                    ></select>
-                    <span>:</span>
-                    <select
-                      id="tolerancia-manana-min"
-                      aria-label="Minuto de tolerancia mañana"
-                      required
-                    ></select>
-                    <select
-                      id="tolerancia-manana-ampm"
-                      aria-label="AM/PM de tolerancia mañana"
-                      required
-                    >
-                      <option value="AM">AM</option>
-                      <option value="PM">PM</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-              <p id="summary-manana" class="schedule-summary"></p>
-              <div>
-                <div class="time-picker-group">
-                  <label for="entrada-tarde-hr">Tarde - Entrada:</label>
-                  <div class="time-picker-inputs">
-                    <select
-                      id="entrada-tarde-hr"
-                      aria-label="Hora de entrada tarde"
-                      required
-                    ></select>
-                    <span>:</span>
-                    <select
-                      id="entrada-tarde-min"
-                      aria-label="Minuto de entrada tarde"
-                      required
-                    ></select>
-                    <select
-                      id="entrada-tarde-ampm"
-                      aria-label="AM/PM de entrada tarde"
-                      required
-                    >
-                      <option value="AM">AM</option>
-                      <option value="PM">PM</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div class="time-picker-group">
-                  <label for="tolerancia-tarde-hr">Tarde - Tolerancia:</label>
-                  <div class="time-picker-inputs">
-                    <select
-                      id="tolerancia-tarde-hr"
-                      aria-label="Hora de tolerancia tarde"
-                      required
-                    ></select>
-                    <span>:</span>
-                    <select
-                      id="tolerancia-tarde-min"
-                      aria-label="Minuto de tolerancia tarde"
-                      required
-                    ></select>
-                    <select
-                      id="tolerancia-tarde-ampm"
-                      aria-label="AM/PM de tolerancia tarde"
-                      required
-                    >
-                      <option value="AM">AM</option>
-                      <option value="PM">PM</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-              <p id="summary-tarde" class="schedule-summary"></p>
-              <button type="submit">
-                <i class="bi bi-save-fill"></i> GUARDAR HORARIOS
-              </button>
-            </form>
-            <div id="msg-horarios"></div>
-          </section>
-          <section id="gestion-ciclos-section">
-            <h2><i class="bi bi-calendar-range"></i> GESTIÓN DE CICLOS</h2>
-            <div id="ciclos-list-container">
-              <ul id="ciclos-list" class="lista-gestion-ciclos"></ul>
-            </div>
-            <form id="form-agregar-ciclo">
-              <input
-                type="text"
-                id="nuevo-ciclo-nombre"
-                placeholder="Nombre del nuevo ciclo"
-                required
-                oninput="this.value = this.value.toUpperCase()"
-              />
-              <button type="submit">
-                <i class="bi bi-plus-circle-fill"></i> AGREGAR CICLO
-              </button>
-            </form>
-            <div id="msg-ciclos"></div>
-          </section>
-          <section id="agregar-usuario-section">
-            <h2><i class="bi bi-person-plus-fill"></i> AGREGAR USUARIO</h2>
-            <form id="form-agregar">
-              <input
-                type="text"
-                id="codigo"
-                placeholder="Código"
-                required
-                style="text-transform: uppercase"
-              />
-              <div style="display: flex; gap: 8px; flex-wrap: wrap">
-                <input
-                  type="text"
-                  id="nombre"
-                  placeholder="Nombre (ej: Juan Carlos)"
-                  required
-                  style="flex: 1"
-                />
-                <input
-                  type="text"
-                  id="apellido"
-                  placeholder="Apellido (ej: Pérez)"
-                  required
-                  style="flex: 1"
-                />
-              </div>
-              <select id="rol" required>
-                <option value="">Selecciona rol</option>
-                <option value="estudiante">Estudiante</option>
-                <option value="docente">Docente</option>
-              </select>
-              <select id="turno" required>
-                <option value="">Selecciona turno</option>
-                <option value="mañana">Mañana</option>
-                <option value="tarde">Tarde</option>
-              </select>
-              <select id="ciclo" required>
-                <option value="">Cargando ciclos...</option>
-              </select>
-
-              <div id="dias-asistencia-selector">
-                <label>Días de Asistencia:</label>
-                <div class="day-buttons-container">
-                  <button type="button" class="day-btn active" data-day="L">
-                    L
-                  </button>
-                  <button type="button" class="day-btn active" data-day="M">
-                    M
-                  </button>
-                  <button type="button" class="day-btn active" data-day="MI">
-                    Mi
-                  </button>
-                  <button type="button" class="day-btn active" data-day="J">
-                    J
-                  </button>
-                  <button type="button" class="day-btn active" data-day="V">
-                    V
-                  </button>
-                  <button type="button" class="day-btn active" data-day="S">
-                    S
-                  </button>
-                  <button type="button" class="day-btn" data-day="D">D</button>
-                </div>
-              </div>
-              <button type="submit">
-                <i class="bi bi-check-lg"></i> AGREGAR
-              </button>
-              <div id="msg-agregar-usuario"></div>
-            </form>
-          </section>
-
-          <section id="archivos-excel-section">
-            <h2>
-              <i class="bi bi-file-earmark-excel-fill"></i> DESCARGAR ARCHIVOS
-            </h2>
-            <div id="archivos-excel"></div>
-          </section>
-
-          <section id="gestion-acceso-section">
-            <h2><i class="bi bi-key-fill"></i> GESTIÓN DE ACCESO</h2>
-            <form id="form-password">
-              <input
-                type="password"
-                id="nueva-password"
-                placeholder="Nueva contraseña"
-                required
-              />
-              <button type="submit">
-                <i class="bi bi-pencil-square"></i> CAMBIAR CONTRASEÑA
-              </button>
-            </form>
-            <div id="msg-password"></div>
-          </section>
-
-          <section id="justificar-falta-section">
-            <h2>
-              <i class="bi bi-patch-check-fill"></i> Justificar Inasistencia
-            </h2>
-            <form id="form-justificar-falta">
-              <label for="justificar-fecha">Fecha de la falta:</label>
-              <input type="date" id="justificar-fecha" required />
-
-              <div class="autocomplete-container">
-                <label for="justificar-usuario-filtro"
-                  >Buscar Alumno o Docente:</label
-                >
-                <input
-                  type="text"
-                  id="justificar-usuario-filtro"
-                  placeholder="Escribe un nombre para buscar..."
-                  autocomplete="off"
-                />
-                <input type="hidden" id="justificar-alumno-hidden" required />
-
-                <div
-                  class="autocomplete-items"
-                  id="justificar-resultados"
-                ></div>
-              </div>
-              <button type="submit">
-                <i class="bi bi-check-lg"></i> JUSTIFICAR
-              </button>
-            </form>
-            <div id="msg-justificar-falta" class="form-message"></div>
-          </section>
-        </div>
-      </div>
-
-      <div
-        id="vista-usuarios-completa"
-        class="vista-content"
-        style="display: none"
+  <body class="admin-app">
+    <a class="skip-link" href="#main-content">Saltar al contenido</a>
+    <aside aria-label="Menú principal" class="app-sidebar" id="admin-sidebar">
+      <a class="app-brand" href="#overview"
+        ><img alt="INGEMAT" src="/img/logo-examen.png" /><span
+          >Administración académica</span
+        ></a
+      ><button
+        aria-label="Cerrar menú"
+        class="icon-button mobile-menu sidebar-close"
+        id="sidebar-close"
       >
-        <h2 class="sub-header">
-          <i class="bi bi-card-list"></i> LISTADO COMPLETO DE USUARIOS
-        </h2>
-        <div id="vista-usuarios-list" class="accordion-container"></div>
-        <div class="export-section-container">
-  <div class="export-card">
-    <div class="export-header">
-      <h3><i class="bi bi-printer-fill"></i> Exportación Masiva de Carnets</h3>
-      <p>Genera archivos listos para imprimir o imágenes individuales.</p>
-    </div>
-
-    <div class="export-body">
-      <div class="export-filters">
-        <div class="filter-group">
-          <label for="export-select-grupo">Grupo de Usuarios</label>
-          <select id="export-select-grupo">
-            <option value="">-- Selecciona un grupo --</option>
-            <option value="docentes">DOCENTES</option>
-            </select>
+        <i class="bi bi-x-lg"></i>
+      </button>
+      <nav aria-label="Secciones de administración" class="app-navigation">
+        <div class="nav-group">
+          <p class="nav-caption">PRINCIPAL</p>
+          <a
+            class="nav-item"
+            data-route="overview"
+            href="#overview"
+            id="btn-vista-inicio"
+            ><i aria-hidden="true" class="bi bi-grid-1x2"></i
+            ><span>Resumen</span></a
+          ><a
+            class="nav-item"
+            data-route="attendance"
+            href="#attendance"
+            id="btn-vista-asistencia"
+            ><i aria-hidden="true" class="bi bi-calendar-check"></i
+            ><span>Asistencia</span></a
+          >
         </div>
-
-        <div class="filter-group">
-          <label for="export-select-turno">Turno</label>
-          <select id="export-select-turno" disabled>
-            <option value="">-- Selecciona Turno --</option>
-            <option value="mañana">Mañana</option>
-            <option value="tarde">Tarde</option>
-          </select>
+        <div class="nav-group">
+          <p class="nav-caption">PERSONAS</p>
+          <a
+            class="nav-item"
+            data-route="people"
+            href="#people"
+            id="btn-vista-usuarios"
+            ><i aria-hidden="true" class="bi bi-people"></i
+            ><span>Estudiantes y docentes</span></a
+          >
+        </div>
+        <div class="nav-group">
+          <p class="nav-caption">ACADÉMICO</p>
+          <a class="nav-item" data-route="exams" href="#exams" id="btn-vista-v2"
+            ><i aria-hidden="true" class="bi bi-ui-checks-grid"></i
+            ><span>Simulacros</span></a
+          ><a
+            class="nav-item"
+            data-route="imports"
+            href="#imports"
+            id="btn-vista-omr"
+            ><i aria-hidden="true" class="bi bi-upc-scan"></i
+            ><span>Lectura de cartillas</span></a
+          ><a
+            class="nav-item"
+            data-route="tests"
+            href="#tests"
+            id="btn-vista-tests"
+            ><i aria-hidden="true" class="bi bi-journal-check"></i
+            ><span>Tests y prácticas</span></a
+          ><a
+            class="nav-item"
+            data-route="tasks"
+            href="#tasks"
+            id="btn-vista-evaluaciones"
+            ><i aria-hidden="true" class="bi bi-clipboard-check"></i
+            ><span>Tareas</span></a
+          ><a
+            class="nav-item"
+            data-route="reports"
+            href="#reports"
+            id="btn-vista-reportes"
+            ><i aria-hidden="true" class="bi bi-bar-chart"></i
+            ><span>Reportes</span></a
+          >
+        </div>
+        <div class="nav-group">
+          <p class="nav-caption">GESTIÓN</p>
+          <a
+            class="nav-item"
+            data-route="library"
+            href="#library"
+            id="btn-vista-biblioteca"
+            ><i aria-hidden="true" class="bi bi-book"></i
+            ><span>Biblioteca</span></a
+          ><a
+            class="nav-item"
+            data-route="notifications"
+            href="#notifications"
+            id="btn-vista-whatsapp"
+            ><i aria-hidden="true" class="bi bi-chat-dots"></i
+            ><span>Comunicación</span></a
+          ><a
+            class="nav-item"
+            data-route="cycles"
+            href="#cycles"
+            id="btn-vista-configuracion"
+            ><i aria-hidden="true" class="bi bi-clock"></i
+            ><span>Ciclos y horarios</span></a
+          ><a
+            class="nav-item"
+            data-route="website"
+            href="#website"
+            id="btn-vista-info"
+            ><i aria-hidden="true" class="bi bi-window"></i
+            ><span>Página pública</span></a
+          ><a
+            class="nav-item"
+            data-route="settings"
+            href="#settings"
+            id="btn-vista-cuentas"
+            ><i aria-hidden="true" class="bi bi-shield-check"></i
+            ><span>Cuentas y respaldo</span></a
+          >
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <a class="nav-item" data-route="guide" href="#guide" id="btn-vista-guia"
+          ><i aria-hidden="true" class="bi bi-question-circle"></i>Guía y
+          tutoriales</a
+        ><a class="nav-item" href="/" rel="noopener" target="_blank"
+          ><i aria-hidden="true" class="bi bi-box-arrow-up-right"></i>Abrir
+          recepción</a
+        >
+        <div class="sidebar-version">
+          <span class="status-dot"></span> INGEMAT 2.0
         </div>
       </div>
-
-      <div class="export-actions">
-        <button id="btn-descargar-pdf" class="btn-export btn-pdf" disabled>
-          <i class="bi bi-file-earmark-pdf-fill"></i>
-          <span>Descargar PDF</span>
-          <small id="pdf-count-label">(0 usuarios)</small>
-        </button>
-
-        <button id="btn-descargar-zip" class="btn-export btn-zip" disabled>
-          <i class="bi bi-images"></i>
-          <span>Descargar ZIP</span>
-          <small id="zip-count-label">Imágenes sueltas</small>
-        </button>
-      </div>
-    </div>
-
-    <div id="export-progress-area" class="export-progress-area" style="display: none;">
-      <div class="progress-info">
-        <span id="export-status-msg">Procesando...</span>
-        <span id="export-percent">0%</span>
-      </div>
-      <div class="progress-track">
-        <div id="export-progress-bar" class="progress-fill" style="width: 0%;"></div>
-      </div>
-    </div>
-  </div>
-</div>
-      </div>
-
-      <div id="vista-whatsapp" class="vista-content" style="display: none">
-        <h2 class="sub-header">
-          <i class="bi bi-whatsapp"></i> CONFIGURACIÓN DE WHATSAPP
-        </h2>
-
+    </aside>
+    <button
+      aria-label="Cerrar menú"
+      class="sidebar-backdrop"
+      hidden=""
+      id="sidebar-backdrop"
+    ></button>
+    <div class="app-workspace">
+      <header class="app-topbar">
+        <div class="topbar-location">
+          <button
+            aria-controls="admin-sidebar"
+            aria-expanded="false"
+            aria-label="Abrir menú"
+            class="icon-button mobile-menu"
+            id="sidebar-toggle"
+          >
+            <i class="bi bi-list"></i></button
+          ><span>Academia INGEMAT</span
+          ><i aria-hidden="true" class="bi bi-chevron-right"></i
+          ><strong id="page-breadcrumb">Resumen</strong>
+        </div>
+        <div class="topbar-actions">
+          <span class="topbar-date" id="topbar-date"></span
+          ><a
+            aria-label="Mi cuenta"
+            class="account-chip"
+            data-route="account"
+            href="#account"
+            id="account-link"
+            ><span class="avatar" id="account-avatar">A</span
+            ><span
+              ><strong id="account-name">Mi cuenta</strong
+              ><small id="account-role">Operador</small></span
+            ></a
+          ><button
+            aria-label="Cerrar sesión"
+            class="icon-button"
+            id="btn-logout"
+            title="Cerrar sesión"
+          >
+            <i class="bi bi-box-arrow-right"></i>
+          </button>
+        </div>
+      </header>
+      <main class="app-main" id="main-content" tabindex="-1">
+        <header class="page-heading">
+          <div>
+            <p class="eyebrow" id="page-eyebrow">VISTA GENERAL</p>
+            <h1 id="page-title" tabindex="-1">Resumen</h1>
+            <p id="page-description">
+              La jornada de tu academia, en un solo lugar.
+            </p>
+          </div>
+          <button class="button secondary" id="page-help">
+            <i class="bi bi-question-circle"></i> Ayuda de esta sección
+          </button>
+        </header>
+        <div class="notice" hidden="" id="app-message" role="status"></div>
         <div
-          id="whatsapp-qr-container"
-          style="display: none; text-align: center; padding: 20px"
-        >
-          <h3><i class="bi bi-qr-code-scan"></i> Iniciar Sesión</h3>
-          <p id="whatsapp-qr-message" style="margin-bottom: 15px">
-            Se necesita iniciar sesión. Escanea el código QR con tu teléfono.
-          </p>
-          <canvas
-            id="whatsapp-qr-canvas"
-            style="
-              border: 1px solid #ddd;
-              padding: 10px;
-              border-radius: 8px;
-              background: white;
-            "
-          ></canvas>
-          <p style="font-size: 0.9rem; color: #555; margin-top: 15px">
-            La página se actualizará automáticamente una vez que inicies sesión.
-          </p>
-
+          class="notice warning"
+          id="whatsapp-service-warning"
+          hidden
+          role="status"
+          aria-live="polite"
+        ></div>
+        <section class="admin-page" data-page="overview" id="vista-principal">
+          <div class="overview-welcome">
+            <div>
+              <span class="eyebrow">TU ESPACIO DE TRABAJO</span>
+              <h2>Todo listo para una nueva jornada.</h2>
+              <p>
+                Consulta la actividad y entra directamente a la tarea que
+                necesitas.
+              </p>
+            </div>
+            <a class="button primary" data-route="attendance" href="#attendance"
+              >Ver asistencias <i class="bi bi-arrow-up-right"></i
+            ></a>
+          </div>
           <div
-            style="
-              margin-top: 20px;
-              border-top: 1px solid #eee;
-              padding-top: 20px;
-            "
-          >
-            <p style="font-size: 0.9rem; color: #666; margin-bottom: 10px">
-              ¿No aparece el QR o la sesión está bloqueada?
-            </p>
-            <button
-              id="btn-force-whatsapp-restart"
-              class="btn-delete-rule"
-              style="
-                background-color: #ffc107;
-                color: #333;
-                border: none;
-                padding: 10px 15px;
-                border-radius: 5px;
-                font-family: var(--font-body);
-                text-transform: uppercase;
-                letter-spacing: 1px;
-              "
-            >
-              <i class="bi bi-exclamation-triangle-fill"></i> Forzar Reinicio
-            </button>
-            <div
-              id="msg-force-restart"
-              class="form-message"
-              style="margin-top: 10px"
-            ></div>
-          </div>
-        </div>
-
-        <div id="whatsapp-config-content" style="display: none">
-          <div
-            id="unsaved-changes-alert"
-            class="unsaved-alert sticky"
-            style="display: none"
-          >
-            <i class="bi bi-exclamation-triangle-fill"></i> Tienes cambios sin
-            guardar en esta sección.
-            <button id="btn-jump-to-save" title="Ir a Guardar">
-              <i class="bi bi-arrow-down-circle"></i>
-            </button>
-          </div>
-
-          <div class="whatsapp-status-section">
-            <h3>
-              Estado de Conexión:
-              <span id="whatsapp-status-indicator" class="status-disconnected"
-                >Desconectado</span
-              >
-            </h3>
-            <p id="whatsapp-status-message">Intentando conectar...</p>
-            <button id="btn-refresh-whatsapp-status" title="Refrescar Estado">
-              <i class="bi bi-arrow-clockwise"></i>
-            </button>
-          </div>
-
-          <section class="whatsapp-config-section">
-            <h3><i class="bi bi-toggles"></i> Controles de Activación</h3>
-
-            <div class="toggle-switch-container master-toggle">
-              <label class="switch">
-                <input type="checkbox" id="whatsapp-enabled-general" />
-                <span class="slider round"></span>
-              </label>
-              <span id="whatsapp-enabled-general-label"
-                >Activación General de WhatsApp</span
-              >
-            </div>
-
-            <hr class="divider" />
-
-            <div class="toggle-switch-container">
-              <label class="switch">
-                <input type="checkbox" id="student-notifications-toggle" />
-                <span class="slider round"></span>
-              </label>
-              <span id="student-notifications-label"
-                >Notificaciones de Estudiantes (al registrar)</span
-              >
-            </div>
-
-            <div class="toggle-switch-container">
-              <label class="switch">
-                <input type="checkbox" id="teacher-notifications-toggle" />
-                <span class="slider round"></span>
-              </label>
-              <span id="teacher-notifications-label"
-                >Notificaciones de Docentes (al registrar)</span
-              >
-            </div>
-
-            <div class="toggle-switch-container">
-              <label class="switch">
-                <input type="checkbox" id="report-enabled-toggle" />
-                <span class="slider round"></span>
-              </label>
-              <span id="report-enabled-label">Reporte por Imagen (Manual)</span>
-            </div>
-          </section>
-
-          <section class="whatsapp-config-section">
-            <h3>
-              <i class="bi bi-people-fill"></i> Config. Notificaciones de
-              Estudiantes
-            </h3>
-            <div id="student-rules-list">
-              <p>Cargando reglas...</p>
-            </div>
-            <div class="add-rule-form">
-              <h4>
-                <i class="bi bi-plus-circle-fill"></i> Agregar Nueva Regla
-              </h4>
-              <div class="form-grid-whatsapp">
-                <select id="rule-ciclo" required>
-                  <option value="">Selecciona Ciclo</option>
-                </select>
-                <select id="rule-turno" required>
-                  <option value="">Selecciona Turno</option>
-                  <option value="mañana">Mañana</option>
-                  <option value="tarde">Tarde</option>
-                </select>
-                <select id="rule-target-type" required>
-                  <option value="group">Enviar a Grupo</option>
-                  <option value="number">Enviar a Número</option>
-                </select>
-
-                <div id="rule-group-field" class="autocomplete-container">
-                  <label for="rule-group-filtro">Grupo de WhatsApp:</label>
-                  <input
-                    type="text"
-                    id="rule-group-filtro"
-                    placeholder="Buscar grupo por nombre..."
-                    autocomplete="off"
-                  />
-                  <input type="hidden" id="rule-group-hidden" />
-                  <div
-                    class="autocomplete-items"
-                    id="rule-group-resultados"
-                  ></div>
+            aria-label="Actividad de la academia"
+            class="stats-grid"
+            id="overview-stats"
+          ></div>
+          <div class="overview-columns">
+            <section class="card">
+              <div class="card-heading">
+                <div>
+                  <h2>Accesos rápidos</h2>
+                  <p>Las tareas más frecuentes de la academia.</p>
                 </div>
-                <div id="rule-number-field" style="display: none">
-                  <label for="rule-number-input"
-                    >Número (ej: 519XXXXXXXX):</label
-                  >
-                  <input
-                    type="tel"
-                    id="rule-number-input"
-                    placeholder="519..."
-                  />
-                </div>
+                <i class="bi bi-lightning-charge"></i>
               </div>
-              <button id="btn-add-student-rule">
-                <i class="bi bi-plus"></i> Agregar Regla
-              </button>
-              <div id="msg-add-rule" class="form-message"></div>
-            </div>
-          </section>
-
-          <section class="whatsapp-config-section">
-            <h3>
-              <i class="bi bi-person-badge-fill"></i> Config. Notificaciones de
-              Docentes
-            </h3>
-            <p
-              style="
-                font-size: 0.9rem;
-                color: #555;
-                margin-top: -10px;
-                margin-bottom: 15px;
-              "
-            >
-              Define un único destino (grupo o número) para todas las
-              notificaciones de docentes.
-            </p>
-            <div class="form-grid-whatsapp">
-              <select id="teacher-target-type" required>
-                <option value="number">Enviar a Número</option>
-                <option value="group">Enviar a Grupo</option>
-              </select>
-
-              <div
-                id="teacher-group-field"
-                class="autocomplete-container"
-                style="display: none"
-              >
-                <label for="teacher-group-filtro">Grupo de WhatsApp:</label>
-                <input
-                  type="text"
-                  id="teacher-group-filtro"
-                  placeholder="Buscar grupo por nombre..."
-                  autocomplete="off"
-                />
-                <input type="hidden" id="teacher-group-hidden" />
-                <div
-                  class="autocomplete-items"
-                  id="teacher-group-resultados"
-                ></div>
+              <div class="quick-grid">
+                <a class="quick-link" data-route="people" href="#people"
+                  ><span class="quick-icon"><i class="bi bi-people"></i></span
+                  ><strong>Personas</strong
+                  ><span>Estudiantes, docentes y carnets</span
+                  ><i class="bi bi-arrow-right"></i></a
+                ><a class="quick-link" data-route="exams" href="#exams"
+                  ><span class="quick-icon"
+                    ><i class="bi bi-ui-checks-grid"></i></span
+                  ><strong>Simulacros</strong
+                  ><span>Estructuras, claves y resultados</span
+                  ><i class="bi bi-arrow-right"></i></a
+                ><a class="quick-link" data-route="imports" href="#imports"
+                  ><span class="quick-icon"><i class="bi bi-upc-scan"></i></span
+                  ><strong>Leer cartillas</strong
+                  ><span>Cargar y revisar un lote OMR</span
+                  ><i class="bi bi-arrow-right"></i></a
+                ><a class="quick-link" data-route="reports" href="#reports"
+                  ><span class="quick-icon"
+                    ><i class="bi bi-bar-chart"></i></span
+                  ><strong>Reportes</strong
+                  ><span>Seguimiento por alumno y semana</span
+                  ><i class="bi bi-arrow-right"></i
+                ></a>
               </div>
-              <div id="teacher-number-field">
-                <label for="teacher-number-input"
-                  >Número (ej: 519XXXXXXXX):</label
-                >
-                <input
-                  type="tel"
-                  id="teacher-number-input"
-                  placeholder="519... (dejar vacío para no enviar)"
-                />
-              </div>
-            </div>
-          </section>
-
-          <section class="whatsapp-config-section">
-            <h3>
-              <i class="bi bi-images"></i> Config. Reporte por Imagen (Manual)
-            </h3>
-            <p
-              style="
-                font-size: 0.9rem;
-                color: #555;
-                margin-top: -10px;
-                margin-bottom: 15px;
-              "
-            >
-              Configura los grupos de destino para enviar el reporte de
-              asistencia manualmente.
-            </p>
-
-            <h4><i class="bi bi-geo-alt-fill"></i> Destinos del Reporte</h4>
-            <div id="report-rules-list">
-              <p>No hay destinos configurados.</p>
-            </div>
-
-            <div class="add-rule-form">
-              <h5
-                style="
-                  margin-top: 1.5rem;
-                  margin-bottom: 1rem;
-                  border-top: 1px solid var(--white2);
-                  padding-top: 1rem;
-                "
-              >
-                <i class="bi bi-plus-circle-fill"></i> Agregar Destino de
-                Reporte
-              </h5>
-              <div class="form-grid-whatsapp">
-                <select id="report-rule-ciclo" required>
-                  <option value="">Selecciona Ciclo</option>
-                </select>
-
-                <div id="report-rule-turno-container">
-                  <label for="report-rule-turno" class="sr-only"
-                    >Selecciona Turno</label
-                  >
-                  <select id="report-rule-turno" required>
-                    <option value="">Selecciona Turno</option>
-                    <option value="mañana">Mañana</option>
-                    <option value="tarde">Tarde</option>
-                  </select>
-                </div>
-                <div
-                  id="report-rule-group-field"
-                  class="autocomplete-container"
-                >
-                  <label for="report-rule-group-filtro"
-                    >Grupo de WhatsApp:</label
-                  >
-                  <input
-                    type="text"
-                    id="report-rule-group-filtro"
-                    placeholder="Buscar grupo por nombre..."
-                    autocomplete="off"
-                  />
-                  <input type="hidden" id="report-rule-group-hidden" />
-                  <div
-                    class="autocomplete-items"
-                    id="report-rule-resultados"
-                  ></div>
-                </div>
-              </div>
-              <button id="btn-add-report-rule">
-                <i class="bi bi-plus"></i> Agregar Destino
-              </button>
-              <div id="msg-add-report-rule" class="form-message"></div>
-            </div>
-          </section>
-          <section class="whatsapp-config-section manual-send-section" style="border-top: 1px solid #eee; margin-top: 30px; padding-top: 20px;">
-    <h3><i class="bi bi-person-vcard-fill"></i> Envío Manual de Carnet</h3>
-    <p style="font-size: 0.9rem; color: #555; margin-bottom: 15px;">
-        Busca un usuario y envía su carnet digital directamente a un número de WhatsApp.
-    </p>
-
-    <div class="form-grid-whatsapp" style="grid-template-columns: 2fr 1fr auto; align-items: end; gap: 15px;">
-        <div class="autocomplete-container" style="position: relative;">
-            <label for="manual-carnet-search">Buscar Usuario:</label>
-            <input type="text" id="manual-carnet-search" placeholder="Escribe nombre o código..." autocomplete="off">
-            <input type="hidden" id="manual-carnet-codigo-hidden">
-            <div class="student-autocomplete-dropdown" id="manual-carnet-results"></div>
-        </div>
-
-        <div>
-            <label for="manual-carnet-phone">Número WhatsApp:</label>
-            <input type="tel" id="manual-carnet-phone" placeholder="Ej: 519XXXXXXXX" maxlength="15">
-        </div>
-
-        <button id="btn-manual-send-carnet" class="btn-primary" style="height: 42px; margin-bottom: 2px;">
-            <i class="bi bi-send-fill"></i> Enviar
-        </button>
-    </div>
-    <div id="msg-manual-send" class="form-message" style="margin-top:10px;"></div>
-</section>
-
-          <div class="whatsapp-save-section" id="whatsapp-save-section">
-            <button id="btn-save-whatsapp-config">
-              <i class="bi bi-save-fill"></i> GUARDAR CONFIGURACIÓN WHATSAPP
-            </button>
-            <div id="msg-whatsapp-config" class="form-message"></div>
+            </section>
+            <section class="card getting-started">
+              <span class="help-icon"><i class="bi bi-compass"></i></span>
+              <h2>¿Primera vez en INGEMAT?</h2>
+              <p>
+                Encuentra instrucciones claras para cada tarea. Elige un
+                tutorial y sigue sus pasos a tu ritmo.
+              </p>
+              <a class="button secondary" data-route="guide" href="#guide"
+                >Explorar los 34 tutoriales <i class="bi bi-arrow-right"></i
+              ></a>
+              <hr />
+              <p class="help">
+                La guía está disponible desde cualquier sección del panel.
+              </p>
+            </section>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <div id="preview-modal" class="modal">
-      <div class="modal-content">
-        <span class="close-btn" id="close-preview">&times;</span>
-        <h2>VISTA PREVIA DEL ARCHIVO</h2>
-        <h3 id="preview-filename" style="margin-bottom: 15px"></h3>
-        <div id="preview-tabs" class="preview-tab-container"></div>
-        <div id="preview-content" class="preview-content-area"></div>
-      </div>
-    </div>
-
-    <div id="image-export-modal" class="modal">
-      <div class="modal-content modal-image-content">
-        <span class="close-btn" id="close-image-modal">&times;</span>
-        <h2><i class="bi bi-card-image"></i> GENERAR IMAGEN DE TABLA</h2>
-        <h3 id="image-modal-filename" style="margin-bottom: 15px; color: #555; font-size: 1rem;"></h3>
-        
-        <div class="image-modal-filters">
-          <div class="filter-group">
-            <label for="image-modal-ciclo"><i class="bi bi-journal-bookmark-fill"></i> Ciclo:</label>
-            <select id="image-modal-ciclo" class="modal-select">
-              <option value="">Cargando ciclos...</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <label for="image-modal-turno"><i class="bi bi-clock-fill"></i> Turno:</label>
-            <select id="image-modal-turno" class="modal-select">
-              <option value="mañana">Mañana</option>
-              <option value="tarde">Tarde</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="image-modal-preview-wrapper">
-          <div id="image-modal-table-container" class="image-modal-table-container">
-            <p><i>Seleccione un ciclo y turno para ver la previsualización...</i></p>
-          </div>
-        </div>
-
-        <div class="image-modal-actions">
-          <button id="btn-copy-table-image" class="btn-action-copy">
-            <i class="bi bi-clipboard-plus-fill"></i> COPIAR IMAGEN
-          </button>
-          <button id="btn-download-table-image" class="btn-action-download">
-            <i class="bi bi-download"></i> DESCARGAR PNG
-          </button>
-        </div>
-        <div id="msg-image-modal" class="form-message" style="margin-top: 10px; text-align: center;"></div>
-      </div>
-    </div>
-    <div id="barcode-modal" class="modal">
-      <div class="modal-content">
-        <span class="close-btn" id="close-barcode">&times;</span>
-        <h2 id="carnet-title">Carnet de Usuario</h2>
-        <p id="barcode-text" style="font-weight: 600; margin-bottom: 10px"></p>
-        <div style="text-align: center; margin-bottom: 10px">
-          <canvas
-            id="barcode-canvas"
-            width="320"
-            height="480"
-            style="
-              border: 1px solid #eee;
-              border-radius: 8px;
-              background: #fff;
-              width: 320px;
-              height: 480px;
-            "
-          ></canvas>
-        </div>
-        <div style="text-align: center">
-          <a id="download-barcode" class="btn btn-download">
-            <i class="bi bi-download"></i> Descargar PNG
-          </a>
-        </div>
-        <div style="margin-top: 12px; text-align: center">
-          <label
-            for="barcode-notes"
-            style="display: block; margin-bottom: 6px; font-weight: 600"
-            >Notas (tel. emergencia, salidas, etc.)</label
-          >
-          <textarea
-            id="barcode-notes"
-            placeholder="Agregar notas para este usuario..."
-            style="
-              width: 80%;
-              height: 80px;
-              padding: 8px;
-              border-radius: 6px;
-              border: 1px solid #ddd;
-            "
-          ></textarea>
-          <div style="margin-top: 8px">
-            <button id="save-barcode-notes" class="btn btn-primary">
-              <i class="bi bi-save"></i> Guardar notas
-            </button>
-            <span
-              id="barcode-notes-msg"
-              style="margin-left: 10px; color: #666"
-            ></span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div id="edit-user-modal" class="modal">
-      <div class="modal-content" style="max-width: 700px">
-        <span class="close-btn" id="close-edit-modal">&times;</span>
-        <h2><i class="bi bi-pencil-square"></i> EDITAR USUARIO</h2>
-        <form id="form-editar">
-          <input type="hidden" id="edit-original-codigo" />
-
-          <input
-            type="text"
-            id="edit-codigo"
-            placeholder="Código"
-            required
-            style="text-transform: uppercase"
-          />
-          <div style="display: flex; gap: 8px; flex-wrap: wrap">
-            <input
-              type="text"
-              id="edit-nombre"
-              placeholder="Nombre"
-              required
-              style="flex: 1"
-            />
-            <input
-              type="text"
-              id="edit-apellido"
-              placeholder="Apellido"
-              required
-              style="flex: 1"
-            />
-          </div>
-          <select id="edit-rol" required>
-            <option value="">Selecciona rol</option>
-            <option value="estudiante">Estudiante</option>
-            <option value="docente">Docente</option>
-          </select>
-          <select id="edit-turno" required>
-            <option value="">Selecciona turno</option>
-            <option value="mañana">Mañana</option>
-            <option value="tarde">Tarde</option>
-          </select>
-          <select id="edit-ciclo" required>
-            </select>
-
-          <div id="edit-dias-asistencia-selector">
-            <label>Días de Asistencia:</label>
-            <div class="day-buttons-container">
-              <button type="button" class="day-btn" data-day="L">L</button>
-              <button type="button" class="day-btn" data-day="M">M</button>
-              <button type="button" class="day-btn" data-day="MI">Mi</button>
-              <button type="button" class="day-btn" data-day="J">J</button>
-              <button type="button" class="day-btn" data-day="V">V</button>
-              <button type="button" class="day-btn" data-day="S">S</button>
-              <button type="button" class="day-btn" data-day="D">D</button>
-            </div>
-          </div>
-          <button type="submit">
-            <i class="bi bi-save-fill"></i> GUARDAR CAMBIOS
-          </button>
-          <div id="msg-editar-usuario" class="form-message"></div>
-        </form>
-      </div>
-    </div>
-    <div id="vista-info" class="vista-content" style="display: none">
-      <h2 class="sub-header">
-        <i class="bi bi-info-square-fill"></i> INFO - Ciclos y Carrusel
-      </h2>
-
-      <section id="info-section">
-        <div
-          id="info-controls"
-          style="
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            margin-bottom: 12px;
-          "
+        </section>
+        <section
+          class="admin-page"
+          data-page="people"
+          hidden=""
+          id="vista-usuarios-completa"
         >
-          <button id="btn-add-ciclo" class="btn-pill btn-primary">
-            Agregar Ciclo
-          </button>
-          <span style="color: #666; font-size: 0.95rem"
-            >Admin: crea/edita los ciclos mostrados en la web pública.</span
-          >
-        </div>
-
-        <div id="info-list"></div>
-
-        <div id="ciclo-form-modal" class="modal">
-          <div class="modal-content ciclo-modal" style="max-width: 650px">
-            <span class="close-btn" id="close-ciclo-form">&times;</span>
-            <h2 id="ciclo-form-title" class="ciclo-form-header">
-              Agregar Ciclo
-            </h2>
-            <form id="ciclo-form" class="ciclo-form">
-              <div class="form-group">
-                <label for="ciclo-titulo">Título del Ciclo</label>
-                <input
-                  type="text"
-                  id="ciclo-titulo"
-                  placeholder="ej: Matemáticas 2025"
-                  required
-                />
-              </div>
-              <div class="form-group">
-                <label for="ciclo-slug">Slug (URL amigable)</label>
-                <input
-                  type="text"
-                  id="ciclo-slug"
-                  placeholder="ej: matematica-2025"
-                  required
-                />
-              </div>
-              <div class="form-group">
-                <label for="ciclo-descripcion">Descripción</label>
-                <textarea
-                  id="ciclo-descripcion"
-                  placeholder="Describe brevemente el ciclo..."
-                  rows="3"
-                ></textarea>
-              </div>
-              <div class="form-group">
-                <label for="ciclo-beneficios">Beneficios</label>
-                <textarea
-                  id="ciclo-beneficios"
-                  placeholder="Cada línea es un beneficio (ej: Certificado oficial)&#10;Aprendizaje práctico&#10;Tutorías personalizadas"
-                  rows="4"
-                ></textarea>
-              </div>
-              <div class="form-group">
-                <label for="ciclo-price">Precio Actual (S/)</label>
-                <input
-                  type="number"
-                  id="ciclo-price"
-                  placeholder="ej: 299.00"
-                  step="0.01"
-                />
-              </div>
-              <div class="form-group form-checkbox">
-                <label>
-                  <input type="checkbox" id="ciclo-published" />
-                  <span>Publicado en la web pública</span>
-                </label>
-              </div>
-              <div class="form-actions">
-                <button type="submit" class="btn-form-submit">
-                  <i class="bi bi-save"></i> Guardar Ciclo
-                </button>
-                <button type="button" id="ciclo-cancel" class="btn-form-cancel">
-                  Cancelar
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </section>
-      <section id="carousel-manager-section">
-        <h2
-          class="sub-header"
-          style="text-align: left; margin-top: 1rem; font-size: 1.5rem"
-        >
-          <i class="bi bi-images"></i> Gestor de Carrusel (Ingresantes)
-        </h2>
-        <div class="carousel-grid">
-          <div class="carousel-upload-col">
-            <h4>Subir Nueva Imagen</h4>
-            <p class="carousel-instructions">
-              Sube imágenes de <strong>1080x1080 píxeles</strong>.
-              <br />
-              Te recomendamos usar esta plantilla de Canva:
-              <a
-                href="https://www.canva.com/design/DAG10VmjnX8/I9YdaWBl2Fdh9KU-OQg0-Q/edit?utm_content=DAG10VmjnX8&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton"
-                target="_blank"
-                >Abrir Plantilla de Canva</a
-              >
-            </p>
-
-            <label
-              for="carousel-upload-name"
-              style="
-                font-weight: 600;
-                font-size: 0.9rem;
-                margin-bottom: 5px;
-                display: block;
-              "
-              >Nombre para el archivo:</label
-            >
-            <input
-              type="text"
-              id="carousel-upload-name"
-              placeholder="Ej: ingresante-juan-perez"
-              style="margin-bottom: 15px"
-            />
-            <label
-              for="carousel-upload-input"
-              style="
-                font-weight: 600;
-                font-size: 0.9rem;
-                margin-bottom: 5px;
-                display: block;
-              "
-              >Seleccionar Archivo (1080x1080):</label
-            >
-            <input
-              type="file"
-              id="carousel-upload-input"
-              accept="image/png, image/jpeg"
-            />
-            <div id="carousel-preview-container" style="display: none">
-              <img id="carousel-preview" alt="Vista previa" />
-              <span id="carousel-preview-dims"></span>
+          <div class="section-toolbar">
+            <div>
+              <h2>Directorio de personas</h2>
+              <p>Estudiantes y docentes organizados por ciclo y turno.</p>
             </div>
-            <button id="btn-upload-carousel" class="btn-form-submit" disabled>
-              <i class="bi bi-upload"></i> Subir Imagen
+            <button class="button primary" data-admin="" id="people-create">
+              <i class="bi bi-person-plus"></i> Nuevo usuario
             </button>
-            <div
-              id="msg-carousel-upload"
-              class="form-message"
-              style="margin-top: 10px"
-            ></div>
           </div>
-
-          <div class="carousel-list-col">
-            <h4>Imágenes Actuales</h4>
-            <div id="carousel-list-container">
-              <p>Cargando imágenes...</p>
-              </div>
+          <div aria-label="Personas" class="local-tabs" role="tablist">
+            <button aria-selected="true" data-local-tab="directory" role="tab">
+              Directorio</button
+            ><button aria-selected="false" data-local-tab="archived-students" role="tab" data-admin="">
+              Estudiantes archivados
+            </button><button aria-selected="false" data-local-tab="cards" role="tab">
+              Carnets e impresión
+            </button>
           </div>
-        </div>
-      </section>
-      </div>
-
-      <!-- ======================================================= -->
-      <!-- VISTA DE BIBLIOTECA Y CONTROL DE PRÉSTAMOS -->
-      <!-- ======================================================= -->
-      <div id="vista-biblioteca" class="vista-content" style="display: none;">
-        <h2 class="sub-header">
-          <i class="bi bi-book-half"></i> ADMINISTRACIÓN DE BIBLIOTECA Y PRÉSTAMOS
-        </h2>
-
-        <section id="biblioteca-admin-section">
-          <!-- Sub-Navegación Interna de Biblioteca -->
-          <div class="biblioteca-subtabs">
-            <button class="bib-subtab active" id="subtab-bib-estantes"><i class="bi bi-grid-3x3-gap"></i> Estantería Visual</button>
-            <button class="bib-subtab" id="subtab-bib-gestion"><i class="bi bi-journal-plus"></i> Gestionar Libros y Secciones</button>
-            <button class="bib-subtab" id="subtab-bib-prestamos"><i class="bi bi-clock-history"></i> Control de Préstamos / Devoluciones</button>
-          </div>
-
-          <!-- SUB-VISTA 1: Estantería Visual -->
-          <div id="bib-panel-estantes" class="bib-subpanel">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
-              <h3 style="margin:0; font-family: var(--font-heading); color: var(--black);"><i class="bi bi-bookshelf"></i> Estante Dinámico por Secciones</h3>
-              <input type="text" id="admin-book-search" placeholder="🔍 Buscar libro o código en estante..." style="padding: 8px 14px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.9rem;" />
-            </div>
-            <div id="admin-bookshelf-container" class="bookshelf-container">
-              <p><i>Cargando estantes de librería...</i></p>
+          <div data-local-panel="directory">
+            <div class="card">
+              <label for="people-search">Buscar por nombre o código</label
+              ><input
+                id="people-search"
+                placeholder="Escribe el nombre, apellido o código"
+                type="search"
+              />
+              <p class="help" id="people-search-status" role="status"></p>
+              <div class="accordion-container" id="vista-usuarios-list"></div>
             </div>
           </div>
-
-          <!-- SUB-VISTA 2: Gestión de Libros y Secciones -->
-          <div id="bib-panel-gestion" class="bib-subpanel" style="display: none;">
-            <div class="bib-grid">
-              <!-- Columna Izquierda: Formularios -->
-              <div style="display: flex; flex-direction: column; gap: 20px;">
-                <!-- Formulario de Secciones -->
-                <div class="bib-card-box">
-                  <h4 style="margin-bottom: 12px; color: var(--red); font-family: var(--font-heading);"><i class="bi bi-folder-plus"></i> Agregar Nueva Sección / Estante</h4>
-                  <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <input type="text" id="nueva-seccion-input" placeholder="Nombre (ej. HISTORIA)" style="flex:1; min-width: 130px; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; text-transform: uppercase;" />
-                    <button id="btn-agregar-seccion" class="btn-form-submit" style="padding: 8px 14px; flex-shrink: 0;"><i class="bi bi-plus-lg"></i> Agregar</button>
-                  </div>
-                  <div id="msg-seccion" style="margin-top: 8px; font-size: 0.85rem;"></div>
+          <div data-local-panel="archived-students" data-admin="" hidden="">
+            <div class="card">
+              <h3>Estudiantes archivados</h3>
+              <p class="help">Conservan sus calificaciones, asistencias y demás datos. No figuran como alumnos activos. Puedes restaurarlos cuando regresen.</p>
+              <label for="archived-student-search">Buscar estudiante archivado</label>
+              <input id="archived-student-search" type="search" placeholder="Nombre, apellido, código o ciclo" autocomplete="off" />
+              <p class="help" id="archived-student-status" role="status"></p>
+              <ul id="archived-students-list" class="people-archive-list"></ul>
+            </div>
+          </div>
+          <div data-local-panel="cards" hidden="">
+            <div class="export-section-container">
+              <div class="export-card">
+                <div class="export-header">
+                  <h3>
+                    <i class="bi bi-printer-fill"></i> Exportación Masiva de
+                    Carnets
+                  </h3>
+                  <p>
+                    Genera archivos listos para imprimir o imágenes
+                    individuales.
+                  </p>
                 </div>
-
-                <!-- Formulario de Libros -->
-                <div class="bib-card-box">
-                  <h4 style="margin-bottom: 12px; color: var(--red); font-family: var(--font-heading);"><i class="bi bi-book"></i> Agregar Nuevo Libro</h4>
-                  <form id="form-agregar-libro" style="display: flex; flex-direction: column; gap: 10px;">
-                    <div>
-                      <label style="font-size: 0.85rem; font-weight: 600;">1. Nombre / Título del Libro:</label>
-                      <input type="text" id="libro-titulo-input" required placeholder="ej. Álgebra Avanzada" style="width:100%; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; margin-top: 2px;" />
-                    </div>
-                    <div>
-                      <label style="font-size: 0.85rem; font-weight: 600;">2. Código del Libro (Único):</label>
-                      <input type="text" id="libro-codigo-input" required placeholder="ej. MAT-01" style="width:100%; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; text-transform: uppercase; margin-top: 2px;" />
-                    </div>
-                    <div>
-                      <label style="font-size: 0.85rem; font-weight: 600;">3. Sección / Categoría:</label>
-                      <select id="libro-seccion-select" required style="width:100%; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; margin-top: 2px;">
-                        <option value="">Cargando secciones...</option>
+                <div class="export-body">
+                  <div class="export-filters">
+                    <div class="filter-group field">
+                      <label for="export-select-grupo">Grupo de Usuarios</label>
+                      <select id="export-select-grupo">
+                        <option value="">-- Selecciona un grupo --</option>
+                        <option value="docentes">DOCENTES</option>
                       </select>
                     </div>
-                    <div>
-                      <label style="font-size: 0.85rem; font-weight: 600;">4. Editorial (Opcional):</label>
-                      <input type="text" id="libro-editorial-input" placeholder="ej. Lumbreras, San Marcos, Rodo..." style="width:100%; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; margin-top: 2px;" />
+                    <div class="filter-group field">
+                      <label for="export-select-turno">Turno</label>
+                      <select disabled="" id="export-select-turno">
+                        <option value="">-- Selecciona Turno --</option>
+                        <option value="mañana">Mañana</option>
+                        <option value="tarde">Tarde</option>
+                      </select>
                     </div>
-                    <button type="submit" class="btn-form-submit" style="margin-top: 6px; width: 100%;"><i class="bi bi-journal-plus"></i> Guardar Libro en Catálogo</button>
-                  </form>
-                  <div id="msg-libro" style="margin-top: 8px; font-size: 0.85rem;"></div>
+                  </div>
+                  <div class="export-actions">
+                    <button
+                      class="btn-export btn-pdf"
+                      disabled=""
+                      id="btn-descargar-pdf"
+                    >
+                      <i class="bi bi-file-earmark-pdf-fill"></i>
+                      <span>Descargar PDF</span>
+                      <small id="pdf-count-label">(0 usuarios)</small>
+                    </button>
+                    <button
+                      class="btn-export btn-zip"
+                      disabled=""
+                      id="btn-descargar-zip"
+                    >
+                      <i class="bi bi-images"></i>
+                      <span>Descargar ZIP</span>
+                      <small id="zip-count-label">Imágenes sueltas</small>
+                    </button>
+                  </div>
                 </div>
-              </div>
-
-              <!-- Columna Derecha: Catálogo de Libros Registrados -->
-              <div class="bib-card-box">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
-                  <h4 style="margin:0; color: var(--black); font-family: var(--font-heading);"><i class="bi bi-list-columns-reverse"></i> Catálogo Completo de Libros</h4>
-                  <input type="text" id="search-catalogo-libros" placeholder="🔍 Buscar libro o código..." style="padding: 7px 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.85rem; width: 210px;" />
+                <div
+                  class="export-progress-area"
+                  id="export-progress-area"
+                  style="display: none"
+                >
+                  <div class="progress-info">
+                    <span id="export-status-msg">Procesando...</span>
+                    <span id="export-percent">0%</span>
+                  </div>
+                  <div class="progress-track">
+                    <div class="progress-fill" id="export-progress-bar"></div>
+                  </div>
                 </div>
-                <div style="max-height: 500px; overflow-y: auto; overflow-x: auto; width: 100%;">
-                  <table class="three-col-table" style="width: 100%;">
-                    <thead>
-                      <tr>
-                        <th style="width: 85px;">Código</th>
-                        <th>Título</th>
-                        <th style="width: 110px;">Editorial</th>
-                        <th style="width: 110px;">Sección</th>
-                        <th style="width: 90px;">Estado</th>
-                        <th style="width: 50px;">Acción</th>
-                      </tr>
-                    </thead>
-                    <tbody id="tabla-catalogo-libros-body">
-                      <tr><td colspan="6" class="text-center"><i>Cargando catálogo...</i></td></tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Modal para Editar Información de Libro -->
-          <div id="modal-editar-libro" style="display:none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center; padding: 15px;">
-            <div style="background: #ffffff; border-radius: 12px; max-width: 460px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.2); overflow: hidden; border: 1px solid #e2e8f0;">
-              <div style="background: #f8fafc; padding: 16px 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
-                <h4 style="margin: 0; color: #1e293b; font-family: var(--font-heading); display:flex; align-items:center; gap:8px;"><i class="bi bi-pencil-square" style="color: var(--red);"></i> Editar Libro</h4>
-                <button type="button" id="btn-cerrar-modal-edit-libro" style="background: transparent; border: none; font-size: 1.25rem; color: #64748b; cursor: pointer; line-height: 1;">&times;</button>
-              </div>
-              <form id="form-editar-libro" style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
-                <input type="hidden" id="edit-libro-id" />
-                <div>
-                  <label style="font-size: 0.85rem; font-weight: 600; color: #334155;">1. Nombre / Título:</label>
-                  <input type="text" id="edit-libro-titulo" required style="width:100%; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; margin-top: 4px; box-sizing: border-box;" />
-                </div>
-                <div>
-                  <label style="font-size: 0.85rem; font-weight: 600; color: #334155;">2. Código del Libro:</label>
-                  <input type="text" id="edit-libro-codigo" required style="width:100%; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; margin-top: 4px; text-transform: uppercase; box-sizing: border-box;" />
-                </div>
-                <div>
-                  <label style="font-size: 0.85rem; font-weight: 600; color: #334155;">3. Sección / Categoría:</label>
-                  <select id="edit-libro-seccion" required style="width:100%; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; margin-top: 4px; box-sizing: border-box;">
-                  </select>
-                </div>
-                <div>
-                  <label style="font-size: 0.85rem; font-weight: 600; color: #334155;">4. Editorial (Opcional):</label>
-                  <input type="text" id="edit-libro-editorial" placeholder="ej. Lumbreras, Cuzcano..." style="width:100%; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; margin-top: 4px; box-sizing: border-box;" />
-                </div>
-                <div id="msg-edit-libro" style="font-size: 0.85rem;"></div>
-                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 6px;">
-                  <button type="button" id="btn-cancelar-edit-libro" class="bib-subtab" style="padding: 8px 16px; margin:0;">Cancelar</button>
-                  <button type="submit" class="btn-form-submit" style="padding: 8px 18px;"><i class="bi bi-check2-circle"></i> Guardar Cambios</button>
-                </div>
-              </form>
-            </div>
-          </div>
-
-          <!-- SUB-VISTA 3: Control de Préstamos y Devoluciones -->
-          <div id="bib-panel-prestamos" class="bib-subpanel" style="display: none;">
-            <div class="bib-card-box">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 12px;">
-                <div>
-                  <h3 style="margin: 0; color: var(--black); font-family: var(--font-heading);"><i class="bi bi-clock-history"></i> Historial y Control de Devolución de Préstamos</h3>
-                  <span style="font-size: 0.85rem; color: #64748b;">Registre devoluciones para liberar los libros prestados en el sistema.</span>
-                </div>
-                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                  <select id="filter-prestamos-estado" style="padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.9rem;">
-                    <option value="todos">Todos los Estados</option>
-                    <option value="prestado" selected>Prestados (Activos)</option>
-                    <option value="devuelto">Devueltos</option>
-                  </select>
-                  <input type="text" id="search-prestamos" placeholder="🔍 Buscar alumno, libro o código..." style="padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.9rem; width: 220px;" />
-                </div>
-              </div>
-
-              <div style="max-height: 550px; overflow-y: auto;">
-                <table class="three-col-table" style="width: 100%;">
-                  <thead>
-                    <tr>
-                      <th style="width: 90px;">Cód. Libro</th>
-                      <th>Título del Libro</th>
-                      <th>Estudiante</th>
-                      <th style="width: 110px;">Ciclo / Turno</th>
-                      <th style="width: 130px;">Fecha Préstamo</th>
-                      <th style="width: 130px;">Fecha Devolución</th>
-                      <th style="width: 100px;">Estado</th>
-                      <th style="width: 130px;">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody id="tabla-prestamos-body">
-                    <tr><td colspan="8" class="text-center"><i>Cargando préstamos...</i></td></tr>
-                  </tbody>
-                </table>
               </div>
             </div>
           </div>
         </section>
-      </div>
-
-      <!-- ======================================================= -->
-      <!-- VISTA DE EVALUACIONES, SIMULACROS, RANKING Y FICHA ALUMNO -->
-      <!-- ======================================================= -->
-      <div id="vista-evaluaciones" class="vista-content" style="display: none;">
-        <h2 class="sub-header">
-          <i class="bi bi-journal-check"></i> GESTIÓN DE EVALUACIONES, SIMULACROS Y TAREAS
-        </h2>
-
-        <section id="evaluaciones-admin-section">
-          <!-- Sub-Navegación Interna -->
-          <div class="eval-subtabs">
-            <button class="eval-subtab active" id="subtab-eval-simulacros"><i class="bi bi-ui-checks-grid"></i> Simulacros y Tests</button>
-            <button class="eval-subtab" id="subtab-eval-ranking"><i class="bi bi-trophy-fill"></i> Ranking y Resultados</button>
-            <button class="eval-subtab" id="subtab-eval-tareas"><i class="bi bi-file-earmark-text"></i> Registro de Tareas</button>
-            <button class="eval-subtab" id="subtab-eval-reporte-alumno"><i class="bi bi-person-badge"></i> Reporte por Alumno</button>
+        <section
+          class="admin-page"
+          data-page="archives"
+          hidden=""
+          id="vista-archivos"
+        >
+          <div class="notice">
+            Estos archivos pertenecen al registro anterior en Excel. Consulta
+            los ingresos nuevos en Asistencia.
           </div>
-
-          <!-- SUB-PANEL 1: Crear Examen y Registrar Respuestas -->
-          <div id="eval-panel-simulacros" class="eval-subpanel">
-            <div class="eval-grid">
-              <!-- Columna Izquierda: Formulario Crear Examen -->
-              <!-- Columna Izquierda: Formulario Crear Examen -->
-              <div class="eval-card-box">
-                <h4 style="margin-bottom: 12px; color: var(--red); font-family: var(--font-heading);"><i class="bi bi-file-earmark-plus"></i> Crear Nuevo Examen / Simulacro</h4>
-                <form id="form-crear-evaluacion">
-                  <div>
-                    <label style="font-size: 0.88rem; font-weight: 600;">1. Título del Examen / Simulacro / Test:</label>
-                    <input type="text" id="eval-titulo-input" required placeholder="ej. Simulacro General 01 o Paso Corto 01" style="margin-top:2px;" />
+          <div class="settings-grid">
+            <section class="card" id="archivos-excel-section">
+              <h2>Archivos históricos</h2>
+              <div id="archivos-excel"></div>
+            </section>
+            <details class="card">
+              <summary>Justificar una falta en un archivo histórico</summary>
+              <section class="card" id="justificar-falta-section">
+                <h2>Justificar una falta histórica</h2>
+                <form id="form-justificar-falta">
+                  <label for="justificar-fecha">Fecha de la falta:</label>
+                  <input id="justificar-fecha" required="" type="date" />
+                  <div class="autocomplete-container field">
+                    <label for="justificar-usuario-filtro"
+                      >Buscar Alumno o Docente:</label
+                    >
+                    <input
+                      autocomplete="off"
+                      id="justificar-usuario-filtro"
+                      placeholder="Escribe un nombre para buscar..."
+                      type="text"
+                    />
+                    <input
+                      id="justificar-alumno-hidden"
+                      required=""
+                      type="hidden"
+                    />
+                    <div
+                      class="autocomplete-items"
+                      id="justificar-resultados"
+                    ></div>
                   </div>
-
-                  <div class="form-row-inline" style="margin-top: 6px;">
-                    <div style="flex: 1;">
-                      <label style="font-size: 0.88rem; font-weight: 600;">2. Ciclo / Salón:</label>
-                      <select id="eval-ciclo-select" required>
+                  <button type="submit">
+                    <i class="bi bi-check-lg"></i> JUSTIFICAR
+                  </button>
+                </form>
+                <div class="form-message" id="msg-justificar-falta"></div>
+              </section>
+            </details>
+          </div>
+        </section>
+        <section
+          class="admin-page"
+          data-page="cycles"
+          hidden=""
+          id="vista-configuracion"
+        >
+          <div class="settings-grid">
+            <section class="card" id="gestion-ciclos-section">
+              <h2>Ciclos académicos</h2>
+              <div id="ciclos-list-container">
+                <ul class="lista-gestion-ciclos" id="ciclos-list"></ul>
+              </div>
+              <form id="form-agregar-ciclo">
+                <input
+                  aria-label="Nombre del nuevo ciclo"
+                  id="nuevo-ciclo-nombre"
+                  oninput="this.value = this.value.toUpperCase()"
+                  placeholder="Nombre del nuevo ciclo"
+                  required=""
+                  type="text"
+                />
+                <button type="submit">
+                  <i class="bi bi-plus-circle-fill"></i> Agregar ciclo
+                </button>
+              </form>
+              <div id="msg-ciclos"></div>
+            </section>
+            <section class="card" id="horarios-section">
+              <h2>Horarios de ingreso</h2>
+              <form id="form-horarios">
+                <div class="form-group field">
+                  <label for="horarios-ciclo-select"
+                    >Configurar horarios para:</label
+                  >
+                  <select id="horarios-ciclo-select" required="">
+                    <option value="">Cargando ciclos...</option>
+                  </select>
+                  <small
+                    >El horario 'Default' se usa si un ciclo no tiene horario
+                    propio.</small
+                  >
+                </div>
+                <div>
+                  <div class="time-picker-group">
+                    <label for="entrada-manana-hr">Mañana - Entrada:</label>
+                    <div class="time-picker-inputs">
+                      <select
+                        aria-label="Hora de entrada mañana"
+                        id="entrada-manana-hr"
+                        required=""
+                      ></select>
+                      <span>:</span>
+                      <select
+                        aria-label="Minuto de entrada mañana"
+                        id="entrada-manana-min"
+                        required=""
+                      ></select>
+                      <select
+                        aria-label="AM/PM de entrada mañana"
+                        id="entrada-manana-ampm"
+                        required=""
+                      >
+                        <option value="AM">AM</option>
+                        <option value="PM">PM</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="time-picker-group">
+                    <label for="tolerancia-manana-hr"
+                      >Mañana - Tolerancia:</label
+                    >
+                    <div class="time-picker-inputs">
+                      <select
+                        aria-label="Hora de tolerancia mañana"
+                        id="tolerancia-manana-hr"
+                        required=""
+                      ></select>
+                      <span>:</span>
+                      <select
+                        aria-label="Minuto de tolerancia mañana"
+                        id="tolerancia-manana-min"
+                        required=""
+                      ></select>
+                      <select
+                        aria-label="AM/PM de tolerancia mañana"
+                        id="tolerancia-manana-ampm"
+                        required=""
+                      >
+                        <option value="AM">AM</option>
+                        <option value="PM">PM</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                <p class="schedule-summary" id="summary-manana"></p>
+                <div>
+                  <div class="time-picker-group">
+                    <label for="entrada-tarde-hr">Tarde - Entrada:</label>
+                    <div class="time-picker-inputs">
+                      <select
+                        aria-label="Hora de entrada tarde"
+                        id="entrada-tarde-hr"
+                        required=""
+                      ></select>
+                      <span>:</span>
+                      <select
+                        aria-label="Minuto de entrada tarde"
+                        id="entrada-tarde-min"
+                        required=""
+                      ></select>
+                      <select
+                        aria-label="AM/PM de entrada tarde"
+                        id="entrada-tarde-ampm"
+                        required=""
+                      >
+                        <option value="AM">AM</option>
+                        <option value="PM">PM</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="time-picker-group">
+                    <label for="tolerancia-tarde-hr">Tarde - Tolerancia:</label>
+                    <div class="time-picker-inputs">
+                      <select
+                        aria-label="Hora de tolerancia tarde"
+                        id="tolerancia-tarde-hr"
+                        required=""
+                      ></select>
+                      <span>:</span>
+                      <select
+                        aria-label="Minuto de tolerancia tarde"
+                        id="tolerancia-tarde-min"
+                        required=""
+                      ></select>
+                      <select
+                        aria-label="AM/PM de tolerancia tarde"
+                        id="tolerancia-tarde-ampm"
+                        required=""
+                      >
+                        <option value="AM">AM</option>
+                        <option value="PM">PM</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                <p class="schedule-summary" id="summary-tarde"></p>
+                <button type="submit">
+                  <i class="bi bi-save-fill"></i> Guardar horarios
+                </button>
+              </form>
+              <div id="msg-horarios"></div>
+            </section>
+          </div>
+        </section>
+        <section
+          class="admin-page"
+          data-page="account"
+          hidden=""
+          id="vista-cuenta"
+        >
+          <div class="settings-grid">
+            <section class="card" id="gestion-acceso-section">
+              <h2>Cambiar mi contraseña</h2>
+              <form id="form-password">
+                <label for="actual-password">Contraseña actual</label
+                ><input
+                  autocomplete="current-password"
+                  id="actual-password"
+                  required=""
+                  type="password"
+                />
+                <input
+                  autocomplete="new-password"
+                  id="nueva-password"
+                  minlength="12"
+                  placeholder="Nueva contraseña"
+                  required=""
+                  type="password"
+                />
+                <button type="submit">
+                  <i class="bi bi-pencil-square"></i> CAMBIAR CONTRASEÑA
+                </button>
+              </form>
+              <div id="msg-password"></div>
+            </section>
+            <aside class="card">
+              <h2>Tu acceso al sistema</h2>
+              <p>
+                Utiliza una cuenta individual y conserva tu contraseña en
+                privado.
+              </p>
+              <p>
+                La actualización de contraseña cierra tus otras sesiones
+                abiertas.
+              </p>
+              <a class="button secondary" data-route="guide" href="#guide"
+                >Consultar la guía de acceso</a
+              >
+            </aside>
+          </div>
+        </section>
+        <section
+          class="admin-page"
+          data-page="tests"
+          hidden=""
+          id="vista-tests"
+        >
+          <div class="notice">
+            Registra prácticas con nota directa. Los exámenes con cartilla y
+            preguntas por área se gestionan en
+            <a data-route="exams" href="#exams">Simulacros</a>.
+          </div>
+          <div class="academic-content" id="eval-panel-simulacros">
+            <div class="eval-grid">
+              <div class="eval-card-box">
+                <h4>Crear test o práctica</h4>
+                <form id="form-crear-evaluacion">
+                  <div class="field">
+                    <label for="eval-titulo-input"
+                      >Título de la práctica:</label
+                    >
+                    <input
+                      id="eval-titulo-input"
+                      placeholder="Ej.: Práctica de Álgebra · semana 1"
+                      required=""
+                      type="text"
+                    />
+                  </div>
+                  <div class="form-row-inline">
+                    <div class="field">
+                      <label for="eval-ciclo-select">Ciclo / Salón:</label>
+                      <select id="eval-ciclo-select" required="">
                         <option value="">Cargando ciclos...</option>
                       </select>
                     </div>
-                    <div style="flex: 1.2;">
-                      <label style="font-size: 0.88rem; font-weight: 600;">3. Modalidad / Tipo:</label>
-                      <select id="eval-tipo-select" style="font-weight: 600;">
-                        <option value="simulacro_estandar">Simulacro estándar</option>
-                        <option value="simulacro_areas">Simulacro por Áreas (A, B, C, D, E)</option>
+                    <div class="field">
+                      <label for="eval-tipo-select">Modalidad:</label>
+                      <select id="eval-tipo-select">
                         <option value="test">Test</option>
                       </select>
                     </div>
                   </div>
-
-                  <div style="margin-top: 6px;">
-                    <label style="font-size: 0.88rem; font-weight: 600;">4. Fecha de Realización de la Prueba:</label>
-                    <input type="date" id="eval-fecha-input" required style="margin-top: 2px;" />
+                  <div class="field">
+                    <label for="eval-fecha-input">Fecha de la práctica:</label>
+                    <input id="eval-fecha-input" required="" type="date" />
                   </div>
-
-                  <!-- Bloque Dinámico: N° Preguntas para Modo Estándar -->
-                  <div id="eval-estandar-preguntas-row" style="margin-top: 6px;">
-                    <label style="font-size: 0.88rem; font-weight: 600;">5. Preguntas a responder:</label>
-                    <input type="number" id="eval-num-preguntas" value="100" min="1" max="200" placeholder="ej. 100 o 50" />
+                  <div class="field" id="eval-estandar-preguntas-row">
+                    <label for="eval-num-preguntas"
+                      >Preguntas a responder:</label
+                    >
+                    <input
+                      id="eval-num-preguntas"
+                      max="200"
+                      min="1"
+                      placeholder="ej. 100 o 50"
+                      type="number"
+                      value="100"
+                    />
                   </div>
-
-                  <!-- Bloque Dinámico: N° Preguntas para Modo por Áreas -->
-                  <div id="eval-areas-cuadernillo-row" class="form-row-inline" style="display: none; margin-top: 6px;">
-                    <div style="flex: 1;">
-                      <label style="font-size: 0.85rem; font-weight: 600; color: #0284c7;">5. Preguntas Totales:</label>
-                      <input type="number" id="eval-total-preguntas-areas" value="120" min="1" max="200" placeholder="ej. 120 o 128" />
+                  <div
+                    class="form-row-inline"
+                    id="eval-areas-cuadernillo-row"
+                    style="display: none"
+                  >
+                    <div class="field">
+                      <label for="eval-total-preguntas-areas"
+                        >Preguntas Totales:</label
+                      >
+                      <input
+                        id="eval-total-preguntas-areas"
+                        max="200"
+                        min="1"
+                        placeholder="ej. 120 o 128"
+                        type="number"
+                        value="120"
+                      />
                     </div>
-                    <div style="flex: 1;">
-                      <label style="font-size: 0.85rem; font-weight: 600; color: #166534;">Preguntas a Responder:</label>
-                      <input type="number" id="eval-num-preguntas-areas" value="100" min="1" max="200" placeholder="ej. 100" />
+                    <div class="field">
+                      <label for="eval-num-preguntas-areas"
+                        >Preguntas a Responder:</label
+                      >
+                      <input
+                        id="eval-num-preguntas-areas"
+                        max="200"
+                        min="1"
+                        placeholder="ej. 100"
+                        type="number"
+                        value="100"
+                      />
                     </div>
                   </div>
-
-                  <!-- Bloque Dinámico: Configuración de Puntajes (Oculto en Test) -->
-                  <div id="eval-config-puntajes-wrapper" class="form-row-inline" style="margin-top: 6px;">
-                    <div>
-                      <label style="font-size: 0.78rem; font-weight: 700; color:#166534;">+ Correcta (pts)</label>
-                      <input type="number" id="eval-pts-correcta" step="0.001" value="20" required />
+                  <div
+                    class="form-row-inline"
+                    id="eval-config-puntajes-wrapper"
+                  >
+                    <div class="field">
+                      <label for="eval-pts-correcta">+ Correcta (pts)</label>
+                      <input
+                        id="eval-pts-correcta"
+                        required=""
+                        step="0.001"
+                        type="number"
+                        value="20"
+                      />
                     </div>
-                    <div>
-                      <label style="font-size: 0.78rem; font-weight: 700; color:#dc2626;">- Incorrecta (pts)</label>
-                      <input type="number" id="eval-pts-incorrecta" step="0.001" value="1.125" placeholder="ej. 1.125" required />
+                    <div class="field">
+                      <label for="eval-pts-incorrecta"
+                        >- Incorrecta (pts)</label
+                      >
+                      <input
+                        id="eval-pts-incorrecta"
+                        placeholder="ej. 1.125"
+                        required=""
+                        step="0.001"
+                        type="number"
+                        value="1.125"
+                      />
                     </div>
                   </div>
-
-                  <!-- Bloque Dinámico: Nota Máxima para Test (Visible solo en Test) -->
-                  <div id="eval-config-test-wrapper" style="display: none; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 10px 14px; margin-top: 8px;">
-                    <span style="font-size: 0.85rem; color: #166534; font-weight: 600;"><i class="bi bi-info-circle-fill"></i> Modalidad Test: No requiere claves A-E. Introducirás directamente la nota del estudiante en el formulario de la derecha.</span>
+                  <div id="eval-config-test-wrapper" style="display: none">
+                    <span
+                      ><i class="bi bi-info-circle-fill"></i> Modalidad Test: No
+                      requiere claves A-E. Introduce la nota del estudiante en
+                      Registrar calificación.</span
+                    >
                   </div>
-
-                  <!-- Bloque Dinámico: Botón Claves Oficiales (Oculto en Test) -->
-                  <div id="eval-config-claves-wrapper" class="eval-clave-matrix-wrapper" style="margin-top: 8px;">
-                    <label style="font-size: 0.88rem; font-weight: 600; display:block;">Clave de Respuestas Oficial (Pop-Up):</label>
-                    <div style="display:flex; gap:8px; margin-bottom:4px;">
-                      <button type="button" id="btn-abrir-modal-clave" class="btn-form-submit" style="background:#0284c7; flex:1; font-size:0.88rem; padding:9px;"><i class="bi bi-ui-checks-grid"></i> Pop-Up Configurar Claves</button>
-                      <button type="button" id="btn-preview-cartilla-crear" class="btn-form-submit" style="background:#475569; width:auto; font-size:0.88rem; padding:9px 12px;" title="Previsualizar e imprimir cartilla vacía para este examen"><i class="bi bi-file-earmark-pdf"></i> Cartilla OMR</button>
+                  <div
+                    class="eval-clave-matrix-wrapper"
+                    id="eval-config-claves-wrapper"
+                  >
+                    <label>Clave de Respuestas Oficial (Pop-Up):</label>
+                    <div class="form-row">
+                      <button
+                        class="btn-form-submit"
+                        id="btn-abrir-modal-clave"
+                        type="button"
+                      >
+                        <i class="bi bi-ui-checks-grid"></i> Pop-Up Configurar
+                        Claves
+                      </button>
+                      <button
+                        class="btn-form-submit"
+                        id="btn-preview-cartilla-crear"
+                        title="Previsualizar e imprimir cartilla vacía para este examen"
+                        type="button"
+                      >
+                        <i class="bi bi-file-earmark-pdf"></i> Cartilla OMR
+                      </button>
                     </div>
-                    <div id="eval-clave-resumen-status" style="font-size:0.85rem; color:#64748b; margin-top:4px;">⚪ <i>Ingresa la cantidad de preguntas y abre el Pop-Up.</i></div>
+                    <div id="eval-clave-resumen-status">
+                      ⚪
+                      <i>Ingresa la cantidad de preguntas y abre el Pop-Up.</i>
+                    </div>
                   </div>
-
-                  <button type="submit" class="btn-form-submit" style="margin-top: 8px; width: 100%;"><i class="bi bi-check-circle-fill"></i> Guardar y Crear Evaluación</button>
+                  <button class="btn-form-submit" type="submit">
+                    <i class="bi bi-check-circle-fill"></i> Guardar y Crear
+                    Evaluación
+                  </button>
                 </form>
-                <div id="msg-crear-evaluacion" style="margin-top: 8px; font-size: 0.85rem;"></div>
+                <div id="msg-crear-evaluacion"></div>
               </div>
-
-              <!-- Columna Derecha: Registrar Respuestas y Lista de Exámenes -->
-              <div style="display: flex; flex-direction: column; gap: 24px;">
-                <!-- Formulario Registrar Respuesta Estudiante -->
+              <div class="stack">
                 <div class="eval-card-box">
-                  <h4 style="margin-bottom: 12px; color: var(--black); font-family: var(--font-heading);"><i class="bi bi-person-check-fill"></i> Registrar Respuestas / Calificación de un Estudiante</h4>
+                  <h4>
+                    <i class="bi bi-person-check-fill"></i> Registrar
+                    calificación
+                  </h4>
                   <form id="form-registrar-respuestas-estudiante">
                     <div class="form-row-inline">
-                      <div style="flex: 1;">
-                        <label style="font-size: 0.88rem; font-weight: 600;">Seleccionar Examen / Test:</label>
-                        <select id="eval-select-respuesta" required>
+                      <div class="field">
+                        <label for="eval-select-respuesta"
+                          >Seleccionar práctica:</label
+                        >
+                        <select id="eval-select-respuesta" required="">
                           <option value="">Cargando exámenes...</option>
                         </select>
                       </div>
-                      <div style="flex: 1; position: relative;">
-                        <label style="font-size: 0.88rem; font-weight: 600;">Estudiante:</label>
-                        <input type="text" id="eval-student-search" placeholder="🔍 Buscar por nombre o código..." autocomplete="off" />
-                        <input type="hidden" id="eval-codigo-estudiante" required />
-                        <div id="eval-student-results" class="student-autocomplete-dropdown"></div>
+                      <div class="relative field">
+                        <label for="eval-student-search">Estudiante:</label>
+                        <input
+                          autocomplete="off"
+                          id="eval-student-search"
+                          placeholder="Buscar por nombre o código..."
+                          type="text"
+                        />
+                        <input
+                          id="eval-codigo-estudiante"
+                          required=""
+                          type="hidden"
+                        />
+                        <div
+                          class="student-autocomplete-dropdown"
+                          id="eval-student-results"
+                        ></div>
                       </div>
                     </div>
-
-                    <!-- Selector de Área del Postulante (Visible si es simulacro_areas) -->
-                    <div id="eval-area-postulante-wrapper" style="display: none; margin-top: 8px;">
-                      <label style="font-size: 0.88rem; font-weight: 700; color: #0284c7;"><i class="bi bi-mortarboard-fill"></i> Área del Postulante (A, B, C, D, E):</label>
-                      <select id="eval-estudiante-area" style="font-weight: 600; border-color: #0284c7; background: #f0f9ff;">
+                    <div
+                      class="field"
+                      id="eval-area-postulante-wrapper"
+                      style="display: none"
+                    >
+                      <label for="eval-estudiante-area"
+                        ><i class="bi bi-mortarboard-fill"></i> Área del
+                        Postulante (A, B, C, D, E):</label
+                      >
+                      <select id="eval-estudiante-area">
                         <option value="A">ÁREA A: Ciencias de la Salud</option>
                         <option value="B">ÁREA B: Ciencias Básicas</option>
                         <option value="C">ÁREA C: Ingenierías</option>
-                        <option value="D">ÁREA D: Ciencias Económicas y de la Gestión</option>
-                        <option value="E">ÁREA E: Humanidades y Ciencias Jurídicas y Sociales</option>
+                        <option value="D">
+                          ÁREA D: Ciencias Económicas y de la Gestión
+                        </option>
+                        <option value="E">
+                          ÁREA E: Humanidades y Ciencias Jurídicas y Sociales
+                        </option>
                       </select>
                     </div>
-
-                    <!-- Modo Test: Entrada Directa de Nota Manual -->
-                    <div id="eval-modo-test-wrapper" style="display: none; margin-top: 10px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px 14px;">
-                      <label style="font-size: 0.88rem; font-weight: 700; color: #166534; display: block; margin-bottom: 4px;"><i class="bi bi-pencil-square"></i> Calificación / Nota Obtenida:</label>
-                      <input type="number" id="eval-nota-directa-input" step="0.01" min="0" max="1000" placeholder="Ingresa nota (ej. 18.5 o 14)" style="font-size: 1.05rem; font-weight: 700; padding: 8px 12px; border-radius: 6px; border: 1px solid #166534;" />
+                    <div
+                      class="field"
+                      id="eval-modo-test-wrapper"
+                      style="display: none"
+                    >
+                      <label for="eval-nota-directa-input"
+                        ><i class="bi bi-pencil-square"></i> Calificación / Nota
+                        Obtenida:</label
+                      >
+                      <input
+                        id="eval-nota-directa-input"
+                        max="1000"
+                        min="0"
+                        placeholder="Ingresa nota (ej. 18.5 o 14)"
+                        step="0.01"
+                        type="number"
+                      />
                     </div>
-
-                    <!-- Modo Simulacro: Botones Pop-Up Respuestas y Escáner -->
-                    <div id="eval-respuestas-estudiante-container" style="margin-top: 10px; margin-bottom: 8px;">
-                      <div style="display:flex; gap:8px; margin-bottom:4px;">
-                        <button type="button" id="btn-abrir-modal-respuestas-estudiante" class="btn-form-submit" style="background:#0284c7; flex:1; font-size:0.88rem; padding:9px;"><i class="bi bi-card-checklist"></i> Abrir Pop-Up Respuestas (A al E)</button>
-                        <button type="button" id="btn-escanear-cartilla-camara" class="btn-form-submit" style="background:#166534; width:auto; font-size:0.88rem; padding:9px 12px;" title="Escanear cartilla física con la cámara web"><i class="bi bi-camera-fill"></i> Escanear OMR</button>
+                    <div
+                      id="eval-respuestas-estudiante-container"
+                      style="display: none"
+                    >
+                      <div class="form-row">
+                        <button
+                          class="btn-form-submit"
+                          id="btn-abrir-modal-respuestas-estudiante"
+                          type="button"
+                        >
+                          <i class="bi bi-card-checklist"></i> Abrir Pop-Up
+                          Respuestas (A al E)
+                        </button>
+                        <button
+                          class="btn-form-submit"
+                          id="btn-escanear-cartilla-camara"
+                          title="Escanear cartilla física con la cámara web"
+                          type="button"
+                        >
+                          <i class="bi bi-camera-fill"></i> Escanear OMR
+                        </button>
                       </div>
-                      <div id="eval-respuestas-estudiante-status" style="font-size:0.85rem; color:#64748b; margin-top:4px;">⚪ <i>Selecciona un examen y abre el Pop-Up o escáner de cámara.</i></div>
+                      <div id="eval-respuestas-estudiante-status">
+                        ⚪
+                        <i
+                          >Selecciona un examen y abre el Pop-Up o escáner de
+                          cámara.</i
+                        >
+                      </div>
                     </div>
-
-                    <button type="submit" class="btn-form-submit" style="width: 100%; margin-top: 6px;"><i class="bi bi-calculator"></i> Guardar Calificación</button>
+                    <button class="btn-form-submit" type="submit">
+                      <i class="bi bi-calculator"></i> Guardar Calificación
+                    </button>
                   </form>
                   <div id="msg-respuesta-estudiante"></div>
                 </div>
-
-                <!-- Lista de Evaluaciones Existentes -->
                 <div class="eval-card-box">
-                  <h4 style="margin-bottom: 12px; color: var(--black); font-family: var(--font-heading);"><i class="bi bi-list-stars"></i> Evaluaciones Registradas</h4>
-                  <div id="evaluaciones-list-container" style="max-height: 320px; overflow-y: auto;">
+                  <h4>
+                    <i class="bi bi-list-stars"></i> Prácticas registradas
+                  </h4>
+                  <div id="evaluaciones-list-container">
                     <i>Cargando evaluaciones...</i>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-
-          <!-- SUB-PANEL 2: Ranking y Resultados -->
-          <div id="eval-panel-ranking" class="eval-subpanel" style="display: none;">
-            <div class="eval-card-box">
-              <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 14px 18px; margin-bottom: 18px;">
-                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
-                  <div style="flex: 1; min-width: 280px; position: relative;">
-                    <label style="font-weight: 700; font-size: 0.88rem; color: #1e293b; display: block; margin-bottom: 4px;"><i class="bi bi-search"></i> Buscador Inteligente de Evaluaciones:</label>
-                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                      <div style="position: relative; flex: 1; min-width: 220px;">
-                        <input type="text" id="eval-ranking-search-input" placeholder="🔍 Escribe título, ciclo o fecha (ej: Álgebra, UNI, 2026)..." autocomplete="off" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.92rem;" />
-                        <div id="eval-ranking-search-results" class="student-autocomplete-dropdown" style="display: none; max-height: 250px; overflow-y: auto;"></div>
-                      </div>
-                      <select id="eval-select-ranking" style="padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; max-width: 240px; font-size: 0.88rem;">
-                        <option value="">-- O elige de la lista --</option>
-                      </select>
-                      <select id="eval-ranking-filtro-area" style="display: none; padding: 8px 12px; border-radius: 6px; border: 1px solid #0284c7; background: #f0f9ff; font-weight: 600; font-size: 0.88rem;">
-                        <option value="TODOS">📊 Todas las Áreas</option>
-                        <option value="A">Área A: Ciencias de la Salud</option>
-                        <option value="B">Área B: Ciencias Básicas</option>
-                        <option value="C">Área C: Ingenierías</option>
-                        <option value="D">Área D: Ciencias Económicas</option>
-                        <option value="E">Área E: Humanidades y Jurídicas</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div id="eval-ranking-actions" style="display: none; gap: 10px; align-self: flex-end;">
-                    <button id="btn-export-eval-excel" class="btn-form-submit" style="background:#166534; padding:8px 14px;"><i class="bi bi-file-earmark-excel"></i> Exportar a Excel</button>
-                    <button id="btn-copy-eval-canvas" class="btn-form-submit" style="background:#0284c7; padding:8px 14px;"><i class="bi bi-clipboard-check"></i> Copiar Imagen al Portapapeles</button>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Estado Inicial: Sin Selección (No mostrar ninguna tabla por defecto) -->
-              <div id="eval-ranking-no-selection" style="text-align: center; padding: 45px 20px; background: #f8fafc; border-radius: 8px; border: 2px dashed #cbd5e1; color: #64748b;">
-                <i class="bi bi-trophy" style="font-size: 2.6rem; color: #94a3b8; display: block; margin-bottom: 10px;"></i>
-                <h4 style="margin: 0 0 6px 0; color: #1e293b; font-weight: 700;">No hay ninguna evaluación seleccionada</h4>
-                <p style="margin: 0; font-size: 0.9rem;">Escribe o selecciona una evaluación en el buscador superior para visualizar su podio y el cuadro general de méritos.</p>
-              </div>
-
-              <!-- Contenedor Principal de Resultados (Oculto por defecto hasta seleccionar) -->
-              <div id="eval-ranking-content" style="display: none;">
-                <!-- Header Informativo del Examen Seleccionado -->
-                <div id="eval-ranking-summary-header" style="margin-bottom: 14px;"></div>
-
-                <!-- Podio Top 3 (Cuadritos de Mérito) -->
-                <div id="eval-top-podium" class="top-podium-container" style="margin-bottom: 16px;">
-                  <p class="text-center" style="grid-column: 1/-1;"><i>Cargando podio de honor...</i></p>
-                </div>
-
-                <!-- Tabla de Ranking General Completo -->
-                <div style="max-height: 520px; overflow-y: auto; overflow-x: auto; width: 100%; border-radius: 8px; border: 1px solid #cbd5e1;">
-                  <table class="three-col-table" style="width: 100%; margin: 0;">
-                    <thead>
-                      <tr style="background:#0f172a; color:#ffffff;">
-                        <th style="width: 90px; text-align:center; color:#ffffff;">Puesto</th>
-                        <th style="text-align:left; color:#ffffff;">Estudiante</th>
-                        <th style="width: 100px; text-align:center; color:#ffffff;">Correctas</th>
-                        <th style="width: 100px; text-align:center; color:#ffffff;">Incorrectas</th>
-                        <th style="width: 100px; text-align:center; color:#ffffff;">En Blanco</th>
-                        <th style="width: 130px; text-align:center; color:#ffffff;">Puntaje Total</th>
-                      </tr>
-                    </thead>
-                    <tbody id="tabla-ranking-body">
-                      <tr><td colspan="6" class="text-center"><i>Cargando tabla general...</i></td></tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- SUB-PANEL 3: Registro de Tareas -->
-          <div id="eval-panel-tareas" class="eval-subpanel" style="display: none;">
-            <!-- Exportar Consolidado de Tareas por Salón -->
-            <div class="eval-card-box" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 18px 22px; margin-bottom: 16px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
-                <div>
-                  <h4 style="margin: 0 0 4px 0; color: #166534; font-family: var(--font-heading);"><i class="bi bi-file-earmark-spreadsheet-fill"></i> Consolidado Semanal de Tareas (Excel)</h4>
-                  <p style="margin: 0; font-size: 0.85rem; color: #64748b;">Genera una matriz en Excel por salón y semana (ciclo Sábado a Viernes), con notas por curso y "NP" (No Presentó) para quienes no registraron tarea.</p>
-                </div>
-                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                  <select id="excel-tareas-ciclo-select" style="padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-weight: 600;">
-                    <option value="">Cargando ciclos...</option>
-                  </select>
-                  <select id="excel-tareas-semana-select" style="padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.88rem; min-width: 250px;">
-                    <option value="">-- Seleccionar Semana --</option>
-                  </select>
-                  <button type="button" id="btn-export-tareas-salon-excel" class="btn-form-submit" style="background: #166534; padding: 8px 16px;"><i class="bi bi-file-earmark-excel"></i> Descargar Excel Semanal</button>
-                </div>
-              </div>
-            </div>
-
+        </section>
+        <section
+          class="admin-page"
+          data-page="tasks"
+          hidden=""
+          id="vista-tareas"
+        >
+          <div class="academic-content" id="eval-panel-tareas">
             <div class="eval-grid">
-              <!-- Formulario de Registro de Tareas -->
               <div class="eval-card-box">
-                <h4 style="margin-bottom: 14px; color: var(--red); font-family: var(--font-heading);"><i class="bi bi-file-earmark-check"></i> Registrar Calificación de Tareas por Curso</h4>
+                <h4>
+                  <i class="bi bi-file-earmark-check"></i> Registrar
+                  Calificación de Tareas por Curso
+                </h4>
                 <form id="form-registrar-tareas">
                   <div class="form-flex-row">
-                    <div style="flex: 1.3; min-width: 180px;">
-                      <label style="font-size: 0.88rem; font-weight: 600;">1. Curso / Asignatura:</label>
-                      <select id="tarea-curso-select" required style="margin-top:2px;">
-                        <option value="">-- Seleccionar Curso Predeterminado --</option>
+                    <div class="field">
+                      <label for="tarea-curso-select"
+                        >Curso / Asignatura:</label
+                      >
+                      <select id="tarea-curso-select" required="">
+                        <option value="">
+                          -- Seleccionar Curso Predeterminado --
+                        </option>
                         <option value="ÁLGEBRA">ÁLGEBRA</option>
                         <option value="ARITMÉTICA">ARITMÉTICA</option>
                         <option value="BIOLOGÍA">BIOLOGÍA</option>
@@ -1553,216 +964,1222 @@
                         <option value="FÍSICA">FÍSICA</option>
                         <option value="GEOGRAFÍA">GEOGRAFÍA</option>
                         <option value="GEOMETRÍA">GEOMETRÍA</option>
-                        <option value="HABILIDAD VERBAL">HABILIDAD VERBAL</option>
+                        <option value="HABILIDAD VERBAL">
+                          HABILIDAD VERBAL
+                        </option>
                         <option value="HISTORIA">HISTORIA</option>
                         <option value="LENGUAJE">LENGUAJE</option>
                         <option value="LITERATURA">LITERATURA</option>
                         <option value="PSICOLOGÍA">PSICOLOGÍA</option>
                         <option value="QUÍMICA">QUÍMICA</option>
-                        <option value="RAZONAMIENTO MATEMÁTICO">RAZONAMIENTO MATEMÁTICO</option>
+                        <option value="RAZONAMIENTO MATEMÁTICO">
+                          RAZONAMIENTO MATEMÁTICO
+                        </option>
                         <option value="TRIGONOMETRÍA">TRIGONOMETRÍA</option>
                       </select>
                     </div>
-
-                    <div style="flex: 1; min-width: 130px;">
-                      <label style="font-size: 0.88rem; font-weight: 600;">2. Ciclo / Salón:</label>
-                      <select id="tarea-ciclo-select" required style="margin-top:2px;">
+                    <div class="field">
+                      <label for="tarea-ciclo-select">Ciclo / Salón:</label>
+                      <select id="tarea-ciclo-select" required="">
                         <option value="">Cargando ciclos...</option>
                       </select>
                     </div>
-
-                    <div style="flex: 1.4; min-width: 210px;">
-                      <label style="font-size: 0.88rem; font-weight: 600;">3. Semana (Sáb a Vie):</label>
-                      <select id="tarea-semana-select" required style="margin-top:2px; font-size:0.88rem;">
+                    <div class="field">
+                      <label for="tarea-semana-select"
+                        >Semana (Sáb a Vie):</label
+                      >
+                      <select id="tarea-semana-select" required="">
                         <option value="">Cargando semanas...</option>
                       </select>
                     </div>
                   </div>
-
                   <div class="form-flex-row">
-                    <div style="flex: 1; min-width: 160px;">
-                      <label style="font-size: 0.88rem; font-weight: 600;">4. Modalidad:</label>
-                      <select id="tarea-tipo-eval-select" required>
+                    <div class="field">
+                      <label for="tarea-tipo-eval-select">Modalidad:</label>
+                      <select id="tarea-tipo-eval-select" required="">
                         <option value="">-- Seleccionar Modalidad --</option>
                         <option value="vigesimal">Vigesimal (0 a 20)</option>
-                        <option value="binario">Binario (PRESENTÓ / NO PRESENTÓ)</option>
+                        <option value="binario">
+                          Binario (PRESENTÓ / NO PRESENTÓ)
+                        </option>
                       </select>
                     </div>
-                    <div style="flex: 1.5; min-width: 200px; position: relative;">
-                      <label style="font-size: 0.88rem; font-weight: 600;">Estudiante:</label>
-                      <input type="text" id="tarea-student-search" placeholder="🔍 Buscar por nombre o código..." autocomplete="off" />
-                      <input type="hidden" id="tarea-codigo-estudiante" required />
-                      <div id="tarea-student-results" class="student-autocomplete-dropdown"></div>
+                    <div class="relative field">
+                      <label for="tarea-student-search">Estudiante:</label>
+                      <input
+                        autocomplete="off"
+                        id="tarea-student-search"
+                        placeholder="Buscar por nombre o código..."
+                        type="text"
+                      />
+                      <input
+                        id="tarea-codigo-estudiante"
+                        required=""
+                        type="hidden"
+                      />
+                      <div
+                        class="student-autocomplete-dropdown"
+                        id="tarea-student-results"
+                      ></div>
                     </div>
                   </div>
-
-                  <!-- Campo Vigesimal -->
-                  <div id="group-nota-vigesimal" class="is-hidden" style="display: none !important;">
-                    <label style="font-size: 0.88rem; font-weight: 600;">Nota Vigesimal (0.00 a 20.00):</label>
-                    <input type="number" id="tarea-nota-vigesimal" min="0" max="20" step="0.5" placeholder="ej. 18" />
+                  <div
+                    class="is-hidden field"
+                    id="group-nota-vigesimal"
+                    style="display: none"
+                  >
+                    <label for="tarea-nota-vigesimal"
+                      >Nota Vigesimal (0.00 a 20.00):</label
+                    >
+                    <input
+                      id="tarea-nota-vigesimal"
+                      max="20"
+                      min="0"
+                      placeholder="ej. 18"
+                      step="0.5"
+                      type="number"
+                    />
                   </div>
-
-                  <!-- Campo Binario -->
-                  <div id="group-nota-binario" class="is-hidden" style="display: none !important; background: #ffffff; padding: 12px 16px; border-radius: 8px; border: 1px solid #cbd5e1;">
-                    <label style="font-size: 0.88rem; font-weight: 600; display: block; margin-bottom: 6px;">Estado de Entrega:</label>
-                    <div style="display: flex; gap: 20px;">
-                      <label style="font-weight: 700; color: #166534; cursor: pointer;">
-                        <input type="radio" name="tarea-binario-radio" value="PRESENTÓ" checked /> 🟢 PRESENTÓ
+                  <div
+                    class="is-hidden"
+                    id="group-nota-binario"
+                    style="display: none"
+                  >
+                    <label>Estado de Entrega:</label>
+                    <div class="form-row">
+                      <label>
+                        <input
+                          checked=""
+                          name="tarea-binario-radio"
+                          type="radio"
+                          value="PRESENTÓ"
+                        />
+                        🟢 PRESENTÓ
                       </label>
-                      <label style="font-weight: 700; color: #dc2626; cursor: pointer;">
-                        <input type="radio" name="tarea-binario-radio" value="NO PRESENTÓ" /> 🔴 NO PRESENTÓ
+                      <label>
+                        <input
+                          name="tarea-binario-radio"
+                          type="radio"
+                          value="NO PRESENTÓ"
+                        />
+                        🔴 NO PRESENTÓ
                       </label>
                     </div>
                   </div>
-
-                  <button type="submit" class="btn-form-submit" style="margin-top: 4px; width: 100%;"><i class="bi bi-journal-check"></i> Guardar Registro de Tareas</button>
+                  <button class="btn-form-submit" type="submit">
+                    <i class="bi bi-journal-check"></i> Guardar Registro de
+                    Tareas
+                  </button>
                 </form>
-                <div id="msg-registro-tarea" style="margin-top: 8px;"></div>
+                <div id="msg-registro-tarea"></div>
               </div>
-
-              <!-- Historial de Tareas Registradas -->
               <div class="eval-card-box">
-                <h4 style="margin-bottom: 14px; color: var(--black); font-family: var(--font-heading);"><i class="bi bi-clock-history"></i> Historial Reciente de Tareas</h4>
-                <div id="tareas-list-container" style="max-height: 400px; overflow-y: auto;">
+                <h4>
+                  <i class="bi bi-clock-history"></i> Historial Reciente de
+                  Tareas
+                </h4>
+                <div id="tareas-list-container">
                   <i>Cargando historial de tareas...</i>
                 </div>
               </div>
             </div>
           </div>
-
-          <!-- SUB-PANEL 4: Reporte Consolidado por Alumno -->
-          <div id="eval-panel-reporte-alumno" class="eval-subpanel" style="display: none;">
-            <div class="eval-card-box" style="margin-bottom: 18px;">
-              <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 14px 18px;">
-                <label style="font-weight: 700; font-size: 0.88rem; color: #1e293b; display: block; margin-bottom: 6px;"><i class="bi bi-search"></i> Buscador Inteligente de Estudiante:</label>
-                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                  <div style="flex: 1; min-width: 260px; position: relative;">
-                    <input type="text" id="reporte-student-search" placeholder="🔍 Escribe nombre o código del alumno..." autocomplete="off" style="width:100%; padding: 9px 14px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.95rem; box-sizing: border-box;" />
-                    <input type="hidden" id="search-reporte-alumno-codigo" />
-                    <div id="reporte-student-results" class="student-autocomplete-dropdown" style="z-index: 2000;"></div>
+        </section>
+        <section
+          class="admin-page"
+          data-page="reports"
+          hidden=""
+          id="vista-reportes"
+        >
+          <div aria-label="Reportes" class="local-tabs" role="tablist">
+            <button aria-selected="true" data-local-tab="individual" role="tab">
+              Por estudiante</button
+            ><button aria-selected="false" data-local-tab="bulk" role="tab">
+              Envío de reportes por lote</button
+            ><button aria-selected="false" data-local-tab="weekly" role="tab">
+              Consolidado semanal</button
+            ><button aria-selected="false" data-local-tab="history" role="tab">
+              Ranking e histórico
+            </button>
+          </div>
+          <div data-local-panel="individual">
+            <div class="academic-content" id="eval-panel-reporte-alumno">
+              <div class="eval-card-box">
+                <div>
+                  <label><i class="bi bi-search"></i> Buscar estudiante:</label>
+                  <div class="form-row">
+                    <div class="relative field">
+                      <input
+                        aria-label="Escribe nombre o código del alumno..."
+                        autocomplete="off"
+                        id="reporte-student-search"
+                        placeholder="Escribe nombre o código del alumno..."
+                        type="text"
+                      />
+                      <input id="search-reporte-alumno-codigo" type="hidden" />
+                      <div
+                        class="student-autocomplete-dropdown"
+                        id="reporte-student-results"
+                      ></div>
+                    </div>
+                    <button
+                      class="btn-form-submit"
+                      id="btn-buscar-reporte-alumno"
+                    >
+                      <i class="bi bi-search"></i> Generar Ficha
+                    </button>
                   </div>
-                  <button id="btn-buscar-reporte-alumno" class="btn-form-submit" style="padding: 9px 18px;"><i class="bi bi-search"></i> Generar Ficha</button>
+                </div>
+              </div>
+              <div id="reporte-alumno-toolbar" style="display: none">
+                <div class="form-row field">
+                  <label class="form-row" for="reporte-alumno-semana-select">
+                    <i class="bi bi-calendar-week"></i> Filtrar por Semana:
+                  </label>
+                  <select id="reporte-alumno-semana-select">
+                    <option value="TODAS">
+                      📅 Todas las Semanas Registradas
+                    </option>
+                  </select>
+                </div>
+                <div class="form-row">
+                  <button
+                    class="btn-form-submit"
+                    id="btn-copiar-imagen-reporte"
+                    title="Copiar ficha integral como imagen al portapapeles"
+                  >
+                    <i class="bi bi-card-image"></i> Generar Reporte Imagen
+                  </button>
+                  <button
+                    class="btn-form-submit"
+                    id="btn-imprimir-reporte-alumno"
+                    title="Imprimir o guardar ficha en PDF"
+                  >
+                    <i class="bi bi-printer"></i> Generar Reporte PDF
+                  </button>
+                  <button class="btn-form-submit whatsapp-send-button" id="btn-whatsapp-reporte-alumno" type="button" hidden><i class="bi bi-whatsapp" aria-hidden="true"></i> Enviar por WhatsApp</button>
+                </div>
+                <p id="student-report-wa-message" class="field-error" role="status" hidden></p>
+              </div>
+              <div id="alumno-reporte-dashboard">
+                <div class="eval-card-box">
+                  <i class="bi bi-person-badge"></i>
+                  <h4>No hay ningún estudiante seleccionado</h4>
+                  <p>
+                    Escribe el nombre o código de un alumno en el buscador
+                    superior para generar su <b>Ficha Consolidada Integral</b>.
+                  </p>
                 </div>
               </div>
             </div>
-
-            <!-- Toolbar de Acciones del Estudiante (Aparece cuando el alumno está cargado) -->
-            <div id="reporte-alumno-toolbar" style="display: none; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 16px;">
-              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                <label for="reporte-alumno-semana-select" style="font-weight: 700; font-size: 0.88rem; color: #0f172a; display: flex; align-items: center; gap: 6px;">
-                  <i class="bi bi-calendar-week" style="color: #b72107; font-size: 1.05rem;"></i> Filtrar por Semana:
+          </div>
+          <div data-local-panel="bulk" id="report-bulk-panel" hidden="">
+            <div class="eval-card-box stack">
+              <h3><i class="bi bi-whatsapp" aria-hidden="true"></i> Reportes individuales por lote</h3>
+              <p class="help">Selecciona un ciclo para revisar a sus estudiantes y apoderados autorizados.
+                Cada destinatario recibirá únicamente el PDF académico de su estudiante. Sin autorización no se enviará ningún reporte.</p>
+              <div class="form-row">
+                <label class="field" for="report-bulk-cycle">Ciclo académico
+                  <select id="report-bulk-cycle"><option value="">Selecciona un ciclo</option></select>
                 </label>
-                <select id="reporte-alumno-semana-select" style="padding: 7px 12px; border-radius: 6px; border: 1.5px solid #0284c7; background: #ffffff; font-weight: 600; font-size: 0.88rem; color: #0369a1; cursor: pointer; outline: none; min-width: 260px;">
-                  <option value="TODAS">📅 Todas las Semanas Registradas</option>
-                </select>
+                <button id="report-bulk-reload" class="button secondary" type="button">Actualizar listado</button>
               </div>
-              <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                <button id="btn-copiar-imagen-reporte" class="btn-form-submit" style="background:#0f766e; padding: 8px 16px; font-size: 0.88rem;" title="Copiar ficha integral como imagen al portapapeles"><i class="bi bi-card-image"></i> Generar Reporte Imagen</button>
-                <button id="btn-imprimir-reporte-alumno" class="btn-form-submit" style="background:#475569; padding: 8px 16px; font-size: 0.88rem;" title="Imprimir o guardar ficha en PDF"><i class="bi bi-printer"></i> Generar Reporte PDF</button>
+              <div class="form-row">
+                <label class="field" for="report-bulk-week">Periodo del reporte
+                  <select id="report-bulk-week">
+                    <option value="TODAS">Todas las semanas registradas</option>
+                  </select>
+                </label>
+              </div>
+              <div class="v2-notice">Para proteger a los destinatarios, se requieren permisos vigentes y confirmación antes de poner los reportes en cola.
+                Cada lote admite como máximo 20 estudiantes y programa sus entregas de forma gradual.</div>
+              <p id="report-bulk-summary" role="status" class="v2-help">Selecciona un ciclo.</p>
+              <ul id="report-bulk-list" class="report-bulk-list" aria-label="Estudiantes del ciclo"></ul>
+              <div class="form-row">
+                <button id="report-bulk-restore" class="button secondary" type="button">Restaurar lista</button>
+                <button id="report-bulk-send" class="btn-form-submit whatsapp-send-button" type="button" disabled>
+                  <i class="bi bi-whatsapp" aria-hidden="true"></i> Confirmar envío de reportes PDF
+                </button>
+              </div>
+              <p id="report-bulk-message" class="v2-help" role="status" aria-live="polite"></p>
+            </div>
+          </div>
+          <div data-local-panel="weekly" hidden="">
+            <div class="eval-card-box">
+              <div class="form-row">
+                <div>
+                  <h4>
+                    <i class="bi bi-file-earmark-spreadsheet-fill"></i>
+                    Consolidado Semanal de Tareas (Excel)
+                  </h4>
+                  <p>
+                    Genera una matriz en Excel por salón y semana (ciclo Sábado
+                    a Viernes), con notas por curso y "NP" (No Presentó) para
+                    quienes no registraron tarea.
+                  </p>
+                </div>
+                <div class="form-row">
+                  <select
+                    aria-label="excel tareas ciclo select"
+                    id="excel-tareas-ciclo-select"
+                  >
+                    <option value="">Cargando ciclos...</option>
+                  </select>
+                  <select
+                    aria-label="excel tareas semana select"
+                    id="excel-tareas-semana-select"
+                  >
+                    <option value="">-- Seleccionar Semana --</option>
+                  </select>
+                  <button
+                    class="btn-form-submit"
+                    id="btn-export-tareas-salon-excel"
+                    type="button"
+                  >
+                    <i class="bi bi-file-earmark-excel"></i> Descargar Excel
+                    Semanal
+                  </button>
+                </div>
               </div>
             </div>
-
-            <div id="alumno-reporte-dashboard">
-              <div class="eval-card-box" style="text-align: center; padding: 45px 20px; color: #64748b; border: 2px dashed #cbd5e1; background: #f8fafc;">
-                <i class="bi bi-person-badge" style="font-size: 2.8rem; color: #94a3b8; display: block; margin-bottom: 12px;"></i>
-                <h4 style="margin: 0 0 6px 0; color: #1e293b; font-weight: 700;">No hay ningún estudiante seleccionado</h4>
-                <p style="margin: 0; font-size: 0.9rem;">Escribe el nombre o código de un alumno en el buscador superior para generar su <b>Ficha Consolidada Integral</b>.</p>
+          </div>
+          <div data-local-panel="history" hidden="">
+            <div class="academic-content" id="eval-panel-ranking">
+              <div class="eval-card-box">
+                <div>
+                  <div class="form-row">
+                    <div class="relative field">
+                      <label
+                        ><i class="bi bi-search"></i> Buscar evaluación:</label
+                      >
+                      <div class="form-row">
+                        <div class="relative field">
+                          <input
+                            aria-label="Escribe título, ciclo o fecha (ej: Álgebra, UNI, 2026)..."
+                            autocomplete="off"
+                            id="eval-ranking-search-input"
+                            placeholder="Escribe título, ciclo o fecha (ej: Álgebra, UNI, 2026)..."
+                            type="text"
+                          />
+                          <div
+                            class="student-autocomplete-dropdown"
+                            id="eval-ranking-search-results"
+                            style="display: none"
+                          ></div>
+                        </div>
+                        <select
+                          aria-label="Seleccionar evaluación"
+                          id="eval-select-ranking"
+                        >
+                          <option value="">-- O elige de la lista --</option>
+                        </select>
+                        <select
+                          aria-label="Filtrar por área"
+                          id="eval-ranking-filtro-area"
+                          style="display: none"
+                        >
+                          <option value="TODOS">📊 Todas las Áreas</option>
+                          <option value="A">
+                            Área A: Ciencias de la Salud
+                          </option>
+                          <option value="B">Área B: Ciencias Básicas</option>
+                          <option value="C">Área C: Ingenierías</option>
+                          <option value="D">Área D: Ciencias Económicas</option>
+                          <option value="E">
+                            Área E: Humanidades y Jurídicas
+                          </option>
+                        </select>
+                      </div>
+                    </div>
+                    <div id="eval-ranking-actions" style="display: none">
+                      <button
+                        class="btn-form-submit"
+                        id="btn-export-eval-excel"
+                      >
+                        <i class="bi bi-file-earmark-excel"></i> Exportar a
+                        Excel
+                      </button>
+                      <button class="btn-form-submit" id="btn-copy-eval-canvas">
+                        <i class="bi bi-clipboard-check"></i> Copiar Imagen al
+                        Portapapeles
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div id="eval-ranking-no-selection">
+                  <i class="bi bi-trophy"></i>
+                  <h4>No hay ninguna evaluación seleccionada</h4>
+                  <p>
+                    Escribe o selecciona una evaluación en el buscador superior
+                    para visualizar su podio y el cuadro general de méritos.
+                  </p>
+                </div>
+                <div id="eval-ranking-content" style="display: none">
+                  <div id="eval-ranking-summary-header"></div>
+                  <div class="top-podium-container" id="eval-top-podium">
+                    <p class="text-center"><i>Cargando podio de honor...</i></p>
+                  </div>
+                  <div
+                    aria-label="Tabla de registros"
+                    class="table-scroll"
+                    role="region"
+                    tabindex="0"
+                  >
+                    <table class="three-col-table">
+                      <thead>
+                        <tr>
+                          <th>Puesto</th>
+                          <th>Estudiante</th>
+                          <th>Correctas</th>
+                          <th>Incorrectas</th>
+                          <th>En Blanco</th>
+                          <th>Puntaje Total</th>
+                        </tr>
+                      </thead>
+                      <tbody id="tabla-ranking-body">
+                        <tr>
+                          <td class="text-center" colspan="6">
+                            <i>Cargando tabla general...</i>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </section>
+        <div class="admin-page" data-page="website" hidden="" id="vista-info">
+          <section id="info-section">
+            <div class="form-row" id="info-controls">
+              <button class="btn-pill btn-primary" id="btn-add-ciclo">
+                Agregar Ciclo
+              </button>
+              <span
+                >Admin: crea/edita los ciclos mostrados en la web pública.</span
+              >
+            </div>
+            <div id="info-list"></div>
+          </section>
+          <section id="carousel-manager-section">
+            <h2 class="sub-header">
+              <i class="bi bi-images"></i> Gestor de Carrusel (Ingresantes)
+            </h2>
+            <div class="carousel-grid">
+              <div class="carousel-upload-col field">
+                <h4>Subir Nueva Imagen</h4>
+                <p class="carousel-instructions">
+                  Sube imágenes de <strong>1080x1080 píxeles</strong>.
+                  <br />
+                  Te recomendamos usar esta plantilla de Canva:
+                  <a
+                    href="https://www.canva.com/design/DAG10VmjnX8/I9YdaWBl2Fdh9KU-OQg0-Q/edit?utm_content=DAG10VmjnX8&amp;utm_campaign=designshare&amp;utm_medium=link2&amp;utm_source=sharebutton"
+                    target="_blank"
+                    >Abrir Plantilla de Canva</a
+                  >
+                </p>
+                <label for="carousel-upload-name"
+                  >Nombre para el archivo:</label
+                >
+                <input
+                  id="carousel-upload-name"
+                  placeholder="Ej: ingresante-juan-perez"
+                  type="text"
+                />
+                <label for="carousel-upload-input"
+                  >Seleccionar Archivo (1080x1080):</label
+                >
+                <input
+                  accept="image/png, image/jpeg"
+                  id="carousel-upload-input"
+                  type="file"
+                />
+                <div id="carousel-preview-container" style="display: none">
+                  <img alt="Vista previa" id="carousel-preview" />
+                  <span id="carousel-preview-dims"></span>
+                </div>
+                <button
+                  class="btn-form-submit"
+                  disabled=""
+                  id="btn-upload-carousel"
+                >
+                  <i class="bi bi-upload"></i> Subir Imagen
+                </button>
+                <div class="form-message" id="msg-carousel-upload"></div>
+              </div>
+              <div class="carousel-list-col">
+                <h4>Imágenes Actuales</h4>
+                <div id="carousel-list-container">
+                  <p>Cargando imágenes...</p>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+        <div
+          class="admin-page"
+          data-page="library"
+          hidden=""
+          id="vista-biblioteca"
+        >
+          <section id="biblioteca-admin-section">
+            <div class="biblioteca-subtabs">
+              <button class="bib-subtab active" id="subtab-bib-estantes">
+                <i class="bi bi-grid-3x3-gap"></i> Estantería Visual
+              </button>
+              <button class="bib-subtab" id="subtab-bib-gestion">
+                <i class="bi bi-journal-plus"></i> Gestionar Libros y Secciones
+              </button>
+              <button class="bib-subtab" id="subtab-bib-prestamos">
+                <i class="bi bi-clock-history"></i> Control de Préstamos /
+                Devoluciones
+              </button>
+            </div>
+            <div class="bib-subpanel" id="bib-panel-estantes">
+              <div class="form-row">
+                <h3><i class="bi bi-bookshelf"></i> Catálogo por sección</h3>
+                <input
+                  aria-label="Buscar libro o código en estante..."
+                  id="admin-book-search"
+                  placeholder="Buscar libro o código en estante..."
+                  type="text"
+                />
+              </div>
+              <div class="bookshelf-container" id="admin-bookshelf-container">
+                <p><i>Cargando estantes de librería...</i></p>
+              </div>
+            </div>
+            <div
+              class="bib-subpanel"
+              id="bib-panel-gestion"
+              style="display: none"
+            >
+              <div class="bib-grid">
+                <div class="stack">
+                  <div class="bib-card-box">
+                    <h4>
+                      <i class="bi bi-folder-plus"></i> Agregar Nueva Sección /
+                      Estante
+                    </h4>
+                    <div class="form-row">
+                      <input
+                        aria-label="Nombre (ej. HISTORIA)"
+                        id="nueva-seccion-input"
+                        placeholder="Nombre (ej. HISTORIA)"
+                        type="text"
+                      />
+                      <button class="btn-form-submit" id="btn-agregar-seccion">
+                        <i class="bi bi-plus-lg"></i> Agregar
+                      </button>
+                    </div>
+                    <div id="msg-seccion"></div>
+                  </div>
+                  <div class="bib-card-box">
+                    <h4><i class="bi bi-book"></i> Agregar Nuevo Libro</h4>
+                    <form class="stack" id="form-agregar-libro">
+                      <div class="field">
+                        <label for="libro-titulo-input"
+                          >Nombre / Título del Libro:</label
+                        >
+                        <input
+                          id="libro-titulo-input"
+                          placeholder="ej. Álgebra Avanzada"
+                          required=""
+                          type="text"
+                        />
+                      </div>
+                      <div class="field">
+                        <label for="libro-codigo-input"
+                          >Código del Libro (Único):</label
+                        >
+                        <input
+                          id="libro-codigo-input"
+                          placeholder="ej. MAT-01"
+                          required=""
+                          type="text"
+                        />
+                      </div>
+                      <div class="field">
+                        <label for="libro-seccion-select"
+                          >Sección / Categoría:</label
+                        >
+                        <select id="libro-seccion-select" required="">
+                          <option value="">Cargando secciones...</option>
+                        </select>
+                      </div>
+                      <div class="field">
+                        <label for="libro-editorial-input"
+                          >Editorial (Opcional):</label
+                        >
+                        <input
+                          id="libro-editorial-input"
+                          placeholder="ej. Lumbreras, San Marcos, Rodo..."
+                          type="text"
+                        />
+                      </div>
+                      <button class="btn-form-submit" type="submit">
+                        <i class="bi bi-journal-plus"></i> Guardar Libro en
+                        Catálogo
+                      </button>
+                    </form>
+                    <div id="msg-libro"></div>
+                  </div>
+                </div>
+                <div class="bib-card-box">
+                  <div class="form-row">
+                    <h4>
+                      <i class="bi bi-list-columns-reverse"></i> Catálogo
+                      Completo de Libros
+                    </h4>
+                    <input
+                      aria-label="Buscar libro o código..."
+                      id="search-catalogo-libros"
+                      placeholder="Buscar libro o código..."
+                      type="text"
+                    />
+                  </div>
+                  <div
+                    aria-label="Tabla de registros"
+                    class="table-scroll"
+                    role="region"
+                    tabindex="0"
+                  >
+                    <table class="three-col-table">
+                      <thead>
+                        <tr>
+                          <th>Código</th>
+                          <th>Título</th>
+                          <th>Editorial</th>
+                          <th>Sección</th>
+                          <th>Estado</th>
+                          <th>Acción</th>
+                        </tr>
+                      </thead>
+                      <tbody id="tabla-catalogo-libros-body">
+                        <tr>
+                          <td class="text-center" colspan="6">
+                            <i>Cargando catálogo...</i>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div
+              class="bib-subpanel"
+              id="bib-panel-prestamos"
+              style="display: none"
+            >
+              <div class="bib-card-box">
+                <div class="form-row">
+                  <div>
+                    <h3>
+                      <i class="bi bi-clock-history"></i> Historial y Control de
+                      Devolución de Préstamos
+                    </h3>
+                    <span
+                      >Registre devoluciones para liberar los libros prestados
+                      en el sistema.</span
+                    >
+                  </div>
+                  <div class="form-row">
+                    <select
+                      aria-label="filter prestamos estado"
+                      id="filter-prestamos-estado"
+                    >
+                      <option value="todos">Todos los Estados</option>
+                      <option selected="" value="prestado">
+                        Prestados (Activos)
+                      </option>
+                      <option value="devuelto">Devueltos</option>
+                    </select>
+                    <input
+                      aria-label="Buscar alumno, libro o código..."
+                      id="search-prestamos"
+                      placeholder="Buscar alumno, libro o código..."
+                      type="text"
+                    />
+                  </div>
+                </div>
+                <div
+                  aria-label="Tabla de registros"
+                  class="table-scroll"
+                  role="region"
+                  tabindex="0"
+                >
+                  <table class="three-col-table">
+                    <thead>
+                      <tr>
+                        <th>Cód. Libro</th>
+                        <th>Título del Libro</th>
+                        <th>Estudiante</th>
+                        <th>Ciclo / Turno</th>
+                        <th>Fecha Préstamo</th>
+                        <th>Fecha Devolución</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody id="tabla-prestamos-body">
+                      <tr>
+                        <td class="text-center" colspan="8">
+                          <i>Cargando préstamos...</i>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+        <div class="admin-page" hidden="" id="vista-v2"></div>
+      </main>
+      <footer class="app-footer">
+        <span>INGEMAT · Gestión académica</span
+        ><span
+          >Hora local de la academia ·
+          <span id="app-timezone">America/Lima</span></span
+        >
+      </footer>
+    </div>
+    <dialog class="app-dialog" id="create-user-dialog">
+      <div class="dialog-heading">
+        <h2>Registrar usuario</h2>
+        <button
+          aria-label="Cerrar registro"
+          class="icon-button"
+          data-close-dialog="create-user-dialog"
+          type="button"
+        >
+          <i class="bi bi-x-lg"></i>
+        </button>
       </div>
-
-      <!-- ======================================================= -->
-      <!-- MODAL POP-UP: REGISTRO DE CLAVES / RESPUESTAS (A AL E)  -->
-      <!-- ======================================================= -->
-      <dialog id="modal-clave-popup" class="modal-dialog-custom">
-        <div class="modal-content-wrapper">
-          <!-- Modal Header -->
-          <div class="modal-header-custom">
-            <h3 id="modal-clave-popup-title"><i class="bi bi-ui-checks-grid"></i> Registro de Clave Oficial de Respuestas</h3>
-            <button type="button" id="btn-toggle-modo-actitudinal" class="btn-toggle-actitudinal-header" style="display:none; background:rgba(245, 158, 11, 0.2); border:1.5px solid #f59e0b; color:#fbbf24; padding:6px 14px; border-radius:6px; font-size:0.83rem; font-weight:700; cursor:pointer; margin-left:auto; margin-right:12px; transition:all 0.2s;"><i class="bi bi-shield-check"></i> Preguntas Actitudinales (Sin Descuento)</button>
-            <button type="button" id="btn-cerrar-modal-clave" class="btn-close-modal">✕</button>
+      <section class="card" id="agregar-usuario-section">
+        <h2>Nuevo estudiante o docente</h2>
+        <form id="form-agregar">
+          <div class="field">
+            <label for="codigo">Código del carnet</label
+            ><input id="codigo" placeholder="Código" required="" type="text" />
           </div>
-
-          <!-- Toolbar de Acciones Rápidas (Checklist ordenado A a E) -->
-          <div class="modal-toolbar-quick">
-            <span><b>Marcar Rápidamente:</b></span>
-            <button type="button" class="btn-quick-fill" data-option="A">A</button>
-            <button type="button" class="btn-quick-fill" data-option="B">B</button>
-            <button type="button" class="btn-quick-fill" data-option="C">C</button>
-            <button type="button" class="btn-quick-fill" data-option="D">D</button>
-            <button type="button" class="btn-quick-fill" data-option="E">E</button>
-            <button type="button" class="btn-quick-clear" id="btn-quick-clear">🧹 Limpiar Claves</button>
-            <button type="button" class="btn-quick-fill" id="btn-quick-all-areas" style="display:none; background:#0284c7; color:#fff; border-color:#0284c7; padding:4px 10px; width:auto; border-radius:6px; font-size:0.8rem; font-weight:700;">✓ Marcar Todas las Áreas</button>
-          </div>
-
-          <!-- Modal Body: Checklist Ordenado con Círculos A al E por Pregunta -->
-          <div class="modal-body-custom">
-            <div id="modal-clave-checklist-container" class="checklist-matrix-grid">
-              <i>Cargando checklist del A al E...</i>
+          <div class="form-row">
+            <div class="field">
+              <label for="nombre">Nombres</label
+              ><input
+                id="nombre"
+                placeholder="Nombre (ej: Juan Carlos)"
+                required=""
+                type="text"
+              />
+            </div>
+            <div class="field">
+              <label for="apellido">Apellidos</label
+              ><input
+                id="apellido"
+                placeholder="Apellido (ej: Pérez)"
+                required=""
+                type="text"
+              />
             </div>
           </div>
-
-          <!-- Modal Footer -->
-          <div class="modal-footer-custom">
-            <div id="modal-clave-counter-status" style="font-weight: 700; color: #475569; font-size: 0.95rem;">
-              0 preguntas marcadas
+          <div class="field">
+            <label for="rol">Tipo de usuario</label
+            ><select id="rol" required="">
+              <option value="">Selecciona rol</option>
+              <option value="estudiante">Estudiante</option>
+              <option value="docente">Docente</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="turno">Turno</label
+            ><select id="turno" required="">
+              <option value="">Selecciona turno</option>
+              <option value="mañana">Mañana</option>
+              <option value="tarde">Tarde</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="ciclo">Ciclo</label
+            ><select id="ciclo" required="">
+              <option value="">Cargando ciclos...</option>
+            </select>
+          </div>
+          <fieldset id="new-student-details" class="card stack" hidden>
+            <legend>Postulación y apoderado</legend>
+            <fieldset class="field student-area-fieldset" id="new-student-area-group">
+              <legend>Área de postulación</legend>
+              <p class="help">Marca una opción. Solo se permite un área por estudiante.</p>
+              <div class="student-area-options">
+                <label><input type="checkbox" name="student-area" value="A" /> A</label>
+                <label><input type="checkbox" name="student-area" value="B" /> B</label>
+                <label><input type="checkbox" name="student-area" value="C" /> C</label>
+                <label><input type="checkbox" name="student-area" value="D" /> D</label>
+                <label><input type="checkbox" name="student-area" value="E" /> E</label>
+                <label><input type="checkbox" name="student-area" value="GENERAL" checked /> Sin especificar</label>
+              </div>
+            </fieldset>
+            <p class="help">El apoderado es opcional. Si lo registras, completa nombre y teléfono internacional.</p>
+            <div class="form-row"><div class="field"><label for="new-guardian-name">Nombre del apoderado</label><input id="new-guardian-name" maxlength="100" autocomplete="name" /></div><div class="field"><label for="new-guardian-phone">Número de WhatsApp del apoderado</label><input id="new-guardian-phone" type="tel" autocomplete="tel" placeholder="+51900111222" /></div></div>
+            <label class="v2-checkbox"><input id="new-guardian-consent" type="checkbox" /> El apoderado autorizó recibir avisos de este estudiante</label>
+          </fieldset>
+          <div id="dias-asistencia-selector">
+            <label>Días de Asistencia:</label>
+            <div class="day-buttons-container">
+              <button class="day-btn active" data-day="L" type="button">
+                L
+              </button>
+              <button class="day-btn active" data-day="M" type="button">
+                M
+              </button>
+              <button class="day-btn active" data-day="MI" type="button">
+                Mi
+              </button>
+              <button class="day-btn active" data-day="J" type="button">
+                J
+              </button>
+              <button class="day-btn active" data-day="V" type="button">
+                V
+              </button>
+              <button class="day-btn active" data-day="S" type="button">
+                S
+              </button>
+              <button class="day-btn" data-day="D" type="button">D</button>
             </div>
-            <button type="button" id="btn-guardar-modal-clave" class="btn-form-submit" style="background:#166534; padding: 10px 22px; width: auto;"><i class="bi bi-check-lg"></i> Guardar y Aplicar</button>
+          </div>
+          <button type="submit"><i class="bi bi-check-lg"></i> Agregar</button>
+          <div id="msg-agregar-usuario"></div>
+        </form>
+      </section>
+    </dialog>
+    <div
+      aria-labelledby="preview-modal-title"
+      aria-modal="true"
+      class="modal"
+      id="preview-modal"
+      role="dialog"
+      style="display: none"
+      tabindex="-1"
+    >
+      <div class="modal-content">
+        <span class="close-btn" id="close-preview">×</span>
+        <h2 id="preview-modal-title">Vista previa del archivo</h2>
+        <h3 id="preview-filename"></h3>
+        <div class="preview-tab-container" id="preview-tabs"></div>
+        <div class="preview-content-area" id="preview-content"></div>
+      </div>
+    </div>
+    <div
+      aria-labelledby="image-export-modal-title"
+      aria-modal="true"
+      class="modal"
+      id="image-export-modal"
+      role="dialog"
+      style="display: none"
+      tabindex="-1"
+    >
+      <div class="modal-content modal-image-content">
+        <span class="close-btn" id="close-image-modal">×</span>
+        <h2 id="image-export-modal-title">
+          <i class="bi bi-card-image"></i>Generar imagen de tabla
+        </h2>
+        <h3 id="image-modal-filename"></h3>
+        <div class="image-modal-filters">
+          <div class="filter-group field">
+            <label for="image-modal-ciclo"
+              ><i class="bi bi-journal-bookmark-fill"></i> Ciclo:</label
+            >
+            <select class="modal-select" id="image-modal-ciclo">
+              <option value="">Cargando ciclos...</option>
+            </select>
+          </div>
+          <div class="filter-group field">
+            <label for="image-modal-turno"
+              ><i class="bi bi-clock-fill"></i> Turno:</label
+            >
+            <select class="modal-select" id="image-modal-turno">
+              <option value="mañana">Mañana</option>
+              <option value="tarde">Tarde</option>
+            </select>
           </div>
         </div>
-      </dialog>
-
-      <!-- ======================================================= -->
-      <!-- MODAL POP-UP: PREVISUALIZACIÓN DE CARTILLA OMR (PDF/PNG)-->
-      <!-- ======================================================= -->
-      <dialog id="modal-preview-cartilla" class="modal-dialog-custom" style="max-width: 680px;">
-        <div class="modal-content-wrapper">
-          <div class="modal-header-custom">
-            <h3 id="modal-preview-cartilla-title"><i class="bi bi-file-earmark-pdf-fill"></i> Previsualizar Cartilla de Respuestas OMR</h3>
-            <button type="button" id="btn-cerrar-modal-preview-cartilla" class="btn-close-modal">✕</button>
-          </div>
-          <div class="modal-body-custom" style="text-align: center; background: #f8fafc; padding: 16px;">
-            <div id="cartilla-info-banner" style="margin-bottom: 12px; font-size: 0.9rem; color: #475569; font-weight: 600;"></div>
-            <canvas id="cartilla-preview-canvas" width="650" height="920" style="width: 100%; max-width: 460px; height: auto; border: 1px solid #cbd5e1; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); background: #ffffff; display: block; margin: 0 auto;"></canvas>
-          </div>
-          <div class="modal-footer-custom" style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-            <button type="button" id="btn-download-cartilla-png" class="btn-form-submit" style="background:#0284c7; padding: 9px 16px; width: auto;"><i class="bi bi-file-image"></i> Descargar Imagen PNG</button>
-            <button type="button" id="btn-download-cartilla-pdf" class="btn-form-submit" style="background:#b72107; padding: 9px 18px; width: auto;"><i class="bi bi-file-earmark-pdf"></i> Descargar PDF A4 Imprimible</button>
+        <div class="image-modal-preview-wrapper">
+          <div
+            class="image-modal-table-container"
+            id="image-modal-table-container"
+          >
+            <p>
+              <i>Seleccione un ciclo y turno para ver la previsualización...</i>
+            </p>
           </div>
         </div>
-      </dialog>
-
-      <!-- ======================================================= -->
-      <!-- MODAL POP-UP: ESCÁNER OMR CON VISIÓN OPENCV            -->
-      <!-- ======================================================= -->
-      <dialog id="modal-omr-scanner" class="modal-dialog-custom" style="max-width: 680px;">
-        <div class="modal-content-wrapper">
-          <div class="modal-header-custom" style="background: #0f172a; color: #ffffff;">
-            <h3 style="color: #ffffff;"><i class="bi bi-camera-video-fill"></i> Escáner OMR con Visión por Computadora (OpenCV)</h3>
-            <button type="button" id="btn-cerrar-modal-omr-scanner" class="btn-close-modal" style="color: #ffffff;">✕</button>
-          </div>
-          <div class="modal-body-custom" style="text-align: center; background: #020617; padding: 16px;">
-            <div id="omr-scanner-status" style="background: #1e293b; color: #38bdf8; padding: 10px 14px; border-radius: 6px; font-weight: 700; margin-bottom: 12px; font-size: 0.9rem; border: 1px solid #334155;">
-              🎥 Iniciando motor de visión por computadora...
-            </div>
-            <div style="position: relative; display: inline-block; width: 100%; max-width: 560px;">
-              <video id="omr-video-feed" autoplay playsinline style="width: 100%; border-radius: 8px; border: 2px solid #38bdf8; background: #000; display: block;"></video>
-              <canvas id="omr-overlay-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></canvas>
-            </div>
-            <canvas id="omr-process-canvas" style="display: none;"></canvas>
-            <input type="file" id="omr-file-upload-input" accept="image/*" style="display: none;" />
-          </div>
-          <div class="modal-footer-custom" style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
-            <button type="button" id="btn-subir-foto-omr" class="btn-form-submit" style="background: #0284c7; padding: 10px 18px; width: auto;"><i class="bi bi-upload"></i> Subir Foto / Imagen HD</button>
-            <button type="button" id="btn-capturar-omr-manual" class="btn-form-submit" style="background: #166534; padding: 10px 22px; width: auto;"><i class="bi bi-camera"></i> Escanear Cámara Ahora</button>
+        <div class="image-modal-actions">
+          <button class="btn-action-copy" id="btn-copy-table-image">
+            <i class="bi bi-clipboard-plus-fill"></i> COPIAR IMAGEN
+          </button>
+          <button class="btn-action-download" id="btn-download-table-image">
+            <i class="bi bi-download"></i> DESCARGAR PNG
+          </button>
+        </div>
+        <div class="form-message" id="msg-image-modal"></div>
+      </div>
+    </div>
+    <div
+      aria-labelledby="carnet-title"
+      aria-modal="true"
+      class="modal"
+      id="barcode-modal"
+      role="dialog"
+      style="display: none"
+      tabindex="-1"
+    >
+      <div class="modal-content">
+        <span class="close-btn" id="close-barcode">×</span>
+        <h2 id="carnet-title">Carnet de Usuario</h2>
+        <p id="barcode-text"></p>
+        <div>
+          <canvas height="480" id="barcode-canvas" width="320"></canvas>
+        </div>
+        <div>
+          <a class="btn btn-download" id="download-barcode">
+            <i class="bi bi-download"></i> Descargar PNG
+          </a>
+        </div>
+        <div class="field">
+          <label for="barcode-notes"
+            >Notas (tel. emergencia, salidas, etc.)</label
+          >
+          <textarea
+            id="barcode-notes"
+            placeholder="Agregar notas para este usuario..."
+          ></textarea>
+          <div>
+            <button class="btn btn-primary" id="save-barcode-notes">
+              <i class="bi bi-save"></i> Guardar notas
+            </button>
+            <span id="barcode-notes-msg"></span>
           </div>
         </div>
-      </dialog>
-
-    <script async src="https://docs.opencv.org/4.8.0/opencv.js" id="opencv-js"></script>
-    <script type="module" src="../js/admin.js"></script>
-    <script src="../js/admin-info.js"></script>
+      </div>
+    </div>
+    <div
+      aria-labelledby="edit-user-modal-title"
+      aria-modal="true"
+      class="modal"
+      id="edit-user-modal"
+      role="dialog"
+      style="display: none"
+      tabindex="-1"
+    >
+      <div class="modal-content">
+        <span class="close-btn" id="close-edit-modal">×</span>
+        <h2 id="edit-user-modal-title">
+          <i class="bi bi-pencil-square"></i>Editar usuario
+        </h2>
+        <form id="form-editar">
+          <input id="edit-original-codigo" type="hidden" />
+          <div class="field">
+            <label for="edit-codigo">Código del carnet</label
+            ><input
+              id="edit-codigo"
+              placeholder="Código"
+              required=""
+              type="text"
+            />
+          </div>
+          <div class="form-row">
+            <div class="field">
+              <label for="edit-nombre">Nombres</label
+              ><input
+                id="edit-nombre"
+                placeholder="Nombre"
+                required=""
+                type="text"
+              />
+            </div>
+            <div class="field">
+              <label for="edit-apellido">Apellidos</label
+              ><input
+                id="edit-apellido"
+                placeholder="Apellido"
+                required=""
+                type="text"
+              />
+            </div>
+          </div>
+          <div class="field">
+            <label for="edit-rol">Tipo de usuario</label
+            ><select id="edit-rol" required="">
+              <option value="">Selecciona rol</option>
+              <option value="estudiante">Estudiante</option>
+              <option value="docente">Docente</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="edit-turno">Turno</label
+            ><select id="edit-turno" required="">
+              <option value="">Selecciona turno</option>
+              <option value="mañana">Mañana</option>
+              <option value="tarde">Tarde</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="edit-ciclo">Ciclo</label
+            ><select id="edit-ciclo" required=""></select>
+          </div>
+          <fieldset id="edit-student-details" class="card stack" hidden>
+            <legend>Postulación y apoderados</legend>
+            <fieldset class="field student-area-fieldset" id="edit-student-area-group">
+              <legend>Área de postulación</legend>
+              <p class="help">Selecciona una sola área.</p>
+              <div class="student-area-options">
+                <label><input type="checkbox" name="edit-student-area" value="A" /> A</label>
+                <label><input type="checkbox" name="edit-student-area" value="B" /> B</label>
+                <label><input type="checkbox" name="edit-student-area" value="C" /> C</label>
+                <label><input type="checkbox" name="edit-student-area" value="D" /> D</label>
+                <label><input type="checkbox" name="edit-student-area" value="E" /> E</label>
+                <label><input type="checkbox" name="edit-student-area" value="GENERAL" /> Sin especificar</label>
+              </div>
+            </fieldset>
+            <p class="help">El apoderado es opcional. Para recibir avisos debe autorizarlo expresamente.</p>
+            <div id="edit-guardians-list" class="edit-guardians-list"></div>
+            <button id="edit-add-guardian" type="button" class="v2-button secondary">Añadir otro apoderado</button>
+          </fieldset>
+          <div id="edit-dias-asistencia-selector">
+            <label>Días de Asistencia:</label>
+            <div class="day-buttons-container">
+              <button class="day-btn" data-day="L" type="button">L</button>
+              <button class="day-btn" data-day="M" type="button">M</button>
+              <button class="day-btn" data-day="MI" type="button">Mi</button>
+              <button class="day-btn" data-day="J" type="button">J</button>
+              <button class="day-btn" data-day="V" type="button">V</button>
+              <button class="day-btn" data-day="S" type="button">S</button>
+              <button class="day-btn" data-day="D" type="button">D</button>
+            </div>
+          </div>
+          <button type="submit">
+            <i class="bi bi-save-fill"></i> GUARDAR CAMBIOS
+          </button>
+          <div class="form-message" id="msg-editar-usuario"></div>
+        </form>
+      </div>
+    </div>
+    <div
+      aria-labelledby="ciclo-form-title"
+      aria-modal="true"
+      class="modal"
+      id="ciclo-form-modal"
+      role="dialog"
+      style="display: none"
+      tabindex="-1"
+    >
+      <div class="modal-content ciclo-modal">
+        <span class="close-btn" id="close-ciclo-form">×</span>
+        <h2 class="ciclo-form-header" id="ciclo-form-title">Agregar Ciclo</h2>
+        <form class="ciclo-form" id="ciclo-form">
+          <div class="form-group field">
+            <label for="ciclo-titulo">Título del Ciclo</label>
+            <input
+              id="ciclo-titulo"
+              placeholder="ej: Matemáticas 2025"
+              required=""
+              type="text"
+            />
+          </div>
+          <div class="form-group field">
+            <label for="ciclo-slug">Slug (URL amigable)</label>
+            <input
+              id="ciclo-slug"
+              placeholder="ej: matematica-2025"
+              required=""
+              type="text"
+            />
+          </div>
+          <div class="form-group field">
+            <label for="ciclo-descripcion">Descripción</label>
+            <textarea
+              id="ciclo-descripcion"
+              placeholder="Describe brevemente el ciclo..."
+              rows="3"
+            ></textarea>
+          </div>
+          <div class="form-group field">
+            <label for="ciclo-beneficios">Beneficios</label>
+            <textarea
+              id="ciclo-beneficios"
+              placeholder="Cada línea es un beneficio (ej: Certificado oficial)
+Aprendizaje práctico
+Tutorías personalizadas"
+              rows="4"
+            ></textarea>
+          </div>
+          <div class="form-group field">
+            <label for="ciclo-price">Precio Actual (S/)</label>
+            <input
+              id="ciclo-price"
+              placeholder="ej: 299.00"
+              step="0.01"
+              type="number"
+            />
+          </div>
+          <div class="form-group form-checkbox">
+            <label>
+              <input id="ciclo-published" type="checkbox" />
+              <span>Publicado en la web pública</span>
+            </label>
+          </div>
+          <div class="form-actions">
+            <button class="btn-form-submit" type="submit">
+              <i class="bi bi-save"></i> Guardar Ciclo
+            </button>
+            <button class="btn-form-cancel" id="ciclo-cancel" type="button">
+              Cancelar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <dialog
+      aria-labelledby="modal-clave-popup-title"
+      class="modal-dialog-custom"
+      id="modal-clave-popup"
+    >
+      <div class="modal-content-wrapper">
+        <div class="modal-header-custom">
+          <h3 id="modal-clave-popup-title">
+            <i class="bi bi-ui-checks-grid"></i> Registro de Clave Oficial de
+            Respuestas
+          </h3>
+          <button
+            class="btn-toggle-actitudinal-header"
+            id="btn-toggle-modo-actitudinal"
+            style="display: none"
+            type="button"
+          >
+            <i class="bi bi-shield-check"></i> Preguntas Actitudinales (Sin
+            Descuento)
+          </button>
+          <button
+            class="btn-close-modal"
+            id="btn-cerrar-modal-clave"
+            type="button"
+          >
+            ✕
+          </button>
+        </div>
+        <div class="modal-toolbar-quick">
+          <span><b>Marcar Rápidamente:</b></span>
+          <button class="btn-quick-fill" data-option="A" type="button">
+            A
+          </button>
+          <button class="btn-quick-fill" data-option="B" type="button">
+            B
+          </button>
+          <button class="btn-quick-fill" data-option="C" type="button">
+            C
+          </button>
+          <button class="btn-quick-fill" data-option="D" type="button">
+            D
+          </button>
+          <button class="btn-quick-fill" data-option="E" type="button">
+            E
+          </button>
+          <button class="btn-quick-clear" id="btn-quick-clear" type="button">
+            🧹 Limpiar Claves
+          </button>
+          <button
+            class="btn-quick-fill"
+            id="btn-quick-all-areas"
+            style="display: none"
+            type="button"
+          >
+            ✓ Marcar Todas las Áreas
+          </button>
+        </div>
+        <div class="modal-body-custom">
+          <div
+            class="checklist-matrix-grid"
+            id="modal-clave-checklist-container"
+          >
+            <i>Cargando checklist del A al E...</i>
+          </div>
+        </div>
+        <div class="modal-footer-custom">
+          <div id="modal-clave-counter-status">0 preguntas marcadas</div>
+          <button
+            class="btn-form-submit"
+            id="btn-guardar-modal-clave"
+            type="button"
+          >
+            <i class="bi bi-check-lg"></i> Guardar y Aplicar
+          </button>
+        </div>
+      </div>
+    </dialog>
+    <script src="/js/admin.js" type="module"></script>
+    <script src="/js/admin-info.js"></script>
+    <div
+      aria-labelledby="edit-book-title"
+      aria-modal="true"
+      class="modal"
+      id="modal-editar-libro"
+      role="dialog"
+      style="display: none"
+      tabindex="-1"
+    >
+      <div class="modal-content">
+        <div class="form-row">
+          <h4 class="form-row" id="edit-book-title">
+            <i class="bi bi-pencil-square"></i> Editar Libro
+          </h4>
+          <button
+            aria-label="Cerrar edición del libro"
+            class="close-btn"
+            id="btn-cerrar-modal-edit-libro"
+            type="button"
+          >
+            ×
+          </button>
+        </div>
+        <form class="stack" id="form-editar-libro">
+          <input id="edit-libro-id" type="hidden" />
+          <div class="field">
+            <label for="edit-libro-titulo">Nombre / Título:</label>
+            <input id="edit-libro-titulo" required="" type="text" />
+          </div>
+          <div class="field">
+            <label for="edit-libro-codigo">Código del Libro:</label>
+            <input id="edit-libro-codigo" required="" type="text" />
+          </div>
+          <div class="field">
+            <label for="edit-libro-seccion">Sección / Categoría:</label>
+            <select id="edit-libro-seccion" required=""></select>
+          </div>
+          <div class="field">
+            <label for="edit-libro-editorial">Editorial (Opcional):</label>
+            <input
+              id="edit-libro-editorial"
+              placeholder="ej. Lumbreras, Cuzcano..."
+              type="text"
+            />
+          </div>
+          <div id="msg-edit-libro"></div>
+          <div class="form-row">
+            <button
+              class="bib-subtab"
+              id="btn-cancelar-edit-libro"
+              type="button"
+            >
+              Cancelar
+            </button>
+            <button class="btn-form-submit" type="submit">
+              <i class="bi bi-check2-circle"></i> Guardar Cambios
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </body>
 </html>

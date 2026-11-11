@@ -1,6 +1,7 @@
 // Public/js/admin/evaluaciones/eval-reporte-alumno.js
 
 import { evalState } from "./eval-state.js";
+let reportRequest = 0;
 import {
   drawCanvasRoundRect,
   copyCanvasToClipboard,
@@ -13,7 +14,9 @@ import {
 
 // 9. Buscador y Reporte Consolidado por Alumno
 export async function buscarYRenderizarReporteAlumno(codigoEstudiante) {
-  const dashboardContainer = document.getElementById("alumno-reporte-dashboard");
+  const dashboardContainer = document.getElementById(
+    "alumno-reporte-dashboard",
+  );
   const toolbar = document.getElementById("reporte-alumno-toolbar");
   const semanaSelect = document.getElementById("reporte-alumno-semana-select");
 
@@ -33,10 +36,16 @@ export async function buscarYRenderizarReporteAlumno(codigoEstudiante) {
   }
 
   if (!cod) return;
+  const token = ++reportRequest;
+  evalState.currentStudentReportData = null;
+  if (toolbar) toolbar.style.display = "none";
 
   try {
-    const res = await fetch(`/api/evaluaciones/reporte-estudiante/${encodeURIComponent(cod)}`);
+    const res = await fetch(
+      `/api/evaluaciones/reporte-estudiante/${encodeURIComponent(cod)}`,
+    );
     const data = await res.json();
+    if (token !== reportRequest) return;
 
     if (data.exito) {
       const rawEval = data.historialEvaluaciones || [];
@@ -47,7 +56,9 @@ export async function buscarYRenderizarReporteAlumno(codigoEstudiante) {
         if (semanas.length > 0) {
           semanaSelect.innerHTML = [
             `<option value="TODAS">📅 Todas las Semanas Registradas (${semanas.length})</option>`,
-            ...semanas.map((s) => `<option value="${s.value}">${s.label}</option>`),
+            ...semanas.map(
+              (s) => `<option value="${s.value}">${s.label}</option>`,
+            ),
           ].join("");
         } else {
           semanaSelect.innerHTML = `<option value="TODAS">📅 Todas las Semanas Registradas</option>`;
@@ -85,7 +96,8 @@ export function aplicarFiltroSemanaReporte() {
 
   const semanaSelect = document.getElementById("reporte-alumno-semana-select");
   const selectedVal = semanaSelect ? semanaSelect.value : "TODAS";
-  const { estudiante, rawEvalHist, rawTareaHist } = evalState.currentStudentReportData;
+  const { estudiante, rawEvalHist, rawTareaHist } =
+    evalState.currentStudentReportData;
 
   let evalFiltradas = rawEvalHist;
   let tareasFiltradas = rawTareaHist;
@@ -100,7 +112,8 @@ export function aplicarFiltroSemanaReporte() {
       const info = getSemanaSabadoVieInfo(t.fecha);
       return info.value === selectedVal;
     });
-    const optText = semanaSelect.options[semanaSelect.selectedIndex]?.text || selectedVal;
+    const optText =
+      semanaSelect.options[semanaSelect.selectedIndex]?.text || selectedVal;
     semanaLabel = optText;
   }
 
@@ -109,7 +122,12 @@ export function aplicarFiltroSemanaReporte() {
   evalState.currentStudentReportData.selectedSemana = selectedVal;
   evalState.currentStudentReportData.selectedSemanaLabel = semanaLabel;
 
-  renderDashboardEstudiante(estudiante, evalFiltradas, tareasFiltradas, semanaLabel);
+  renderDashboardEstudiante(
+    estudiante,
+    evalFiltradas,
+    tareasFiltradas,
+    semanaLabel,
+  );
 }
 
 export function setupBuscadorReporteAlumno() {
@@ -117,8 +135,40 @@ export function setupBuscadorReporteAlumno() {
   const btnSearch = document.getElementById("btn-buscar-reporte-alumno");
   const btnPrint = document.getElementById("btn-imprimir-reporte-alumno");
   const btnCopyTareasImg = document.getElementById("btn-copiar-imagen-tareas");
-  const btnCopyReporteImg = document.getElementById("btn-copiar-imagen-reporte");
+  const btnCopyReporteImg = document.getElementById(
+    "btn-copiar-imagen-reporte",
+  );
   const semanaSelect = document.getElementById("reporte-alumno-semana-select");
+  const sendWhatsApp = document.getElementById("btn-whatsapp-reporte-alumno");
+  window.ingematSession.then((session) => {
+    sendWhatsApp.hidden = session.usuario?.role !== "admin";
+  });
+  sendWhatsApp.onclick = async () => {
+    const errorMessage = document.getElementById("student-report-wa-message");
+    errorMessage.hidden = true;
+    sendWhatsApp.disabled = true;
+    try {
+      const report = structuredClone(evalState.currentStudentReportData);
+      if (!report) throw new Error("Selecciona primero un estudiante.");
+      if (report.evalHist.length + report.tareaHist.length > 500)
+        throw new Error(
+          "Selecciona una semana para reducir el tamaño del reporte.",
+        );
+      const { openStudentReport } = await import("../report-whatsapp.js");
+      const canvas = crearCanvasReporteCompleto(
+        report.estudiante,
+        report.evalHist,
+        report.tareaHist,
+        report.selectedSemanaLabel,
+      );
+      await openStudentReport({ report, canvas });
+    } catch (error) {
+      errorMessage.textContent = error.message;
+      errorMessage.hidden = false;
+    } finally {
+      sendWhatsApp.disabled = false;
+    }
+  };
 
   if (semanaSelect) {
     semanaSelect.onchange = () => {
@@ -133,8 +183,9 @@ export function setupBuscadorReporteAlumno() {
           evalState.currentStudentReportData.estudiante,
           evalState.currentStudentReportData.evalHist,
           evalState.currentStudentReportData.tareaHist,
-          evalState.currentStudentReportData.selectedSemanaLabel
-        );
+          evalState.currentStudentReportData.selectedSemanaLabel,
+          evalState.currentStudentReportData.selectedSemana,
+        ).catch((error)=>alert(error.message));
       } else {
         window.print();
       }
@@ -147,10 +198,12 @@ export function setupBuscadorReporteAlumno() {
         copiarReporteTareasImagen(
           evalState.currentStudentReportData.estudiante,
           evalState.currentStudentReportData.tareaHist,
-          evalState.currentStudentReportData.selectedSemanaLabel
+          evalState.currentStudentReportData.selectedSemanaLabel,
         );
       } else {
-        alert("⚠️ Seleccione primero un estudiante para generar el reporte de tareas.");
+        alert(
+          "⚠️ Seleccione primero un estudiante para generar el reporte de tareas.",
+        );
       }
     };
   }
@@ -162,10 +215,12 @@ export function setupBuscadorReporteAlumno() {
           evalState.currentStudentReportData.estudiante,
           evalState.currentStudentReportData.evalHist,
           evalState.currentStudentReportData.tareaHist,
-          evalState.currentStudentReportData.selectedSemanaLabel
+          evalState.currentStudentReportData.selectedSemanaLabel,
         );
       } else {
-        alert("⚠️ Seleccione primero un estudiante para generar la ficha integral.");
+        alert(
+          "⚠️ Seleccione primero un estudiante para generar la ficha integral.",
+        );
       }
     };
   }
@@ -184,173 +239,31 @@ export function setupBuscadorReporteAlumno() {
   }
 }
 
-// Generador de Ficha de Alumno en Documento PDF Limpio y Organizado
-export function generarFichaAlumnoPDF(est, evalHist, tareaHist, semanaLabel = null) {
-  const hoyStr = new Date().toLocaleDateString("es-PE", { year: "numeric", month: "long", day: "numeric" });
-  const rangoFechas = semanaLabel ? semanaLabel.replace(/^📅\s*/, "") : calcularRangoFechas(evalHist, tareaHist);
-  const tagReporte = semanaLabel ? "FICHA SEMANAL PDF" : "FICHA CONSOLIDADA PDF";
-
-  let evalRows = "";
-  if (evalHist.length === 0) {
-    evalRows = `<tr><td colspan="7" style="text-align:center; padding:14px; color:#64748b;">${semanaLabel ? "Sin evaluaciones registradas en la semana seleccionada" : "Sin evaluaciones registradas"}</td></tr>`;
-  } else {
-    evalHist.forEach((e) => {
-      evalRows += `
-        <tr>
-          <td style="padding:9px 12px; border-bottom:1px solid #e2e8f0; font-weight:700; color:#0f172a;">${e.titulo}</td>
-          <td style="padding:9px 12px; border-bottom:1px solid #e2e8f0; text-align:center;">${e.fecha}</td>
-          <td style="padding:9px 12px; border-bottom:1px solid #e2e8f0; text-align:center; color:#166534; font-weight:700;">${e.correctas}</td>
-          <td style="padding:9px 12px; border-bottom:1px solid #e2e8f0; text-align:center; color:#dc2626; font-weight:700;">${e.incorrectas}</td>
-          <td style="padding:9px 12px; border-bottom:1px solid #e2e8f0; text-align:center; color:#64748b;">${e.enBlanco}</td>
-          <td style="padding:9px 12px; border-bottom:1px solid #e2e8f0; text-align:center; font-weight:800; color:#b72107;">${e.puntajeTotal} pts</td>
-          <td style="padding:9px 12px; border-bottom:1px solid #e2e8f0; text-align:center; font-weight:700;">Puesto #${e.posicion}</td>
-        </tr>
-      `;
-    });
+// La descarga comparte exactamente el mismo generador PDF que el envío por WhatsApp.
+export async function generarFichaAlumnoPDF(est, evalHist, tareaHist, semanaLabel=null, week="TODAS") {
+  if(!est?.codigo) throw new Error("Selecciona un estudiante para generar su ficha.");
+  const url="/api/evaluaciones/reporte-estudiante/"+encodeURIComponent(est.codigo)+"/pdf?week="+encodeURIComponent(week||"TODAS");
+  const response=await fetch(url,{cache:"no-store"});
+  if(!response.ok){
+    const error=await response.json().catch(()=>({}));
+    throw new Error(error.mensaje||"No se pudo descargar el PDF del estudiante.");
   }
-
-  let tareaRows = "";
-  if (tareaHist.length === 0) {
-    tareaRows = `<tr><td colspan="4" style="text-align:center; padding:14px; color:#64748b;">${semanaLabel ? "Sin tareas registradas en la semana seleccionada" : "Sin tareas registradas"}</td></tr>`;
-  } else {
-    tareaHist.forEach((t) => {
-      const stInfo = getTareaEstadoInfo(t);
-      const calif = `<span style="background:${stInfo.badgeBg}; color:${stInfo.badgeText}; border:1px solid ${stInfo.badgeBorder}; padding:2px 8px; border-radius:4px; font-weight:700;">${stInfo.label}</span>`;
-      tareaRows += `
-        <tr>
-          <td style="padding:9px 12px; border-bottom:1px solid #e2e8f0; font-weight:700; color:#0f172a;">${t.curso}</td>
-          <td style="padding:9px 12px; border-bottom:1px solid #e2e8f0; text-align:center;">${formatFechaTarea(t.fecha)}</td>
-          <td style="padding:9px 12px; border-bottom:1px solid #e2e8f0; text-align:center;">${t.ciclo}</td>
-          <td style="padding:9px 12px; border-bottom:1px solid #e2e8f0; text-align:center;">${calif}</td>
-        </tr>
-      `;
-    });
-  }
-
-  const printWindow = window.open("", "_blank");
-  if (!printWindow) return;
-
-  printWindow.document.write(`
-    <!DOCTYPE html>
-    <html lang="es">
-    <head>
-      <meta charset="UTF-8">
-      <title>Ficha Académica PDF - ${est.nombre} (${est.codigo})</title>
-      <style>
-        @page { size: A4 portrait; margin: 12mm; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #0f172a; margin: 0; padding: 24px; background: #ffffff; }
-        .header-report { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #b72107; padding-bottom: 14px; margin-bottom: 22px; }
-        .brand-title { font-size: 22px; font-weight: 800; color: #b72107; text-transform: uppercase; margin: 0; letter-spacing: 0.5px; }
-        .brand-sub { font-size: 13px; color: #475569; margin-top: 3px; font-weight: 600; }
-        .report-tag { background: #0f172a; color: #ffffff; padding: 6px 16px; font-weight: 700; border-radius: 6px; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
-        
-        .student-box { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; padding: 16px 20px; margin-bottom: 22px; display: flex; justify-content: space-between; align-items: center; }
-        .student-info h2 { margin: 0 0 6px 0; font-size: 20px; color: #0f172a; font-weight: 800; }
-        .student-info p { margin: 3px 0; font-size: 13.5px; color: #475569; }
-        
-        .metrics-grid { display: flex; gap: 16px; margin-bottom: 26px; }
-        .metric-card { flex: 1; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 14px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
-        .metric-num { font-size: 24px; font-weight: 800; color: #b72107; line-height: 1.1; }
-        .metric-lbl { font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 700; margin-top: 4px; letter-spacing: 0.5px; }
-        
-        .section-title { font-size: 14px; font-weight: 800; color: #0f172a; margin: 24px 0 12px 0; border-left: 4px solid #b72107; padding-left: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
-        table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 24px; }
-        th { background: #f1f5f9; color: #334155; font-weight: 800; padding: 10px 12px; text-align: left; border-bottom: 2px solid #cbd5e1; text-transform: uppercase; font-size: 11px; }
-        
-        .footer-signatures { margin-top: 50px; display: flex; justify-content: space-around; text-align: center; page-break-inside: avoid; }
-        .sig-line { width: 220px; border-top: 1px dashed #94a3b8; padding-top: 8px; font-size: 12px; color: #475569; font-weight: 700; }
-      </style>
-    </head>
-    <body>
-      <div class="header-report">
-        <div>
-          <h1 class="brand-title">ACADEMIA PREUNIVERSITARIA INGEMAT</h1>
-          <div class="brand-sub">Sistema de Evaluación Integral y Reporte de Desempeño</div>
-        </div>
-        <div class="report-tag">${tagReporte}</div>
-      </div>
-
-      <div class="student-box">
-        <div class="student-info">
-          <h2>${est.nombre}</h2>
-          <p><b>Código de Estudiante:</b> ${est.codigo} &nbsp;|&nbsp; <b>Ciclo / Salón:</b> ${est.ciclo}</p>
-          <p><b>Turno:</b> ${est.turno} &nbsp;|&nbsp; <b>${semanaLabel ? "Semana Evaluada" : "Periodo Evaluado"}:</b> <span style="color:#b72107; font-weight:700;">${rangoFechas}</span></p>
-          <p><b>Fecha de Emisión:</b> ${hoyStr}</p>
-        </div>
-      </div>
-
-      <div class="metrics-grid">
-        <div class="metric-card">
-          <div class="metric-num">${evalHist.length}</div>
-          <div class="metric-lbl">Exámenes Rendidos</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-num">${tareaHist.length}</div>
-          <div class="metric-lbl">Tareas Calificadas</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-num" style="font-size: 15px; padding-top: 4px;">${rangoFechas}</div>
-          <div class="metric-lbl">${semanaLabel ? "Semana Evaluada" : "Periodo Evaluado"}</div>
-        </div>
-      </div>
-
-      <div class="section-title">Historial de Evaluaciones y Simulacros</div>
-      <table>
-        <thead>
-          <tr>
-            <th>Examen / Simulacro</th>
-            <th style="text-align:center;">Fecha</th>
-            <th style="text-align:center;">Correctas</th>
-            <th style="text-align:center;">Incorrectas</th>
-            <th style="text-align:center;">En Blanco</th>
-            <th style="text-align:center;">Puntaje Total</th>
-            <th style="text-align:center;">Puesto</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${evalRows}
-        </tbody>
-      </table>
-
-      <div class="section-title">Historial de Calificación de Tareas por Curso</div>
-      <table>
-        <thead>
-          <tr>
-            <th>Curso / Asignatura</th>
-            <th style="text-align:center;">Fecha</th>
-            <th style="text-align:center;">Ciclo</th>
-            <th style="text-align:center;">Calificación / Estado</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${tareaRows}
-        </tbody>
-      </table>
-
-      <div class="pdf-thankyou-box" style="margin-top: 36px; padding: 16px 20px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; text-align: center; page-break-inside: avoid;">
-        <div style="font-size: 13.5px; font-weight: 800; color: #b72107; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">
-          🎓 ¡Agradecimiento Especial por su Confianza!
-        </div>
-        <p style="margin: 0; font-size: 12px; color: #334155; line-height: 1.5;">
-          Expresamos nuestro sincero agradecimiento al padre de familia y/o tutor de <b>${est.nombre}</b> por depositar su entera confianza en la <b>Academia Preuniversitaria INGEMAT</b>. Reafirmamos nuestro compromiso con la excelencia académica y el éxito en el ingreso universitario.
-        </p>
-      </div>
-
-      <script>
-        window.onload = function() {
-          setTimeout(function() {
-            window.print();
-          }, 300);
-        };
-      </script>
-    </body>
-    </html>
-  `);
-  printWindow.document.close();
+  const file=await response.blob();
+  const a=document.createElement("a"),href=URL.createObjectURL(file);
+  a.href=href;
+  a.download="Ficha_INGEMAT_"+est.codigo+".pdf";
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(href),10000);
 }
 
 // Generador de Imagen de Reporte Exclusivo de Tareas (Entregadas y No Entregadas) para Copiar al Portapapeles
-export function copiarReporteTareasImagen(est, tareaHist = [], semanaLabel = null) {
+export function copiarReporteTareasImagen(
+  est,
+  tareaHist = [],
+  semanaLabel = null,
+) {
   const canvas = document.createElement("canvas");
   const canvasWidth = 1000;
   const rowHeight = 38;
@@ -360,7 +273,8 @@ export function copiarReporteTareasImagen(est, tareaHist = [], semanaLabel = nul
   const numRows = Math.max(tareaHist.length, 1);
 
   canvas.width = canvasWidth;
-  canvas.height = headerHeight + tableHeaderHeight + numRows * rowHeight + footerHeight;
+  canvas.height =
+    headerHeight + tableHeaderHeight + numRows * rowHeight + footerHeight;
   const ctx = canvas.getContext("2d");
 
   // Fondo Hueso
@@ -379,15 +293,37 @@ export function copiarReporteTareasImagen(est, tareaHist = [], semanaLabel = nul
 
   ctx.fillStyle = "#B72107";
   ctx.font = "bold 18px 'Segoe UI', Tahoma, sans-serif";
-  ctx.fillText(semanaLabel ? "CONTROL SEMANAL DE ENTREGA DE TAREAS" : "CONTROL Y REPORTE DE ENTREGA DE TAREAS", canvasWidth / 2, 75);
+  ctx.fillText(
+    semanaLabel
+      ? "CONTROL SEMANAL DE ENTREGA DE TAREAS"
+      : "CONTROL Y REPORTE DE ENTREGA DE TAREAS",
+    canvasWidth / 2,
+    75,
+  );
 
-  const hoyStr = new Date().toLocaleDateString("es-PE", { year: "numeric", month: "long", day: "numeric" });
-  const rangoFechas = semanaLabel ? semanaLabel.replace(/^📅\s*/, "") : calcularRangoFechas([], tareaHist);
+  const hoyStr = new Date().toLocaleDateString("es-PE", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  const rangoFechas = semanaLabel
+    ? semanaLabel.replace(/^📅\s*/, "")
+    : calcularRangoFechas([], tareaHist);
 
   // Tarjeta de Información del Estudiante
   const startX = 40;
   const tableWidth = 920;
-  drawCanvasRoundRect(ctx, startX, 92, tableWidth, 62, 8, "#FFFFFF", "#CBD5E1", 1);
+  drawCanvasRoundRect(
+    ctx,
+    startX,
+    92,
+    tableWidth,
+    62,
+    8,
+    "#FFFFFF",
+    "#CBD5E1",
+    1,
+  );
 
   ctx.fillStyle = "#0F172A";
   ctx.font = "bold 16px 'Segoe UI', Tahoma, sans-serif";
@@ -399,13 +335,17 @@ export function copiarReporteTareasImagen(est, tareaHist = [], semanaLabel = nul
   ctx.fillText(
     `Código: ${est.codigo}   |   Salón / Ciclo: ${est.ciclo || "N/A"}   |   Turno: ${est.turno || "MAÑANA"}`,
     startX + 16,
-    138
+    138,
   );
 
   ctx.textAlign = "right";
   ctx.fillStyle = "#B72107";
   ctx.font = "bold 13px 'Segoe UI', Tahoma, sans-serif";
-  ctx.fillText(`${semanaLabel ? "Semana" : "Periodo"}: ${rangoFechas}`, startX + tableWidth - 16, 116);
+  ctx.fillText(
+    `${semanaLabel ? "Semana" : "Periodo"}: ${rangoFechas}`,
+    startX + tableWidth - 16,
+    116,
+  );
 
   ctx.fillStyle = "#64748B";
   ctx.font = "12.5px 'Segoe UI', Tahoma, sans-serif";
@@ -420,14 +360,25 @@ export function copiarReporteTareasImagen(est, tareaHist = [], semanaLabel = nul
     else noEntCount++;
   });
   const totalT = tareaHist.length;
-  const pctCumplimiento = totalT > 0 ? Math.round((entCount / totalT) * 100) : 0;
+  const pctCumplimiento =
+    totalT > 0 ? Math.round((entCount / totalT) * 100) : 0;
 
   const kpiY = 164;
   const kpiH = 46;
   const kpiW = (tableWidth - 30) / 4;
 
   // 1. Total
-  drawCanvasRoundRect(ctx, startX, kpiY, kpiW, kpiH, 6, "#FFFFFF", "#CBD5E1", 1);
+  drawCanvasRoundRect(
+    ctx,
+    startX,
+    kpiY,
+    kpiW,
+    kpiH,
+    6,
+    "#FFFFFF",
+    "#CBD5E1",
+    1,
+  );
   ctx.textAlign = "center";
   ctx.fillStyle = "#64748B";
   ctx.font = "bold 11px 'Segoe UI', sans-serif";
@@ -496,9 +447,11 @@ export function copiarReporteTareasImagen(est, tareaHist = [], semanaLabel = nul
     ctx.font = "italic 14px 'Segoe UI', sans-serif";
     ctx.textAlign = "center";
     ctx.fillText(
-      semanaLabel ? "Sin tareas registradas en la semana seleccionada." : "El estudiante no cuenta con registros de tareas.",
+      semanaLabel
+        ? "Sin tareas registradas en la semana seleccionada."
+        : "El estudiante no cuenta con registros de tareas.",
       startX + tableWidth / 2,
-      currentY + 24
+      currentY + 24,
     );
     currentY += rowHeight;
   } else {
@@ -551,7 +504,17 @@ export function copiarReporteTareasImagen(est, tareaHist = [], semanaLabel = nul
       const badgeX = startX + 740 + (tableWidth - 740 - badgeW) / 2;
       const badgeY = currentY + (rowHeight - badgeH) / 2;
 
-      drawCanvasRoundRect(ctx, badgeX, badgeY, badgeW, badgeH, 13, stInfo.badgeBg, stInfo.badgeBorder, 1);
+      drawCanvasRoundRect(
+        ctx,
+        badgeX,
+        badgeY,
+        badgeW,
+        badgeH,
+        13,
+        stInfo.badgeBg,
+        stInfo.badgeBorder,
+        1,
+      );
       ctx.textAlign = "center";
       ctx.fillStyle = stInfo.badgeText;
       ctx.font = "bold 12.5px 'Segoe UI', sans-serif";
@@ -568,24 +531,42 @@ export function copiarReporteTareasImagen(est, tareaHist = [], semanaLabel = nul
   ctx.fillText(
     "¡Constancia y disciplina para alcanzar el ingreso universitario! • INGEMAT",
     canvasWidth / 2,
-    currentY + 40
+    currentY + 40,
   );
 
-  const sufijo = semanaLabel ? `_${semanaLabel.replace(/[^a-zA-Z0-9]/g, "_").slice(0, 25)}` : "";
+  const sufijo = semanaLabel
+    ? `_${semanaLabel.replace(/[^a-zA-Z0-9]/g, "_").slice(0, 25)}`
+    : "";
   const filename = `Tareas_${(est.nombre || "Estudiante").replace(/[^a-zA-Z0-9]/g, "_")}_${est.codigo}${sufijo}.png`;
-  copyCanvasToClipboard(canvas, filename, `¡Imagen de Tareas ${semanaLabel ? `(${semanaLabel})` : ""} de "${est.nombre}" copiada con éxito al portapapeles!`);
+  copyCanvasToClipboard(
+    canvas,
+    filename,
+    `¡Imagen de Tareas ${semanaLabel ? `(${semanaLabel})` : ""} de "${est.nombre}" copiada con éxito al portapapeles!`,
+  );
 }
 
 // Generador de Imagen de Reporte Consolidado Completo (Evaluaciones + Tareas) para Copiar al Portapapeles
-export function copiarReporteCompletoImagen(est, evalHist = [], tareaHist = [], semanaLabel = null) {
+export function crearCanvasReporteCompleto(
+  est,
+  evalHist = [],
+  tareaHist = [],
+  semanaLabel = null,
+) {
   const canvas = document.createElement("canvas");
   const canvasWidth = 1100;
+  canvas.reportPageBreaks = [];
   const rowHeight = 38;
   const sectionTitleHeight = 36;
   const tableHeaderHeight = 36;
 
-  const hoyStr = new Date().toLocaleDateString("es-PE", { year: "numeric", month: "long", day: "numeric" });
-  const rangoFechas = semanaLabel ? semanaLabel.replace(/^📅\s*/, "") : calcularRangoFechas(evalHist, tareaHist);
+  const hoyStr = new Date().toLocaleDateString("es-PE", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  const rangoFechas = semanaLabel
+    ? semanaLabel.replace(/^📅\s*/, "")
+    : calcularRangoFechas(evalHist, tareaHist);
 
   const numEvalRows = Math.max(evalHist.length, 1);
   const numTareaRows = Math.max(tareaHist.length, 1);
@@ -593,12 +574,19 @@ export function copiarReporteCompletoImagen(est, evalHist = [], tareaHist = [], 
   // Dimensiones dinámicas
   const headerBlockHeight = 175;
   const kpiBlockHeight = 56;
-  const evalSectionHeight = sectionTitleHeight + tableHeaderHeight + numEvalRows * rowHeight + 16;
-  const tareaSectionHeight = sectionTitleHeight + tableHeaderHeight + numTareaRows * rowHeight + 16;
+  const evalSectionHeight =
+    sectionTitleHeight + tableHeaderHeight + numEvalRows * rowHeight + 16;
+  const tareaSectionHeight =
+    sectionTitleHeight + tableHeaderHeight + numTareaRows * rowHeight + 16;
   const footerBlockHeight = 110;
 
   canvas.width = canvasWidth;
-  canvas.height = headerBlockHeight + kpiBlockHeight + evalSectionHeight + tareaSectionHeight + footerBlockHeight;
+  canvas.height =
+    headerBlockHeight +
+    kpiBlockHeight +
+    evalSectionHeight +
+    tareaSectionHeight +
+    footerBlockHeight;
   const ctx = canvas.getContext("2d");
 
   // Fondo Hueso
@@ -617,12 +605,28 @@ export function copiarReporteCompletoImagen(est, evalHist = [], tareaHist = [], 
 
   ctx.fillStyle = "#B72107";
   ctx.font = "bold 19px 'Segoe UI', Tahoma, sans-serif";
-  ctx.fillText(semanaLabel ? "FICHA SEMANAL INTEGRAL DE DESEMPEÑO" : "FICHA CONSOLIDADA INTEGRAL DE DESEMPEÑO", canvasWidth / 2, 76);
+  ctx.fillText(
+    semanaLabel
+      ? "FICHA SEMANAL INTEGRAL DE DESEMPEÑO"
+      : "FICHA CONSOLIDADA INTEGRAL DE DESEMPEÑO",
+    canvasWidth / 2,
+    76,
+  );
 
   // Tarjeta de Información del Estudiante
   const startX = 40;
   const tableWidth = 1020;
-  drawCanvasRoundRect(ctx, startX, 94, tableWidth, 64, 8, "#FFFFFF", "#CBD5E1", 1);
+  drawCanvasRoundRect(
+    ctx,
+    startX,
+    94,
+    tableWidth,
+    64,
+    8,
+    "#FFFFFF",
+    "#CBD5E1",
+    1,
+  );
 
   ctx.fillStyle = "#0F172A";
   ctx.font = "bold 17px 'Segoe UI', Tahoma, sans-serif";
@@ -631,12 +635,20 @@ export function copiarReporteCompletoImagen(est, evalHist = [], tareaHist = [], 
 
   ctx.fillStyle = "#475569";
   ctx.font = "13.5px 'Segoe UI', Tahoma, sans-serif";
-  ctx.fillText(`Código: ${est.codigo}   |   Ciclo: ${est.ciclo || "N/A"}   |   Turno: ${est.turno || "MAÑANA"}`, startX + 18, 143);
+  ctx.fillText(
+    `Código: ${est.codigo}   |   Ciclo: ${est.ciclo || "N/A"}   |   Turno: ${est.turno || "MAÑANA"}`,
+    startX + 18,
+    143,
+  );
 
   ctx.textAlign = "right";
   ctx.fillStyle = "#B72107";
   ctx.font = "bold 13.5px 'Segoe UI', Tahoma, sans-serif";
-  ctx.fillText(`${semanaLabel ? "Semana" : "Periodo"}: ${rangoFechas}`, startX + tableWidth - 18, 120);
+  ctx.fillText(
+    `${semanaLabel ? "Semana" : "Periodo"}: ${rangoFechas}`,
+    startX + tableWidth - 18,
+    120,
+  );
 
   ctx.fillStyle = "#64748B";
   ctx.font = "12.5px 'Segoe UI', Tahoma, sans-serif";
@@ -648,20 +660,32 @@ export function copiarReporteCompletoImagen(est, evalHist = [], tareaHist = [], 
     if (getTareaEstadoInfo(t).entregado) entCount++;
   });
   const totalT = tareaHist.length;
-  const pctCumplimiento = totalT > 0 ? Math.round((entCount / totalT) * 100) : 0;
+  const pctCumplimiento =
+    totalT > 0 ? Math.round((entCount / totalT) * 100) : 0;
 
   let totalPts = 0;
   evalHist.forEach((e) => {
     totalPts += Number(e.puntajeTotal || 0);
   });
-  const promPts = evalHist.length > 0 ? (totalPts / evalHist.length).toFixed(1) : "0";
+  const promPts =
+    evalHist.length > 0 ? (totalPts / evalHist.length).toFixed(1) : "0";
 
   const kpiY = 168;
   const kpiH = 46;
   const kpiW = (tableWidth - 30) / 4;
 
   // KPI 1: Examenes Rendidos
-  drawCanvasRoundRect(ctx, startX, kpiY, kpiW, kpiH, 6, "#FFFFFF", "#CBD5E1", 1);
+  drawCanvasRoundRect(
+    ctx,
+    startX,
+    kpiY,
+    kpiW,
+    kpiH,
+    6,
+    "#FFFFFF",
+    "#CBD5E1",
+    1,
+  );
   ctx.textAlign = "center";
   ctx.fillStyle = "#64748B";
   ctx.font = "bold 10.5px 'Segoe UI', sans-serif";
@@ -707,7 +731,11 @@ export function copiarReporteCompletoImagen(est, evalHist = [], tareaHist = [], 
   ctx.fillStyle = "#0F172A";
   ctx.font = "bold 15px 'Segoe UI', sans-serif";
   ctx.textAlign = "left";
-  ctx.fillText("HISTORIAL DE EVALUACIONES Y SIMULACROS", startX + 14, currentY + 16);
+  ctx.fillText(
+    "HISTORIAL DE EVALUACIONES Y SIMULACROS",
+    startX + 14,
+    currentY + 16,
+  );
 
   currentY += 26;
 
@@ -743,11 +771,14 @@ export function copiarReporteCompletoImagen(est, evalHist = [], tareaHist = [], 
     ctx.font = "italic 13.5px 'Segoe UI', sans-serif";
     ctx.textAlign = "center";
     ctx.fillText(
-      semanaLabel ? "Sin simulacros o exámenes registrados en la semana seleccionada." : "El estudiante no cuenta con simulacros o exámenes registrados.",
+      semanaLabel
+        ? "Sin simulacros o exámenes registrados en la semana seleccionada."
+        : "El estudiante no cuenta con simulacros o exámenes registrados.",
       startX + tableWidth / 2,
-      currentY + 24
+      currentY + 24,
     );
     currentY += rowHeight + 14;
+    canvas.reportPageBreaks.push(currentY - 14);
   } else {
     evalHist.forEach((e, idx) => {
       let bgRow = idx % 2 === 0 ? "#FFFFFF" : "#F8FAFC";
@@ -763,7 +794,14 @@ export function copiarReporteCompletoImagen(est, evalHist = [], tareaHist = [], 
       ctx.strokeRect(startX, currentY, tableWidth, rowHeight);
 
       ctx.beginPath();
-      [startX + 90, startX + 510, startX + 630, startX + 735, startX + 835, startX + 920].forEach((x) => {
+      [
+        startX + 90,
+        startX + 510,
+        startX + 630,
+        startX + 735,
+        startX + 835,
+        startX + 920,
+      ].forEach((x) => {
         ctx.moveTo(x, currentY);
         ctx.lineTo(x, currentY + rowHeight);
       });
@@ -805,6 +843,7 @@ export function copiarReporteCompletoImagen(est, evalHist = [], tareaHist = [], 
       ctx.fillText(`${e.puntajeTotal} pts`, startX + 965, currentY + 24);
 
       currentY += rowHeight;
+      canvas.reportPageBreaks.push(currentY);
     });
     currentY += 14;
   }
@@ -816,7 +855,11 @@ export function copiarReporteCompletoImagen(est, evalHist = [], tareaHist = [], 
   ctx.fillStyle = "#0F172A";
   ctx.font = "bold 15px 'Segoe UI', sans-serif";
   ctx.textAlign = "left";
-  ctx.fillText("CONTROL Y REPORTE DE TAREAS POR CURSO", startX + 14, currentY + 16);
+  ctx.fillText(
+    "CONTROL Y REPORTE DE TAREAS POR CURSO",
+    startX + 14,
+    currentY + 16,
+  );
 
   currentY += 26;
 
@@ -850,11 +893,14 @@ export function copiarReporteCompletoImagen(est, evalHist = [], tareaHist = [], 
     ctx.font = "italic 13.5px 'Segoe UI', sans-serif";
     ctx.textAlign = "center";
     ctx.fillText(
-      semanaLabel ? "Sin tareas registradas en la semana seleccionada." : "El estudiante no cuenta con registros de tareas.",
+      semanaLabel
+        ? "Sin tareas registradas en la semana seleccionada."
+        : "El estudiante no cuenta con registros de tareas.",
       startX + tableWidth / 2,
-      currentY + 24
+      currentY + 24,
     );
     currentY += rowHeight + 14;
+    canvas.reportPageBreaks.push(currentY - 14);
   } else {
     tareaHist.forEach((t, idx) => {
       const isEven = idx % 2 === 0;
@@ -899,193 +945,140 @@ export function copiarReporteCompletoImagen(est, evalHist = [], tareaHist = [], 
       const badgeX = startX + 805 + (tableWidth - 805 - badgeW) / 2;
       const badgeY = currentY + (rowHeight - badgeH) / 2;
 
-      drawCanvasRoundRect(ctx, badgeX, badgeY, badgeW, badgeH, 13, stInfo.badgeBg, stInfo.badgeBorder, 1);
+      drawCanvasRoundRect(
+        ctx,
+        badgeX,
+        badgeY,
+        badgeW,
+        badgeH,
+        13,
+        stInfo.badgeBg,
+        stInfo.badgeBorder,
+        1,
+      );
       ctx.textAlign = "center";
       ctx.fillStyle = stInfo.badgeText;
       ctx.font = "bold 12px 'Segoe UI', sans-serif";
       ctx.fillText(stInfo.label, badgeX + badgeW / 2, badgeY + 18);
 
       currentY += rowHeight;
+      canvas.reportPageBreaks.push(currentY);
     });
     currentY += 14;
   }
 
   // Tarjeta de Agradecimiento
-  drawCanvasRoundRect(ctx, startX, currentY + 6, tableWidth, 68, 8, "#FFFFFF", "#CBD5E1", 1);
+  drawCanvasRoundRect(
+    ctx,
+    startX,
+    currentY + 6,
+    tableWidth,
+    68,
+    8,
+    "#FFFFFF",
+    "#CBD5E1",
+    1,
+  );
 
   ctx.fillStyle = "#B72107";
   ctx.font = "bold 13px 'Segoe UI', sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText("🎓 ¡AGRADECIMIENTO ESPECIAL POR SU CONFIANZA!", canvasWidth / 2, currentY + 28);
+  ctx.fillText(
+    "🎓 ¡AGRADECIMIENTO ESPECIAL POR SU CONFIANZA!",
+    canvasWidth / 2,
+    currentY + 28,
+  );
 
   ctx.fillStyle = "#334155";
   ctx.font = "12px 'Segoe UI', sans-serif";
   ctx.fillText(
     `Expresamos nuestro sincero agradecimiento a la familia de ${est.nombre || "el estudiante"} por su compromiso y confianza en la Academia INGEMAT.`,
     canvasWidth / 2,
-    currentY + 46
+    currentY + 46,
   );
   ctx.fillText(
     "Reafirmamos nuestra dedicación hacia la excelencia formativa y el éxito en el ingreso universitario.",
     canvasWidth / 2,
-    currentY + 62
+    currentY + 62,
   );
 
-  const sufijo = semanaLabel ? `_${semanaLabel.replace(/[^a-zA-Z0-9]/g, "_").slice(0, 25)}` : "";
-  const filename = `ReporteCompleto_${(est.nombre || "Estudiante").replace(/[^a-zA-Z0-9]/g, "_")}_${est.codigo}${sufijo}.png`;
-  copyCanvasToClipboard(canvas, filename, `¡Ficha Integral ${semanaLabel ? `(${semanaLabel})` : ""} de "${est.nombre}" copiada con éxito al portapapeles!`);
+  return canvas;
 }
 
-export function renderDashboardEstudiante(est, evalHist, tareaHist, semanaLabel = null) {
-  const container = document.getElementById("alumno-reporte-dashboard");
-  const toolbar = document.getElementById("reporte-alumno-toolbar");
+export function copiarReporteCompletoImagen(
+  est,
+  evalHist = [],
+  tareaHist = [],
+  semanaLabel = null,
+) {
+  const canvas = crearCanvasReporteCompleto(
+    est,
+    evalHist,
+    tareaHist,
+    semanaLabel,
+  );
+  const sufijo = semanaLabel
+    ? `_${semanaLabel.replace(/[^a-zA-Z0-9]/g, "_").slice(0, 25)}`
+    : "";
+  const filename = `ReporteCompleto_${(est.nombre || "Estudiante").replace(/[^a-zA-Z0-9]/g, "_")}_${est.codigo}${sufijo}.png`;
+  copyCanvasToClipboard(
+    canvas,
+    filename,
+    `¡Ficha Integral ${semanaLabel ? `(${semanaLabel})` : ""} de "${est.nombre}" copiada con éxito al portapapeles!`,
+  );
+}
+
+const escapeReport = (value) =>
+  String(value ?? "").replace(
+    /[&<>"']/g,
+    (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        c
+      ],
+  );
+function reportTable(headers, rows) {
+  return `<div class="table-scroll" tabindex="0" role="region" aria-label="Tabla del historial"><table><thead><tr>${headers.map((h) => `<th scope="col">${escapeReport(h)}</th>`).join("")}</tr></thead><tbody>${rows.map((row) => `<tr>${row.map((cell) => `<td>${cell}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+}
+export function renderDashboardEstudiante(
+  est,
+  evalHist,
+  tareaHist,
+  semanaLabel = null,
+) {
+  const container = document.getElementById("alumno-reporte-dashboard"),
+    toolbar = document.getElementById("reporte-alumno-toolbar");
   if (!container) return;
-
   if (toolbar) toolbar.style.display = "flex";
-
-  const rangoFechas = semanaLabel ? semanaLabel.replace(/^📅\s*/, "") : calcularRangoFechas(evalHist, tareaHist);
-
-  let tareasEntregadas = 0;
-  tareaHist.forEach((t) => {
-    if (getTareaEstadoInfo(t).entregado) tareasEntregadas++;
+  const range = semanaLabel
+    ? semanaLabel.replace(/^📅\s*/, "")
+    : calcularRangoFechas(evalHist, tareaHist);
+  const delivered = tareaHist.filter(
+    (t) => getTareaEstadoInfo(t).entregado,
+  ).length;
+  const examRows = evalHist.map((e) => [
+    `<strong>${escapeReport(e.titulo)}</strong>${e.area ? `<br><span class="v2-badge">Área ${escapeReport(e.area)}</span>` : ""}`,
+    escapeReport(e.fecha),
+    ...[e.correctas, e.incorrectas, e.enBlanco].map((n) =>
+      e.tipo === "test" ? "—" : escapeReport(n),
+    ),
+    `<strong>${escapeReport(e.puntajeTotal)} pts</strong>`,
+    `#${escapeReport(e.posicion)}${e.totalParticipantes ? ` / ${escapeReport(e.totalParticipantes)}` : ""}`,
+  ]);
+  const taskRows = tareaHist.map((t) => {
+    const info = getTareaEstadoInfo(t);
+    return [
+      `<strong>${escapeReport(t.curso)}</strong>`,
+      escapeReport(formatFechaTarea(t.fecha)),
+      escapeReport(t.ciclo),
+      `<span class="v2-badge ${info.entregado ? "good" : "warn"}">${escapeReport(info.label)}</span>`,
+    ];
   });
-
-  const periodoHtml = semanaLabel
-    ? `<p style="margin-top:2px;"><b>📅 Semana Seleccionada:</b> <span style="color:#0284c7; font-weight:700;">${rangoFechas}</span> <span style="background:#e0f2fe; color:#0369a1; padding:2px 8px; border-radius:10px; font-size:0.75rem; font-weight:700; margin-left:4px;">Semana Filtrada</span></p>`
-    : `<p style="margin-top:2px;"><b>📅 Periodo Evaluado:</b> <span style="color:#b72107; font-weight:700;">${rangoFechas}</span></p>`;
-
-  let html = `
-    <!-- Perfil del Estudiante -->
-    <div class="student-profile-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-      <div style="display:flex; align-items:center; gap:14px;">
-        <div class="student-avatar-circle"><i class="bi bi-person-fill"></i></div>
-        <div class="student-info-details">
-          <h3 style="margin:0 0 4px 0;">${est.nombre}</h3>
-          <p style="margin:0;"><b>Código:</b> ${est.codigo} | <b>Ciclo:</b> ${est.ciclo} | <b>Turno:</b> ${est.turno}</p>
-          ${periodoHtml}
-        </div>
-      </div>
-    </div>
-
-    <!-- Indicadores Rápidos -->
-    <div class="student-stats-row">
-      <div class="stat-pill-box">
-        <div class="stat-pill-value">${evalHist.length}</div>
-        <div class="stat-pill-label">Exámenes Rendidos</div>
-      </div>
-      <div class="stat-pill-box">
-        <div class="stat-pill-value" style="color:#166534;">${tareasEntregadas} / ${tareaHist.length}</div>
-        <div class="stat-pill-label">Tareas Entregadas</div>
-      </div>
-      <div class="stat-pill-box">
-        <div class="stat-pill-value" style="font-size:1.05rem;">${rangoFechas}</div>
-        <div class="stat-pill-label">${semanaLabel ? "Semana Seleccionada" : "Periodo de Registros"}</div>
-      </div>
-    </div>
-
-    <!-- Historial de Evaluaciones y Simulacros -->
-    <div class="eval-card-box">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
-        <h4 style="margin:0; color:var(--black); font-family:var(--font-heading);"><i class="bi bi-journal-check"></i> Historial de Evaluaciones y Simulacros</h4>
-      </div>
-  `;
-
-  if (evalHist.length === 0) {
-    html += semanaLabel
-      ? `<i>No hay evaluaciones ni simulacros registrados para la semana seleccionada (${rangoFechas}).</i>`
-      : `<i>El estudiante no tiene simulacros o exámenes registrados.</i>`;
-  } else {
-    html += `
-      <table class="three-col-table" style="width:100%;">
-        <thead>
-          <tr>
-            <th>Evaluación / Examen</th>
-            <th style="width:110px;">Fecha</th>
-            <th style="width:90px;">Correctas</th>
-            <th style="width:90px;">Incorrectas</th>
-            <th style="width:90px;">En Blanco</th>
-            <th style="width:110px;">Puntaje</th>
-            <th style="width:110px;">Puesto</th>
-          </tr>
-        </thead>
-        <tbody>
-    `;
-    evalHist.forEach((e) => {
-      let puestoBadge = `#${e.posicion}`;
-      if (e.posicion === 1) puestoBadge = "🥇 #1";
-      if (e.posicion === 2) puestoBadge = "🥈 #2";
-      if (e.posicion === 3) puestoBadge = "🥉 #3";
-
-      const partText = e.totalParticipantes ? ` / ${e.totalParticipantes}` : "";
-      const areaBadge = e.area ? `<span style="background:#e0f2fe; color:#0369a1; padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:700; margin-left:6px;">Área ${e.area}</span>` : "";
-
-      html += `
-        <tr>
-          <td class="text-left"><b>${e.titulo}</b> ${areaBadge}</td>
-          <td class="text-center">${e.fecha}</td>
-          <td class="text-center" style="color:#166534; font-weight:600;">${e.tipo === 'test' ? '-' : e.correctas}</td>
-          <td class="text-center" style="color:#dc2626; font-weight:600;">${e.tipo === 'test' ? '-' : e.incorrectas}</td>
-          <td class="text-center" style="color:#64748b;">${e.tipo === 'test' ? '-' : e.enBlanco}</td>
-          <td class="text-center" style="font-weight:800; color:#b72107; font-size:1rem;">${e.puntajeTotal} pts</td>
-          <td class="text-center">${puestoBadge}${partText}</td>
-        </tr>
-      `;
-    });
-    html += `</tbody></table>`;
-  }
-  html += `</div>`;
-
-  // Historial de Tareas
-  html += `
-    <div class="eval-card-box">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
-        <h4 style="margin:0; color:var(--black); font-family:var(--font-heading);"><i class="bi bi-file-earmark-check"></i> Historial y Control de Tareas por Curso</h4>
-        <button id="btn-card-copiar-tareas" class="btn-form-submit" style="background:#0284c7; padding:7px 14px; font-size:0.85rem;">
-          <i class="bi bi-clipboard-check"></i> Copiar Imagen Tareas
-        </button>
-      </div>
-  `;
-
-  if (tareaHist.length === 0) {
-    html += semanaLabel
-      ? `<i>No hay tareas registradas para la semana seleccionada (${rangoFechas}).</i>`
-      : `<i>El estudiante no tiene tareas registradas.</i>`;
-  } else {
-    html += `
-      <table class="three-col-table" style="width:100%;">
-        <thead>
-          <tr>
-            <th>Curso / Asignatura</th>
-            <th style="width:150px;">Semana / Fecha</th>
-            <th style="width:140px;">Ciclo / Salón</th>
-            <th style="width:160px; text-align:center;">Calificación / Estado</th>
-          </tr>
-        </thead>
-        <tbody>
-    `;
-    tareaHist.forEach((t) => {
-      const stInfo = getTareaEstadoInfo(t);
-      const califBadge = `<span style="background:${stInfo.badgeBg}; color:${stInfo.badgeText}; border:1px solid ${stInfo.badgeBorder}; padding:3px 10px; border-radius:12px; font-weight:700; font-size:0.85rem;">${stInfo.label}</span>`;
-
-      html += `
-        <tr>
-          <td class="text-left"><b>${t.curso}</b></td>
-          <td class="text-center">${formatFechaTarea(t.fecha)}</td>
-          <td class="text-center"><span style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-size:0.8rem;">${t.ciclo}</span></td>
-          <td class="text-center">${califBadge}</td>
-        </tr>
-      `;
-    });
-    html += `</tbody></table>`;
-  }
-  html += `</div>`;
-
-  container.innerHTML = html;
-
-  const btnCardTareas = document.getElementById("btn-card-copiar-tareas");
-  if (btnCardTareas) {
-    btnCardTareas.onclick = () => {
-      copiarReporteTareasImagen(est, tareaHist, semanaLabel);
-    };
-  }
+  container.className = "student-report stack";
+  container.innerHTML = `
+    <div class="card student-profile"><div class="student-avatar"><i class="bi bi-person" aria-hidden="true"></i></div><div><h3>${escapeReport(est.nombre)}</h3><p>Código: ${escapeReport(est.codigo)} · Ciclo: ${escapeReport(est.ciclo)} · Turno: ${escapeReport(est.turno)}</p><p>${semanaLabel ? "Semana seleccionada" : "Periodo evaluado"}: ${escapeReport(range)}</p></div></div>
+    <div class="student-metrics"><div class="stat-card"><strong>${evalHist.length}</strong><span>Evaluaciones rendidas</span></div><div class="stat-card"><strong>${delivered} / ${tareaHist.length}</strong><span>Tareas entregadas</span></div><div class="stat-card"><p>${escapeReport(range)}</p><span>Periodo de registros</span></div></div>
+    <div class="card"><div class="card-heading"><h3>Evaluaciones y simulacros</h3></div>${examRows.length ? reportTable(["Evaluación", "Fecha", "Correctas", "Incorrectas", "En blanco", "Puntaje", "Puesto"], examRows) : '<p class="v2-empty">No hay evaluaciones en este periodo.</p>'}</div>
+    <div class="card"><div class="card-heading"><h3>Tareas por curso</h3><button type="button" id="btn-card-copiar-tareas" class="button secondary"><i class="bi bi-clipboard" aria-hidden="true"></i> Copiar imagen</button></div>${taskRows.length ? reportTable(["Curso", "Semana / fecha", "Ciclo", "Calificación / estado"], taskRows) : '<p class="v2-empty">No hay tareas en este periodo.</p>'}</div>`;
+  document.getElementById("btn-card-copiar-tareas").onclick = () =>
+    copiarReporteTareasImagen(est, tareaHist, semanaLabel);
 }

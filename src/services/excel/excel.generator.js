@@ -52,7 +52,7 @@ function generateStudentSheetStructure(
   hoja,
   turnoActual,
   nombreColumnaFecha,
-  diaAbbr
+  diaAbbr,
 ) {
   let fila = 1;
   const ciclos = getCiclosList();
@@ -61,7 +61,11 @@ function generateStudentSheetStructure(
 
   for (const ciclo of ciclos) {
     const grupo = estudiantes
-      .filter((e) => e.ciclo.toUpperCase() === ciclo.toUpperCase() && e.turno.toUpperCase() === turnoActual.toUpperCase())
+      .filter(
+        (e) =>
+          e.ciclo.toUpperCase() === ciclo.toUpperCase() &&
+          e.turno.toUpperCase() === turnoActual.toUpperCase(),
+      )
       .sort((a, b) => {
         const ka = (a.apellido || getFullName(a)).toString().toUpperCase();
         const kb = (b.apellido || getFullName(b)).toString().toUpperCase();
@@ -71,9 +75,8 @@ function generateStudentSheetStructure(
     if (grupo.length === 0) continue;
 
     // Título
-    hoja.getCell(
-      `A${fila}`
-    ).value = `REGISTRO DE ASISTENCIA - ${ciclo.toUpperCase()} - ${turnoActual.toUpperCase()}`;
+    hoja.getCell(`A${fila}`).value =
+      `REGISTRO DE ASISTENCIA - ${ciclo.toUpperCase()} - ${turnoActual.toUpperCase()}`;
     hoja.mergeCells(`A${fila}:E${fila}`);
     hoja.getCell(`A${fila}`).font = { bold: true, size: 14 };
     hoja.getCell(`A${fila}`).alignment = { horizontal: "center" };
@@ -117,7 +120,7 @@ function generateStudentSheetStructure(
         row,
         estiloDatosBase,
         centerAlignment,
-        leftAlignment
+        leftAlignment,
       );
 
       const styleToApply = isScheduled ? estiloFalta : estiloNoAsiste;
@@ -185,7 +188,12 @@ function generateTeacherSheetStructure(hoja, nombreColumnaFecha, diaAbbr) {
       valorAsistenciaInicial,
     ];
 
-    applyBaseDataRowStyles(row, estiloDatosBase, centerAlignment, leftAlignment);
+    applyBaseDataRowStyles(
+      row,
+      estiloDatosBase,
+      centerAlignment,
+      leftAlignment,
+    );
 
     const styleToApply = isScheduled ? estiloFalta : estiloNoAsiste;
     row.getCell(5).style = {

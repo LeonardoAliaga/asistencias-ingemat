@@ -7,6 +7,8 @@ export const evalState = {
   globalEvaluaciones: [],
   globalCiclos: [],
   globalUsuarios: [],
+  keyDraft: {},
+  responseDraft: null,
 
   // Variables de estado del Pop-Up Modal de Registro de Claves
   modalState: {

@@ -1,5 +1,5 @@
 // Proyecto Beta/src/services/report-generator.js
-const { createCanvas, registerFont } = require("canvas");
+const { createCanvas, registerFont } = require("./canvas-adapter");
 const path = require("path");
 const fs = require("fs");
 const ExcelJS = require("exceljs");
@@ -21,7 +21,7 @@ const { normalizarTexto } = require("../utils/helpers.js");
 try {
   registerFont(
     path.join(__dirname, "../../Public/fonts/ZTGatha-SemiBold.otf"),
-    { family: "Gatha" }
+    { family: "Gatha" },
   );
   registerFont(path.join(__dirname, "../../Public/fonts/coolvetica rg.otf"), {
     family: "Coolvetica",
@@ -29,7 +29,7 @@ try {
 } catch (err) {
   console.warn(
     "Report-Generator: No se pudieron cargar las fuentes personalizadas. Usando 'sans-serif'.",
-    err.message
+    err.message,
   );
 }
 
@@ -93,8 +93,9 @@ const TITLE_HEIGHT = 40;
 const HEADER_HEIGHT = 35;
 const PADDING = 10;
 const COL_WIDTHS = [40, 300, 90, 150, 100];
+const THREE_COLUMN_WIDTHS = [50, 330, 160];
 const TOTAL_WIDTH = COL_WIDTHS.reduce((a, b) => a + b, 0) + PADDING * 2;
-const registrosPath = path.join(__dirname, "../../Registros");
+const { recordsDir: registrosPath } = require("../config");
 
 // --- MAPA DE COLORES ACTUALIZADO ---
 const colorMap = {
@@ -110,6 +111,15 @@ const colorMap = {
 // --- FIN CONFIGURACIÓN ---
 
 async function getExcelData(fileName) {
+  if (
+    typeof fileName !== "string" ||
+    path.basename(fileName) !== fileName ||
+    /[\\/]/.test(fileName) ||
+    !fileName.endsWith(".xlsx")
+  )
+    throw new (require("../utils/errors").AppError)(
+      "Nombre de archivo inválido.",
+    );
   const ruta = path.join(registrosPath, fileName);
   if (!fs.existsSync(ruta)) {
     throw new Error(`Archivo no encontrado: ${fileName}`);
@@ -129,7 +139,9 @@ async function getExcelData(fileName) {
       }
       cellAValue = cellAValue?.toString() || "";
 
-      if (cellAValue.trim().toUpperCase().startsWith("REGISTRO DE ASISTENCIA")) {
+      if (
+        cellAValue.trim().toUpperCase().startsWith("REGISTRO DE ASISTENCIA")
+      ) {
         const parts = cellAValue
           .split(" - ")
           .map((p) => p.trim().toLowerCase());
@@ -220,16 +232,23 @@ async function getExcelData(fileName) {
 function findSection(data, ciclo, turno) {
   if (!data || !Array.isArray(data)) return null;
   const cicloNorm = normalizarTexto(ciclo);
-  const searchTurno = cicloNorm === "docentes" ? "docentes" : normalizarTexto(turno);
+  const searchTurno =
+    cicloNorm === "docentes" ? "docentes" : normalizarTexto(turno);
 
   return data.find((s) => {
     const sCiclo = normalizarTexto(s.ciclo);
-    const sTurno = sCiclo === "docentes" ? "docentes" : normalizarTexto(s.turno);
+    const sTurno =
+      sCiclo === "docentes" ? "docentes" : normalizarTexto(s.turno);
     return sCiclo === cicloNorm && sTurno === searchTurno;
   });
 }
 
-async function generateReportImage(ciclo, turno, customFileName = null, options = {}) {
+async function generateReportImage(
+  ciclo,
+  turno,
+  customFileName = null,
+  options = {},
+) {
   const today = new Date();
   const fileName =
     customFileName ||
@@ -251,23 +270,29 @@ async function generateReportImage(ciclo, turno, customFileName = null, options 
       console.log(
         `Report-Generator: No se encontró sección exacta para '${ciclo} - ${turno}'. Secciones disponibles: ${allData
           .map((s) => `${s.ciclo} - ${s.turno}`)
-          .join(", ")}`
+          .join(", ")}`,
       );
     }
   } catch (err) {
+    if (err.status) throw err;
     console.error(
-      `Report-Generator: Error al LEER/PROCESAR datos para ${fileName}: ${err.message}`
+      `Report-Generator: Error al LEER/PROCESAR datos para ${fileName}: ${err.message}`,
     );
     return null;
   }
 
   if (!sectionData || sectionData.rows.length === 0) {
     console.log(
-      `Report-Generator: No se encontraron datos para ${ciclo} - ${turno} en ${fileName}.`
+      `Report-Generator: No se encontraron datos para ${ciclo} - ${turno} en ${fileName}.`,
     );
     return null;
   }
 
+  return renderReportImage(sectionData, options);
+}
+
+// Shared renderer: retain the original fonts, widths, colors and row layout.
+function reportCanvas(sectionData, options = {}) {
   const { title, rows, turno: sectionTurno } = sectionData;
 
   const dateHeader =
@@ -276,7 +301,7 @@ async function generateReportImage(ciclo, turno, customFileName = null, options 
       : "HORA / ESTADO";
 
   const isThreeCols = options.threeColumns !== false; // Default true si se solicita para vista personalizada
-  const colWidths = isThreeCols ? [50, 330, 160] : COL_WIDTHS;
+  const colWidths = isThreeCols ? THREE_COLUMN_WIDTHS : COL_WIDTHS;
   const headers = isThreeCols
     ? ["N°", "APELLIDOS Y NOMBRES", dateHeader]
     : sectionData.headers;
@@ -318,7 +343,7 @@ async function generateReportImage(ciclo, turno, customFileName = null, options 
     ctx.fillText(
       headers[i],
       currentX + width / 2,
-      currentY + HEADER_HEIGHT / 2
+      currentY + HEADER_HEIGHT / 2,
     );
     currentX += width;
   }
@@ -350,7 +375,7 @@ async function generateReportImage(ciclo, turno, customFileName = null, options 
         ctx.fillText(
           rowValues[i],
           currentX + width / 2,
-          currentY + ROW_HEIGHT / 2
+          currentY + ROW_HEIGHT / 2,
         );
       }
 
@@ -362,7 +387,37 @@ async function generateReportImage(ciclo, turno, customFileName = null, options 
     currentY += ROW_HEIGHT;
   }
 
-  console.log(`Report-Generator: Imagen generada para ${ciclo} - ${turno} (Archivo: ${fileName}).`);
+  return canvas;
+}
+
+function renderReportImage(sectionData, options = {}) {
+  return reportCanvas(sectionData, options).toBuffer("image/png");
+}
+function renderReportSections(sections) {
+  if (!sections.length) return null;
+  const heights = sections.map(
+    (section) =>
+      TITLE_HEIGHT +
+      HEADER_HEIGHT +
+      section.rows.length * ROW_HEIGHT +
+      PADDING * 2,
+  );
+  const height = heights.reduce((sum, h) => sum + h, 0);
+  if (height > 16000)
+    throw new (require("../utils/errors").AppError)(
+      "El reporte es demasiado largo para una imagen. Selecciona un ciclo y turno para reducirlo.",
+    );
+  if (sections.length === 1) return renderReportImage(sections[0]);
+  const canvas = createCanvas(
+      THREE_COLUMN_WIDTHS.reduce((sum, w) => sum + w, 0) + PADDING * 2,
+      height,
+    ),
+    ctx = canvas.getContext("2d");
+  let y = 0;
+  sections.forEach((section, i) => {
+    ctx.drawImage(reportCanvas(section), 0, y);
+    y += heights[i];
+  });
   return canvas.toBuffer("image/png");
 }
 
@@ -370,4 +425,6 @@ module.exports = {
   getExcelData,
   findSection,
   generateReportImage,
+  renderReportImage,
+  renderReportSections,
 };

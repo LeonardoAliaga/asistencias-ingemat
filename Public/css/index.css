@@ -52,6 +52,7 @@
   /* background: var(--red); */
   justify-content: space-between;
   flex-wrap: nowrap;
+  align-items: center;
   transition: 0.5s;
   z-index: 1000;
 }
@@ -63,7 +64,7 @@
 
 .navbar.sticky img {
   filter: none;
-  width: 10rem;
+  width: 8.5rem;
 }
 .navbar a {
   z-index: 1000;
@@ -71,9 +72,14 @@
 }
 .navbar img {
   position: relative;
-  filter: invert(100%) sepia(95%) saturate(0%) hue-rotate(143deg)
-    brightness(105%) contrast(108%);
-  width: 14rem;
+  display: block;
+  width: 10rem;
+  height: auto;
+  aspect-ratio: 3587 / 1557;
+  object-fit: contain;
+  background: white;
+  padding: 6px;
+  border-radius: 6px;
   transition: 0.5s;
 }
 .navbar ul {
@@ -211,7 +217,9 @@ input#codigo {
   flex-shrink: 0;
   /* Logos en escala de grises */
   opacity: 0.7;
-  transition: opacity 0.3s, filter 0.3s;
+  transition:
+    opacity 0.3s,
+    filter 0.3s;
 }
 
 .logo-carousel-track img:hover {
@@ -929,3 +937,79 @@ header {
   color: #ffffff;
   border-color: var(--red);
 }
+
+/* Registro de asistencia de Recepción: búsqueda manual de estudiantes. */
+.reception-register-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.reception-search-toggle {
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  padding: 8px 10px;
+  background: #fff;
+  color: #263348;
+  font: 600 .83rem sans-serif;
+  cursor: pointer;
+}
+.reception-search-toggle:hover,
+.reception-search-toggle:focus-visible { background: #f1f5f9; }
+.reception-search-toggle:disabled { opacity: .65; cursor: wait; }
+.reception-search-panel {
+  width: min(90vw, 410px);
+  padding: 12px;
+  box-sizing: border-box;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #1e293b;
+  box-shadow: 0 8px 24px #0f172a16;
+  text-align: left;
+}
+.reception-search-panel[hidden],
+.reception-search-status[hidden],
+.reception-student-results[hidden] { display: none !important; }
+.reception-search-panel label { display: block; font: 600 .86rem sans-serif; margin-bottom: 7px; }
+.reception-search-field { position: relative; }
+#reception-student-search {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #94a3b8;
+  border-radius: 7px;
+  font-size: 1rem;
+}
+.reception-student-results {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 15;
+  max-height: 210px;
+  overflow-y: auto;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 10px 24px #0f172a24;
+}
+.reception-student-results .student-autocomplete-item {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  color: #1e293b;
+  text-align: left;
+  font: 500 .86rem sans-serif;
+  border: 0;
+  border-bottom: 1px solid #e2e8f0;
+  background: #fff;
+  cursor: pointer;
+}
+.reception-student-results .student-autocomplete-item:hover,
+.reception-student-results .student-autocomplete-item:focus-visible,
+.reception-student-results .student-autocomplete-item.active { background: #eff6ff; }
+.reception-search-status { font: .83rem sans-serif; margin: 8px 0; overflow-wrap: anywhere; }
+.reception-register-student { width: 100%; font-size: .92rem; margin-top: 6px; }
+.reception-register-student:disabled { opacity: .5; cursor: not-allowed; }

@@ -1,0 +1,551 @@
+[
+  {
+    "id": "builtin:repaso-unmsm",
+    "presetId": "repaso-unmsm",
+    "name": "Simulacro tipo UNMSM",
+    "builtIn": true,
+    "isDefault": true,
+    "source": {
+      "description": "Distribución transcrita de los dos PDF proporcionados por la academia; no es una certificación de reglamento vigente.",
+      "files": ["SIMU-REPASO-PARTE 1(1).pdf", "SIMU-REPASO-PARTE 2(1).pdf"]
+    },
+    "definition": {
+      "totalQuestions": 120,
+      "scoring": {
+        "correct": 20,
+        "wrong": 1.125,
+        "blank": 0
+      },
+      "areas": [
+        {
+          "code": "A",
+          "name": "Ciencias de la Salud",
+          "requiredQuestions": 100
+        },
+        {
+          "code": "B",
+          "name": "Ciencias Básicas",
+          "requiredQuestions": 100
+        },
+        {
+          "code": "C",
+          "name": "Ingeniería",
+          "requiredQuestions": 100
+        },
+        {
+          "code": "D",
+          "name": "Ciencias Económicas y de la Gestión",
+          "requiredQuestions": 100
+        },
+        {
+          "code": "E",
+          "name": "Humanidades y Ciencias Jurídicas y Sociales",
+          "requiredQuestions": 100
+        }
+      ],
+      "sections": [
+        {
+          "name": "Sección Actitudinal",
+          "questions": "1-10",
+          "rules": {
+            "A": {
+              "questions": "1-10",
+              "selection": "fixed"
+            },
+            "B": {
+              "questions": "1-10",
+              "selection": "fixed"
+            },
+            "C": {
+              "questions": "1-10",
+              "selection": "fixed"
+            },
+            "D": {
+              "questions": "1-10",
+              "selection": "fixed"
+            },
+            "E": {
+              "questions": "1-10",
+              "selection": "fixed"
+            }
+          },
+          "scoring": {
+            "correct": 20,
+            "wrong": 0,
+            "blank": 0
+          }
+        },
+        {
+          "name": "Habilidad Verbal",
+          "questions": "11-20",
+          "rules": {
+            "A": {
+              "questions": "11-20",
+              "selection": "fixed"
+            },
+            "B": {
+              "questions": "11-20",
+              "selection": "fixed"
+            },
+            "C": {
+              "questions": "11-20",
+              "selection": "fixed"
+            },
+            "D": {
+              "questions": "11-20",
+              "selection": "fixed"
+            },
+            "E": {
+              "questions": "11-20",
+              "selection": "fixed"
+            }
+          }
+        },
+        {
+          "name": "Habilidad Lógico-Matemática",
+          "questions": "21-30",
+          "rules": {
+            "A": {
+              "questions": "21-30",
+              "selection": "fixed"
+            },
+            "B": {
+              "questions": "21-30",
+              "selection": "fixed"
+            },
+            "C": {
+              "questions": "21-30",
+              "selection": "fixed"
+            },
+            "D": {
+              "questions": "21-30",
+              "selection": "fixed"
+            },
+            "E": {
+              "questions": "21-30",
+              "selection": "fixed"
+            }
+          }
+        },
+        {
+          "name": "Aritmética",
+          "questions": "31-34",
+          "rules": {
+            "A": {
+              "questions": "31-34",
+              "selection": "fixed"
+            },
+            "B": {
+              "questions": "31-34",
+              "selection": "fixed"
+            },
+            "C": {
+              "questions": "31-34",
+              "selection": "fixed"
+            },
+            "D": {
+              "questions": "31-34",
+              "selection": "fixed"
+            },
+            "E": {
+              "questions": "31-32",
+              "selection": "fixed"
+            }
+          }
+        },
+        {
+          "name": "Geometría",
+          "questions": "35-38",
+          "rules": {
+            "A": {
+              "questions": "35-37",
+              "selection": "fixed"
+            },
+            "B": {
+              "questions": "35-38",
+              "selection": "fixed"
+            },
+            "C": {
+              "questions": "35-38",
+              "selection": "fixed"
+            },
+            "D": {
+              "questions": "35-38",
+              "selection": "fixed"
+            },
+            "E": {
+              "questions": "35-36",
+              "selection": "fixed"
+            }
+          }
+        },
+        {
+          "name": "Álgebra",
+          "questions": "39-42",
+          "rules": {
+            "A": {
+              "questions": "39-41",
+              "selection": "fixed"
+            },
+            "B": {
+              "questions": "39-42",
+              "selection": "fixed"
+            },
+            "C": {
+              "questions": "39-42",
+              "selection": "fixed"
+            },
+            "D": {
+              "questions": "39-42",
+              "selection": "fixed"
+            },
+            "E": {
+              "questions": "39-40",
+              "selection": "fixed"
+            }
+          }
+        },
+        {
+          "name": "Trigonometría",
+          "questions": "43-45",
+          "rules": {
+            "A": {
+              "questions": "43-44",
+              "selection": "fixed"
+            },
+            "B": {
+              "questions": "43-45",
+              "selection": "fixed"
+            },
+            "C": {
+              "questions": "43-45",
+              "selection": "fixed"
+            },
+            "D": {
+              "questions": "43-44",
+              "selection": "fixed"
+            },
+            "E": {
+              "questions": "43-44",
+              "selection": "fixed"
+            }
+          }
+        },
+        {
+          "name": "Lenguaje",
+          "questions": "46-53",
+          "rules": {
+            "A": {
+              "questions": "46-52",
+              "selection": "fixed"
+            },
+            "B": {
+              "questions": "46-51",
+              "selection": "fixed"
+            },
+            "C": {
+              "questions": "46-52",
+              "selection": "fixed"
+            },
+            "D": {
+              "questions": "46-53",
+              "selection": "fixed"
+            },
+            "E": {
+              "questions": "46-53",
+              "selection": "fixed"
+            }
+          }
+        },
+        {
+          "name": "Literatura",
+          "questions": "54-59",
+          "rules": {
+            "A": {
+              "questions": "54-57",
+              "selection": "fixed"
+            },
+            "B": {
+              "questions": "54-57",
+              "selection": "fixed"
+            },
+            "C": {
+              "questions": "54-57",
+              "selection": "fixed"
+            },
+            "D": {
+              "questions": "54-57",
+              "selection": "fixed"
+            },
+            "E": {
+              "questions": "54-59",
+              "selection": "fixed"
+            }
+          }
+        },
+        {
+          "name": "Psicología",
+          "questions": "60-65",
+          "rules": {
+            "A": {
+              "questions": "60-65",
+              "selection": "fixed"
+            },
+            "B": {
+              "questions": "60-63",
+              "selection": "fixed"
+            },
+            "C": {
+              "questions": "60-63",
+              "selection": "fixed"
+            },
+            "D": {
+              "questions": "60-65",
+              "selection": "fixed"
+            },
+            "E": {
+              "questions": "60-65",
+              "selection": "fixed"
+            }
+          }
+        },
+        {
+          "name": "Educación Cívica",
+          "questions": "66-69",
+          "rules": {
+            "A": {
+              "questions": "66-69",
+              "selection": "fixed"
+            },
+            "B": {
+              "questions": "66-69",
+              "selection": "fixed"
+            },
+            "C": {
+              "questions": "66-69",
+              "selection": "fixed"
+            },
+            "D": {
+              "questions": "66-69",
+              "selection": "fixed"
+            },
+            "E": {
+              "questions": "66-69",
+              "selection": "fixed"
+            }
+          }
+        },
+        {
+          "name": "Historia del Perú",
+          "questions": "70-74",
+          "rules": {
+            "A": {
+              "questions": "70-72",
+              "selection": "fixed"
+            },
+            "B": {
+              "questions": "70-71",
+              "selection": "fixed"
+            },
+            "C": {
+              "questions": "70-72",
+              "selection": "fixed"
+            },
+            "D": {
+              "questions": "70-72",
+              "selection": "fixed"
+            },
+            "E": {
+              "questions": "70-74",
+              "selection": "fixed"
+            }
+          }
+        },
+        {
+          "name": "Historia Universal",
+          "questions": "75-79",
+          "rules": {
+            "A": {
+              "questions": "75-76",
+              "selection": "fixed"
+            },
+            "B": {
+              "questions": "75-76",
+              "selection": "fixed"
+            },
+            "C": {
+              "questions": "75-76",
+              "selection": "fixed"
+            },
+            "D": {
+              "questions": "75-77",
+              "selection": "fixed"
+            },
+            "E": {
+              "questions": "75-79",
+              "selection": "fixed"
+            }
+          }
+        },
+        {
+          "name": "Geografía",
+          "questions": "80-84",
+          "rules": {
+            "A": {
+              "questions": "80-83",
+              "selection": "fixed"
+            },
+            "B": {
+              "questions": "80-83",
+              "selection": "fixed"
+            },
+            "C": {
+              "questions": "80-83",
+              "selection": "fixed"
+            },
+            "D": {
+              "questions": "80-83",
+              "selection": "fixed"
+            },
+            "E": {
+              "questions": "80-84",
+              "selection": "fixed"
+            }
+          }
+        },
+        {
+          "name": "Economía",
+          "questions": "85-92",
+          "rules": {
+            "A": {
+              "questions": "85-88",
+              "selection": "fixed"
+            },
+            "B": {
+              "questions": "85-88",
+              "selection": "fixed"
+            },
+            "C": {
+              "questions": "85-88",
+              "selection": "fixed"
+            },
+            "D": {
+              "questions": "85-92",
+              "selection": "fixed"
+            },
+            "E": {
+              "questions": "85-89",
+              "selection": "fixed"
+            }
+          }
+        },
+        {
+          "name": "Filosofía",
+          "questions": "93-98",
+          "rules": {
+            "A": {
+              "questions": "93-96",
+              "selection": "fixed"
+            },
+            "B": {
+              "questions": "93-96",
+              "selection": "fixed"
+            },
+            "C": {
+              "questions": "93-96",
+              "selection": "fixed"
+            },
+            "D": {
+              "questions": "93-96",
+              "selection": "fixed"
+            },
+            "E": {
+              "questions": "93-98",
+              "selection": "fixed"
+            }
+          }
+        },
+        {
+          "name": "Física",
+          "questions": "99-105",
+          "rules": {
+            "A": {
+              "questions": "99-103",
+              "selection": "fixed"
+            },
+            "B": {
+              "questions": "99-105",
+              "selection": "fixed"
+            },
+            "C": {
+              "questions": "99-105",
+              "selection": "fixed"
+            },
+            "D": {
+              "questions": "99-102",
+              "selection": "fixed"
+            },
+            "E": {
+              "questions": "99-102",
+              "selection": "fixed"
+            }
+          }
+        },
+        {
+          "name": "Química",
+          "questions": "106-112",
+          "rules": {
+            "A": {
+              "questions": "106-112",
+              "selection": "fixed"
+            },
+            "B": {
+              "questions": "106-112",
+              "selection": "fixed"
+            },
+            "C": {
+              "questions": "106-111",
+              "selection": "fixed"
+            },
+            "D": {
+              "questions": "106-109",
+              "selection": "fixed"
+            },
+            "E": {
+              "questions": "106-109",
+              "selection": "fixed"
+            }
+          }
+        },
+        {
+          "name": "Biología",
+          "questions": "113-120",
+          "rules": {
+            "A": {
+              "questions": "113-120",
+              "selection": "fixed"
+            },
+            "B": {
+              "questions": "113-119",
+              "selection": "fixed"
+            },
+            "C": {
+              "questions": "113-118",
+              "selection": "fixed"
+            },
+            "D": {
+              "questions": "113-116",
+              "selection": "fixed"
+            },
+            "E": {
+              "questions": "113-116",
+              "selection": "fixed"
+            }
+          }
+        }
+      ],
+      "keys": {},
+      "forms": {}
+    }
+  }
+]

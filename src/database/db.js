@@ -1,181 +1,82 @@
-// src/database/db.js
 const Database = require("better-sqlite3");
-const path = require("path");
-const fs = require("fs");
-
-const dataDir = path.join(__dirname, "../../data");
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
-}
-
+const fs = require("node:fs");
+const path = require("node:path");
+const { dataDir } = require("../config");
 const dbPath = path.join(dataDir, "ingemat.db");
+const existed = fs.existsSync(dbPath);
 const db = new Database(dbPath);
-
-// Habilitar claves foráneas y WAL mode para rendimiento
+fs.chmodSync(dbPath, 0o600);
 db.pragma("foreign_keys = ON");
 db.pragma("journal_mode = WAL");
-
-// --- INICIALIZACIÓN DE TABLAS ---
-db.exec(`
-  -- Tabla de Usuarios (Estudiantes y Docentes)
-  CREATE TABLE IF NOT EXISTS usuarios (
-    codigo TEXT PRIMARY KEY,
-    nombre TEXT NOT NULL,
-    apellido TEXT NOT NULL,
-    rol TEXT NOT NULL,
-    turno TEXT DEFAULT '',
-    ciclo TEXT DEFAULT '',
-    dias_asistencia TEXT DEFAULT '[]',
-    creado_en DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
-
-  -- Tabla de Ciclos
-  CREATE TABLE IF NOT EXISTS ciclos (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    nombre TEXT UNIQUE NOT NULL
-  );
-
-  -- Tabla de Horarios por Ciclo
-  CREATE TABLE IF NOT EXISTS horarios (
-    ciclo TEXT PRIMARY KEY,
-    manana_entrada TEXT DEFAULT '',
-    manana_tolerancia TEXT DEFAULT '',
-    tarde_entrada TEXT DEFAULT '',
-    tarde_tolerancia TEXT DEFAULT ''
-  );
-
-  -- Tabla de Evaluaciones / Simulacros
-  CREATE TABLE IF NOT EXISTS evaluaciones (
-    id TEXT PRIMARY KEY,
-    titulo TEXT NOT NULL,
-    ciclo TEXT NOT NULL,
-    fecha TEXT NOT NULL,
-    numPreguntas INTEGER NOT NULL,
-    puntajeCorrecta REAL NOT NULL,
-    puntajeIncorrecta REAL NOT NULL,
-    claves TEXT DEFAULT '{}',
-    creado_en DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
-
-  -- Tabla de Respuestas de Estudiantes por Evaluación
-  CREATE TABLE IF NOT EXISTS respuestas_evaluacion (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    evaluacion_id TEXT NOT NULL,
-    codigoEstudiante TEXT NOT NULL,
-    nombreEstudiante TEXT NOT NULL,
-    ciclo TEXT DEFAULT '',
-    correctas INTEGER NOT NULL,
-    incorrectas INTEGER NOT NULL,
-    enBlanco INTEGER NOT NULL,
-    puntajeTotal REAL NOT NULL,
-    posicion INTEGER DEFAULT 0,
-    respuestas TEXT DEFAULT '{}',
-    FOREIGN KEY(evaluacion_id) REFERENCES evaluaciones(id) ON DELETE CASCADE
-  );
-
-  -- Tabla de Tareas por Curso
-  CREATE TABLE IF NOT EXISTS tareas (
-    id TEXT PRIMARY KEY,
-    curso TEXT NOT NULL,
-    ciclo TEXT NOT NULL,
-    fecha TEXT NOT NULL,
-    tipoEvaluacion TEXT NOT NULL,
-    creado_en DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
-
-  -- Tabla de Registros Individuales de Tarea por Alumno
-  CREATE TABLE IF NOT EXISTS registros_tarea (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    tarea_id TEXT NOT NULL,
-    codigoEstudiante TEXT NOT NULL,
-    nombreEstudiante TEXT DEFAULT '',
-    nota REAL DEFAULT NULL,
-    estado TEXT DEFAULT 'EVALUADO',
-    FOREIGN KEY(tarea_id) REFERENCES tareas(id) ON DELETE CASCADE
-  );
-
-  -- Tabla de Biblioteca (Libros)
-  CREATE TABLE IF NOT EXISTS libros (
-    id TEXT PRIMARY KEY,
-    codigo TEXT UNIQUE NOT NULL,
-    titulo TEXT NOT NULL,
-    autor TEXT DEFAULT '',
-    categoria TEXT DEFAULT '',
-    editorial TEXT DEFAULT '',
-    stock INTEGER DEFAULT 1,
-    prestados INTEGER DEFAULT 0
-  );
-
-  -- Tabla de Secciones de Biblioteca
-  CREATE TABLE IF NOT EXISTS secciones_biblioteca (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    nombre TEXT UNIQUE NOT NULL
-  );
-
-  -- Tabla de Préstamos de Biblioteca
-  CREATE TABLE IF NOT EXISTS prestamos (
-    id TEXT PRIMARY KEY,
-    libroCodigo TEXT NOT NULL,
-    estudianteCodigo TEXT NOT NULL,
-    estudianteNombre TEXT DEFAULT '',
-    fechaPrestamo TEXT NOT NULL,
-    fechaDevolucion TEXT DEFAULT '',
-    estado TEXT DEFAULT 'PRESTADO'
-  );
-
-  -- Tabla de Configuración de WhatsApp
-  CREATE TABLE IF NOT EXISTS whatsapp_config (
-    id TEXT PRIMARY KEY DEFAULT 'config',
-    enabled INTEGER DEFAULT 0,
-    messageTemplate TEXT DEFAULT '',
-    delaySeconds INTEGER DEFAULT 5,
-    mediaPath TEXT DEFAULT ''
-  );
-
-  -- Tabla de Configuración General (Password, notas, etc.)
-  CREATE TABLE IF NOT EXISTS config_general (
-    clave TEXT PRIMARY KEY,
-    valor TEXT NOT NULL
-  );
-`);
-
-// --- Migraciones y semillas adicionales ---
+db.pragma("busy_timeout = 5000");
+let migrated = false;
 try {
-  db.exec("ALTER TABLE libros ADD COLUMN editorial TEXT DEFAULT ''");
-} catch (e) {}
-
-try {
-  db.exec("ALTER TABLE evaluaciones ADD COLUMN tipo TEXT DEFAULT 'simulacro_estandar'");
-} catch (e) {}
-
-try {
-  db.exec("ALTER TABLE evaluaciones ADD COLUMN totalPreguntasCuadernillo INTEGER DEFAULT 100");
-} catch (e) {}
-
-try {
-  db.exec("ALTER TABLE evaluaciones ADD COLUMN preguntasPorArea TEXT DEFAULT '{}'");
-} catch (e) {}
-
-try {
-  db.exec("ALTER TABLE evaluaciones ADD COLUMN preguntasSinDescuento TEXT DEFAULT '{}'");
-} catch (e) {}
-
-try {
-  db.exec("ALTER TABLE respuestas_evaluacion ADD COLUMN area TEXT DEFAULT ''");
-} catch (e) {}
-
-// Inicializar secciones por defecto si la tabla está vacía y nunca se ha inicializado
-const initSecFlag = db.prepare("SELECT valor FROM config_general WHERE clave = 'secciones_biblioteca_inicializadas'").get();
-if (!initSecFlag) {
-  const countSecciones = db.prepare("SELECT COUNT(*) as count FROM secciones_biblioteca").get();
-  if (countSecciones && countSecciones.count === 0) {
-    const defaultSecciones = ["MATEMÁTICA", "FÍSICA", "QUÍMICA", "LETRAS", "BIOLOGÍA"];
-    const insertSec = db.prepare("INSERT OR IGNORE INTO secciones_biblioteca (nombre) VALUES (?)");
-    defaultSecciones.forEach((sec) => insertSec.run(sec));
-  }
-  db.prepare("INSERT OR REPLACE INTO config_general (clave, valor) VALUES ('secciones_biblioteca_inicializadas', '1')").run();
+  migrated = !!db
+    .prepare("SELECT version FROM schema_migrations WHERE version=2")
+    .get();
+} catch {}
+if (!migrated && existed && !process.env.DISABLE_MIGRATION_BACKUP) {
+  const backupDir = path.join(dataDir, "backups");
+  fs.mkdirSync(backupDir, { recursive: true });
+  db.prepare("VACUUM INTO ?").run(
+    path.join(backupDir, "pre-v2-" + Date.now() + ".db"),
+  );
 }
-
-console.log("🟢 Base de Datos SQLite (ingemat.db) inicializada correctamente.");
-
+db.exec(
+  fs.readFileSync(path.join(__dirname, "migrations/001-legacy.sql"), "utf8"),
+);
+function addColumn(table, name, definition) {
+  if (!db.pragma(`table_info(${table})`).some((c) => c.name === name))
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${name} ${definition}`);
+}
+for (const [table, name, definition] of [
+  ["libros", "editorial", "TEXT DEFAULT ''"],
+  ["evaluaciones", "tipo", "TEXT DEFAULT 'simulacro_estandar'"],
+  ["evaluaciones", "totalPreguntasCuadernillo", "INTEGER DEFAULT NULL"],
+  ["evaluaciones", "preguntasPorArea", "TEXT DEFAULT '{}'"],
+  ["evaluaciones", "preguntasSinDescuento", "TEXT DEFAULT '{}'"],
+  ["evaluaciones", "definition", "TEXT DEFAULT ''"],
+  ["evaluaciones", "revision", "INTEGER DEFAULT 1"],
+  ["evaluaciones", "estado", "TEXT DEFAULT 'legacy'"],
+  ["respuestas_evaluacion", "area", "TEXT DEFAULT ''"],
+  ["respuestas_evaluacion", "detail", "TEXT DEFAULT '{}'"],
+  ["respuestas_evaluacion", "revision", "INTEGER DEFAULT 1"],
+  ["usuarios", "uid", "TEXT DEFAULT ''"],
+  ["usuarios", "area", "TEXT DEFAULT ''"],
+  ["usuarios", "archived_at", "TEXT DEFAULT NULL"],
+])
+  addColumn(table, name, definition);
+db.exec(fs.readFileSync(path.join(__dirname, "migrations/002-v2.sql"), "utf8"));
+db.exec(
+  fs.readFileSync(path.join(__dirname, "migrations/003-camera.sql"), "utf8"),
+);
+db.exec(
+  fs.readFileSync(path.join(__dirname, "migrations/004-scanner.sql"), "utf8"),
+);
+db.exec(
+  fs.readFileSync(
+    path.join(__dirname, "migrations/005-import-history.sql"),
+    "utf8",
+  ),
+);
+addColumn("outbox", "contact_id", "TEXT DEFAULT NULL");
+addColumn("outbox", "provider", "TEXT NOT NULL DEFAULT 'meta_cloud'");
+db.exec(
+  "CREATE INDEX IF NOT EXISTS outbox_provider_status ON outbox(provider,status,next_attempt_at)",
+);
+// One-time transition: preserve history without replaying paid-provider notices.
+db.exec(fs.readFileSync(path.join(__dirname,"migrations/006-baileys.sql"),"utf8"));
+const uuid = require("node:crypto").randomUUID;
+for (const row of db
+  .prepare("SELECT codigo FROM usuarios WHERE uid='' OR uid IS NULL")
+  .all())
+  db.prepare("UPDATE usuarios SET uid=? WHERE codigo=?").run(
+    uuid(),
+    row.codigo,
+  );
+db.exec(
+  "CREATE UNIQUE INDEX IF NOT EXISTS usuarios_uid ON usuarios(uid) WHERE uid <> ''",
+);
+db.prepare("INSERT OR IGNORE INTO schema_migrations(version) VALUES(2)").run();
+db.prepare("DELETE FROM config_general WHERE clave='admin_password'").run();
 module.exports = db;

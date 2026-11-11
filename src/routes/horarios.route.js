@@ -14,10 +14,11 @@ router.get("/", (req, res) => {
 // POST /api/horarios - Guardar horarios en SQLite
 router.post("/", requireAdmin, (req, res) => {
   const { ciclo, horarios } = req.body;
-  const timeRegex = /^[0-2][0-9]:[0-5][0-9]$/;
+  const timeRegex = /^(?:[01][0-9]|2[0-3]):[0-5][0-9]$/;
 
   if (
-    !ciclo ||
+    typeof ciclo !== "string" ||
+    !ciclo.trim() ||
     !horarios ||
     typeof horarios !== "object" ||
     !horarios.mañana ||
@@ -25,26 +26,34 @@ router.post("/", requireAdmin, (req, res) => {
     !timeRegex.test(horarios.mañana.entrada || "") ||
     !timeRegex.test(horarios.mañana.tolerancia || "") ||
     !timeRegex.test(horarios.tarde.entrada || "") ||
-    !timeRegex.test(horarios.tarde.tolerancia || "")
+    !timeRegex.test(horarios.tarde.tolerancia || "") ||
+    horarios.mañana.tolerancia < horarios.mañana.entrada ||
+    horarios.tarde.tolerancia < horarios.tarde.entrada
   ) {
     return res.status(400).json({ mensaje: "Formato de horarios inválido." });
   }
 
   try {
     const cicloKey = String(ciclo).trim().toUpperCase();
-    db.prepare(`
+    db.prepare(
+      `
       INSERT OR REPLACE INTO horarios (ciclo, manana_entrada, manana_tolerancia, tarde_entrada, tarde_tolerancia)
       VALUES (?, ?, ?, ?, ?)
-    `).run(
+    `,
+    ).run(
       cicloKey,
       horarios.mañana.entrada,
       horarios.mañana.tolerancia,
       horarios.tarde.entrada,
-      horarios.tarde.tolerancia
+      horarios.tarde.tolerancia,
     );
 
-    console.log(`Horarios Route: Horarios para '${cicloKey}' actualizados en SQLite.`);
-    res.json({ mensaje: `Horarios para '${cicloKey}' actualizados correctamente` });
+    console.log(
+      `Horarios Route: Horarios para '${cicloKey}' actualizados en SQLite.`,
+    );
+    res.json({
+      mensaje: `Horarios para '${cicloKey}' actualizados correctamente`,
+    });
   } catch (err) {
     console.error("Horarios Route: Error al guardar horarios en SQLite:", err);
     res.status(500).json({ mensaje: "Error interno al guardar horarios." });
