@@ -23,6 +23,7 @@ import {
   buscarYRenderizarReporteAlumno,
 } from "./evaluaciones/eval-reporte-alumno.js";
 import { setupOMRModule } from "./evaluaciones/eval-omr.js";
+import { setupBulkReports } from "./reports-batch.js";
 
 export { cargarDatosEvaluaciones };
 
@@ -42,6 +43,7 @@ export function initEvaluacionesAdmin() {
     setupRankingSearch();
     setupFormTareas();
     setupBuscadorReporteAlumno();
+    setupBulkReports();
     setupOMRModule();
 
     // Autocompletado 1: Respuestas de Examen con filtrado automático por el ciclo del examen

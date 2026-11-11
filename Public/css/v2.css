@@ -1833,3 +1833,18 @@ body[data-account-role="docente"] .btn-delete-seccion {
 #edit-user-modal .edit-guardian-row > .v2-link { justify-self: start; }
 #edit-user-modal #edit-add-guardian { justify-self: start; }
 #edit-user-modal #edit-student-details { min-width: 0; }
+
+/* Reportes PDF por lote; listado revisable y accesible. */
+.report-bulk-list{list-style:none;padding:0;margin:0;display:grid;gap:10px;max-height:600px;overflow:auto}
+.report-bulk-item{display:grid;grid-template-columns:minmax(150px,1fr) minmax(185px,1.3fr) auto;
+  gap:14px;align-items:center;padding:14px;border:1px solid var(--line,#dce2e9);
+  border-radius:10px;background:var(--surface,#fff)}
+.report-bulk-detail{display:grid;gap:5px;min-width:0}
+.report-bulk-detail span{color:var(--muted,#64748b);font-size:12px}
+.report-bulk-contact{min-width:0}
+.report-bulk-contact label{display:grid;gap:5px;font-size:12px}
+.report-bulk-contact select{min-width:0;width:100%}
+.report-bulk-no-consent{color:#9a3412;font-weight:600;font-size:13px}
+.report-bulk-remove{font-size:22px;line-height:1;padding:6px 10px;min-height:40px}
+@media(max-width:680px){.report-bulk-item{grid-template-columns:minmax(0,1fr) auto}
+.report-bulk-contact{grid-column:1/-1;grid-row:2}}

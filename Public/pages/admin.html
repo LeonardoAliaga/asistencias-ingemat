@@ -1082,6 +1082,8 @@
           <div aria-label="Reportes" class="local-tabs" role="tablist">
             <button aria-selected="true" data-local-tab="individual" role="tab">
               Por estudiante</button
+            ><button aria-selected="false" data-local-tab="bulk" role="tab">
+              Envío de reportes por lote</button
             ><button aria-selected="false" data-local-tab="weekly" role="tab">
               Consolidado semanal</button
             ><button aria-selected="false" data-local-tab="history" role="tab">
@@ -1157,6 +1159,37 @@
                   </p>
                 </div>
               </div>
+            </div>
+          </div>
+          <div data-local-panel="bulk" id="report-bulk-panel" hidden="">
+            <div class="eval-card-box stack">
+              <h3><i class="bi bi-whatsapp" aria-hidden="true"></i> Reportes individuales por lote</h3>
+              <p class="help">Selecciona un ciclo para revisar a sus estudiantes y apoderados autorizados.
+                Cada destinatario recibirá únicamente el PDF académico de su estudiante. Sin autorización no se enviará ningún reporte.</p>
+              <div class="form-row">
+                <label class="field" for="report-bulk-cycle">Ciclo académico
+                  <select id="report-bulk-cycle"><option value="">Selecciona un ciclo</option></select>
+                </label>
+                <button id="report-bulk-reload" class="button secondary" type="button">Actualizar listado</button>
+              </div>
+              <div class="form-row">
+                <label class="field" for="report-bulk-week">Periodo del reporte
+                  <select id="report-bulk-week">
+                    <option value="TODAS">Todas las semanas registradas</option>
+                  </select>
+                </label>
+              </div>
+              <div class="v2-notice">Para proteger a los destinatarios, se requieren permisos vigentes y confirmación antes de poner los reportes en cola.
+                Cada lote admite como máximo 20 estudiantes y programa sus entregas de forma gradual.</div>
+              <p id="report-bulk-summary" role="status" class="v2-help">Selecciona un ciclo.</p>
+              <ul id="report-bulk-list" class="report-bulk-list" aria-label="Estudiantes del ciclo"></ul>
+              <div class="form-row">
+                <button id="report-bulk-restore" class="button secondary" type="button">Restaurar lista</button>
+                <button id="report-bulk-send" class="btn-form-submit whatsapp-send-button" type="button" disabled>
+                  <i class="bi bi-whatsapp" aria-hidden="true"></i> Confirmar envío de reportes PDF
+                </button>
+              </div>
+              <p id="report-bulk-message" class="v2-help" role="status" aria-live="polite"></p>
             </div>
           </div>
           <div data-local-panel="weekly" hidden="">
