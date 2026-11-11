@@ -509,8 +509,8 @@ test("envío por lote valida el ciclo, el consentimiento, el tamaño y la identi
   const rows=sent.data.results.map(x=>db.prepare("SELECT * FROM outbox WHERE id=?").get(x.id));
   assert(rows.every(r=>r.kind==="student_report"));
   assert.equal(rows[0].next_attempt_at,0,"El primer reporte del lote debe estar listo para enviarse.");
-  assert(rows[1].next_attempt_at>Date.now()+20_000,"Los siguientes conservan una pausa prudente.");
-  assert(rows[1].next_attempt_at-rows[0].next_attempt_at>=60_000);
+  assert(rows[1].next_attempt_at>Date.now()+15_000,"Los siguientes conservan una pausa prudente.");
+  assert(rows[1].next_attempt_at-rows[0].next_attempt_at>=30_000);
   const outboxResponse=await admin("/api/v2/notifications");
   assert.equal(outboxResponse.status,200);
   const entries=sent.data.results.map(item=>outboxResponse.data.outbox.find(row=>row.id===item.id));

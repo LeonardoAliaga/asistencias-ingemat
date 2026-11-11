@@ -157,7 +157,7 @@ async function studentReport(input, req) {
 }
 
 const BATCH_MAX = 20;
-const BATCH_SPACING_MS = 60_000; // Cadencia conservadora; no busca eludir restricciones del proveedor.
+const BATCH_SPACING_MS = 30_000; // Cadencia conservadora; no busca eludir restricciones del proveedor.
 function batchStudents(cycle) {
   const normalized=String(cycle||"").trim().toUpperCase();
   if (!normalized || normalized.length>80) throw new AppError("Selecciona un ciclo válido.");
