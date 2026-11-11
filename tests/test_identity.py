@@ -38,7 +38,7 @@ const {bookletLayouts}=require('./src/services/omr-booklet-layout');
         subprocess.run(['node', '-e', script, str(cls.root)], cwd=ROOT, env=env, check=True, capture_output=True)
         cls.cases, cls.area_cases, cls.fixed_cases = {}, {}, {}
         for name in [format+suffix for format in ['quarter-duplex', 'half-single'] for suffix in ['', '-digits', '-single']]:
-            layouts = json.loads((cls.root/(name+'.json')).read_text())
+            layouts = json.loads((cls.root/(name+'.json')).read_text(encoding='utf-8'))
             physical = next(reader.images(cls.root/(name+'.pdf')))
             crop = reader.split_cartillas(physical)[0][0]
             target = cls.root/(name+'.png')
