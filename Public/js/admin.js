@@ -2,6 +2,7 @@ import {
   cargarUsuarios,
   initUserFormEvents,
   cargarHorarios,
+  filterArchivedStudents,
 } from "./admin/users.js";
 import {
   cargarArchivosExcel,
@@ -492,6 +493,7 @@ async function initialize() {
     $("codigo").focus();
   };
   $("people-search").addEventListener("input", filterPeople);
+  $("archived-student-search").addEventListener("input", filterArchivedStudents);
   document.addEventListener("click", (event) => {
     const close = event.target.closest("[data-close-dialog]");
     if (close) $(close.dataset.closeDialog).close();

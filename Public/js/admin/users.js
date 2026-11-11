@@ -36,11 +36,64 @@ function crearListaUsuarios(usuarios, esDocente = false) {
       const details = [!esDocente && u.turno, ...(u.dias_asistencia || [])]
         .filter(Boolean)
         .join(" · ");
-      return `<li class="person-row"><div class="person-identity"><span><strong>${escapeUser(u.codigo)}</strong> · ${name}</span><small>${escapeUser(details)}</small></div><div class="person-actions"><button type="button" class="btn-edit-usuario" title="Editar usuario" aria-label="Editar a ${name}"><i class="bi bi-pencil" aria-hidden="true"></i></button><button type="button" class="btn-barcode" title="Generar carnet" aria-label="Carnet de ${name}"><i class="bi bi-person-badge" aria-hidden="true"></i></button><button type="button" class="btn-eliminar" title="Eliminar usuario" aria-label="Eliminar a ${name}"><i class="bi bi-trash" aria-hidden="true"></i></button></div></li>`;
+      const archive = u.rol === "estudiante" && document.body.dataset.accountRole === "admin"
+        ? `<button type="button" class="btn-archivar" title="Archivar estudiante" aria-label="Archivar a ${name}"><i class="bi bi-archive" aria-hidden="true"></i></button>`
+        : "";
+      return `<li class="person-row"><div class="person-identity"><span><strong>${escapeUser(u.codigo)}</strong> · ${name}</span><small>${escapeUser(details)}</small></div><div class="person-actions"><button type="button" class="btn-edit-usuario" title="Editar usuario" aria-label="Editar a ${name}"><i class="bi bi-pencil" aria-hidden="true"></i></button><button type="button" class="btn-barcode" title="Generar carnet" aria-label="Carnet de ${name}"><i class="bi bi-person-badge" aria-hidden="true"></i></button>${archive}<button type="button" class="btn-eliminar" title="Eliminar usuario" aria-label="Eliminar a ${name}"><i class="bi bi-trash" aria-hidden="true"></i></button></div></li>`;
     })
     .join("");
 }
 
+function normalizeSearch(value) {
+  return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+}
+export function filterArchivedStudents() {
+  const search = document.getElementById("archived-student-search"),
+    list = document.getElementById("archived-students-list"),
+    status = document.getElementById("archived-student-status");
+  if (!list || !search || !status) return;
+  const tokens = normalizeSearch(search.value).split(/\s+/).filter(Boolean);
+  let visible = 0;
+  for (const item of list.querySelectorAll(".person-row")) {
+    const haystack = normalizeSearch(item.textContent);
+    item.hidden = !tokens.every(token => haystack.includes(token));
+    if (!item.hidden) visible++;
+  }
+  status.textContent = search.value.trim()
+    ? `${visible} coincidencia${visible === 1 ? "" : "s"} entre estudiantes archivados.`
+    : `${visible} estudiante${visible === 1 ? "" : "s"} archivado${visible === 1 ? "" : "s"}.`;
+}
+async function updateArchive(code, archived) {
+  const response = await fetch(`/api/usuarios/${encodeURIComponent(code)}/archive`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ archived }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.mensaje || "No se pudo actualizar el estudiante.");
+  await cargarUsuarios(true);
+}
+function mountArchiveControls() {
+  document.querySelectorAll(".btn-archivar").forEach(button => {
+    button.onclick = async () => {
+      const item = button.closest(".person-row");
+      const code = item.querySelector("strong")?.textContent.trim();
+      if (!code || !confirm(`¿Archivar al estudiante ${item.querySelector(".person-identity span").textContent.trim()}?\n\nSe conservará todo su historial, pero no se contará como alumno activo ni podrá registrar nuevas asistencias.`)) return;
+      button.disabled = true;
+      try { await updateArchive(code, true); }
+      catch (error) { alert(error.message); button.disabled = false; }
+    };
+  });
+  document.querySelectorAll(".btn-restaurar").forEach(button => {
+    button.onclick = async () => {
+      const code = button.dataset.code;
+      if (!code || !confirm(`¿Restaurar al estudiante ${code} al directorio activo?`)) return;
+      button.disabled = true;
+      try { await updateArchive(code, false); }
+      catch (error) { alert(error.message); button.disabled = false; }
+    };
+  });
+}
 /**
  * Asigna eventos de eliminación a los botones de la lista.
  */
@@ -611,7 +664,15 @@ function initAutocomplete() {
 export async function cargarUsuarios(forceReload = false) {
   // --- Referencias a elementos del DOM ---
   const resUsuarios = await fetch("/api/usuarios");
+  if (!resUsuarios.ok) throw new Error("No se pudo cargar el directorio de estudiantes.");
   const usuarios = await resUsuarios.json();
+  const isAdmin = document.body.dataset.accountRole === "admin";
+  let archived = [];
+  if (isAdmin) {
+    const archiveResponse = await fetch("/api/usuarios?archived=1", { cache: "no-store" });
+    if (!archiveResponse.ok) throw new Error("No se pudo cargar la lista de estudiantes archivados.");
+    archived = await archiveResponse.json();
+  }
 
   // --- LÓGICA DE FILTRO (NUEVA) ---
   // Guardar todos los usuarios ordenados en el caché (orden por apellido cuando exista)
@@ -731,9 +792,21 @@ export async function cargarUsuarios(forceReload = false) {
     usuariosCompletaDiv.innerHTML =
       '<div class="v2-empty">Todavía no hay estudiantes o docentes. Usa Nuevo usuario para registrar el primero.</div>';
 
+  const archivedList = document.getElementById("archived-students-list");
+  if (archivedList && isAdmin) {
+    archivedList.innerHTML = archived.map(u => {
+      const name = escapeUser(getFullNameClient(u)),
+        details = escapeUser([u.ciclo, u.turno].filter(Boolean).join(" · ")),
+        when = u.archived_at ? new Date(u.archived_at).toLocaleDateString("es-PE") : "";
+      return `<li class="person-row"><div class="person-identity"><span><strong>${escapeUser(u.codigo)}</strong> · ${name}</span><small>${details} · Archivado: ${escapeUser(when)}</small></div><div class="person-actions"><button type="button" class="btn-restaurar" data-code="${escapeUser(u.codigo)}" aria-label="Restaurar a ${name}" title="Restaurar al directorio activo"><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> Restaurar</button></div></li>`;
+    }).join("") || '<li class="people-archive-empty">No hay estudiantes archivados.</li>';
+    filterArchivedStudents();
+  }
   agregarEventosEliminar();
   agregarEventosBarcode();
   agregarEventosEditar(); // <-- AÑADIDO
+  mountArchiveControls();
+  document.getElementById("people-search")?.dispatchEvent(new Event("input"));
   initTurnoTabs();
   initExportUI();
 }

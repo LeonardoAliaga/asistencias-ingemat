@@ -301,7 +301,9 @@
           <div aria-label="Personas" class="local-tabs" role="tablist">
             <button aria-selected="true" data-local-tab="directory" role="tab">
               Directorio</button
-            ><button aria-selected="false" data-local-tab="cards" role="tab">
+            ><button aria-selected="false" data-local-tab="archived-students" role="tab" data-admin="">
+              Estudiantes archivados
+            </button><button aria-selected="false" data-local-tab="cards" role="tab">
               Carnets e impresión
             </button>
           </div>
@@ -315,6 +317,16 @@
               />
               <p class="help" id="people-search-status" role="status"></p>
               <div class="accordion-container" id="vista-usuarios-list"></div>
+            </div>
+          </div>
+          <div data-local-panel="archived-students" data-admin="" hidden="">
+            <div class="card">
+              <h3>Estudiantes archivados</h3>
+              <p class="help">Conservan sus calificaciones, asistencias y demás datos. No figuran como alumnos activos. Puedes restaurarlos cuando regresen.</p>
+              <label for="archived-student-search">Buscar estudiante archivado</label>
+              <input id="archived-student-search" type="search" placeholder="Nombre, apellido, código o ciclo" autocomplete="off" />
+              <p class="help" id="archived-student-status" role="status"></p>
+              <ul id="archived-students-list" class="people-archive-list"></ul>
             </div>
           </div>
           <div data-local-panel="cards" hidden="">

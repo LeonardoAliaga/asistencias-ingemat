@@ -35,6 +35,32 @@ async function pasteKeys(page, text) {
   await page.fill("#v2-keys", text);
 }
 
+test("students can be archived, searched separately and restored from the directory", async ({ page }) => {
+  await login(page);
+  await navigate(page, "people");
+  const active = page.locator("#vista-usuarios-list");
+  // Search ensures the action is associated with the correct student's card.
+  await page.fill("#people-search","DEMO002");
+  const item = active.locator(".person-row:visible").filter({hasText:"DEMO002"}).first();
+  await expect(item).toBeVisible();
+  page.once("dialog", d => d.accept());
+  await item.getByRole("button",{name:/Archivar a/}).click();
+  await expect(active).not.toContainText("DEMO002");
+  await page.getByRole("tab",{name:"Estudiantes archivados"}).click();
+  await page.fill("#archived-student-search","DEMO002");
+  const archivedRow = page.locator("#archived-students-list .person-row:visible").filter({hasText:"DEMO002"});
+  await expect(archivedRow).toHaveCount(1);
+  await page.fill("#archived-student-search","sin coincidencia");
+  await expect(page.locator("#archived-student-status")).toContainText("0 coincidencias");
+  await page.fill("#archived-student-search","DEMO002");
+  page.once("dialog", d => d.accept());
+  await archivedRow.getByRole("button",{name:/Restaurar a/}).click();
+  await expect(page.locator("#archived-students-list")).not.toContainText("DEMO002");
+  await page.getByRole("tab",{name:"Directorio"}).click();
+  await page.fill("#people-search","DEMO002");
+  await expect(active.locator(".person-row:visible")).toContainText("DEMO002");
+});
+
 test("create, validate and grade an exam from the dashboard", async ({
   page,
 }) => {

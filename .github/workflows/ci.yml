@@ -6,7 +6,7 @@ permissions:
   contents: read
 jobs:
   academic-and-ui:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -28,7 +28,7 @@ jobs:
       - run: npm run check
       - run: npm test
       - run: npm run test:omr
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install chromium
       - run: npm run test:ui
       - run: npm audit --omit=dev --audit-level=high
   windows-install:

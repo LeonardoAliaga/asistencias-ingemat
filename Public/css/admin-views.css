@@ -888,3 +888,25 @@ li:hover {
   animation: spin 1s linear infinite;
   display: inline-block;
 }
+/* Directorio de estudiantes: archivado reversible. */
+.btn-archivar, .btn-restaurar {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  min-height: 36px;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  padding: 7px 9px;
+  background: #f8fafc;
+  color: #334155;
+  cursor: pointer;
+}
+.btn-archivar:hover, .btn-restaurar:hover { background: #e2e8f0; }
+.btn-archivar:disabled, .btn-restaurar:disabled { opacity: .55; cursor: wait; }
+#archived-student-search { display: block; width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 7px; margin-top: 5px; }
+#archived-students-list { margin-top: 12px; }
+#archived-students-list .person-identity { min-width: 0; overflow-wrap: anywhere; }
+#archived-students-list .people-archive-empty { justify-content: center; color: #64748b; }
+#archived-students-list .person-row[hidden] { display: none !important; }

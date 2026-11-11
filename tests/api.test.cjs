@@ -1155,3 +1155,43 @@ test("editing a student updates area and guardian consent atomically without los
     db.prepare("DELETE FROM usuarios WHERE uid=?").run(uid);
   }
 });
+
+test("archiving students preserves historical attendance and excludes them from active operations", async () => {
+  const code = "ARCHIVE001";
+  const created = await admin("/api/usuarios", {
+    codigo:code,nombre:"ALUMNO",apellido:"ARCHIVADO",rol:"estudiante",
+    turno:"mañana",ciclo:"ANUAL",dias_asistencia:["L","M","MI","J","V","S"],
+  }, "POST");
+  assert.equal(created.status, 201, JSON.stringify(created.data));
+  const recorded = await admin("/api/registrar",{codigo:code},"POST");
+  assert.equal(recorded.status, 200);
+  const original = db.prepare("SELECT uid FROM usuarios WHERE codigo=?").get(code);
+  const before = (await admin("/api/v2/summary")).data.usuarios;
+  assert.equal((await guest("/api/usuarios?archived=1")).status,401);
+  assert.equal((await admin(`/api/usuarios/${code}/archive`,{archived:"yes"},"PATCH")).status,400);
+  const archived = await admin(`/api/usuarios/${code}/archive`,{archived:true},"PATCH");
+  assert.equal(archived.status,200,JSON.stringify(archived.data));
+  assert.equal(archived.data.archived,true);
+  assert.equal((await admin("/api/v2/summary")).data.usuarios,before-1);
+  assert(!(await admin("/api/usuarios")).data.some(u=>u.codigo===code));
+  assert(!(await admin("/api/v2/students")).data.some(u=>u.codigo===code));
+  assert(!(await admin("/api/v2/attendance/students")).data.some(u=>u.codigo===code));
+  const list = await admin("/api/usuarios?archived=1");
+  assert.equal(list.status,200);
+  assert(list.data.some(u=>u.codigo===code && u.archived_at));
+  assert.equal((await admin("/api/registrar",{codigo:code},"POST")).status,409);
+  assert.equal((await admin("/api/usuarios/"+code,{
+    codigo:code,nombre:"CAMBIAR",rol:"estudiante",turno:"mañana",ciclo:"ANUAL",
+  },"PUT")).status,409);
+  assert.equal((await admin("/api/v2/whatsapp/batch-students?cycle=ANUAL")).data.students.some(u=>u.codigo===code),false);
+  assert.equal(db.prepare("SELECT uid FROM usuarios WHERE codigo=?").get(code).uid,original.uid);
+  assert(db.prepare("SELECT 1 FROM attendance WHERE student_code=?").get(code));
+  assert.equal((await admin("/api/usuarios/"+code)).status,404); // No existe ruta de ficha individual.
+  const restored = await admin(`/api/usuarios/${code}/archive`,{archived:false},"PATCH");
+  assert.equal(restored.status,200);
+  assert.equal((await admin("/api/v2/summary")).data.usuarios,before);
+  assert((await admin("/api/usuarios")).data.some(u=>u.codigo===code));
+  assert.equal(db.prepare("SELECT uid FROM usuarios WHERE codigo=?").get(code).uid,original.uid);
+  assert.equal(db.prepare("SELECT archived_at FROM usuarios WHERE codigo=?").get(code).archived_at,null);
+  assert.equal((await admin("/api/registrar",{codigo:code},"POST")).status,409);
+});
