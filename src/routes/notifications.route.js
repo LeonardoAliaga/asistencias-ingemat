@@ -18,10 +18,13 @@ router.get("/", (req, res) =>
     config: settings.getConfig(),
     outbox: db
       .prepare(
-        "SELECT id,recipient,kind,status,attempts,error,provider_id,provider,created_at,next_attempt_at,json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END,'$.bulkBatchId') AS bulk_batch_id,json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END,'$.studentCode') AS student_code,
-        json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END,'$.area') AS ranking_area,
-        json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END,'$.page') AS ranking_page,
-        json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END,'$.pages') AS ranking_pages FROM outbox ORDER BY created_at DESC LIMIT 100",
+        "SELECT id,recipient,kind,status,attempts,error,provider_id,provider,created_at,next_attempt_at," +
+        "json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END,'$.bulkBatchId') AS bulk_batch_id," +
+        "json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END,'$.studentCode') AS student_code," +
+        "json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END,'$.area') AS ranking_area," +
+        "json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END,'$.page') AS ranking_page," +
+        "json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END,'$.pages') AS ranking_pages " +
+        "FROM outbox ORDER BY created_at DESC LIMIT 100",
       )
       .all(),
   }),
