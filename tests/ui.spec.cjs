@@ -71,89 +71,72 @@ test("create, validate and grade an exam from the dashboard", async ({
   expect(errors).toEqual([]);
 });
 for (const width of [1440, 390])
-  test(`guardian contacts can be saved, updated and revoked at ${width}px`, async ({
-    page,
-  }) => {
+  test(`guardian and area edits are integrated into Editar usuario at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     const errors = [];
-    page.on("pageerror", (error) => errors.push(error.message));
+    page.on("pageerror", error => errors.push(error.message));
     await login(page);
-    await navigate(page, "contacts");
-    await page.fill("#v2-contact-search", "DEMO003");
-    const card = page.locator("#v2-contacts .v2-card");
-    const dialog = page.locator("#v2-dialog");
+    await expect(page.locator('[data-route="contacts"]')).toHaveCount(0);
+    await navigate(page, "people");
+    await page.fill("#people-search", "DEMO003");
+    const edit = page.getByRole("button", {
+      name: "Editar a FERNÁNDEZ DE LA CRUZ MARÍA FERNANDA",
+    });
+    await edit.click();
+    const modal = page.locator("#edit-user-modal");
+    await expect(modal).toBeVisible();
+    await expect(modal.locator('#edit-student-details')).toBeVisible();
+    await expect(modal.locator('#form-editar button[type="submit"]')).toBeEnabled();
+    const area = (code) => modal.locator(`#edit-student-area-group input[value="${code}"]`);
+    await expect(area("B")).toBeChecked();
+    await area("E").check();
+    await expect(modal.locator('#edit-student-area-group input:checked')).toHaveCount(1);
+    const row = modal.locator(".edit-guardian-row").first();
+    await row.locator(".edit-guardian-name").fill("María Muñoz Ñahui");
+    await row.locator(".edit-guardian-phone").fill("900000001");
+    await row.locator(".edit-guardian-consent").check();
+    const failure = page.waitForResponse(r => r.request().method() === "PUT" && r.url().includes("/api/usuarios/DEMO003"));
+    await modal.locator('#form-editar button[type="submit"]').click();
+    expect((await failure).status()).toBe(400);
+    await expect(modal).toBeVisible();
+    await expect(modal.locator("#msg-editar-usuario")).toContainText("teléfono internacional");
     const phone = width === 1440 ? "+51900000001" : "+51900000002";
-    await card.getByRole("button", { name: "Agregar apoderado" }).click();
-    await dialog.getByLabel("Nombre del apoderado").fill("María Muñoz Ñahui");
-    await dialog.getByLabel("Teléfono internacional").fill("900000001");
-    await dialog
-      .getByLabel("Autorizó recibir avisos de este estudiante")
-      .check();
-    const rejected = page.waitForResponse(
-      (r) =>
-        r.request().method() === "POST" &&
-        r.url().endsWith("/students/DEMO003/contacts"),
-    );
-    await dialog.getByRole("button", { name: "Guardar contacto" }).click();
-    expect((await rejected).status()).toBe(400);
-    await expect(dialog.getByRole("alert")).toContainText(
-      "teléfono internacional",
-    );
-    await expect(
-      dialog.getByRole("button", { name: "Guardar contacto" }),
-    ).toBeEnabled();
-    await expect(dialog.getByLabel("Nombre del apoderado")).toHaveValue(
-      "María Muñoz Ñahui",
-    );
-    await expect(
-      dialog.getByLabel("Autorizó recibir avisos de este estudiante"),
-    ).toBeChecked();
-    await dialog.getByLabel("Teléfono internacional").fill(phone);
-    await dialog.getByRole("button", { name: "Guardar contacto" }).click();
-    await expect(dialog).not.toBeVisible();
-    await expect(card).toContainText("María Muñoz Ñahui");
-    const saved = async () => {
-      const response = await page.request.get("/api/v2/students");
-      expect(response.ok()).toBe(true);
-      const students = await response.json();
-      expect(students.find((s) => s.codigo === "DEMO002").contacts).toEqual([]);
-      return students
-        .find((s) => s.codigo === "DEMO003")
-        .contacts.filter((c) => c.phone === phone);
+    await row.locator(".edit-guardian-phone").fill(phone);
+    await modal.locator('#form-editar button[type="submit"]').click();
+    await expect(modal).not.toBeVisible();
+    const read = async () => {
+      const res = await page.request.get("/api/v2/students");
+      expect(res.ok()).toBe(true);
+      return (await res.json()).find(s => s.codigo === "DEMO003");
     };
-    expect(await saved()).toEqual([
-      expect.objectContaining({
-        name: "María Muñoz Ñahui",
-        consent: 1,
-        active: 1,
-      }),
-    ]);
+    let stored = await read();
+    expect(stored.area).toBe("E");
+    const current = stored.contacts.filter(c => c.active && c.phone === phone);
+    expect(current).toEqual([expect.objectContaining({ name: "María Muñoz Ñahui", consent: 1 })]);
+    const id = current[0].id;
     await page.reload();
     await expect(page.locator("body")).toHaveAttribute("data-ready", "true");
-    await navigate(page, "contacts");
-    await page.fill("#v2-contact-search", "DEMO003");
-    await expect(card).toContainText(phone);
-    await card.getByRole("button", { name: "Agregar apoderado" }).click();
-    await dialog
-      .getByLabel("Nombre del apoderado")
-      .fill("María Muñoz actualizado");
-    await dialog.getByLabel("Teléfono internacional").fill(phone);
-    await dialog.getByRole("button", { name: "Guardar contacto" }).click();
-    await expect(dialog).not.toBeVisible();
-    expect(await saved()).toEqual([
-      expect.objectContaining({
-        name: "María Muñoz actualizado",
-        consent: 0,
-        active: 1,
-      }),
-    ]);
-    const row = card.locator(".v2-contact-row").filter({ hasText: phone });
-    await expect(row).toContainText("Sin autorización");
-    await row.getByRole("button", { name: "Revocar" }).click();
-    await expect(row).toHaveCount(0);
-    expect(await saved()).toEqual([
-      expect.objectContaining({ consent: 0, active: 0 }),
-    ]);
+    await navigate(page, "people");
+    await page.fill("#people-search", "DEMO003");
+    await edit.click();
+    await expect(modal.locator(".edit-guardian-row").first().locator(".edit-guardian-phone")).toHaveValue(phone);
+    await expect(modal.locator(".edit-guardian-consent").first()).toBeChecked();
+    await modal.locator(".edit-guardian-name").first().fill("María Muñoz actualizada");
+    await modal.locator(".edit-guardian-consent").first().uncheck();
+    await modal.locator('#form-editar button[type="submit"]').click();
+    await expect(modal).not.toBeVisible();
+    stored = await read();
+    expect(stored.contacts.find(c => c.id === id)).toEqual(expect.objectContaining({
+      name: "María Muñoz actualizada", phone, consent: 0, active: 1,
+    }));
+    await edit.click();
+    await expect(modal.locator('#form-editar button[type="submit"]')).toBeEnabled();
+    await modal.locator(".edit-guardian-row").first().getByRole("button", {name:"Retirar apoderado"}).click();
+    await expect(modal).toContainText("Se retirará al guardar");
+    await modal.locator('#form-editar button[type="submit"]').click();
+    await expect(modal).not.toBeVisible();
+    stored = await read();
+    expect(stored.contacts.find(c => c.id === id)).toEqual(expect.objectContaining({active: 0, consent: 0}));
     expect(errors).toEqual([]);
   });
 
@@ -178,7 +161,7 @@ test("mobile views fit the viewport and legacy HTML is sanitized", async ({
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await login(page);
-  for (const tab of ["guide", "contacts", "attendance"]) {
+  for (const tab of ["guide", "attendance", "exams"]) {
     await navigate(page, tab);
     await expect(page.locator(`[data-v2-panel="${tab}"]`)).toBeVisible();
     const size = await page.evaluate(() => ({
@@ -378,7 +361,6 @@ for (const width of [320, 390, 768, 1024, 1440])
       "overview",
       "attendance",
       "people",
-      "contacts",
       "exams",
       "imports",
       "tests",
@@ -477,7 +459,6 @@ test("admin pages and dialogs pass automated WCAG A/AA checks", async ({
     "overview",
     "people",
     "attendance",
-    "contacts",
     "exams",
     "imports",
     "tests",

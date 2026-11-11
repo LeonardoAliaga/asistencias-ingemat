@@ -1084,3 +1084,65 @@ test("new students store their area and optional authorized guardian atomically"
   db.prepare("DELETE FROM contacts WHERE user_uid=?").run(user.uid);
   db.prepare("DELETE FROM usuarios WHERE codigo=?").run(input.codigo);
 });
+
+
+test("editing a student updates area and guardian consent atomically without losing contacts", async () => {
+  const code = "EDITGUARD01";
+  const baseUser = {
+    codigo: code, nombre: "ANA", apellido: "PRUEBA", rol: "estudiante",
+    turno: "mañana", ciclo: "ANUAL", dias_asistencia: ["L"], area: "GENERAL",
+  };
+  assert.equal((await admin("/api/usuarios", baseUser, "POST")).status, 201);
+  const uid = db.prepare("SELECT uid FROM usuarios WHERE codigo=?").get(code).uid;
+  const guardian = { name: "María Ñahui", phone: "+51911111111", consent: true };
+  try {
+    let response = await admin("/api/usuarios/" + code, {
+      ...baseUser, area: "B", guardians: [guardian],
+    }, "PUT");
+    assert.equal(response.status, 200, JSON.stringify(response.data));
+    assert.equal(db.prepare("SELECT area FROM usuarios WHERE codigo=?").get(code).area, "B");
+    const saved = db.prepare("SELECT id,name,phone,consent,active FROM contacts WHERE user_uid=?").get(uid);
+    assert.deepEqual({name:saved.name,phone:saved.phone,consent:saved.consent,active:saved.active},
+      {name:guardian.name,phone:guardian.phone,consent:1,active:1});
+    const invalid = await admin("/api/usuarios/" + code, {
+      ...baseUser, area: "E",
+      guardians: [{ id:saved.id, name:"María Ñahui", phone:"911111111", consent:false }],
+    }, "PUT");
+    assert.equal(invalid.status, 400);
+    assert.equal(db.prepare("SELECT area FROM usuarios WHERE codigo=?").get(code).area, "B");
+    assert.equal(db.prepare("SELECT consent FROM contacts WHERE id=?").get(saved.id).consent, 1);
+    response = await admin("/api/usuarios/" + code, {
+      ...baseUser, codigo:"EDITGUARD02", area:"D", guardians:[
+        {id:saved.id,name:"María actualizada",phone:guardian.phone,consent:false},
+        {name:"José Apoderado",phone:"+51922222222",consent:true},
+      ],
+    }, "PUT");
+    assert.equal(response.status, 200, JSON.stringify(response.data));
+    assert.equal(db.prepare("SELECT area FROM usuarios WHERE codigo='EDITGUARD02'").get().area, "D");
+    assert.equal(db.prepare("SELECT uid FROM usuarios WHERE codigo='EDITGUARD02'").get().uid, uid);
+    let contacts = db.prepare("SELECT id,name,phone,consent,active FROM contacts WHERE user_uid=? ORDER BY phone").all(uid);
+    assert.equal(contacts.length, 2);
+    assert.equal(contacts.find(c=>c.id===saved.id).consent, 0);
+    const other=contacts.find(c=>c.id!==saved.id);
+    assert.equal(other.consent, 1);
+    response=await admin("/api/usuarios/EDITGUARD02",{
+      ...baseUser,codigo:"EDITGUARD02",area:"D",guardians:[
+        {id:saved.id, remove:true},
+        {id:other.id, name:other.name,phone:other.phone,consent:true},
+      ],
+    },"PUT");
+    assert.equal(response.status,200);
+    assert.equal(db.prepare("SELECT active FROM contacts WHERE id=?").get(saved.id).active,0);
+    assert.equal(db.prepare("SELECT active FROM contacts WHERE id=?").get(other.id).active,1);
+    // Requests from old clients must leave contacts and area untouched.
+    response=await admin("/api/usuarios/EDITGUARD02",{
+      ...baseUser,codigo:"EDITGUARD02",nombre:"ANA CORREGIDA",
+    },"PUT");
+    assert.equal(response.status,200);
+    assert.equal(db.prepare("SELECT area FROM usuarios WHERE codigo='EDITGUARD02'").get().area,"D");
+    assert.equal(db.prepare("SELECT consent FROM contacts WHERE id=?").get(other.id).consent,1);
+  } finally {
+    db.prepare("DELETE FROM contacts WHERE user_uid=?").run(uid);
+    db.prepare("DELETE FROM usuarios WHERE uid=?").run(uid);
+  }
+});
