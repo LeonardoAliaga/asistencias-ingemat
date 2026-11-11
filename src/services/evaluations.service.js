@@ -230,6 +230,42 @@ function saveGrade(
       .get(id, code).posicion,
   };
 }
+function deleteStudentGrade(id, codeInput, req) {
+  const exam = getExam(id);
+  const code = String(codeInput || "").trim().toUpperCase();
+  if (!/^[A-Z0-9_-]{1,32}$/.test(code))
+    throw new AppError("Código de estudiante inválido.", 400);
+  return db.transaction(() => {
+    const row = db.prepare(
+      "SELECT id,nombreEstudiante FROM respuestas_evaluacion WHERE evaluacion_id=? AND codigoEstudiante=? ORDER BY id DESC LIMIT 1",
+    ).get(id, code);
+    if (!row) throw new AppError("El estudiante no tiene una calificación en este simulacro.", 404);
+    const sending = db.prepare(
+      "SELECT 1 FROM outbox WHERE kind='results' AND status='sending' AND json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END,'$.evaluationId')=? AND json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END,'$.gradeId')=? LIMIT 1",
+    ).get(id, row.id);
+    if (sending)
+      throw new AppError("Se está enviando el resultado de este alumno. Finaliza el envío antes de eliminarlo.", 409);
+    // Conserva avisos ya entregados para auditoría; los pendientes no se enviarán.
+    const cancelled = db.prepare(
+      "UPDATE outbox SET status='cancelled',error='Calificación eliminada por el administrador',updated_at=CURRENT_TIMESTAMP WHERE kind='results' AND status IN ('pending','retry','failed') AND json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END,'$.evaluationId')=? AND json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END,'$.gradeId')=?",
+    ).run(id, row.id).changes;
+    const grades = db.prepare(
+      "DELETE FROM respuestas_evaluacion WHERE evaluacion_id=? AND codigoEstudiante=?",
+    ).run(id, code).changes;
+    const history = db.prepare(
+      "DELETE FROM grade_history WHERE evaluation_id=? AND student_code=?",
+    ).run(id, code).changes;
+    // Las capturas originales de OMR se conservan como evidencia de lectura,
+    // pero el registro y su historial de correcciones desaparecen del ranking.
+    rankExam(id);
+    if (exam.estado === "publicado")
+      db.prepare("UPDATE evaluaciones SET estado='listo' WHERE id=?").run(id);
+    audit(req, "eliminar_resultado_estudiante", "evaluacion", id, {
+      codigo: code, nombre: row.nombreEstudiante, grades, history, cancelled,
+    });
+    return { exito: true, codigoEstudiante: code, grades, history, cancelled };
+  })();
+}
 function reviseKeys(id, body, req) {
   const exam = getExam(id);
   if (!exam.definition || !["listo", "publicado"].includes(exam.estado))
@@ -299,4 +335,5 @@ module.exports = {
   saveGrade,
   reviseKeys,
   rankExam,
+  deleteStudentGrade,
 };

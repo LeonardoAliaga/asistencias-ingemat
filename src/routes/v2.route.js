@@ -337,6 +337,9 @@ router.get("/exams/:id/results", read, (req, res) => {
     })),
   });
 });
+router.delete("/exams/:id/student/:code/grade", requireAdmin, (req, res) => {
+  res.json(evaluations.deleteStudentGrade(req.params.id, req.params.code, req));
+});
 router.get("/exams/:id/student/:code/responses", read, (req, res) => {
   const exam = evaluations.getExam(req.params.id);
   const code = String(req.params.code || "").trim().toUpperCase();

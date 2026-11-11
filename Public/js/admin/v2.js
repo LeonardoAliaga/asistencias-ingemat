@@ -369,6 +369,24 @@ async function selectExam(id) {
     .join("");
   $("v2-sheet-form").innerHTML = forms;
   $("v2-manual-form").innerHTML = forms;
+  $("v2-results").querySelectorAll("[data-delete-grade]").forEach(button => {
+    button.onclick = async () => {
+      const code = button.dataset.deleteGrade;
+      const row = data.rows.find(r => r.codigoEstudiante === code);
+      if (!row || !state.selected || state.selected.id !== e.id) return;
+      if (!confirm(`¿Eliminar la calificación de ${row.nombreEstudiante} (${code}) en "${e.titulo}"?\n\nSe borrarán sus respuestas y el historial de correcciones de este simulacro. Los demás alumnos conservarán sus notas. Esta acción no se puede deshacer.`))
+        return;
+      button.disabled = true;
+      try {
+        await api(`/api/v2/exams/${encodeURIComponent(e.id)}/student/${encodeURIComponent(code)}/grade`, { method: "DELETE" });
+        await loadExams(e.id);
+        message(`Calificación de ${row.nombreEstudiante} eliminada. Ranking recalculado.`);
+      } catch (error) {
+        message(error.message, true);
+        button.disabled = false;
+      }
+    };
+  });
   $("v2-ranking-excel").href =
     `/api/evaluaciones/${encodeURIComponent(e.id)}/excel`;
   $("v2-manual").hidden = !canWrite;
@@ -914,6 +932,7 @@ async function loadResults() {
       "Correctas / errores / blancos",
       "Puntaje",
       "Detalle",
+      ...(state.role === "admin" ? ["Acciones"] : []),
     ],
     rows.map((r, i) => {
       if (r.puntajeTotal !== last) rank = i + 1;
@@ -925,6 +944,9 @@ async function loadResults() {
         `${r.correctas} / ${r.incorrectas} / ${r.enBlanco}${r.detail.anuladas ? ` · ${r.detail.anuladas} anuladas` : ""}`,
         `<strong>${r.puntajeTotal}</strong>`,
         `<button class="v2-link" data-result="${esc(r.codigoEstudiante)}">Cursos e historial</button>`,
+        ...(state.role === "admin" ? [
+          `<button type="button" class="v2-link v2-attendance-delete" data-delete-grade="${esc(r.codigoEstudiante)}" aria-label="Eliminar resultado de ${esc(r.nombreEstudiante)} (${esc(r.codigoEstudiante)})" title="Eliminar calificación y su historial"><i class="bi bi-trash3" aria-hidden="true"></i></button>`,
+        ] : []),
       ];
     }),
   );
