@@ -1204,8 +1204,15 @@ test("simulate manual correction, delete one grade, and permanently purge only o
   },"POST");
   assert.equal(create.status,201,JSON.stringify(create.data));
   const id=create.data.id;
+  // Evita depender de alumnos renombrados en otras pruebas de integración.
+  for(const code of ["DELSTU001","DELSTU002"]){
+    const registered=await admin("/api/usuarios",{
+      codigo:code,nombre:"ALUMNO",apellido:code,rol:"estudiante",ciclo:"ANUAL",turno:"mañana",
+    },"POST");
+    assert.equal(registered.status,201,JSON.stringify(registered.data));
+  }
   assert.equal((await admin(`/api/v2/exams/${id}/ready`,{},"POST")).status,200);
-  for(const code of ["T001","T002"]){
+  for(const code of ["DELSTU001","DELSTU002"]){
     const result=await admin(`/api/v2/exams/${id}/grade`,{
       codigoEstudiante:code,area:"GENERAL",form:"A",
       respuestas:{1:"A",2:"B",3:"C",4:"D"},
@@ -1213,47 +1220,47 @@ test("simulate manual correction, delete one grade, and permanently purge only o
     assert.equal(result.status,200,JSON.stringify(result.data));
   }
   const corrected=await admin(`/api/v2/exams/${id}/grade`,{
-    codigoEstudiante:"T001",area:"GENERAL",form:"A",
+    codigoEstudiante:"DELSTU001",area:"GENERAL",form:"A",
     respuestas:{1:{status:"single",options:["B"]},2:{status:"blank",options:[]},3:"C",4:"D"},
     allowReplace:true,reason:"Corrección de marca en escáner",
   },"POST");
   assert.equal(corrected.status,200,JSON.stringify(corrected.data));
-  const stored=await admin(`/api/v2/exams/${id}/student/T001/responses`);
+  const stored=await admin(`/api/v2/exams/${id}/student/DELSTU001/responses`);
   assert.equal(stored.status,200);
   assert.equal(stored.headers.get("cache-control"),"no-store");
   assert.equal(stored.data.form,"A");
   assert.equal(stored.data.area,"GENERAL");
   assert.deepEqual(stored.data.respuestas["1"],{status:"single",options:["B"]});
   assert.deepEqual(stored.data.respuestas["2"],{status:"blank",options:[]});
-  assert.equal((await admin(`/api/v2/exams/${id}/student/T003/responses`)).status,404);
-  assert.equal((await guest(`/api/v2/exams/${id}/student/T001/responses`)).status,401);
-  assert.equal((await guest(`/api/v2/exams/${id}/student/T001/grade`,undefined,"DELETE")).status,401);
+  assert.equal((await admin(`/api/v2/exams/${id}/student/DELSTU003/responses`)).status,404);
+  assert.equal((await guest(`/api/v2/exams/${id}/student/DELSTU001/responses`)).status,401);
+  assert.equal((await guest(`/api/v2/exams/${id}/student/DELSTU001/grade`,undefined,"DELETE")).status,401);
 
-  const row=db.prepare("SELECT id FROM respuestas_evaluacion WHERE evaluacion_id=? AND codigoEstudiante=?").get(id,"T001");
+  const row=db.prepare("SELECT id FROM respuestas_evaluacion WHERE evaluacion_id=? AND codigoEstudiante=?").get(id,"DELSTU001");
   const messageId=randomUUID(), otherId=randomUUID();
   db.prepare("INSERT INTO outbox(id,event_key,recipient,kind,payload,status,provider) VALUES(?,?,'+51900000001','results',?,'pending','baileys')").run(
     messageId, "test:exam-delete:"+messageId, JSON.stringify({evaluationId:id,gradeId:row.id,revision:1}));
   db.prepare("INSERT INTO outbox(id,event_key,recipient,kind,payload,status,provider) VALUES(?,?,'+51900000002','results',?,'pending','baileys')").run(
     otherId, "test:exam-delete:"+otherId, JSON.stringify({evaluationId:id,gradeId:row.id+9999,revision:1}));
-  assert.equal((await admin(`/api/v2/exams/${id}/student/T003/grade`,undefined,"DELETE")).status,404);
-  const remove=await admin(`/api/v2/exams/${id}/student/T001/grade`,undefined,"DELETE");
+  assert.equal((await admin(`/api/v2/exams/${id}/student/DELSTU003/grade`,undefined,"DELETE")).status,404);
+  const remove=await admin(`/api/v2/exams/${id}/student/DELSTU001/grade`,undefined,"DELETE");
   assert.equal(remove.status,200,JSON.stringify(remove.data));
   assert.equal(remove.data.grades,1);
   assert.equal(remove.data.history,1);
   assert.equal(remove.data.cancelled,1);
-  assert.equal(db.prepare("SELECT 1 FROM respuestas_evaluacion WHERE evaluacion_id=? AND codigoEstudiante='T001'").get(id),undefined);
-  assert.equal(db.prepare("SELECT COUNT(*) n FROM grade_history WHERE evaluation_id=? AND student_code='T001'").get(id).n,0);
-  assert.equal(db.prepare("SELECT posicion FROM respuestas_evaluacion WHERE evaluacion_id=? AND codigoEstudiante='T002'").get(id).posicion,1);
+  assert.equal(db.prepare("SELECT 1 FROM respuestas_evaluacion WHERE evaluacion_id=? AND codigoEstudiante='DELSTU001'").get(id),undefined);
+  assert.equal(db.prepare("SELECT COUNT(*) n FROM grade_history WHERE evaluation_id=? AND student_code='DELSTU001'").get(id).n,0);
+  assert.equal(db.prepare("SELECT posicion FROM respuestas_evaluacion WHERE evaluacion_id=? AND codigoEstudiante='DELSTU002'").get(id).posicion,1);
   assert.equal(db.prepare("SELECT status FROM outbox WHERE id=?").get(messageId).status,"cancelled");
   assert.equal(db.prepare("SELECT status FROM outbox WHERE id=?").get(otherId).status,"pending");
-  assert.equal((await admin(`/api/v2/exams/${id}/student/T001/responses`)).status,404);
+  assert.equal((await admin(`/api/v2/exams/${id}/student/DELSTU001/responses`)).status,404);
   // Permite volver a registrar al alumno tras eliminar su registro.
   assert.equal((await admin(`/api/v2/exams/${id}/grade`,{
-    codigoEstudiante:"T001",area:"GENERAL",form:"A",respuestas:{1:"A"},
+    codigoEstudiante:"DELSTU001",area:"GENERAL",form:"A",respuestas:{1:"A"},
   },"POST")).status,200);
-  assert(db.prepare("SELECT 1 FROM respuestas_evaluacion WHERE evaluacion_id=? AND codigoEstudiante='T001'").get(id));
+  assert(db.prepare("SELECT 1 FROM respuestas_evaluacion WHERE evaluacion_id=? AND codigoEstudiante='DELSTU001'").get(id));
   const batchId=randomUUID(),sheetId=randomUUID(),jobId=randomUUID(),requestId=randomUUID();
-  db.prepare("INSERT INTO omr_sheets(id,evaluation_id,student_code,revision) VALUES(?,?,?,1)").run(sheetId,id,"T001");
+  db.prepare("INSERT INTO omr_sheets(id,evaluation_id,student_code,revision) VALUES(?,?,?,1)").run(sheetId,id,"DELSTU001");
   db.prepare("INSERT INTO import_batches(id,evaluation_id,revision,source,status,actor) VALUES(?,?,1,'omr','ready','admin')").run(batchId,id);
   db.prepare("INSERT INTO imported_sheets(sheet_id,page,batch_id) VALUES(?,?,?)").run(sheetId,1,batchId);
   db.prepare("INSERT INTO scan_requests(actor,request_id,evaluation_id,batch_id) VALUES('admin',?,?,?)").run(requestId,id,batchId);
@@ -1288,6 +1295,6 @@ test("simulate manual correction, delete one grade, and permanently purge only o
   assert.equal(fs.existsSync(scannerPath),false);
   assert.equal((await admin(`/api/v2/exams/${id}`)).status,404);
   assert(db.prepare("SELECT 1 FROM evaluaciones WHERE id=?").get(exam.id),"Otro simulacro no debe eliminarse.");
-  assert(db.prepare("SELECT 1 FROM usuarios WHERE codigo='T001'").get(),"El alumno debe conservarse.");
+  assert(db.prepare("SELECT 1 FROM usuarios WHERE codigo='DELSTU001'").get(),"El alumno debe conservarse.");
   assert.equal((await guest(`/api/v2/exams/${exam.id}/permanent`,{confirmation:"X"},"DELETE")).status,401);
 });
