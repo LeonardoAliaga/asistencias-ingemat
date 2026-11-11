@@ -160,7 +160,7 @@ const BATCH_MAX = 20;
 // Ajusta aquí el rango de espera entre reportes consecutivos del mismo lote.
 // Son segundos completos e incluyen ambos extremos. El primer envío es inmediato.
 // Respeta siempre las políticas de WhatsApp y la autorización de cada destinatario.
-const BATCH_INTERVAL_SECONDS = Object.freeze({ min: 10, max: 15 });
+const BATCH_INTERVAL_SECONDS = Object.freeze({ min: 12, max: 20 });
 if (!Number.isInteger(BATCH_INTERVAL_SECONDS.min) ||
     !Number.isInteger(BATCH_INTERVAL_SECONDS.max) ||
     BATCH_INTERVAL_SECONDS.min < 1 ||
