@@ -518,7 +518,9 @@ test("envío por lote valida el ciclo, el consentimiento, el tamaño y la identi
   assert.equal(outboxResponse.status,200);
   const entries=sent.data.results.map(item=>outboxResponse.data.outbox.find(row=>row.id===item.id));
   assert(entries.every(entry=>entry && entry.bulk_batch_id===requestId));
-  assert(entries.every(entry=>entry.next_attempt_at>0 && entry.student_code));
+  assert(entries.every(entry=>entry && entry.student_code));
+  assert.equal(entries[0].next_attempt_at,0,"El primer aviso debe seguir listo de inmediato.");
+  assert(entries[1].next_attempt_at>=startedAt+10_000,"El segundo aviso debe tener la espera programada.");
   const first=await admin("/api/v2/whatsapp/reports/"+sent.data.results[0].id+"/file");
   assert.equal(first.status,200);
   assert.doesNotMatch(first.bytes.toString("latin1"),/\/Subtype \/Image\b/);
