@@ -539,3 +539,53 @@ test("envío por lote valida el ciclo, el consentimiento, el tamaño y la identi
   assert.equal(same.data.duplicate,2);
   assert.deepEqual(same.data.results.map(x=>x.id),sent.data.results.map(x=>x.id));
 });
+
+test("resumen al grupo sin publicar es manual, privado, repetible e idempotente", async () => {
+  const e = require("../src/services/evaluations.service");
+  const req={session:{username:"admin",role:"admin"}};
+  const ex=e.readyExam(e.saveExam({
+    titulo:"SIMULACRO DE COMUNICACIONES",ciclo:"ANUAL",
+    definition:{totalQuestions:2,keys:{1:"A",2:"B"}},
+  },req).id,req);
+  assert.equal(ex.estado,"listo");
+  for(const code of ["WA01","WA02"])
+    e.saveGrade(ex.id,{codigoEstudiante:code,respuestas:{1:"A",2:"B"}},req);
+  await admin("/api/v2/whatsapp/attendance-groups", {
+    method:"PUT",body:{cycle:"ANUAL",groupId:g1.id},
+  });
+  settings.storeConfig({...settings.getConfig(),enabled:false});
+  const payload={examId:ex.id,groupId:g1.id,requestId:crypto.randomUUID()};
+  const first=await admin("/api/v2/whatsapp/exam-group-summary",{
+    method:"POST",body:payload,
+  });
+  assert.equal(first.status,202,JSON.stringify(first.data));
+  assert.equal(first.data.duplicate,false);
+  const record=db.prepare("SELECT * FROM outbox WHERE id=?").get(first.data.id);
+  const text=JSON.parse(record.payload).text;
+  assert.match(text,/SIMULACRO DE COMUNICACIONES/);
+  assert.match(text,/Evaluados: 2/);
+  assert(!text.includes("WA01")&&!text.includes("MUÑOZ"),"Los nombres y códigos no deben ir al grupo.");
+  assert.equal(record.recipient,g1.id);
+  const same=await admin("/api/v2/whatsapp/exam-group-summary",{method:"POST",body:payload});
+  assert.equal(same.status,202);
+  assert.equal(same.data.duplicate,true);
+  assert.equal(same.data.id,first.data.id);
+  assert.equal((await admin("/api/v2/whatsapp/exam-group-summary",{
+    method:"POST",body:{...payload,requestId:crypto.randomUUID()},
+  })).status,409,"No se debe duplicar un mensaje grupal pendiente");
+  assert.equal((await guest("/api/v2/whatsapp/exam-group-summary",{method:"POST",body:payload})).status,401);
+  let sent=0;
+  await notifications.processOutbox(async (entry)=>{
+    if(entry.id===first.data.id)sent++;
+    return entry.id.replaceAll("-","").toUpperCase();
+  });
+  assert.equal(sent,1);
+  assert.equal(db.prepare("SELECT status FROM outbox WHERE id=?").get(first.data.id).status,"accepted");
+  const repeated=await admin("/api/v2/whatsapp/exam-group-summary",{
+    method:"POST",body:{...payload,requestId:crypto.randomUUID()},
+  });
+  assert.equal(repeated.status,202,JSON.stringify(repeated.data));
+  assert.equal(repeated.data.duplicate,false);
+  assert.notEqual(repeated.data.id,first.data.id);
+  db.prepare("UPDATE outbox SET status='accepted' WHERE id=?").run(repeated.data.id);
+});

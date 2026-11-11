@@ -221,4 +221,18 @@ test("attendance, grades and corrections continue when the optional WhatsApp ser
   assert.equal(n.notifyResults(e.getExam(exam.id), req), 0);
   assert.equal(n.resultState(JSON.parse(db.prepare("SELECT payload FROM outbox WHERE kind='results' AND status='pending' ORDER BY created_at DESC,id DESC LIMIT 1").get().payload)), "current");
   connected = true;
+  // El envío solicitado manualmente funciona aun con avisos automáticos apagados.
+  settings.storeConfig({ ...settings.getConfig(), enabled: false });
+  const automatic = job("disabled-automatic-attendance");
+  const kinds = [];
+  await n.processOutbox(async (entry) => {
+    kinds.push(entry.kind);
+    return messageId(entry.id);
+  });
+  assert(kinds.includes("results"));
+  assert(!kinds.includes("attendance"));
+  assert.equal(row(automatic).status, "pending");
+  assert.equal(n.resultState(JSON.parse(
+    db.prepare("SELECT payload FROM outbox WHERE kind='results' AND status='accepted' ORDER BY id DESC LIMIT 1").get().payload
+  )), "current");
 });

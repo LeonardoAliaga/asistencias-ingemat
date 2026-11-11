@@ -2184,6 +2184,7 @@ async function initialize() {
       $("v2-manual-answers").value = values;
       state.manualAnswerEditor?.reset();
       $("v2-manual-replace").checked = true;
+      $("v2-manual-replace").closest("details").open = true;
       $("v2-replace-reason").hidden = false;
       $("v2-manual-reason").required = true;
       info.textContent = "Respuestas anteriores cargadas (" + Object.keys(stored.respuestas).length

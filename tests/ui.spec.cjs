@@ -81,6 +81,9 @@ test("create, validate and grade an exam from the dashboard", async ({
   await expect(page.locator("#v2-message")).toContainText("Borrador guardado");
   await page.click("#v2-ready");
   await expect(page.locator("#v2-message")).toContainText("Examen validado");
+  await expect(page.locator("#v2-publish")).toHaveCount(0);
+  await expect(page.getByRole("button",{name:"Notificar resultados a padres"})).toBeVisible();
+  await expect(page.getByRole("button",{name:"Notificar al grupo de WhatsApp"})).toBeVisible();
   await page.click("#v2-manual-tab");
   await page.fill("#v2-manual-student-search", "DEMO001");
   await expect(page.locator('#v2-manual-student-results [role="option"]')).toHaveCount(1);
