@@ -369,24 +369,6 @@ async function selectExam(id) {
     .join("");
   $("v2-sheet-form").innerHTML = forms;
   $("v2-manual-form").innerHTML = forms;
-  $("v2-results").querySelectorAll("[data-delete-grade]").forEach(button => {
-    button.onclick = async () => {
-      const code = button.dataset.deleteGrade;
-      const row = data.rows.find(r => r.codigoEstudiante === code);
-      if (!row || !state.selected || state.selected.id !== e.id) return;
-      if (!confirm(`¿Eliminar la calificación de ${row.nombreEstudiante} (${code}) en "${e.titulo}"?\n\nSe borrarán sus respuestas y el historial de correcciones de este simulacro. Los demás alumnos conservarán sus notas. Esta acción no se puede deshacer.`))
-        return;
-      button.disabled = true;
-      try {
-        await api(`/api/v2/exams/${encodeURIComponent(e.id)}/student/${encodeURIComponent(code)}/grade`, { method: "DELETE" });
-        await loadExams(e.id);
-        message(`Calificación de ${row.nombreEstudiante} eliminada. Ranking recalculado.`);
-      } catch (error) {
-        message(error.message, true);
-        button.disabled = false;
-      }
-    };
-  });
   $("v2-ranking-excel").href =
     `/api/evaluaciones/${encodeURIComponent(e.id)}/excel`;
   $("v2-manual").hidden = !canWrite;
@@ -987,6 +969,24 @@ async function loadResults() {
           }
         }),
     );
+  $("v2-results").querySelectorAll("[data-delete-grade]").forEach(button => {
+    button.onclick = async () => {
+      const code = button.dataset.deleteGrade;
+      const row = data.rows.find(r => r.codigoEstudiante === code);
+      if (!row || !state.selected || state.selected.id !== e.id) return;
+      if (!confirm(`¿Eliminar la calificación de ${row.nombreEstudiante} (${code}) en "${e.titulo}"?\n\nSe borrarán sus respuestas y el historial de correcciones de este simulacro. Los demás alumnos conservarán sus notas. Esta acción no se puede deshacer.`))
+        return;
+      button.disabled = true;
+      try {
+        await api(`/api/v2/exams/${encodeURIComponent(e.id)}/student/${encodeURIComponent(code)}/grade`, { method: "DELETE" });
+        await loadExams(e.id);
+        message(`Calificación de ${row.nombreEstudiante} eliminada. Ranking recalculado.`);
+      } catch (error) {
+        message(error.message, true);
+        button.disabled = false;
+      }
+    };
+  });
   $("v2-ranking-excel").href =
     `/api/evaluaciones/${e.id}/excel${area ? "?area=" + encodeURIComponent(area) : ""}`;
 }
