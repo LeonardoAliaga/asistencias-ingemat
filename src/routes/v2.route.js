@@ -15,7 +15,6 @@ const evaluations = require("../services/evaluations.service");
 const imports = require("../services/imports.service");
 const scanner = require("../services/scanner.service").createScannerService();
 scanner.recover();
-const notifications = require("../services/notifications.service");
 const attendance = require("../services/attendance.service");
 const { normalizeDefinition } = require("../services/grading.service");
 const { makePDF } = require("../services/omr-pdf.service");
@@ -284,14 +283,6 @@ router.put("/exams/:id", write, (req, res) =>
 router.post("/exams/:id/ready", write, (req, res) =>
   res.json(evaluations.readyExam(req.params.id, req)),
 );
-router.post("/exams/:id/notify", requireAdmin, (req, res) => {
-  const exam = evaluations.getExam(req.params.id);
-  if (!["listo", "publicado"].includes(exam.estado))
-    throw new AppError("Valida el simulacro antes de notificar resultados.");
-  const queued = notifications.notifyResults(exam, req);
-  audit(req, "notificar_resultados", "evaluacion", exam.id, { queued });
-  res.json({ exito: true, queued });
-});
 router.post("/exams/:id/revise-keys", write, (req, res) =>
   res.json(evaluations.reviseKeys(req.params.id, req.body, req)),
 );

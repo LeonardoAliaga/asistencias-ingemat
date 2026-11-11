@@ -85,7 +85,7 @@ test("worker failure or timeout after submission is unknown and never automatica
     throw Object.assign(Error("Internal error"), { deliveryUnknown: true });
   });
   assert.equal(row(id).status, "unknown");
-  assert.match(row(id).error, /Revisa el paquete Baileys/);
+  assert.match(row(id).error, /WHATSAPP_SEND_FAILED/);
   let calls = 0;
   await n.processOutbox(async () => {
     calls++;
@@ -152,7 +152,7 @@ test("duplicate receipts are deduplicated and a delivery failure keeps the packa
   n.handleStatus(event);
   n.handleStatus(event);
   assert.equal(row(id).status, "failed");
-  assert.match(row(id).error, /Revisa el paquete Baileys/);
+  assert.match(row(id).error, /BAILEYS_DELIVERY_FAILED/);
   const hash = require("node:crypto")
     .createHash("sha256")
     .update(JSON.stringify(event))
@@ -201,40 +201,22 @@ test("attendance, grades and corrections continue when the optional WhatsApp ser
     { codigoEstudiante: "GRADE001", respuestas: { 1: "A" } },
     req,
   );
-  // Los avisos manuales deben funcionar directamente en estado Listo.
-  exam = e.getExam(exam.id);
-  assert.equal(exam.estado, "listo");
-  assert.equal(n.notifyResults(exam, req), 1);
-  assert.equal(n.notifyResults(exam, req), 0);
-  const original = db
-    .prepare("SELECT * FROM outbox WHERE kind='results'")
-    .get();
-  e.saveGrade(
-    exam.id,
-    { codigoEstudiante: "GRADE001", respuestas: { 1: "B" } },
-    req,
-    { allowReplace: true, reason: "Corrección comprobada con la cartilla" },
-  );
-  assert.equal(row(original.id).status, "cancelled");
-  assert.equal(e.getExam(exam.id).estado, "listo");
-  assert.equal(n.notifyResults(e.getExam(exam.id), req), 1);
-  assert.equal(n.notifyResults(e.getExam(exam.id), req), 0);
-  assert.equal(n.resultState(JSON.parse(db.prepare("SELECT payload FROM outbox WHERE kind='results' AND status='pending' ORDER BY created_at DESC,id DESC LIMIT 1").get().payload)), "current");
-  connected = true;
-  // El envío solicitado manualmente funciona aun con avisos automáticos apagados.
-  settings.storeConfig({ ...settings.getConfig(), enabled: false });
-  const automatic = job("disabled-automatic-attendance");
-  const kinds = [];
-  await n.processOutbox(async (entry) => {
-    kinds.push(entry.kind);
-    return messageId(entry.id);
-  });
-  assert(kinds.includes("results"));
-  assert(!kinds.includes("attendance"));
-  assert.equal(row(automatic).status, "pending");
-  assert.equal(n.resultState(JSON.parse(
-    db.prepare("SELECT payload FROM outbox WHERE kind='results' AND status='accepted' ORDER BY id DESC LIMIT 1").get().payload
-  )), "current");
+  // Las calificaciones se corrigen aunque WhatsApp no esté conectado.
+  exam=e.getExam(exam.id);
+  assert.equal(exam.estado,"listo");
+  assert.equal(db.prepare("SELECT COUNT(*) n FROM outbox WHERE kind='results'").get().n,0);
+  e.saveGrade(exam.id,{
+    codigoEstudiante:"GRADE001",respuestas:{1:"B"},
+  },req,{allowReplace:true,reason:"Corrección comprobada con la cartilla"});
+  assert.equal(e.getExam(exam.id).estado,"listo");
+  assert.equal(db.prepare("SELECT COUNT(*) n FROM outbox WHERE kind='results'").get().n,0);
+  connected=true;
+  settings.storeConfig({...settings.getConfig(),enabled:false});
+  const automatic=job("disabled-automatic-attendance");
+  let sent=0;
+  await n.processOutbox(async () => { sent++; });
+  assert.equal(sent,0);
+  assert.equal(row(automatic).status,"pending");
 });
 
 test("actual Baileys send failures show a safe code without exposing messages or recipients", async () => {

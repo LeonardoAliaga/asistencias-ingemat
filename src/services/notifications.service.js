@@ -107,48 +107,6 @@ function notifyAttendance(record, user) {
     });
   return contacts.length;
 }
-function notifyResults(exam, req) {
-  if (!["listo", "publicado"].includes(exam.estado))
-    throw new AppError("Valida el simulacro antes de notificar resultados.");
-  if (!db.prepare("SELECT 1 FROM respuestas_evaluacion WHERE evaluacion_id=?").get(exam.id))
-    throw new AppError("Registra las calificaciones antes de notificar resultados.", 409);
-  // Una orden manual no activa los avisos automáticos de asistencia.
-  let queued = 0;
-  for (const r of db
-    .prepare(
-      "SELECT r.*,u.uid FROM respuestas_evaluacion r JOIN usuarios u ON u.codigo=r.codigoEstudiante WHERE r.evaluacion_id=? AND u.archived_at IS NULL",
-    )
-    .all(exam.id)) {
-    for (const c of db
-      .prepare(
-        "SELECT * FROM contacts WHERE user_uid=? AND consent=1 AND active=1",
-      )
-      .all(r.uid)) {
-      const before = db
-        .prepare("SELECT id FROM outbox WHERE event_key=?")
-        .get(`baileys:resultado:${exam.id}:${exam.revision}:${r.id}:${c.id}`);
-      enqueue({
-        eventKey: `baileys:resultado:${exam.id}:${exam.revision}:${r.id}:${c.id}`,
-        recipient: c.phone,
-        contactId: c.id,
-        kind: "results",
-        payload: {
-          evaluationId: exam.id,
-          gradeId: r.id,
-          revision: exam.revision,
-          parameters: [
-            r.nombreEstudiante,
-            exam.titulo,
-            String(r.puntajeTotal),
-            r.area,
-          ],
-        },
-      });
-      if (!before) queued++;
-    }
-  }
-  return queued;
-}
 function resultState(payload) {
   if (!payload.evaluationId || !payload.gradeId) return "current";
   const row = db
@@ -406,7 +364,6 @@ module.exports = {
   status,
   enqueue,
   notifyAttendance,
-  notifyResults,
   processOutbox,
   handleStatus,
   send,

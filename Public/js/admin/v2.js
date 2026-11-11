@@ -341,7 +341,6 @@ async function selectExam(id) {
   $("v2-revise").hidden =
     !["listo", "publicado"].includes(e.estado) || !e.definition || !canWrite;
   const canNotify = ["listo", "publicado"].includes(e.estado) && state.role === "admin";
-  $("v2-notify").hidden = !canNotify;
   $("v2-share-results-group").hidden = !canNotify;
   $("v2-archive").hidden = !canWrite;
   $("v2-delete-permanent").hidden = state.role !== "admin";
@@ -2069,28 +2068,13 @@ async function initialize() {
     if (!exam || !["listo", "publicado"].includes(exam.estado)) throw new Error("Valida el simulacro antes de notificar al grupo.");
     const { target }=await api(`/api/v2/whatsapp/attendance-target?cycle=${encodeURIComponent(exam.ciclo)}`);
     if (!target) throw new Error("Configura primero el grupo del ciclo en Comunicación.");
-    if (!confirm(`¿Notificar los resultados de "${exam.titulo}" al grupo "${target.subject}"?\n\nNo incluye nombres, códigos ni calificaciones individuales. Puedes compartir otra vez después de comprobar el envío anterior.`)) return;
+    if (!confirm(`¿Enviar imágenes del ranking de "${exam.titulo}" al grupo "${target.subject}"?\n\nCada área tendrá su propia imagen (con páginas si hay muchos alumnos). Se mostrarán nombres, buenas, malas, vacías y puntajes, SIN códigos. Confirma que todos los estudiantes cuentan con autorización para compartir estas calificaciones en ese grupo.`)) return;
     const result=await api("/api/v2/whatsapp/exam-group-summary",json({
       examId:exam.id,groupId:target.id,requestId:crypto.randomUUID(),
     }));
     message(result.duplicate
       ? "Esta solicitud ya estaba registrada. Consulta su estado en Comunicación."
-      : `Resultados del simulacro puestos en cola para el grupo "${target.subject}". Comprueba su entrega en Comunicación.`);
-  });
-  bind("v2-notify", "click", async () => {
-    if (
-      !confirm(
-        "¿Notificar los resultados de este simulacro a los padres y apoderados autorizados? Solo se enviarán avisos nuevos que aún no estén registrados.",
-      )
-    )
-      return;
-    const result = await api(
-      `/api/v2/exams/${state.selected.id}/notify`,
-      json({}),
-    );
-    message(
-      `${result.queued} avisos nuevos en cola. Los ya programados no se duplican.`,
-    );
+      : `${result.images} imagen(es) de ranking por ${result.areas} área(s) puestas en cola para "${target.subject}". Revisa cada envío en Comunicación.`);
   });
   const printGuidance = () => {
     const blank = $("v2-sheet-mode").value === "blank",
