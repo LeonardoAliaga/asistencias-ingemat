@@ -2369,3 +2369,37 @@ test("manual student search supports names, ignores accents and prevents arbitra
   await page.click("#v2-manual button[type=submit]");
   await expect(page.locator("#v2-message")).toContainText("Selecciona un estudiante");
 });
+
+test("Reportes: lote por ciclo muestra apoderados y permite excluir con × antes de confirmar", async ({page}) => {
+  const {expect} = require("@playwright/test");
+  let submitted;
+  await page.route("**/api/v2/whatsapp/attendance-groups", r=>
+    r.fulfill({json:{cycles:[{cycle:"ANUAL",target:null}]}}));
+  await page.route("**/api/v2/whatsapp/batch-students?*",r=>
+    r.fulfill({json:{cycle:"ANUAL",students:[
+      {codigo:"DEMO001",nombre:"ANA DEMO",ciclo:"ANUAL",contacts:[{id:"g1",name:"Rosa Apoderada",phone:"+51911111111"}]},
+      {codigo:"DEMO002",nombre:"JUAN DEMO",ciclo:"ANUAL",contacts:[{id:"g2",name:"Luis Apoderado",phone:"+51922222222"}]},
+      {codigo:"DEMO003",nombre:"SIN CONSENTIMIENTO",ciclo:"ANUAL",contacts:[]},
+    ]}}));
+  await page.route("**/api/v2/whatsapp/batch-student-reports",async r=>{
+    submitted=r.request().postDataJSON();
+    await r.fulfill({status:202,json:{exito:true,enqueued:1,duplicate:0,results:[],spacingSeconds:60}});
+  });
+  page.on("dialog",dialog=>dialog.accept());
+  await login(page);
+  await navigate(page,"reports");
+  await page.locator('[data-local-tab="bulk"]').click();
+  await page.selectOption("#report-bulk-cycle","ANUAL");
+  await expect(page.locator("#report-bulk-list .report-bulk-item")).toHaveCount(3);
+  await expect(page.locator("#report-bulk-list")).toContainText("Rosa Apoderada");
+  await expect(page.locator("#report-bulk-list")).toContainText("+51911111111");
+  await expect(page.locator("#report-bulk-list")).toContainText("Sin apoderado autorizado");
+  await page.getByRole("button",{name:"Quitar a JUAN DEMO del lote"}).click();
+  await expect(page.locator("#report-bulk-list .report-bulk-item")).toHaveCount(2);
+  await expect(page.locator("#report-bulk-summary")).toContainText("1 seleccionados");
+  await page.click("#report-bulk-send");
+  await expect.poll(()=>submitted?.items?.length).toBe(1);
+  expect(submitted.items).toEqual([{code:"DEMO001",contactId:"g1"}]);
+  expect(submitted.format).toBe("pdf");
+  await expect(page.locator("#report-bulk-message")).toContainText("1 reportes puestos en cola");
+});

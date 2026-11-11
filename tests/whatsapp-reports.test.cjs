@@ -289,10 +289,9 @@ test("PNG and paginated PDF reports persist privately and identical request IDs 
     assert.match(file.headers.get("content-disposition"), /attachment/);
     if (format === "pdf") {
       assert.equal(file.bytes.subarray(0, 5).toString(), "%PDF-");
-      assert.equal(
-        (file.bytes.toString("latin1").match(/\/Type \/Page\b/g) || []).length,
-        2,
-      );
+      // Documento académico real, no una imagen envuelta en páginas PDF.
+      assert.match(file.bytes.toString("latin1"), /\/Type \/Page\b/);
+      assert.doesNotMatch(file.bytes.toString("latin1"), /\/Subtype \/Image\b/);
       if (process.env.INGEMAT_REPORT_QA_DIR) {
         fs.mkdirSync(process.env.INGEMAT_REPORT_QA_DIR, { recursive: true });
         fs.writeFileSync(
@@ -470,4 +469,52 @@ test("startup reconnects even with notices disabled and does not start duplicate
     workers.stop();
     baileys.connect = original;
   }
+});
+
+test("descarga y WhatsApp comparten el mismo PDF académico con tablas reales", async () => {
+  const download=await admin("/api/evaluaciones/reporte-estudiante/WA01/pdf?week=TODAS");
+  assert.equal(download.status,200);
+  assert.equal(download.headers.get("content-type"),"application/pdf");
+  const sent=await admin("/api/v2/whatsapp/student-report",{
+    method:"POST",body:form({format:"pdf",requestId:crypto.randomUUID()}),
+  });
+  assert.equal(sent.status,202,JSON.stringify(sent.data));
+  const message=await admin("/api/v2/whatsapp/reports/"+sent.data.id+"/file");
+  assert.equal(message.status,200);
+  assert(message.bytes.equals(download.bytes),"La descarga y el envío deben generar el mismo documento.");
+  assert.doesNotMatch(download.bytes.toString("latin1"),/\/Subtype \/Image\b/);
+  assert.equal((await guest("/api/evaluaciones/reporte-estudiante/WA01/pdf")).status,401);
+});
+test("envío por lote valida el ciclo, el consentimiento, el tamaño y la identidad del lote", async () => {
+  const preview=await admin("/api/v2/whatsapp/batch-students?cycle=ANUAL");
+  assert.equal(preview.status,200);
+  assert.deepEqual(preview.data.students.map(s=>s.codigo),["WA01","WA02"]);
+  assert.deepEqual(preview.data.students.find(s=>s.codigo==="WA01").contacts.map(c=>c.id),["guardian"]);
+  assert.equal((await guest("/api/v2/whatsapp/batch-students?cycle=ANUAL")).status,401);
+  assert.equal((await desk("/api/v2/whatsapp/batch-students?cycle=ANUAL")).status,403);
+  assert.equal((await admin("/api/v2/whatsapp/batch-students?cycle=NADA")).status,404);
+  const requestId=crypto.randomUUID();
+  const body={cycle:"ANUAL",format:"pdf",week:"TODAS",requestId,
+    items:[{code:"WA01",contactId:"guardian"},{code:"WA02",contactId:"other"}]};
+  assert.equal((await desk("/api/v2/whatsapp/batch-student-reports",{method:"POST",body})).status,403);
+  assert.equal((await admin("/api/v2/whatsapp/batch-student-reports",{
+    method:"POST",body:{...body,items:[{code:"WA01",contactId:"no-consent"}]},
+  })).status,409);
+  assert.equal((await admin("/api/v2/whatsapp/batch-student-reports",{
+    method:"POST",body:{...body,items:[{code:"WA01",contactId:"guardian"},{code:"WA01",contactId:"guardian"}]},
+  })).status,400);
+  const sent=await admin("/api/v2/whatsapp/batch-student-reports",{method:"POST",body});
+  assert.equal(sent.status,202,JSON.stringify(sent.data));
+  assert.equal(sent.data.enqueued,2);
+  const rows=sent.data.results.map(x=>db.prepare("SELECT * FROM outbox WHERE id=?").get(x.id));
+  assert(rows.every(r=>r.kind==="student_report" && r.next_attempt_at>Date.now()+20000));
+  assert(rows[1].next_attempt_at-rows[0].next_attempt_at>=60000);
+  const first=await admin("/api/v2/whatsapp/reports/"+sent.data.results[0].id+"/file");
+  assert.equal(first.status,200);
+  assert.doesNotMatch(first.bytes.toString("latin1"),/\/Subtype \/Image\b/);
+  const same=await admin("/api/v2/whatsapp/batch-student-reports",{method:"POST",body});
+  assert.equal(same.status,202,JSON.stringify(same.data));
+  assert.equal(same.data.enqueued,0);
+  assert.equal(same.data.duplicate,2);
+  assert.deepEqual(same.data.results.map(x=>x.id),sent.data.results.map(x=>x.id));
 });

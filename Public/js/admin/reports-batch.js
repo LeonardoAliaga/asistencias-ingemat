@@ -1,4 +1,5 @@
 import { showWhatsAppToast } from "./whatsapp-status.js";
+import { getSabadoVieOptions } from "./common/date-utils.js";
 const $=id=>document.getElementById(id);
 function uuid(){
   if(typeof crypto.randomUUID==="function") return crypto.randomUUID();
@@ -107,17 +108,8 @@ export function setupBulkReports(){
   }
   function populateWeeks(){
     const current=period.value;
-    const weeks=[new Option("Todas las semanas registradas","TODAS")];
-    let today=new Date();
-    for(let index=0;index<12;index++){
-      const day=new Date(today);
-      const offset=(day.getDay()+1)%7;
-      day.setDate(day.getDate()-offset-7*index);
-      const start=day.toISOString().slice(0,10);
-      day.setDate(day.getDate()+6);
-      const end=day.toISOString().slice(0,10);
-      weeks.push(new Option("Semana: "+start+" al "+end,start+"_"+end));
-    }
+    const weeks=[new Option("Todas las semanas registradas","TODAS"),
+      ...getSabadoVieOptions(11,0).map(w=>new Option(w.label,w.value))];
     period.replaceChildren(...weeks);
     if([...period.options].some(o=>o.value===current))period.value=current;
   }
@@ -148,7 +140,11 @@ export function setupBulkReports(){
   });
   populateWeeks();
   void window.ingematSession.then(session=>{
-    if(session.usuario?.role!=="admin"){root.hidden=true;return;}
+    if(session.usuario?.role!=="admin"){
+      root.hidden=true;
+      document.querySelector('[data-local-tab="bulk"]')?.setAttribute("hidden","");
+      return;
+    }
     loadCycles();
   });
 }
