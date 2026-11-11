@@ -52,15 +52,6 @@ const routes = {
     guide: "usuarios",
     roles: all,
   },
-  contacts: {
-    title: "Apoderados y áreas",
-    group: "Personas",
-    description:
-      "Asigna el perfil de postulación y administra los contactos autorizados.",
-    guide: "whatsapp-contactos",
-    roles: all,
-    v2: true,
-  },
   exams: {
     title: "Simulacros",
     group: "Académico",

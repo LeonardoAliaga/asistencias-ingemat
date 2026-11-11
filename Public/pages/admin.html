@@ -57,13 +57,6 @@
             id="btn-vista-usuarios"
             ><i aria-hidden="true" class="bi bi-people"></i
             ><span>Estudiantes y docentes</span></a
-          ><a
-            class="nav-item"
-            data-route="contacts"
-            href="#contacts"
-            id="btn-vista-contactos"
-            ><i aria-hidden="true" class="bi bi-person-lines-fill"></i
-            ><span>Apoderados y áreas</span></a
           >
         </div>
         <div class="nav-group">
@@ -1891,6 +1884,24 @@
             <label for="edit-ciclo">Ciclo</label
             ><select id="edit-ciclo" required=""></select>
           </div>
+          <fieldset id="edit-student-details" class="card stack" hidden>
+            <legend>Postulación y apoderados</legend>
+            <fieldset class="field student-area-fieldset" id="edit-student-area-group">
+              <legend>Área de postulación</legend>
+              <p class="help">Selecciona una sola área.</p>
+              <div class="student-area-options">
+                <label><input type="checkbox" name="edit-student-area" value="A" /> A</label>
+                <label><input type="checkbox" name="edit-student-area" value="B" /> B</label>
+                <label><input type="checkbox" name="edit-student-area" value="C" /> C</label>
+                <label><input type="checkbox" name="edit-student-area" value="D" /> D</label>
+                <label><input type="checkbox" name="edit-student-area" value="E" /> E</label>
+                <label><input type="checkbox" name="edit-student-area" value="GENERAL" /> Sin especificar</label>
+              </div>
+            </fieldset>
+            <p class="help">El apoderado es opcional. Para recibir avisos debe autorizarlo expresamente.</p>
+            <div id="edit-guardians-list" class="edit-guardians-list"></div>
+            <button id="edit-add-guardian" type="button" class="v2-button secondary">Añadir otro apoderado</button>
+          </fieldset>
           <div id="edit-dias-asistencia-selector">
             <label>Días de Asistencia:</label>
             <div class="day-buttons-container">

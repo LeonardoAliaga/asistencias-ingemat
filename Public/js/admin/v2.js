@@ -148,10 +148,6 @@ async function tab(name) {
     await state.scanner?.refresh();
   }
   if (name === "attendance") await loadAttendance();
-  if (name === "contacts") {
-    await loadStudents();
-    renderContacts();
-  }
   if (name === "notifications") await loadNotifications();
   if (name === "settings") await loadSettings();
   if (name === "guide") renderGuides();
@@ -1368,139 +1364,6 @@ async function loadAttendance() {
         }),
     );
 }
-function renderContacts() {
-  const search = $("v2-contact-search").value.toLowerCase();
-  const students = state.students.filter((u) =>
-    `${u.codigo} ${u.nombre} ${u.apellido} ${u.ciclo}`
-      .toLowerCase()
-      .includes(search),
-  );
-  $("v2-contacts").innerHTML =
-    students
-      .slice(0, 60)
-      .map(
-        (u) =>
-          `<article class="v2-card"><div class="v2-contact-header"><h3>${esc(u.apellido)} ${esc(u.nombre)}</h3><span>${esc(u.codigo)} · ${esc(u.ciclo)}</span></div><div class="v2-toolbar"><label>Área de postulación<input data-area-code-student="${esc(u.codigo)}" value="${esc(u.area)}" maxlength="20" placeholder="A, B, C… o GENERAL" ${state.role !== "admin" ? "disabled" : ""}></label>${state.role === "admin" ? `<button class="v2-button secondary" data-save-student="${esc(u.codigo)}">Guardar área</button><button class="v2-button" data-add-contact="${esc(u.codigo)}">Agregar apoderado</button>` : ""}</div>${
-            u.contacts
-              .filter((c) => c.active)
-              .map(
-                (c) =>
-                  `<div class="v2-contact-row"><strong>${esc(c.name)}</strong> · ${esc(c.phone)} · ${c.consent ? "Autorizado" : "Sin autorización"} ${state.role === "admin" ? `<button class="v2-link" data-revoke="${c.id}">Revocar</button>` : ""}</div>`,
-              )
-              .join("") ||
-            '<p class="v2-help">No hay contactos activos registrados.</p>'
-          }</article>`,
-      )
-      .join("") || '<div class="v2-empty">No se encontraron estudiantes.</div>';
-  for (const b of document.querySelectorAll("[data-save-student]"))
-    b.onclick = async () => {
-      try {
-        const input = [
-          ...document.querySelectorAll("[data-area-code-student]"),
-        ].find((i) => i.dataset.areaCodeStudent === b.dataset.saveStudent);
-        await api(
-          `/api/v2/students/${encodeURIComponent(b.dataset.saveStudent)}`,
-          json({ area: input.value }, "PATCH"),
-        );
-        await loadStudents();
-        message(
-          "Área actualizada. Las cartillas ya impresas conservan su área original.",
-        );
-      } catch (e) {
-        message(e.message, true);
-      }
-    };
-  for (const b of document.querySelectorAll("[data-add-contact]"))
-    b.onclick = () => {
-      showDialog(
-        "Agregar contacto autorizado",
-        '<form id="v2-contact-form"><label>Nombre del apoderado<input name="guardianName" required maxlength="100" autocomplete="name"></label><label>Teléfono internacional<input name="guardianPhone" type="tel" required placeholder="+51900111222" autocomplete="tel"></label><label class="v2-checkbox"><input name="guardianConsent" type="checkbox"> Autorizó recibir avisos de este estudiante</label><p id="v2-contact-error" class="field-error" role="alert" hidden></p><button type="submit" class="v2-button">Guardar contacto</button></form>',
-      );
-      bind("v2-contact-form", "submit", async (e) => {
-        // Names must not collide with HTMLFormElement properties: the HTML
-        // sanitizer removes unsafe names such as "name" to prevent clobbering.
-        const fields = new FormData(e.currentTarget);
-        const errorMessage = $("v2-contact-error");
-        errorMessage.hidden = true;
-        try {
-          await api(
-            `/api/v2/students/${encodeURIComponent(b.dataset.addContact)}/contacts`,
-            json({
-              name: fields.get("guardianName"),
-              phone: fields.get("guardianPhone"),
-              consent: fields.has("guardianConsent"),
-            }),
-          );
-        } catch (error) {
-          errorMessage.textContent = error.message;
-          errorMessage.hidden = false;
-          return;
-        }
-        $("v2-dialog").close();
-        await loadStudents();
-        renderContacts();
-        message("Contacto guardado.");
-      });
-    };
-  for (const b of document.querySelectorAll("[data-revoke]"))
-    b.onclick = async () => {
-      try {
-        await api(`/api/v2/contacts/${b.dataset.revoke}`, { method: "DELETE" });
-        await loadStudents();
-        renderContacts();
-        message("Autorización revocada.");
-      } catch (e) {
-        message(e.message, true);
-      }
-    };
-}
-async function loadNotifications() {
-  const ui = await state.notificationsUI;
-  if (ui) await ui.load();
-}
-async function loadSettings() {
-  const [accounts, audit] = await Promise.all([
-    api("/api/v2/accounts"),
-    api("/api/v2/audit"),
-  ]);
-  $("v2-accounts").innerHTML = table(
-    ["Usuario", "Rol", "Estado", "Acción"],
-    accounts.map((a) => [
-      esc(a.username),
-      esc(a.role),
-      a.active ? "Activa" : "Desactivada",
-      a.username === state.username
-        ? "Tu cuenta"
-        : `<button class="v2-link" data-account="${a.id}" data-active="${a.active}">${a.active ? "Desactivar" : "Activar"}</button>`,
-    ]),
-  );
-  $("v2-audit").innerHTML = table(
-    ["Fecha", "Operador", "Acción", "Entidad"],
-    audit.map((a) => [
-      esc(stamp(a.created_at)),
-      esc(a.actor),
-      esc(a.action),
-      `${esc(a.entity)} · ${esc(a.entity_id)}`,
-    ]),
-  );
-  $("v2-accounts")
-    .querySelectorAll("[data-account]")
-    .forEach(
-      (b) =>
-        (b.onclick = async () => {
-          try {
-            await api(
-              `/api/v2/accounts/${b.dataset.account}`,
-              json({ active: b.dataset.active !== "1" }, "PATCH"),
-            );
-            await loadSettings();
-            message("Estado de cuenta actualizado.");
-          } catch (e) {
-            message(e.message, true);
-          }
-        }),
-    );
-}
 function renderGuides() {
   const q = $("v2-guide-search").value.toLowerCase(),
     category = $("v2-guide-category").value;
@@ -1962,7 +1825,6 @@ async function initialize() {
   });
   bind("v2-guide-search", "input", renderGuides);
   bind("v2-guide-category", "change", renderGuides);
-  bind("v2-contact-search", "input", renderContacts);
   bind("v2-attendance-whatsapp", "click", async () => {
     const cycle = $("v2-attendance-cycle").value;
     const { target } = await api(
