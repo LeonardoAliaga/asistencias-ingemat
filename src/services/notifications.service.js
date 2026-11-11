@@ -9,6 +9,36 @@ const { GROUP_ID } = require("../whatsapp/media.cjs");
 function providerReady() {
   return baileys.status().connected;
 }
+// Informes de error sin destinatarios, mensajes, contactos, QR ni datos de sesión.
+function sendFailureDetail(error) {
+  const code = /^[A-Z0-9_]{1,60}$/.test(String(error?.code || ""))
+    ? error.code : "WHATSAPP_SEND_FAILED";
+  const status = Number.isInteger(error?.providerStatus) &&
+    error.providerStatus >= 100 && error.providerStatus <= 599
+      ? " · estado " + error.providerStatus : "";
+  const guidance = {
+    BAILEYS_INVALID_MESSAGE: "Destinatario o mensaje rechazado por el validador.",
+    BAILEYS_OFFLINE: "WhatsApp está desconectado; el aviso no llegó a enviarse.",
+    BAILEYS_SEND_ERROR: "El envío falló en Baileys. Comprueba la conexión y los permisos del grupo; ante una entrega incierta, verifica antes de reintentar.",
+    BAILEYS_SEND_TIMEOUT: "WhatsApp no respondió a tiempo. Comprueba si llegó antes de reintentar.",
+  }[code] || "El componente de WhatsApp informó un error de envío.";
+  return `${guidance} Código: ${code}${status}.`;
+}
+function logSendFailure(row, error, state) {
+  const code = /^[A-Z0-9_]{1,60}$/.test(String(error?.code || ""))
+    ? error.code : "WHATSAPP_SEND_FAILED";
+  const details = {
+    avisoId: row.id,
+    tipo: row.kind,
+    estado: state,
+    codigo: code,
+    intento: row.attempts + 1,
+    noEnviado: error?.notSent === true,
+    entregaIncierta: error?.deliveryUnknown === true,
+  };
+  if (Number.isInteger(error?.providerStatus)) details.estadoProveedor = error.providerStatus;
+  console.error("[WhatsApp] Fallo de envío", details);
+}
 function status() {
   return {
     provider: "baileys",
@@ -294,7 +324,9 @@ async function processOutbox(sendImpl = send) {
         ) {
           db.prepare(
             "UPDATE outbox SET status='pending',attempts=MAX(0,attempts-1),error=?,next_attempt_at=? WHERE id=? AND status='sending'",
-          ).run(baileys.REVIEW_NOTE, Date.now() + 30000, row.id);
+          ).run(sendFailureDetail(error), Date.now() + 30000, row.id);
+          if (row.error !== sendFailureDetail(error))
+            logSendFailure(row, error, "pending");
           break;
         }
         // The worker may fail after WhatsApp accepted a message. Manual reconciliation prevents duplicate notices.
@@ -308,12 +340,13 @@ async function processOutbox(sendImpl = send) {
           "UPDATE outbox SET status=?,error=?,next_attempt_at=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='sending'",
         ).run(
           uncertain ? "unknown" : retry ? "retry" : "failed",
-          baileys.REVIEW_NOTE,
+          sendFailureDetail(error),
           Date.now() +
             Math.min(3600000, 30000 * 2 ** row.attempts) +
             Math.floor(Math.random() * 3000),
           row.id,
         );
+        logSendFailure(row, error, uncertain ? "unknown" : retry ? "retry" : "failed");
       }
     }
   } finally {
@@ -350,11 +383,14 @@ function handleStatus(event) {
     );
     const order = { accepted: 0, sent: 1, delivered: 2, read: 3 };
     const next = event.status;
-    if (next === "failed" && !["delivered", "read"].includes(row.status))
+    if (next === "failed" && !["delivered", "read"].includes(row.status)) {
       db.prepare(
         "UPDATE outbox SET status='failed',error=?,updated_at=CURRENT_TIMESTAMP WHERE id=?",
-      ).run(baileys.REVIEW_NOTE, row.id);
-    else if (
+      ).run("WhatsApp confirmó que el aviso no fue entregado. Revisa la conexión y el destinatario. Código: BAILEYS_DELIVERY_FAILED.", row.id);
+      console.error("[WhatsApp] Fallo de entrega", {
+        avisoId: row.id, codigo: "BAILEYS_DELIVERY_FAILED",
+      });
+    } else if (
       order[next] !== undefined &&
       (order[row.status] ?? -1) < order[next]
     )

@@ -236,3 +236,36 @@ test("attendance, grades and corrections continue when the optional WhatsApp ser
     db.prepare("SELECT payload FROM outbox WHERE kind='results' AND status='accepted' ORDER BY id DESC LIMIT 1").get().payload
   )), "current");
 });
+
+test("actual Baileys send failures show a safe code without exposing messages or recipients", async () => {
+  const id=n.enqueue({
+    eventKey:"wa-test-failure-"+Date.now(),
+    recipient:"+51900111222",
+    kind:"attendance_report",
+    payload:{
+      text:"MENSAJE_PRIVADO_DE_PRUEBA",
+      cycle:"ANUAL",date:"2026-11-10",
+    },
+  });
+  // La validación de reportes requiere un grupo; aquí probamos el diagnóstico con un
+  // aviso no dependiente de archivos adjuntos.
+  db.prepare("UPDATE outbox SET kind='attendance' WHERE id=?").run(id);
+  let logs=[];
+  const previous=console.error;
+  console.error=(...args)=>logs.push(args);
+  try {
+    await n.processOutbox(async () => {
+      throw Object.assign(new Error("ERROR_PRIVADO"),{
+        code:"BAILEYS_SEND_ERROR",deliveryUnknown:true,notSent:false,providerStatus:403,
+      });
+    });
+  } finally {console.error=previous;}
+  const stored=row(id);
+  assert.equal(stored.status,"unknown");
+  assert.match(stored.error,/BAILEYS_SEND_ERROR/);
+  assert.match(stored.error,/403/);
+  assert(logs.some(entry=>entry[0]==="[WhatsApp] Fallo de envío"));
+  assert(!JSON.stringify(logs).includes("MENSAJE_PRIVADO_DE_PRUEBA"));
+  assert(!JSON.stringify(logs).includes("+51900111222"));
+  assert(!JSON.stringify(logs).includes("ERROR_PRIVADO"));
+});

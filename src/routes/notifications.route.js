@@ -79,7 +79,7 @@ router.post("/:id/retry", (req, res) => {
     notifications.resultState(JSON.parse(row.payload)) !== "current"
   )
     throw new AppError(
-      "El resultado fue modificado o está sin publicar. Revisa, publica y genera el aviso actualizado.",
+      "El resultado fue modificado. Revisa las respuestas y genera un aviso actualizado.",
       409,
     );
   if (row.status === "unknown" && req.body.confirmNotDelivered !== true)

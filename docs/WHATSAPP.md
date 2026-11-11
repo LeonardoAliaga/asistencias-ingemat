@@ -64,3 +64,7 @@ La dashboard consulta un estado mínimo y muestra un aviso temporal en una esqui
 
 ## Notificación manual de simulacros
 Desde **Simulacros**, después de validar y registrar calificaciones, Administración puede pulsar **Notificar resultados a padres** o **Notificar al grupo de WhatsApp** sin un paso previo de publicación. La primera opción avisa a cada contacto autorizado, evitando duplicados de la misma calificación; la segunda comparte solamente estadísticas generales al grupo configurado para el ciclo. Ambas acciones requieren confirmación. Un resumen grupal se puede volver a compartir tras comprobar que el envío anterior terminó; si sigue pendiente o es incierto, se bloquea otro intento. Las órdenes manuales de resultados se procesan aunque estén desactivados los avisos automáticos, sin habilitar estos últimos.
+
+
+## Diagnósticos de WhatsApp y Python/OMR
+Las publicaciones de resúmenes de simulacros usan textos a identificadores de grupo `@g.us`, no números telefónicos individuales. Si hay un error real, la consola del servidor muestra `[WhatsApp] Fallo de envío` y únicamente código, tipo, intento y estado. La pantalla Avisos y entregas conserva la explicación con el código técnico (sin mensajes, QR, números ni credenciales). Los fallos con entrega incierta exigen verificar con el destinatario antes de reintentar. Los mensajes de depuración rutinarios de Python/OMR permanecen silenciados; el comando `npm run omr:doctor` permite revisar su estado y `OMR_DEBUG=1` habilita logs detallados cuando sea necesario.
