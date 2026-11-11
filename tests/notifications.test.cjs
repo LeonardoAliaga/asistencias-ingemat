@@ -201,10 +201,9 @@ test("attendance, grades and corrections continue when the optional WhatsApp ser
     { codigoEstudiante: "GRADE001", respuestas: { 1: "A" } },
     req,
   );
-  db.prepare("UPDATE evaluaciones SET estado='publicado' WHERE id=?").run(
-    exam.id,
-  );
+  // Los avisos manuales deben funcionar directamente en estado Listo.
   exam = e.getExam(exam.id);
+  assert.equal(exam.estado, "listo");
   assert.equal(n.notifyResults(exam, req), 1);
   assert.equal(n.notifyResults(exam, req), 0);
   const original = db
@@ -218,6 +217,8 @@ test("attendance, grades and corrections continue when the optional WhatsApp ser
   );
   assert.equal(row(original.id).status, "cancelled");
   assert.equal(e.getExam(exam.id).estado, "listo");
-  assert.throws(() => n.notifyResults(e.getExam(exam.id), req), /Publica/);
+  assert.equal(n.notifyResults(e.getExam(exam.id), req), 1);
+  assert.equal(n.notifyResults(e.getExam(exam.id), req), 0);
+  assert.equal(n.resultState(JSON.parse(db.prepare("SELECT payload FROM outbox WHERE kind='results' AND status='pending' ORDER BY created_at DESC,id DESC LIMIT 1").get().payload)), "current");
   connected = true;
 });

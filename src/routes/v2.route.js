@@ -284,26 +284,10 @@ router.put("/exams/:id", write, (req, res) =>
 router.post("/exams/:id/ready", write, (req, res) =>
   res.json(evaluations.readyExam(req.params.id, req)),
 );
-router.post("/exams/:id/publish", write, (req, res) => {
-  const exam = evaluations.getExam(req.params.id);
-  if (exam.estado === "publicado") return res.json({ exito:true, alreadyPublished:true });
-  if (exam.estado !== "listo") throw new AppError("Primero valida el examen.");
-  if (
-    !db
-      .prepare("SELECT 1 FROM respuestas_evaluacion WHERE evaluacion_id=?")
-      .get(exam.id)
-  )
-    throw new AppError("Registra las calificaciones antes de publicar.");
-  db.prepare("UPDATE evaluaciones SET estado='publicado' WHERE id=?").run(
-    exam.id,
-  );
-  audit(req, "publicar", "evaluacion", exam.id);
-  res.json({ exito: true });
-});
 router.post("/exams/:id/notify", requireAdmin, (req, res) => {
   const exam = evaluations.getExam(req.params.id);
-  if (exam.estado !== "publicado")
-    throw new AppError("Publica los resultados antes de enviar avisos.");
+  if (!["listo", "publicado"].includes(exam.estado))
+    throw new AppError("Valida el simulacro antes de notificar resultados.");
   const queued = notifications.notifyResults(exam, req);
   audit(req, "notificar_resultados", "evaluacion", exam.id, { queued });
   res.json({ exito: true, queued });

@@ -60,3 +60,7 @@ Además se verificó una instalación limpia y la ausencia real del paquete en u
 En cada arranque el supervisor intenta conectar Baileys con la sesión guardada, aunque los avisos automáticos estén desactivados. Si no hay sesión válida, la vinculación sigue requiriendo el QR privado de Comunicación. Esto no activa envíos automáticos.
 
 La dashboard consulta un estado mínimo y muestra un aviso temporal en una esquina: conectando, conectado, requiere vinculación o error. El aviso se puede cerrar, desaparece por sí solo y no se repite con cada consulta mientras no cambie el estado. Los errores mantienen la indicación de revisar Baileys; la operación académica continúa.
+
+
+## Notificación manual de simulacros
+Desde **Simulacros**, después de validar y registrar calificaciones, Administración puede pulsar **Notificar resultados a padres** o **Notificar al grupo de WhatsApp** sin un paso previo de publicación. La primera opción avisa a cada contacto autorizado, evitando duplicados de la misma calificación; la segunda comparte solamente estadísticas generales al grupo configurado para el ciclo. Ambas acciones requieren confirmación. Un resumen grupal se puede volver a compartir tras comprobar que el envío anterior terminó; si sigue pendiente o es incierto, se bloquea otro intento. Las órdenes manuales de resultados se procesan aunque estén desactivados los avisos automáticos, sin habilitar estos últimos.

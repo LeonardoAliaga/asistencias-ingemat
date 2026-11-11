@@ -78,13 +78,11 @@ function notifyAttendance(record, user) {
   return contacts.length;
 }
 function notifyResults(exam, req) {
-  if (exam.estado !== "publicado")
-    throw new AppError("Publica los resultados antes de enviar avisos.");
-  const config = getConfig();
-  if (!config.enabled)
-    throw new AppError(
-      "Activa los avisos de WhatsApp antes de generar notificaciones.",
-    );
+  if (!["listo", "publicado"].includes(exam.estado))
+    throw new AppError("Valida el simulacro antes de notificar resultados.");
+  if (!db.prepare("SELECT 1 FROM respuestas_evaluacion WHERE evaluacion_id=?").get(exam.id))
+    throw new AppError("Registra las calificaciones antes de notificar resultados.", 409);
+  // Una orden manual no activa los avisos automáticos de asistencia.
   let queued = 0;
   for (const r of db
     .prepare(
@@ -130,11 +128,11 @@ function resultState(payload) {
     .get(payload.gradeId, payload.evaluationId);
   if (!row || row.revision !== payload.revision || row.estado === "archivado")
     return "stale";
-  return row.estado === "publicado" ? "current" : "paused";
+  return ["listo", "publicado"].includes(row.estado) ? "current" : "paused";
 }
 function cancelPendingResults(evaluationId, userUid) {
   db.prepare(
-    "UPDATE outbox SET status='cancelled',error='La calificación cambió. Revisa y publica los resultados actualizados.',updated_at=CURRENT_TIMESTAMP WHERE kind='results' AND json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END,'$.evaluationId')=? AND contact_id IN (SELECT id FROM contacts WHERE user_uid=?) AND status IN ('pending','retry','failed')",
+    "UPDATE outbox SET status='cancelled',error='La calificación cambió. Revisa las respuestas antes de generar nuevos avisos.',updated_at=CURRENT_TIMESTAMP WHERE kind='results' AND json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END,'$.evaluationId')=? AND contact_id IN (SELECT id FROM contacts WHERE user_uid=?) AND status IN ('pending','retry','failed')",
   ).run(evaluationId, userUid);
 }
 function cancelPendingAttendance(recordId) {
@@ -159,7 +157,7 @@ function reportState(row) {
     if (row.kind === "exam_group_summary") {
       const target=groups.target(payload.cycle);
       const report=require("./exam-group-results.service").snapshot(payload.evaluationId);
-      if (!target || target.id !== row.recipient || report.exam.estado !== "publicado"
+      if (!target || target.id !== row.recipient || !["listo", "publicado"].includes(report.exam.estado)
           || report.signature !== payload.signature)
         return { current:false,cancel:true,
           error:"El grupo o los resultados cambiaron. Publica nuevamente el resumen actualizado." };
@@ -223,7 +221,7 @@ async function processOutbox(sendImpl = send) {
   try {
     const rows = db
       .prepare(
-        "SELECT o.* FROM outbox o LEFT JOIN evaluaciones e ON e.id=json_extract(CASE WHEN json_valid(o.payload) THEN o.payload ELSE '{}' END,'$.evaluationId') WHERE o.provider=? AND (?=1 OR o.kind IN ('student_report','attendance_report','exam_group_summary')) AND o.status IN ('pending','retry') AND o.next_attempt_at<=? AND (o.kind!='results' OR json_extract(CASE WHEN json_valid(o.payload) THEN o.payload ELSE '{}' END,'$.gradeId') IS NULL OR e.estado IN ('publicado','archivado') OR NOT EXISTS (SELECT 1 FROM respuestas_evaluacion r WHERE r.id=json_extract(CASE WHEN json_valid(o.payload) THEN o.payload ELSE '{}' END,'$.gradeId'))) ORDER BY o.created_at LIMIT 5",
+        "SELECT o.* FROM outbox o LEFT JOIN evaluaciones e ON e.id=json_extract(CASE WHEN json_valid(o.payload) THEN o.payload ELSE '{}' END,'$.evaluationId') WHERE o.provider=? AND (?=1 OR o.kind IN ('student_report','attendance_report','exam_group_summary','results')) AND o.status IN ('pending','retry') AND o.next_attempt_at<=? AND (o.kind!='results' OR json_extract(CASE WHEN json_valid(o.payload) THEN o.payload ELSE '{}' END,'$.gradeId') IS NULL OR e.estado IN ('listo','publicado','archivado') OR NOT EXISTS (SELECT 1 FROM respuestas_evaluacion r WHERE r.id=json_extract(CASE WHEN json_valid(o.payload) THEN o.payload ELSE '{}' END,'$.gradeId'))) ORDER BY o.created_at LIMIT 5",
       )
       .all(config.provider, config.enabled ? 1 : 0, Date.now());
     for (const row of rows) {
@@ -253,7 +251,7 @@ async function processOutbox(sendImpl = send) {
       }
       if (row.kind === "results" && resultState(payload) === "stale") {
         db.prepare(
-          "UPDATE outbox SET status='cancelled',error='La calificación o publicación cambió' WHERE id=?",
+          "UPDATE outbox SET status='cancelled',error='La calificación o el simulacro cambió' WHERE id=?",
         ).run(row.id);
         continue;
       }

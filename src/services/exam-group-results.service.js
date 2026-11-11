@@ -49,8 +49,8 @@ function enqueueSummary(input, req) {
   if (!UUID.test(examId)) throw new AppError("Simulacro inválido.");
   return db.transaction(() => {
     const report = snapshot(examId);
-    if (report.exam.estado !== "publicado")
-      throw new AppError("Publica los resultados antes de compartirlos al grupo.", 409);
+    if (!["listo", "publicado"].includes(report.exam.estado))
+      throw new AppError("Valida el simulacro antes de notificar al grupo.", 409);
     if (!report.rows.length)
       throw new AppError("El simulacro no tiene resultados para compartir.", 409);
     const target = groups.target(report.exam.ciclo);
@@ -64,7 +64,7 @@ function enqueueSummary(input, req) {
     if (previous) {
       const payload=JSON.parse(previous.payload);
       if (payload.signature !== report.signature || payload.cycle !== target.cycle || payload.groupId !== target.id)
-        throw new AppError("La publicación cambió. Inicia un nuevo envío.", 409);
+        throw new AppError("Los resultados cambiaron. Inicia un nuevo envío.", 409);
       return { exito:true,id:previous.id,status:previous.status,duplicate:true,target:{subject:target.subject} };
     }
     const inFlight = db.prepare(

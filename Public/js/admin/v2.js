@@ -338,12 +338,11 @@ async function selectExam(id) {
   const canWrite = ["admin", "corrector"].includes(state.role);
   $("v2-edit").hidden = e.estado !== "borrador" || !canWrite;
   $("v2-ready").hidden = e.estado !== "borrador" || !canWrite;
-  $("v2-publish").hidden = !["listo","publicado"].includes(e.estado) || !canWrite;
-  $("v2-publish").textContent = e.estado === "publicado" ? "Resultados publicados · republicar" : "Publicar resultados";
   $("v2-revise").hidden =
     !["listo", "publicado"].includes(e.estado) || !e.definition || !canWrite;
-  $("v2-notify").hidden = e.estado !== "publicado" || state.role !== "admin";
-  $("v2-share-results-group").hidden = e.estado !== "publicado" || state.role !== "admin";
+  const canNotify = ["listo", "publicado"].includes(e.estado) && state.role === "admin";
+  $("v2-notify").hidden = !canNotify;
+  $("v2-share-results-group").hidden = !canNotify;
   $("v2-archive").hidden = !canWrite;
   $("v2-delete-permanent").hidden = state.role !== "admin";
   if (!e.definition) return;
@@ -2041,13 +2040,6 @@ async function initialize() {
     await loadExams(e.id);
     message("Examen validado. Ya puedes imprimir e importar cartillas.");
   });
-  bind("v2-publish", "click", async () => {
-    const publication=await api(`/api/v2/exams/${state.selected.id}/publish`, json({}));
-    await loadExams(state.selected.id);
-    message(publication.alreadyPublished
-      ? "El simulacro ya estaba publicado. Puedes volver a compartir su resumen en el grupo de WhatsApp."
-      : "Resultados publicados. Los avisos se envían solo cuando pulses Notificar resultados o Compartir resumen al grupo.");
-  });
   bind("v2-delete-permanent", "click", async () => {
     const e = state.selected;
     if (!e || state.role !== "admin") return;
@@ -2074,21 +2066,21 @@ async function initialize() {
   });
   bind("v2-share-results-group", "click", async () => {
     const exam=state.selected;
-    if (!exam || exam.estado !== "publicado") throw new Error("Publica los resultados antes de compartirlos.");
+    if (!exam || !["listo", "publicado"].includes(exam.estado)) throw new Error("Valida el simulacro antes de notificar al grupo.");
     const { target }=await api(`/api/v2/whatsapp/attendance-target?cycle=${encodeURIComponent(exam.ciclo)}`);
     if (!target) throw new Error("Configura primero el grupo del ciclo en Comunicación.");
-    if (!confirm(`¿Compartir el resumen estadístico de "${exam.titulo}" al grupo "${target.subject}"?\n\nNo incluye nombres, códigos ni calificaciones individuales. Puedes compartir otra vez después de comprobar el envío anterior.`)) return;
+    if (!confirm(`¿Notificar los resultados de "${exam.titulo}" al grupo "${target.subject}"?\n\nNo incluye nombres, códigos ni calificaciones individuales. Puedes compartir otra vez después de comprobar el envío anterior.`)) return;
     const result=await api("/api/v2/whatsapp/exam-group-summary",json({
       examId:exam.id,groupId:target.id,requestId:crypto.randomUUID(),
     }));
     message(result.duplicate
       ? "Esta solicitud ya estaba registrada. Consulta su estado en Comunicación."
-      : `Resumen del simulacro puesto en cola para el grupo "${target.subject}". Comprueba su entrega en Comunicación.`);
+      : `Resultados del simulacro puestos en cola para el grupo "${target.subject}". Comprueba su entrega en Comunicación.`);
   });
   bind("v2-notify", "click", async () => {
     if (
       !confirm(
-        "¿Poner en cola los resultados para todos los contactos autorizados de este examen?",
+        "¿Notificar los resultados de este simulacro a los padres y apoderados autorizados? Solo se enviarán avisos nuevos que aún no estén registrados.",
       )
     )
       return;
