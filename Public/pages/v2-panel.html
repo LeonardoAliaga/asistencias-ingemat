@@ -757,35 +757,16 @@ B:51-100,1-50"
     </div>
     <div class="v2-two-columns">
       <form class="v2-card" id="v2-wa-config">
-        <h3>Proveedor y mensajes</h3>
+        <h3>Notificaciones automáticas</h3>
         <p>
-          Conexión con Baileys, sin credenciales de una API de pago. Guarda los
-          mensajes, vincula el teléfono y después activa los avisos.
+          Vincula el teléfono de la academia y activa o desactiva los avisos.
+          Los mensajes de asistencia y resultados usan las plantillas internas de INGEMAT.
         </p>
         <div id="v2-baileys-fields">
           <p>
             Baileys se ejecuta sin navegador en la PC del servidor. Es una
             biblioteca no oficial que puede necesitar actualizaciones; sus
             fallos se aíslan del sistema académico.
-          </p>
-          <label
-            >Mensaje de asistencia<textarea
-              name="attendanceMessage"
-              rows="5"
-              maxlength="3000"
-            ></textarea>
-          </label>
-          <p class="v2-help">Variables: {nombre}, {fecha}, {hora}, {estado}. Separa varias versiones con una línea <code>---</code>. El sistema elige una por cada aviso registrado.</p>
-          <label
-            >Mensaje de resultados<textarea
-              name="resultsMessage"
-              rows="5"
-              maxlength="3000"
-            ></textarea>
-          </label>
-          <p class="v2-help">
-            Variables: {nombre}, {examen}, {puntaje}, {area}. Conserva {nombre}
-            para identificar al estudiante.
           </p>
         </div>
         <label class="v2-checkbox"
@@ -855,6 +836,7 @@ B:51-100,1-50"
           Actualizar
         </button>
       </div>
+      <p class="v2-help">Los reportes por lote muestran los segundos restantes hasta su turno de envío. Al llegar a 0 s pueden seguir pendientes si la conexión o la cola no están disponibles. Pulsa Actualizar para consultar el estado real.</p>
       <div id="v2-outbox"></div>
     </div>
   </section>

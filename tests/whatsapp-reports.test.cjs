@@ -509,6 +509,11 @@ test("envío por lote valida el ciclo, el consentimiento, el tamaño y la identi
   const rows=sent.data.results.map(x=>db.prepare("SELECT * FROM outbox WHERE id=?").get(x.id));
   assert(rows.every(r=>r.kind==="student_report" && r.next_attempt_at>Date.now()+20000));
   assert(rows[1].next_attempt_at-rows[0].next_attempt_at>=60000);
+  const outboxResponse=await admin("/api/v2/notifications");
+  assert.equal(outboxResponse.status,200);
+  const entries=sent.data.results.map(item=>outboxResponse.data.outbox.find(row=>row.id===item.id));
+  assert(entries.every(entry=>entry && entry.bulk_batch_id===requestId));
+  assert(entries.every(entry=>entry.next_attempt_at>0 && entry.student_code));
   const first=await admin("/api/v2/whatsapp/reports/"+sent.data.results[0].id+"/file");
   assert.equal(first.status,200);
   assert.doesNotMatch(first.bytes.toString("latin1"),/\/Subtype \/Image\b/);

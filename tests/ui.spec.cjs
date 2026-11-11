@@ -1827,7 +1827,7 @@ test("scanner failed attempts have bounded height and cleanup preserves ready ca
   expect(audit.violations).toEqual([]);
 });
 
-async function baileysUIFixture(page, initial = {}) {
+async function baileysUIFixture(page, initial = {}, outbox = []) {
   const defaults = {
     enabled: false,
     provider: "baileys",
@@ -1851,7 +1851,7 @@ async function baileysUIFixture(page, initial = {}) {
     };
   const posts = [];
   await page.route("**/api/v2/notifications", (r) =>
-    r.fulfill({ json: { config, status: health, outbox: [] } }),
+    r.fulfill({ json: { config, status: health, outbox } }),
   );
   await page.route("**/api/v2/notifications/health", (r) =>
     r.fulfill({ json: health }),
@@ -1897,33 +1897,25 @@ async function baileysUIFixture(page, initial = {}) {
           };
     return r.fulfill({ json: health });
   });
-  return { posts, health: () => health };
+  return { posts, health: () => health, config: () => config };
 }
-test("Baileys is the only connection and health refresh preserves message drafts", async ({
+test("Baileys mantiene plantillas internas y permite activar avisos sin editores de texto", async ({
   page,
 }) => {
-  await baileysUIFixture(page);
+  const fixture = await baileysUIFixture(page);
   await login(page);
   await navigate(page, "notifications");
-  await expect(
-    page.locator(
-      "#v2-wa-config [name=provider], [name=attendanceTemplate], [name=resultsTemplate]",
-    ),
-  ).toHaveCount(0);
-  await page.fill("[name=attendanceMessage]", "Aviso editado para {nombre}");
+  await expect(page.locator('#v2-wa-config textarea, #v2-wa-config [name="attendanceMessage"], #v2-wa-config [name="resultsMessage"]')).toHaveCount(0);
+  await expect(page.locator("#v2-wa-config")).toContainText("plantillas internas");
   await page.click("#v2-baileys-connect");
-  await expect(page.locator("#v2-baileys-status")).toContainText(
-    "WhatsApp conectado",
-  );
-  await expect(page.locator("[name=attendanceMessage]")).toHaveValue(
-    "Aviso editado para {nombre}",
-  );
+  await expect(page.locator("#v2-baileys-status")).toContainText("WhatsApp conectado");
   await expect(page.locator("#v2-baileys-connect")).toBeDisabled();
   await page.check("[name=enabled]");
   await page.click("#v2-wa-config button[type=submit]");
-  await expect(page.locator("#v2-message")).toContainText(
-    "Configuración de WhatsApp guardada",
-  );
+  await expect(page.locator("#v2-message")).toContainText("Configuración de WhatsApp guardada");
+  expect(fixture.config().enabled).toBe(true);
+  expect(fixture.config().attendanceMessage).toContain("{nombre}");
+  expect(fixture.config().resultsMessage).toContain("{examen}");
 });
 test("package error is visible across dashboard sections and academic UI remains usable on mobile", async ({
   page,
@@ -2402,4 +2394,26 @@ test("Reportes: lote por ciclo muestra apoderados y permite excluir con × antes
   expect(submitted.items).toEqual([{code:"DEMO001",contactId:"g1"}]);
   expect(submitted.format).toBe("pdf");
   await expect(page.locator("#report-bulk-message")).toContainText("1 reportes puestos en cola");
+});
+
+test("la cola de envíos por lote muestra segundos restantes y cambia a espera al vencer", async ({ page }) => {
+  const due=Date.now()+180_000;
+  await baileysUIFixture(page, {}, [
+    {id:"batch-one",recipient:"+51900000001",kind:"student_report",status:"pending",
+      provider:"baileys",created_at:"2026-11-10 20:00:00",error:"",next_attempt_at:due,
+      bulk_batch_id:"batch-xyz",student_code:"DEMO001"},
+    {id:"regular",recipient:"+51900000002",kind:"attendance",status:"pending",
+      provider:"baileys",created_at:"2026-11-10 20:00:00",error:"",next_attempt_at:0,
+      bulk_batch_id:null,student_code:null},
+  ]);
+  await login(page);
+  await navigate(page,"notifications");
+  const row=page.locator("#v2-outbox tbody tr").filter({hasText:"DEMO001"});
+  await expect(row).toContainText("En 180 s");
+  const timer=row.locator(".v2-batch-countdown");
+  await expect(timer).toHaveAttribute("data-due-ms",String(due));
+  await timer.evaluate(el => {el.dataset.dueMs=String(Date.now()-1000);});
+  await expect(timer).toContainText("0 s · esperando procesamiento",{timeout:2500});
+  const ordinary=page.locator("#v2-outbox tbody tr").filter({hasText:"+51900000002"});
+  await expect(ordinary).toContainText("—");
 });

@@ -87,11 +87,26 @@ export function mountNotifications({
       refreshing = false;
     }
   }
+  function updateCountdowns() {
+    for (const item of $("v2-outbox").querySelectorAll(".v2-batch-countdown")) {
+      const due = Number(item.dataset.dueMs);
+      if (!Number.isFinite(due) || due <= 0) {
+        item.textContent = "Pendiente";
+        continue;
+      }
+      const seconds = Math.max(0, Math.ceil((due - Date.now()) / 1000));
+      item.textContent = seconds > 0
+        ? `En ${seconds} s`
+        : "0 s · esperando procesamiento";
+    }
+  }
+  const countdownTimer = setInterval(() => {
+    if (!document.hidden) updateCountdowns();
+  }, 1000);
+  window.addEventListener("pagehide", () => clearInterval(countdownTimer), { once: true });
   async function load() {
     const data = await api("/api/v2/notifications");
     form.elements.enabled.checked = data.config.enabled;
-    for (const key of ["attendanceMessage", "resultsMessage"])
-      form.elements[key].value = data.config[key] ?? "";
     await renderHealth(data.status);
     try {
       await (await groupsUI)?.load();
@@ -104,14 +119,20 @@ export function mountNotifications({
         "Destinatario",
         "Aviso / proveedor",
         "Estado",
+        "Envío en (segundos)",
         "Detalle",
         "Acción",
       ],
       data.outbox.map((r) => [
         esc(stamp(r.created_at)),
         esc(r.recipient),
-        `${esc({ attendance: "Asistencia", results: "Resultado", student_report: "Reporte del alumno", attendance_report: "Reporte del ciclo" }[r.kind] || r.kind)}<br>${r.provider === "baileys" ? "Baileys" : "Histórico anterior"}`,
+        `${esc({ attendance: "Asistencia", results: "Resultado", student_report: "Reporte del alumno", attendance_report: "Reporte del ciclo" }[r.kind] || r.kind)}${r.bulk_batch_id && r.student_code ? ` · ${esc(r.student_code)}` : ""}<br>${r.provider === "baileys" ? "Baileys" : "Histórico anterior"}`,
         badge(r.status),
+        r.bulk_batch_id
+          ? ["pending", "retry"].includes(r.status)
+            ? `<span class="v2-batch-countdown" role="timer" aria-live="off" data-due-ms="${Math.max(0,Number(r.next_attempt_at) || 0)}">Calculando…</span>`
+            : esc({ sending: "Enviando", accepted: "Aceptado", sent: "Enviado", delivered: "Entregado", read: "Leído", unknown: "Por comprobar", failed: "Fallido", cancelled: "Cancelado" }[r.status] || r.status)
+          : "—",
         esc(r.error) +
           (["student_report", "attendance_report"].includes(r.kind)
             ? `<br><a href="/api/v2/whatsapp/reports/${encodeURIComponent(r.id)}/file">Descargar archivo del envío</a>`
@@ -121,6 +142,7 @@ export function mountNotifications({
           : "",
       ]),
     );
+    updateCountdowns();
     for (const button of $("v2-outbox").querySelectorAll("[data-retry]"))
       button.onclick = () =>
         act(button, async () => {
