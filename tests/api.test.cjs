@@ -1134,9 +1134,10 @@ test("editing a student updates area and guardian consent atomically without los
     assert.equal(response.status,200);
     assert.equal(db.prepare("SELECT active FROM contacts WHERE id=?").get(saved.id).active,0);
     assert.equal(db.prepare("SELECT active FROM contacts WHERE id=?").get(other.id).active,1);
-    // Requests from old clients must leave contacts and area untouched.
+    // Requests from old clients that omit area/guardians must preserve them.
+    const { area: ignoredArea, ...legacyInput } = baseUser;
     response=await admin("/api/usuarios/EDITGUARD02",{
-      ...baseUser,codigo:"EDITGUARD02",nombre:"ANA CORREGIDA",
+      ...legacyInput,codigo:"EDITGUARD02",nombre:"ANA CORREGIDA",
     },"PUT");
     assert.equal(response.status,200);
     assert.equal(db.prepare("SELECT area FROM usuarios WHERE codigo='EDITGUARD02'").get().area,"D");
