@@ -148,8 +148,20 @@ test("media sends use private bounded files and preserve stable IDs for individu
     }),
     (e) => e.code === "BAILEYS_INVALID_MESSAGE" && e.notSent,
   );
+  // Resúmenes de simulacro: texto sin adjunto para JID de grupo.
+  const groupText = f.service.sendText(
+    "120363123456789@g.us", "Resumen del simulacro", "0123456789ABCDEF",
+  );
+  assert.equal(f.child.command.recipient, "120363123456789@g.us");
+  assert.equal(f.child.command.attachment, undefined);
+  f.child.emit("message", {
+    type: "result", id: f.child.command.id,
+    ok: true, messageId: "0123456789ABCDEF",
+  });
+  assert.equal(await groupText, "0123456789ABCDEF");
   await assert.rejects(
-    f.service.sendText("120363123456789@g.us", "Texto", "0123456789ABCDEF"),
+    f.service.sendText("grupo@ejemplo.invalid", "Texto", "0123456789ABCDEF"),
+    e => e.code === "BAILEYS_INVALID_MESSAGE" && e.notSent,
   );
   const pdf = {
     id: randomUUID(),
@@ -388,4 +400,16 @@ test("a reconnect cannot start another worker while the session reset is in prog
   await reset;
   f.service.connect();
   assert.equal(f.forks(), 2);
+});
+
+test("worker errors expose only a safe provider status code", async () => {
+  const f=fixture();
+  f.service.connect();
+  f.connected();
+  const sending=f.service.sendText("120363123456789@g.us","CONTENIDO_PRIVADO","0123456789ABCDEF");
+  f.child.emit("message", {type:"result",id:f.child.command.id,ok:false,
+    notSent:false,providerStatus:403});
+  await assert.rejects(sending,err=>
+    err.code==="BAILEYS_SEND_ERROR" && err.providerStatus===403 &&
+    err.deliveryUnknown===true && !JSON.stringify(err).includes("CONTENIDO_PRIVADO"));
 });

@@ -13,12 +13,13 @@ let socket,
 const emit = (message) => {
   if (process.connected) process.send(message);
 };
-function fatal(code) {
+function fatal(code, reason = "") {
   if (stopped) return;
   stopped = true;
   clearTimeout(reconnectTimer);
   try {
-    emit({ type: "fault", code });
+    emit({ type: "fault", code,
+      reason: /^[A-Z0-9_]{1,40}$/.test(reason) ? reason : "" });
   } catch {}
   setTimeout(() => process.exit(1), 25);
 }
@@ -210,8 +211,7 @@ async function start() {
         return;
       }
       if (
-        (!isPhone(message.recipient) &&
-          !(message.attachment && GROUP_ID.test(message.recipient))) ||
+        (!isPhone(message.recipient) && !GROUP_ID.test(message.recipient)) ||
         typeof message.text !== "string" ||
         !message.text.trim() ||
         message.text.length > 6000 ||
@@ -263,9 +263,14 @@ async function start() {
           ok: true,
           messageId: result.key.id,
         });
-      } catch {
-        emit({ type: "result", id: message.id, ok: false, notSent: false });
-        fatal("BAILEYS_SEND_ERROR");
+      } catch (error) {
+        // Estado del protocolo únicamente, jamás texto del error que puede contener JID.
+        const status = Number(error?.output?.statusCode || error?.statusCode);
+        const providerStatus = Number.isInteger(status) && status >= 100 && status <= 599
+          ? status : null;
+        emit({ type: "result", id: message.id, ok: false,
+          notSent: false, providerStatus });
+        fatal("BAILEYS_SEND_ERROR", providerStatus ? "STATUS_" + providerStatus : "");
       } finally {
         sending = false;
       }

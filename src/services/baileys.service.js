@@ -40,11 +40,13 @@ function createBaileysService({
     qrAvailable: !!qr && qr.expiresAt > Date.now(),
     qrExpiresAt: qr?.expiresAt || null,
   });
-  function unavailable(code, unknown = false) {
+  function unavailable(code, unknown = false, providerStatus = null) {
     return Object.assign(new Error(REVIEW_NOTE), {
       code,
       deliveryUnknown: unknown,
       notSent: !unknown,
+      providerStatus: Number.isInteger(providerStatus) && providerStatus >= 100 && providerStatus <= 599
+        ? providerStatus : null,
     });
   }
   function detach(code = "BAILEYS_STOPPED") {
@@ -66,7 +68,7 @@ function createBaileysService({
     }
     return previous;
   }
-  function fault(code) {
+  function fault(code, causeCode = "") {
     detach(code);
     snapshot = {
       state: "error",
@@ -74,7 +76,11 @@ function createBaileysService({
       code,
       note: REVIEW_NOTE,
     };
-    console.warn("[WhatsApp] Servicio aislado detenido", { code });
+    // Nunca registrar contenido del mensaje, números, grupos ni credenciales.
+    console.error("[WhatsApp] Fallo del servicio Baileys", {
+      code,
+      ...(causeCode ? { causeCode } : {}),
+    });
   }
   function connect() {
     if (resetting) return status();
@@ -135,11 +141,16 @@ function createBaileysService({
           fault("BAILEYS_UNRESPONSIVE");
       }, tickMs);
       watchTimer.unref?.();
-      current.on("error", () => {
-        if (generation === token) fault("BAILEYS_PROCESS_ERROR");
+      current.on("error", (error) => {
+        if (generation === token)
+          fault("BAILEYS_PROCESS_ERROR",
+            /^[A-Z0-9_]{1,40}$/.test(String(error?.code || "")) ? error.code : "");
       });
-      current.on("exit", () => {
-        if (generation === token) fault("BAILEYS_PROCESS_EXIT");
+      current.on("exit", (exitCode, signal) => {
+        if (generation === token)
+          fault("BAILEYS_PROCESS_EXIT",
+            Number.isInteger(exitCode) ? "EXIT_" + exitCode
+              : signal === "SIGTERM" ? "SIGTERM" : "");
       });
       current.on("disconnect", () => {
         if (generation === token) fault("BAILEYS_IPC_CLOSED");
@@ -157,6 +168,8 @@ function createBaileysService({
               /^[A-Z0-9_]{1,60}$/.test(message.code)
                 ? message.code
                 : "BAILEYS_WORKER_ERROR",
+              /^[A-Z0-9_]{1,40}$/.test(String(message.reason || ""))
+                ? message.reason : "",
             );
             return;
           }
@@ -224,6 +237,7 @@ function createBaileysService({
                     ? "BAILEYS_INVALID_MESSAGE"
                     : "BAILEYS_SEND_ERROR",
                   message.notSent !== true,
+                  message.providerStatus,
                 ),
               );
           } else if (
@@ -249,7 +263,7 @@ function createBaileysService({
     if (!child || snapshot.state !== "connected")
       return Promise.reject(unavailable("BAILEYS_OFFLINE"));
     if (
-      !/^\+[1-9]\d{7,14}$/.test(recipient) ||
+      (!isPhone(recipient) && !GROUP_ID.test(recipient)) ||
       typeof text !== "string" ||
       !text.trim() ||
       text.length > 6000 ||
