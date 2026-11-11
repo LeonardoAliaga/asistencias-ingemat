@@ -540,52 +540,118 @@ test("envío por lote valida el ciclo, el consentimiento, el tamaño y la identi
   assert.deepEqual(same.data.results.map(x=>x.id),sent.data.results.map(x=>x.id));
 });
 
-test("resumen al grupo sin publicar es manual, privado, repetible e idempotente", async () => {
+
+test("ranking por área genera PNG por alumno, sin códigos, y se envía como media al grupo", async () => {
+  db.prepare("UPDATE outbox SET status='cancelled' WHERE status IN ('pending','retry')").run();
   const e = require("../src/services/evaluations.service");
   const req={session:{username:"admin",role:"admin"}};
   const ex=e.readyExam(e.saveExam({
     titulo:"SIMULACRO DE COMUNICACIONES",ciclo:"ANUAL",
-    definition:{totalQuestions:2,keys:{1:"A",2:"B"}},
+    definition:{
+      totalQuestions:2,keys:{1:"A",2:"B"},
+      areas:[{code:"A",name:"Ciencias"},{code:"B",name:"Letras"}],
+    },
   },req).id,req);
   assert.equal(ex.estado,"listo");
-  for(const code of ["WA01","WA02"])
-    e.saveGrade(ex.id,{codigoEstudiante:code,respuestas:{1:"A",2:"B"}},req);
+  for(const code of ["WA01","WA02"]){
+    e.saveGrade(ex.id,{
+      codigoEstudiante:code,area:code==="WA01"?"A":"B",
+      respuestas:code==="WA01"?{1:"A",2:"B"}:{1:"B",2:"B"},
+    },req);
+  }
   await admin("/api/v2/whatsapp/attendance-groups", {
     method:"PUT",body:{cycle:"ANUAL",groupId:g1.id},
   });
   settings.storeConfig({...settings.getConfig(),enabled:false});
-  const payload={examId:ex.id,groupId:g1.id,requestId:crypto.randomUUID()};
+  const payload={
+    examId:ex.id,groupId:g1.id,requestId:crypto.randomUUID(),confirmAuthorized:true,
+  };
+  assert.equal((await admin("/api/v2/whatsapp/exam-group-summary",{
+    method:"POST",body:{...payload,confirmAuthorized:false},
+  })).status,400);
   const first=await admin("/api/v2/whatsapp/exam-group-summary",{
     method:"POST",body:payload,
   });
   assert.equal(first.status,202,JSON.stringify(first.data));
   assert.equal(first.data.duplicate,false);
-  const record=db.prepare("SELECT * FROM outbox WHERE id=?").get(first.data.id);
-  const text=JSON.parse(record.payload).text;
-  assert.match(text,/SIMULACRO DE COMUNICACIONES/);
-  assert.match(text,/Evaluados: 2/);
-  assert(!text.includes("WA01")&&!text.includes("MUÑOZ"),"Los nombres y códigos no deben ir al grupo.");
-  assert.equal(record.recipient,g1.id);
-  const same=await admin("/api/v2/whatsapp/exam-group-summary",{method:"POST",body:payload});
+  assert.equal(first.data.images,2);
+  assert.equal(first.data.areas,2);
+  assert.equal(first.data.ids.length,2);
+  const rows=first.data.ids.map(id=>db.prepare("SELECT * FROM outbox WHERE id=?").get(id));
+  const areas=rows.map(row=>JSON.parse(row.payload).area);
+  assert.deepEqual(areas,["Ciencias","Letras"]);
+  for(const row of rows){
+    assert.equal(row.kind,"exam_group_summary");
+    assert.equal(row.recipient,g1.id);
+    const body=JSON.parse(row.payload);
+    assert.equal(body.attachment.format,"png");
+    assert.match(body.text,/SIMULACRO DE COMUNICACIONES/);
+    assert(!body.text.includes("WA01")&&!body.text.includes("WA02"));
+    assert(!JSON.stringify(body).includes("WA01"),"El código del estudiante no debe viajar en el aviso.");
+    const file=await admin("/api/v2/whatsapp/reports/"+row.id+"/file");
+    assert.equal(file.status,200);
+    assert.equal(file.headers.get("content-type"),"image/png");
+    assert.equal(file.bytes.subarray(0,8).toString("hex"),"89504e470d0a1a0a");
+    assert.equal(file.bytes.readUInt32BE(16),1320);
+    assert.equal((await guest("/api/v2/whatsapp/reports/"+row.id+"/file")).status,401);
+    assert.equal((await desk("/api/v2/whatsapp/reports/"+row.id+"/file")).status,403);
+  }
+  const same=await admin("/api/v2/whatsapp/exam-group-summary",{
+    method:"POST",body:payload,
+  });
   assert.equal(same.status,202);
   assert.equal(same.data.duplicate,true);
-  assert.equal(same.data.id,first.data.id);
+  assert.deepEqual(same.data.ids,first.data.ids);
   assert.equal((await admin("/api/v2/whatsapp/exam-group-summary",{
     method:"POST",body:{...payload,requestId:crypto.randomUUID()},
-  })).status,409,"No se debe duplicar un mensaje grupal pendiente");
-  assert.equal((await guest("/api/v2/whatsapp/exam-group-summary",{method:"POST",body:payload})).status,401);
-  let sent=0;
-  await notifications.processOutbox(async (entry)=>{
-    if(entry.id===first.data.id)sent++;
-    return entry.id.replaceAll("-","").toUpperCase();
-  });
-  assert.equal(sent,1);
-  assert.equal(db.prepare("SELECT status FROM outbox WHERE id=?").get(first.data.id).status,"accepted");
+  })).status,409,"No debe duplicarse un envío grupal pendiente.");
+  assert.equal((await guest("/api/v2/whatsapp/exam-group-summary",{
+    method:"POST",body:payload,
+  })).status,401);
+  const calls=[];
+  const old=baileys.sendMedia;
+  baileys.sendMedia=async (...args)=>{calls.push(args);return args[2];};
+  try{await notifications.processOutbox();}
+  finally{baileys.sendMedia=old;}
+  assert.equal(calls.length,2,"Se debe enviar una imagen por cada área.");
+  assert(calls.every(args=>args[0]===g1.id && args[3].format==="png"));
+  assert(first.data.ids.every(id=>db.prepare("SELECT status FROM outbox WHERE id=?").get(id).status==="accepted"));
   const repeated=await admin("/api/v2/whatsapp/exam-group-summary",{
     method:"POST",body:{...payload,requestId:crypto.randomUUID()},
   });
   assert.equal(repeated.status,202,JSON.stringify(repeated.data));
   assert.equal(repeated.data.duplicate,false);
+  assert.equal(repeated.data.images,2);
   assert.notEqual(repeated.data.id,first.data.id);
-  db.prepare("UPDATE outbox SET status='accepted' WHERE id=?").run(repeated.data.id);
+  db.prepare("UPDATE outbox SET status='accepted' WHERE id IN (?,?)").run(...repeated.data.ids);
+});
+test("una imagen por área y paginación de rankings extensos, conservando empates", () => {
+  const { groupPages, renderPage, PAGE_ROWS }=require("../src/services/exam-ranking-image.service");
+  const report={
+    exam:{titulo:"SIMULACRO",ciclo:"ANUAL",fecha:"2026-11-11",
+      definition:JSON.stringify({areas:[{code:"A",name:"Ciencias"},{code:"B",name:"Letras"}]})},
+    rows:[
+      ...Array.from({length:PAGE_ROWS+3},(_,i)=>({
+        area:"A",nombreEstudiante:"ALUMNO "+String(i).padStart(2,"0"),
+        correctas:25-i,incorrectas:i,enBlanco:0,puntajeTotal:i<2?100:100-i,
+      })),
+      {area:"B",nombreEstudiante:"ALUMNO LETRAS",correctas:10,incorrectas:4,enBlanco:1,puntajeTotal:99},
+    ],
+  };
+  const pages=groupPages(report);
+  assert.equal(pages.length,3);
+  assert.deepEqual(pages.map(p=>[p.area,p.page,p.total,p.rows.length]),[
+    ["Ciencias",1,2,PAGE_ROWS],["Ciencias",2,2,3],["Letras",1,1,1],
+  ]);
+  assert.equal(pages[0].rows[0].position,1);
+  assert.equal(pages[0].rows[1].position,1);
+  assert.equal(pages[0].rows[2].position,3);
+  assert.equal(pages[1].rows[0].position,PAGE_ROWS+1);
+  for(const page of pages){
+    const buffer=renderPage(report,page);
+    assert.equal(buffer.subarray(0,8).toString("hex"),"89504e470d0a1a0a");
+    assert.equal(buffer.readUInt32BE(16),1320);
+    assert(buffer.readUInt32BE(20)>250);
+    assert(!page.rows.some(r=>Object.hasOwn(r,"codigoEstudiante")));
+  }
 });
