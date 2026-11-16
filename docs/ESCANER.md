@@ -15,7 +15,9 @@ npm run scanner:doctor
 npm run scanner:doctor -- twain
 ```
 
-En Lectura de cartillas selecciona el examen listo dentro del panel Escanear con NAPS2 y pulsa Buscar escáneres. El aviso junto al botón indica si falta elegir o validar un simulacro, seleccionar el escáner o esperar otra solicitud. El botón se habilita al completar los requisitos. Prueba WIA y, si es necesario, TWAIN. Elige equipo, origen y área. Escanear y añadir crea una captura en segundo plano; al terminar puedes abrir su PDF, quitarla, cambiar el papel o voltearlo y añadir otra. Cancelar escaneo solicita detener el proceso; comprueba el papel antes de repetir.
+En Lectura de cartillas pulsa Buscar escáneres, selecciona equipo, origen y área física de escaneo. No se elige un examen: el QR de cada cartilla identifica examen, diseño y cara. Puedes incluir varios exámenes. Escanear y añadir captura el papel a 300 ppp en grises, sin OCR. El botón se habilita al seleccionar el equipo y estar libre el escáner.
+
+Antes de crear un lote, pulsa **Previsualizar capturas**. Recorre todas las páginas de cada PDF y desmarca los mal escaneados. **Procesar seleccionados** envía solo los elegidos al lector; los excluidos permanecen disponibles en la bandeja. Volver sin procesar no crea un lote ni guarda notas. Los PDF e imágenes cargados manualmente tienen la misma revisión previa.
 
 ## Brother MFC-T920DW
 
@@ -31,9 +33,9 @@ Referencias oficiales: [documentos admitidos en el ADF](https://support.brother.
 
 ## Lotes y recuperación
 
-- Las capturas y sus estados se guardan en SQLite y `data/scanner`, por operador y examen. Cambiar de sección o recargar no borra las capturas terminadas.
+- Las capturas y sus estados se guardan en SQLite y `data/scanner`, por operador. Cambiar de sección o recargar no borra las capturas terminadas.
 - Un solo proceso NAPS2 puede operar el escáner a la vez en esta instancia. Mantén una sola instancia de INGEMAT, como requiere el despliegue SQLite.
-- Se conservan hasta diez capturas listas por examen y operador; cada PDF admite 20 MB. Un uso del alimentador puede producir varias páginas en un PDF. El lector admite hasta 100 caras de cartilla por lote.
+- Se conservan hasta diez capturas listas por operador; cada PDF admite 20 MB. Un uso del alimentador puede producir varias páginas en un PDF. El lector admite hasta 100 caras de cartilla por lote.
 - Ante una respuesta perdida, Verificar reutiliza el identificador original. Las consultas de estado no repiten órdenes físicas ni importaciones. El servidor interrumpido marca el escaneo fallido; solicita una nueva captura de forma manual.
 - Procesar capturas copia los PDF a un lote OMR normal y conserva los originales si falla la importación. Al recibirse el lote se retiran de la bandeja. Revisa y confirma el lote para guardar las notas.
 - Incluye ambas caras de cada cartilla de cuarto en el mismo lote; los QR las asocian. Quedan disponibles la carga de PDF/PNG/JPG previamente escaneados y la importación CSV.

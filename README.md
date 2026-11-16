@@ -69,9 +69,9 @@ La actualización crea una instantánea previa del SQLite existente. Los JSON he
 
 La base de datos es `DATA_DIR/ingemat.db`; el valor predeterminado es `./data`. Si defines `DATA_DIR`, los archivos históricos se buscan en `DATA_DIR/registros` salvo que definas `RECORDS_DIR`. Sin `DATA_DIR`, se conserva la carpeta `./Registros` de la instalación anterior.
 
-## Simulacros
+## Exámenes
 
-1. En **Simulacros → Nuevo examen**, elige en el único selector **Plantilla**. Con **Simulacro tipo UNMSM**, el recorrido es **Datos → Claves → Revisión**; las bases y Personalizado también muestran **Cursos y áreas**. Los puntajes generales están visibles en Datos.
+1. En **Exámenes → Nuevo examen**, elige en el único selector **Plantilla**. Con **Simulacro tipo UNMSM**, el recorrido es **Datos → Claves → Revisión**; las bases y Personalizado también muestran **Cursos y áreas**. Los puntajes generales están visibles en Datos.
 2. La plantilla predeterminada **Simulacro tipo UNMSM** ya distribuye los 19 cursos y las áreas A–E según los PDF de la academia: 120 impresas y 100 evaluables por área. Consulta [rangos y cantidades](docs/PLANTILLA_REPASO.md). Para crear otra distribución elige una base o Personalizado (configuración limpia). Los exámenes existentes se conservan.
 3. Para cada área y curso define preguntas fijas o un conjunto elegible y cupo. La suma tiene que coincidir con el total evaluable del perfil.
 4. En **Claves**, selecciona las alternativas con botones A–E: avance automático, progreso por curso, navegación a pendientes y selección de varias respuestas aceptadas. También puedes pegar una secuencia de letras sin números. Las penalizaciones, excepciones y versiones están en opciones desplegables.
@@ -191,3 +191,11 @@ Los tests usan directorios temporales y datos ficticios; no usan los registros d
 El plan aplicado y la puesta en marcha están en [docs/PLAN_VERSION.md](docs/PLAN_VERSION.md).
 
 Consulta [CHANGELOG.md](CHANGELOG.md), [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) y [docs/REVISION.md](docs/REVISION.md).
+
+### Cartillas adaptables y lectura por QR
+
+En **Imprimir cartillas**, **Automático** calcula el tamaño según las preguntas y los cursos: seis, cuatro, tres, dos o una por A4 a una cara. Un diseño sencillo de 50 preguntas admite seis; los títulos y la identificación también cuentan. **Previsualizar cartillas** muestra el PDF antes de imprimir. El diseño exacto se guarda con cada cartilla v5; las versiones impresas anteriores siguen siendo legibles.
+
+**Lectura de cartillas → Escanear con NAPS2** ya no pide examen. El QR firmado identifica examen, diseño y cara, incluso con varios exámenes en el mismo lote. **Previsualizar capturas** permite abrir cada PDF y excluir los mal escaneados antes de crear el lote; los originales excluidos siguen en la bandeja. La carga manual de PDF/imágenes ofrece la misma selección previa. El examen se selecciona únicamente para CSV. Las notas se guardan al confirmar la revisión, en una transacción para todos los exámenes del lote.
+
+Al **Guardar como plantilla**, activa **Áreas y cursos fijos** para reutilizar la estructura y pasar de Datos a Claves. Las claves anteriores se limpian; el servidor conserva la estructura al crear o editar ese examen.

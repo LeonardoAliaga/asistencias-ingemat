@@ -228,19 +228,64 @@ def read_page(image, layouts, output):
     cv2.imwrite(str(output), normalized)
     return {'qr': qr, 'page': page, 'layoutVersion': layout.get('version', 2), 'identification': identification, 'responses': responses, 'imagePath': str(output)}
 
+def identify_qr(image):
+    """Bootstrap identity without assuming an exam or a physical card size.
+
+    The server validates the signature and supplies the stored geometry for the
+    second pass. A generic marker rectification only helps decode the QR here.
+    """
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    detector = cv2.aruco.ArucoDetector(cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50))
+    corners, ids, _ = detector.detectMarkers(gray)
+    found = [] if ids is None else list(map(int, ids.flatten()))
+    if any(found.count(i) != 1 for i in range(4)):
+        raise ValueError('Deben verse los cuatro marcadores de cada cartilla, sin superponerlas.')
+    centers = {int(i): np.mean(c[0], axis=0) for c, i in zip(corners, ids.flatten())}
+    src = np.float32([centers[i] for i in range(4)])
+    width = max(100, round(max(np.linalg.norm(src[1]-src[0]), np.linalg.norm(src[2]-src[3]))))
+    height = max(100, round(max(np.linalg.norm(src[3]-src[0]), np.linalg.norm(src[2]-src[1]))))
+    matrix = cv2.getPerspectiveTransform(src, np.float32([[0,0],[width-1,0],[width-1,height-1],[0,height-1]]))
+    normalized = cv2.warpPerspective(gray, matrix, (width, height), borderValue=255)
+    for candidate in (gray, normalized):
+        values = {barcode.text for barcode in zxingcpp.read_barcodes(candidate, formats=zxingcpp.BarcodeFormat.QRCode) if barcode.valid}
+        if len(values) > 1:
+            raise ValueError('Hay varios QR en una misma cartilla. Separa las cartillas y repite la captura.')
+        if len(values) == 1:
+            return values.pop()
+    raise ValueError('No se pudo leer el QR. Comprueba la nitidez y conserva sus márgenes.')
+
 def main(request):
     result = []
     output_dir = Path(request['outputDir'])
     output_dir.mkdir(parents=True, exist_ok=True)
     for file in request['files']:
         try:
-            for image in images(file['path']):
+            for source_page, image in enumerate(images(file['path']), 1):
+                if request.get('mode') == 'read':
+                    try:
+                        page = read_page(image, [file['layout']], output_dir / f'{len(result)}.png')
+                        if page['qr'] != file['expectedQR']:
+                            raise ValueError('El QR no coincide con la cartilla identificada.')
+                        result.append({**page, 'file': file['name']})
+                    except Exception as error:
+                        result.append({'file': file['name'], 'error': str(error)})
+                    continue
                 crops, incomplete = split_cartillas(image)
                 for crop in crops:
                     if len(result) >= MAX_PAGES:
                         raise ValueError('El lote supera las 100 caras de cartilla.')
                     try:
-                        result.append({**read_page(crop, request['layouts'], output_dir / f'{len(result)}.png'), 'file': file['name']})
+                        if request.get('mode') == 'identify':
+                            output = output_dir / f'{len(result)}.png'
+                            cv2.imwrite(str(output), crop)
+                            item = {'file': file['name'], 'sourcePage': source_page, 'sourcePath': str(output)}
+                            try:
+                                item['qr'] = identify_qr(crop)
+                            except Exception as error:
+                                item['error'] = str(error)
+                            result.append(item)
+                        else:
+                            result.append({**read_page(crop, request['layouts'], output_dir / f'{len(result)}.png'), 'file': file['name']})
                     except Exception as error:
                         result.append({'file': file['name'], 'error': str(error)})
                 if incomplete:

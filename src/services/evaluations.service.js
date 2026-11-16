@@ -31,6 +31,24 @@ function saveExam(body, req, id) {
       "Un examen listo o publicado conserva su estructura. Usa una revisión de claves para corregirlo.",
       409,
     );
+  const templateId =
+    existing?.template_id ||
+    (typeof body.templateId === "string" ? body.templateId : "");
+  if (templateId) {
+    const template = db
+      .prepare("SELECT * FROM exam_templates WHERE id=? AND structure_fixed=1")
+      .get(templateId);
+    if (!template)
+      throw new AppError("La plantilla fija ya no está disponible.");
+    const expected = normalizeDefinition(JSON.parse(template.definition), {
+      complete: false,
+    });
+    const { structureOf } = require("./exam-template-structure");
+    if (structureOf(def) !== structureOf(expected))
+      throw new AppError(
+        "La plantilla tiene áreas y cursos fijos. Conserva su estructura y modifica únicamente las claves.",
+      );
+  }
   const examId = id || randomUUID(),
     fecha = body.fecha || businessDate();
   if (
@@ -73,6 +91,11 @@ function saveExam(body, req, id) {
     db.prepare(
       "INSERT INTO evaluaciones(titulo,ciclo,fecha,tipo,numPreguntas,totalPreguntasCuadernillo,puntajeCorrecta,puntajeIncorrecta,claves,preguntasPorArea,definition,id,estado) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,'borrador')",
     ).run(...args, examId);
+  if (templateId)
+    db.prepare("UPDATE evaluaciones SET template_id=? WHERE id=?").run(
+      templateId,
+      examId,
+    );
   audit(req, existing ? "editar" : "crear", "evaluacion", examId, {
     titulo: title,
   });
@@ -138,7 +161,11 @@ function saveGrade(
   const user = db.prepare("SELECT * FROM usuarios WHERE codigo=?").get(code);
   if (!user || user.rol !== "estudiante")
     throw new AppError("Estudiante no encontrado.", 404);
-  if (user.archived_at) throw new AppError("El estudiante está archivado. Restáuralo antes de registrar nuevas notas.", 409);
+  if (user.archived_at)
+    throw new AppError(
+      "El estudiante está archivado. Restáuralo antes de registrar nuevas notas.",
+      409,
+    );
   if (
     String(user.ciclo).toUpperCase() !== String(exam.ciclo).toUpperCase() &&
     !db
@@ -232,36 +259,59 @@ function saveGrade(
 }
 function deleteStudentGrade(id, codeInput, req) {
   const exam = getExam(id);
-  const code = String(codeInput || "").trim().toUpperCase();
+  const code = String(codeInput || "")
+    .trim()
+    .toUpperCase();
   if (!/^[A-Z0-9_-]{1,32}$/.test(code))
     throw new AppError("Código de estudiante inválido.", 400);
   return db.transaction(() => {
-    const row = db.prepare(
-      "SELECT id,nombreEstudiante FROM respuestas_evaluacion WHERE evaluacion_id=? AND codigoEstudiante=? ORDER BY id DESC LIMIT 1",
-    ).get(id, code);
-    if (!row) throw new AppError("El estudiante no tiene una calificación en este simulacro.", 404);
-    const sending = db.prepare(
-      "SELECT 1 FROM outbox WHERE kind='results' AND status='sending' AND json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END,'$.evaluationId')=? AND json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END,'$.gradeId')=? LIMIT 1",
-    ).get(id, row.id);
+    const row = db
+      .prepare(
+        "SELECT id,nombreEstudiante FROM respuestas_evaluacion WHERE evaluacion_id=? AND codigoEstudiante=? ORDER BY id DESC LIMIT 1",
+      )
+      .get(id, code);
+    if (!row)
+      throw new AppError(
+        "El estudiante no tiene una calificación en este simulacro.",
+        404,
+      );
+    const sending = db
+      .prepare(
+        "SELECT 1 FROM outbox WHERE kind='results' AND status='sending' AND json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END,'$.evaluationId')=? AND json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END,'$.gradeId')=? LIMIT 1",
+      )
+      .get(id, row.id);
     if (sending)
-      throw new AppError("Se está enviando el resultado de este alumno. Finaliza el envío antes de eliminarlo.", 409);
+      throw new AppError(
+        "Se está enviando el resultado de este alumno. Finaliza el envío antes de eliminarlo.",
+        409,
+      );
     // Conserva avisos ya entregados para auditoría; los pendientes no se enviarán.
-    const cancelled = db.prepare(
-      "UPDATE outbox SET status='cancelled',error='Calificación eliminada por el administrador',updated_at=CURRENT_TIMESTAMP WHERE kind='results' AND status IN ('pending','retry','failed') AND json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END,'$.evaluationId')=? AND json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END,'$.gradeId')=?",
-    ).run(id, row.id).changes;
-    const grades = db.prepare(
-      "DELETE FROM respuestas_evaluacion WHERE evaluacion_id=? AND codigoEstudiante=?",
-    ).run(id, code).changes;
-    const history = db.prepare(
-      "DELETE FROM grade_history WHERE evaluation_id=? AND student_code=?",
-    ).run(id, code).changes;
+    const cancelled = db
+      .prepare(
+        "UPDATE outbox SET status='cancelled',error='Calificación eliminada por el administrador',updated_at=CURRENT_TIMESTAMP WHERE kind='results' AND status IN ('pending','retry','failed') AND json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END,'$.evaluationId')=? AND json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END,'$.gradeId')=?",
+      )
+      .run(id, row.id).changes;
+    const grades = db
+      .prepare(
+        "DELETE FROM respuestas_evaluacion WHERE evaluacion_id=? AND codigoEstudiante=?",
+      )
+      .run(id, code).changes;
+    const history = db
+      .prepare(
+        "DELETE FROM grade_history WHERE evaluation_id=? AND student_code=?",
+      )
+      .run(id, code).changes;
     // Las capturas originales de OMR se conservan como evidencia de lectura,
     // pero el registro y su historial de correcciones desaparecen del ranking.
     rankExam(id);
     if (exam.estado === "publicado")
       db.prepare("UPDATE evaluaciones SET estado='listo' WHERE id=?").run(id);
     audit(req, "eliminar_resultado_estudiante", "evaluacion", id, {
-      codigo: code, nombre: row.nombreEstudiante, grades, history, cancelled,
+      codigo: code,
+      nombre: row.nombreEstudiante,
+      grades,
+      history,
+      cancelled,
     });
     return { exito: true, codigoEstudiante: code, grades, history, cancelled };
   })();

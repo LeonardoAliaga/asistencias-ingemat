@@ -268,3 +268,37 @@ test("bulk cleanup only discards failed/cancelled captures of the current operat
   }
   assert.equal(scanner.clearFailed(exam.id, req).cleared, 0);
 });
+
+test("unassigned captures preview independently, import only selected PDFs and recover without an exam", async () => {
+  const autoBody = () => {
+    const b = body();
+    delete b.examId;
+    return b;
+  };
+  const captureAuto = async () => {
+    const job = scanner.start(autoBody(), req);
+    release();
+    for (let i = 0; i < 100; i++) {
+      const current = scanner.list("", req).jobs.find((j) => j.id === job.id);
+      if (current?.status === "ready") return current;
+      await new Promise((r) => setTimeout(r, 5));
+    }
+    throw Error("Automatic capture did not finish");
+  };
+  const first = await captureAuto(),
+    second = await captureAuto();
+  assert.equal(first.examId, null);
+  assert.ok(fs.existsSync(scanner.download(first.id, req)));
+  assert.throws(() => scanner.download(first.id, other), /no encontrada/);
+  const request = { jobIds: [first.id], requestId: randomUUID() };
+  const batch = scanner.processCaptures(request, req);
+  assert.equal(batch.evaluation_id, "");
+  assert.equal(batch.files.length, 1);
+  assert.equal(scanner.processCaptures(request, req).id, batch.id);
+  assert(
+    scanner
+      .list("", req)
+      .jobs.some((j) => j.id === second.id && j.status === "ready"),
+  );
+  scanner.discard(second.id, req);
+});

@@ -1,4 +1,16 @@
-# Cartillas horizontales con identificación
+# Cartillas adaptables por examen
+
+La sección se llama **Exámenes**. El modo **Automático** genera solo las preguntas del cuadernillo (1–200), con bloques por curso. Elige entre seis, cuatro, tres, dos o una cartilla por A4 a una cara según el espacio real. Mantiene círculos de 3 puntos de radio y las ocho columnas del código. Para 50 preguntas en un curso caben seis cartillas por A4; encabezados largos o más cursos pueden necesitar otra distribución. La pantalla muestra el tamaño en milímetros, cantidad por hoja y hojas requeridas. **Previsualizar cartillas** permite ver y descargar el mismo PDF antes de imprimir.
+
+La geometría completa se guarda por su hash y cada cartilla v5 conserva una referencia inmutable a ella. El QR firmado resuelve examen, diseño, versión del cuadernillo y cara. La lectura primero identifica y valida el QR; después normaliza usando el diseño guardado. No depende de seleccionar el tamaño ni el examen. Una revisión de claves no modifica las posiciones impresas. Los diseños v2, v3 y v4 siguen disponibles y legibles.
+
+Las plantillas pueden guardarse con **Áreas y cursos fijos**. Al reutilizarlas, el asistente pasa de Datos a Claves, limpia las respuestas anteriores y conserva preguntas, cursos, áreas, puntajes y versiones. El servidor también comprueba esa estructura al guardar un examen o editar su borrador.
+
+Antes de enviar PDF o imágenes al lector, la vista previa permite comprobar cada archivo y excluir los defectuosos. El lote puede incluir varios exámenes, con el examen visible en cada cartilla y calificación. La confirmación valida las revisiones de todos ellos y guarda las notas en una sola transacción. El límite sigue siendo 100 **caras de cartilla**, no 100 hojas A4. Las cartillas pequeñas recortadas se colocan separadas sobre el cristal; el área física de captura puede seguir siendo A4.
+
+Los apartados siguientes describen los formatos anteriores, que permanecen disponibles.
+
+## Cartillas horizontales con identificación
 
 Las cartillas nuevas incluyen el logo extraído del primer PDF de ejemplo de la academia, campos manuscritos para apellidos, nombres y área y ocho casillas para escribir el código. Debajo hay ocho columnas de diez círculos numerados del 0 al 9. El código debe existir como una cadena de exactamente ocho dígitos en el padrón; no se eliminan ceros iniciales ni se rellenan códigos cortos automáticamente.
 

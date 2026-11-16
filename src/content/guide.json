@@ -303,12 +303,12 @@
     },
     {
       "id": "simulacro-100",
-      "category": "Simulacros",
+      "category": "Exámenes",
       "title": "Crear un simulacro estándar de 100 preguntas",
       "summary": "Sigue cuatro pasos: Datos, Cursos y áreas, Claves y Revisión.",
       "steps": [
         {
-          "title": "Abre Simulacros",
+          "title": "Abre Exámenes",
           "text": "Pulsa Nuevo examen. En Datos, el único selector Plantilla reúne las preestablecidas y las que guardaste. Elige Base de 100 preguntas para configurar sus cursos."
         },
         {
@@ -344,13 +344,13 @@
     },
     {
       "id": "simulacro-120",
-      "category": "Simulacros",
+      "category": "Exámenes",
       "title": "Cuadernillo de 120 preguntas con 100 evaluables por área",
       "summary": "El número impreso y el número evaluado son conceptos diferentes.",
       "steps": [
         {
           "title": "Elige Simulacro tipo UNMSM",
-          "text": "En Simulacros pulsa Nuevo examen. En Plantilla elige Simulacro tipo UNMSM: contiene 120 preguntas impresas, 19 cursos y 100 evaluables para cada área A–E."
+          "text": "En Exámenes pulsa Nuevo examen. En Plantilla elige Simulacro tipo UNMSM: contiene 120 preguntas impresas, 19 cursos y 100 evaluables para cada área A–E."
         },
         {
           "title": "Completa los datos",
@@ -388,7 +388,7 @@
     },
     {
       "id": "cupos",
-      "category": "Simulacros",
+      "category": "Exámenes",
       "title": "Preguntas fijas frente a elegir un cupo dentro de un curso",
       "summary": "Evita calificar preguntas que no corresponden o seleccionar las mejores respuestas.",
       "steps": [
@@ -421,7 +421,7 @@
     },
     {
       "id": "claves-especiales",
-      "category": "Simulacros",
+      "category": "Exámenes",
       "title": "Preguntas sin descuento, anuladas y actitudinales",
       "summary": "Aplica excepciones de puntaje de forma explícita.",
       "steps": [
@@ -450,7 +450,7 @@
     },
     {
       "id": "versiones",
-      "category": "Simulacros",
+      "category": "Exámenes",
       "title": "Versiones A/B de un cuadernillo",
       "summary": "Relaciona el orden impreso con las preguntas originales.",
       "steps": [
@@ -481,8 +481,8 @@
     },
     {
       "id": "plantillas",
-      "category": "Simulacros",
-      "title": "Elegir y guardar plantillas de simulacros",
+      "category": "Exámenes",
+      "title": "Elegir y guardar plantillas de exámenes",
       "summary": "Un solo selector Plantilla en Datos; Guardar como plantilla en Revisión.",
       "steps": [
         {
@@ -495,11 +495,11 @@
         },
         {
           "title": "Guarda en Revisión",
-          "text": "Escribe Nombre de la plantilla y pulsa Guardar como plantilla. Es independiente de Guardar borrador o Guardar y validar. Se admiten claves pendientes."
+          "text": "Escribe Nombre de la plantilla. Si deseas conservar la estructura, activa Áreas y cursos fijos y pulsa Guardar como plantilla. Puedes guardarla con claves pendientes; es independiente de guardar o validar el examen."
         },
         {
           "title": "Reutiliza en otro examen",
-          "text": "Pulsa Nuevo examen y selecciona la plantilla dentro de Mis plantillas. Revisa los datos y reemplaza las claves por las del nuevo cuadernillo. Cargar una plantilla no cambia las notas de otro examen."
+          "text": "Pulsa Nuevo examen y selecciona la plantilla dentro de Mis plantillas. Si tiene áreas y cursos fijos, completa los datos y Continuar te lleva directamente a Claves. Las respuestas anteriores se limpian, mientras preguntas, cursos, áreas, puntajes y versiones se conservan. Las plantillas flexibles permiten editar la estructura."
         },
         {
           "title": "Conserva las reglas del examen",
@@ -512,7 +512,7 @@
       "id": "imprimir-cartillas",
       "category": "Lectura OMR",
       "title": "Generar cartillas por curso y elegir tamaño de impresión",
-      "summary": "Cuarto de A4 a doble cara o media A4 a una cara, siempre con cartillas horizontales.",
+      "summary": "Tamaño automático según preguntas y cursos, con previsualización; también conserva los tamaños anteriores.",
       "steps": [
         {
           "title": "Valida el examen",
@@ -520,11 +520,15 @@
         },
         {
           "title": "Elige identificación",
-          "text": "En Simulacros selecciona el examen y abre Imprimir cartillas. La opción El alumno completa sus datos y código deja apellidos, nombres y área para escribir; incluye ocho casillas y ocho columnas de círculos del 0 al 9. Los alumnos necesitan códigos registrados de exactamente ocho dígitos; los ceros iniciales se conservan. Los nombres manuscritos son una referencia visual, no se leen por OCR."
+          "text": "En Exámenes selecciona el examen y abre Imprimir cartillas. La opción El alumno completa sus datos y código deja apellidos, nombres y área para escribir; incluye ocho casillas y ocho columnas de círculos del 0 al 9. Los alumnos necesitan códigos registrados de exactamente ocho dígitos; los ceros iniciales se conservan. Los nombres manuscritos son una referencia visual, no se leen por OCR."
         },
         {
           "title": "Elige tamaño y cantidad",
-          "text": "Cuarto de A4 horizontal, doble cara coloca cuatro cartillas en una hoja A4 horizontal; frente y reverso se vinculan por QR y su posición se ajusta al borde de volteo elegido. Media A4 horizontal, una cara coloca dos cartillas en una hoja A4 vertical y contiene todas las respuestas en el frente. Indica la cantidad de cartillas, no la cantidad de hojas; los espacios sobrantes quedan vacíos. En media hoja caben las 120 preguntas en esa única cara; cuarto las reparte entre frente y reverso."
+          "text": "Automático calcula seis, cuatro, tres, dos o una cartilla horizontal por A4 a una cara, respetando el tamaño de los círculos, la identificación y los títulos. Un examen sencillo de 50 preguntas cabe en seis por hoja; más cursos o títulos largos pueden requerir un tamaño mayor. La pantalla indica las dimensiones y las hojas necesarias. Cuarto a doble cara y media a una cara siguen disponibles."
+        },
+        {
+          "title": "Previsualiza el PDF",
+          "text": "Pulsa Previsualizar cartillas para revisar el diseño y descargar ese mismo PDF. Comprueba títulos, preguntas, código y márgenes antes de imprimir."
         },
         {
           "title": "Imprime al 100%",
@@ -540,8 +544,8 @@
         }
       ],
       "tips": [
-        "El formato anterior QR por estudiante permanece disponible para cartillas A4 personalizadas y cuadernillos de más de 120 preguntas. Sus impresiones existentes siguen siendo legibles.",
-        "La disposición compacta admite hasta cinco áreas de un carácter o un único perfil general. Antes de imprimir un salón completo, prueba papel, márgenes y calidad de lectura."
+        "El diseño automático admite entre 1 y 200 preguntas. Guarda la geometría utilizada para que el lector use exactamente las posiciones impresas. Las cartillas anteriores siguen siendo compatibles.",
+        "Cada cartilla tiene un QR distinto. Genera la cantidad necesaria; no fotocopies una sola para distintos alumnos. Haz una prueba física con la impresora y el escáner."
       ]
     },
     {
@@ -552,7 +556,7 @@
       "steps": [
         {
           "title": "Prepara el escáner",
-          "text": "Usa alimentador automático (ADF), 300 ppp y PDF multipágina. Empieza con escala de grises y desactiva filtros que borren marcas tenues."
+          "text": "Para hojas A4 o documentos admitidos por el ADF, usa 300 ppp en grises y PDF multipágina. Para cartillas pequeñas recortadas, coloca varias separadas sobre el cristal y captura A4. Desactiva filtros que borren marcas tenues."
         },
         {
           "title": "Revisa el papel",
@@ -560,11 +564,11 @@
         },
         {
           "title": "Escanea el lote",
-          "text": "No es necesario ordenar por estudiante: las cartillas personalizadas se identifican por QR."
+          "text": "El QR identifica examen, diseño y cara. No necesitas ordenar por estudiante ni elegir el examen. Puedes incluir varios exámenes; las reglas de cada uno se aplican por separado."
         },
         {
           "title": "Carga los archivos",
-          "text": "En Lectura de cartillas selecciona el examen y carga PDF, PNG o JPG. Se admiten hasta 10 archivos de 20 MB y 100 páginas por lote."
+          "text": "En Lectura de cartillas carga PDF, PNG o JPG. Pulsa Previsualizar archivos, recorre todos los PDF y desmarca los mal escaneados. Solo Procesar seleccionados crea el lote. Hasta 10 archivos de 20 MB y 100 caras de cartilla por lote, contando cada cartilla dentro de una A4."
         },
         {
           "title": "Espera el procesamiento",
@@ -589,7 +593,7 @@
       "id": "escanear-naps2",
       "category": "Lectura OMR",
       "title": "Escanear desde NAPS2",
-      "summary": "Añade capturas desde el cristal o el alimentador y envíalas juntas al lector OMR.",
+      "summary": "Escanea sin elegir examen, comprueba cada PDF y procesa solo los archivos seleccionados.",
       "steps": [
         {
           "title": "Instala y prueba el escáner",
@@ -597,7 +601,7 @@
         },
         {
           "title": "Conecta y selecciona",
-          "text": "Abre Lectura de cartillas y selecciona un examen listo. Pulsa Buscar escáneres. Se usa WIA inicialmente; si el equipo no aparece, selecciona TWAIN y vuelve a buscar. El escáner debe estar accesible desde la PC del servidor, aunque abras el panel desde otro dispositivo."
+          "text": "Abre Lectura de cartillas y pulsa Buscar escáneres. No necesitas seleccionar un examen: se identifica por el QR. Usa WIA o prueba TWAIN si no aparece el equipo. NAPS2 controla el escáner conectado a la computadora que ejecuta INGEMAT."
         },
         {
           "title": "Prepara el papel",
@@ -605,22 +609,22 @@
         },
         {
           "title": "Escanea y añade",
-          "text": "Pulsa Escanear y añadir y espera a que aparezca Lista para procesar. Abre Ver PDF para comprobar que están el QR y los cuatro marcadores. Cambia o voltea el papel y repite; la bandeja conserva hasta diez capturas listas por examen y operador, incluso al recargar. Puedes cancelar un escaneo o quitar una captura terminada."
+          "text": "Pulsa Escanear y añadir y espera a que aparezca Lista para procesar. Puedes reunir hasta diez capturas por operador, incluso de distintos exámenes. Recargar conserva los PDF terminados. Puedes abrir Ver PDF, quitar una captura o cancelar un escaneo."
         },
         {
           "title": "Recupera una conexión interrumpida",
           "text": "Si se pierde la respuesta, pulsa Verificar captura pendiente o Verificar envío pendiente. Se reutiliza el mismo identificador y no se repite una orden ya recibida. Si se reinicia el servidor durante la captura se marca Fallida; comprueba el escáner y solicita una nueva captura manualmente."
         },
         {
-          "title": "Procesa y confirma",
-          "text": "Pulsa Procesar capturas para crear un único lote OMR. Su estado aparece debajo del escáner, antes del historial. Corrige las incidencias y confirma la importación. Los archivos originales del lote se conservan; las notas solo se guardan tras esa confirmación."
+          "title": "Previsualiza, selecciona y procesa",
+          "text": "Pulsa Previsualizar capturas. Abre cada documento, comprueba todas sus páginas y desmarca los archivos borrosos o incompletos. Procesar seleccionados envía únicamente esos PDF al lector; los excluidos permanecen en la bandeja. Después revisa examen, estudiante y notas del lote y confirma la importación. Las notas se guardan juntas en cada examen correspondiente."
         }
       ],
       "tips": [
         "Una sesión individual de NAPS2 genera un PDF de hasta 20 MB. Divide las pilas grandes; el lector admite hasta 100 caras de cartilla por lote.",
         "También puedes cargar PDF, PNG o JPG escaneados previamente desde el apartado de archivos.",
         "Lotes recientes usa un selector compacto. Limpiar finalizados oculta de tu lista los lotes importados o fallidos; Restaurar lista los vuelve a mostrar. Los pendientes permanecen visibles y no se borran archivos, notas ni auditoría.",
-        "Limpiar intentos fallidos retira capturas fallidas o canceladas de tu examen y usuario. Conserva las capturas listas y las solicitudes activas. Los apartados Cargar PDF o imágenes e Importar CSV están al final de la sección."
+        "Limpiar intentos fallidos retira capturas fallidas o canceladas de tu usuario y conserva las listas. La selección del examen se mantiene únicamente para CSV, que no incluye un QR."
       ]
     },
     {
@@ -704,7 +708,7 @@
       "steps": [
         {
           "title": "Selecciona el examen y estudiante",
-          "text": "En Simulacros selecciona un examen listo y abre la pestaña Ingreso manual. Selecciona al estudiante por nombre o código."
+          "text": "En Exámenes selecciona un examen listo y abre la pestaña Ingreso manual. Selecciona al estudiante por nombre o código."
         },
         {
           "title": "Confirma área y versión",

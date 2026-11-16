@@ -12,7 +12,7 @@ function qrPayload(id, page, version = 2) {
 }
 function resolveQR(value) {
   const match = String(value).match(
-    /^v([234]):([a-f0-9-]{36}):(\d+):([a-f0-9]{24})$/,
+    /^v([2345]):([a-f0-9-]{36}):(\d+):([a-f0-9]{24})$/,
   );
   if (
     !match ||
@@ -34,6 +34,8 @@ async function makePDF(
   if (!exam.definition || !["listo", "publicado"].includes(exam.estado))
     throw new AppError("Valida el examen antes de imprimir sus cartillas.");
   if (!exam.definition.forms[form]) throw new AppError("Versión desconocida.");
+  if (mode === "blank" && options.format === "auto")
+    return require("./omr-adaptive-pdf").makeAdaptivePDF(exam, { form, ...options }, qrPayload);
   if (mode === "blank")
     return require("./omr-booklet-pdf").makeBookletPDF(
       exam,

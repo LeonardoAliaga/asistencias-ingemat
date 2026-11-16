@@ -65,7 +65,21 @@ db.exec(
   "CREATE INDEX IF NOT EXISTS outbox_provider_status ON outbox(provider,status,next_attempt_at)",
 );
 // One-time transition: preserve history without replaying paid-provider notices.
-db.exec(fs.readFileSync(path.join(__dirname,"migrations/006-baileys.sql"),"utf8"));
+db.exec(
+  fs.readFileSync(path.join(__dirname, "migrations/006-baileys.sql"), "utf8"),
+);
+addColumn("omr_sheets", "layout_id", "TEXT DEFAULT NULL");
+addColumn("exam_templates", "structure_fixed", "INTEGER NOT NULL DEFAULT 0");
+addColumn("evaluaciones", "template_id", "TEXT DEFAULT NULL");
+if (!db.prepare("SELECT 1 FROM schema_migrations WHERE version=7").get())
+  db.transaction(() =>
+    db.exec(
+      fs.readFileSync(
+        path.join(__dirname, "migrations/007-adaptive-omr.sql"),
+        "utf8",
+      ),
+    ),
+  )();
 const uuid = require("node:crypto").randomUUID;
 for (const row of db
   .prepare("SELECT codigo FROM usuarios WHERE uid='' OR uid IS NULL")

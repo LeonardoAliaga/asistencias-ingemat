@@ -120,7 +120,7 @@ test("create, validate and grade an exam from the dashboard", async ({
   await expect(page.locator("#v2-delete-permanent")).toBeVisible();
   page.once("dialog", dialog => dialog.accept("SIMULACRO UI"));
   await page.locator("#v2-delete-permanent").click();
-  await expect(page.locator("#v2-message")).toContainText("Simulacro eliminado definitivamente");
+  await expect(page.locator("#v2-message")).toContainText("Examen eliminado definitivamente");
   await expect(page.locator("#v2-exam-select")).not.toContainText("SIMULACRO UI");
   expect(errors).toEqual([]);
 });
@@ -201,7 +201,7 @@ test("guide searches, category filters and step-by-step tutorials work", async (
   await navigate(page, "guide");
   await expect(page.locator("#v2-guide-count")).toHaveText("34 tutoriales");
   await page.fill("#v2-guide-search", "120");
-  await expect(page.locator("#v2-guide-count")).toHaveText("2 tutoriales");
+  await expect(page.locator("#v2-guide-count")).toHaveText("1 tutorial");
   await page.locator('#v2-guide-list [data-guide="simulacro-120"]').click();
   await expect(page.locator("#v2-dialog")).toBeVisible();
   await expect(page.locator(".v2-tutorial li")).toHaveCount(8);
@@ -1006,7 +1006,6 @@ async function selectScannerExam(page) {
     .locator("#v2-import-exam option")
     .filter({ hasText: "SIMULACRO DE DEMOSTRACIÓN" });
   const id = await option.getAttribute("value");
-  await page.selectOption("#v2-import-exam", id);
   return id;
 }
 
@@ -1023,6 +1022,9 @@ test("printing offers quarter duplex and half single-sided with quantity and pri
     await option.getAttribute("value"),
   );
   await page.click('[data-local-tab="exam-sheets"]');
+  await expect(page.locator("#v2-sheet-format")).toHaveValue("auto");
+  await expect(page.locator("#v2-sheet-instructions")).toContainText("100 preguntas");
+  await page.selectOption("#v2-sheet-format", "quarter-duplex");
   await page.fill("#v2-sheet-count", "5");
   await page.locator("#v2-sheet-count").blur();
   await expect(page.locator("#v2-sheet-instructions")).toContainText(
@@ -1508,6 +1510,11 @@ async function scannerFixture(
     hideJobs = false;
   const scanIds = [],
     importIds = [];
+  const previewPDF = await new Promise((resolve) => {
+    const doc = new (require("pdfkit"))(), chunks = [];
+    doc.on("data", b => chunks.push(b)); doc.on("end", () => resolve(Buffer.concat(chunks)));
+    doc.text("Captura de prueba para previsualizacion"); doc.end();
+  });
   await page.route("**/api/v2/scanner/**", async (route) => {
     const url = new URL(route.request().url()),
       method = route.request().method(),
@@ -1555,6 +1562,8 @@ async function scannerFixture(
     } else if (method === "DELETE") {
       jobs = jobs.filter((j) => j.id !== url.pathname.split("/").at(-1));
       result = { exito: true };
+    } else if (url.pathname.endsWith("/file")) {
+      await route.fulfill({ contentType: "application/pdf", body: previewPDF }); return;
     } else if (url.pathname.endsWith("/import")) {
       importPosts++;
       importIds.push(body.requestId);
@@ -1569,7 +1578,7 @@ async function scannerFixture(
           result: {},
           files: [],
         };
-        jobs.forEach((j) => (j.status = "imported"));
+        jobs.filter(j => body.jobIds.includes(j.id)).forEach((j) => (j.status = "imported"));
       }
       if (loseImport && importPosts === 1) {
         await route.abort("failed");
@@ -1626,6 +1635,9 @@ test("NAPS2 replaces cartilla camera and adds multiple scans to one reviewed OMR
   await navigate(page, "imports");
   await expect(page.locator(".scanner-captures li")).toHaveCount(2);
   await page.click("#scanner-process");
+  await expect(page.locator(".scan-preview-dialog")).toBeVisible();
+  expect(fixture.counts().importPosts).toBe(0);
+  await page.click("[data-preview-confirm]");
   await expect(page.locator("#scanner-status")).toContainText("Lote recibido");
   await expect(page.locator(".scanner-captures li")).toHaveCount(0);
   await expect(page.locator("#v2-batch-detail")).toContainText(
@@ -1676,10 +1688,11 @@ test("uncertain scanner commands survive reload and recover the same scan and OM
   await page.click("#scanner-start");
   await expect(page.locator(".scanner-captures li")).toHaveCount(1);
   await page.click("#scanner-process");
+  await page.click("[data-preview-confirm]");
   await expect(page.locator("#scanner-process")).toHaveText(
     "Verificar envío pendiente",
   );
-  await expect(page.locator("#v2-import-exam")).toBeDisabled();
+  await expect(page.locator("#scanner-driver")).toBeDisabled();
   await page.click("#scanner-process");
   await expect(page.locator("#scanner-status")).toContainText("Lote recibido");
   const count = fixture.counts();
@@ -1697,7 +1710,7 @@ test("scanner cancellation and mobile panel remain accessible without camera per
   await selectScannerExam(page);
   await page.click("#scanner-discover");
   await page.click("#scanner-start");
-  await expect(page.locator("#v2-import-exam")).toBeDisabled();
+  await expect(page.locator("#scanner-driver")).toBeDisabled();
   await page.getByRole("button", { name: "Cancelar escaneo" }).click();
   await expect(page.locator(".scanner-captures li")).toContainText("Cancelada");
   await page.getByRole("button", { name: "Quitar captura 1" }).click();
@@ -1711,54 +1724,25 @@ test("scanner cancellation and mobile panel remain accessible without camera per
   expect(result.violations).toEqual([]);
 });
 
-test("scanner explains missing exam beside the disabled button and enables after selection", async ({
-  page,
-}) => {
+test("scanner enables without selecting an exam and identifies exams through QR", async ({ page }) => {
   const fixture = await scannerFixture(page);
-  await login(page);
-  await navigate(page, "imports");
-  await expect(page.locator("#v2-scanner #v2-import-exam")).toHaveCount(1);
+  await login(page); await navigate(page, "imports");
+  await expect(page.locator("#v2-scanner #v2-import-exam")).toHaveCount(0);
+  await expect(page.locator("#scanner-exam-help")).toContainText("automáticamente");
   await page.click("#scanner-discover");
-  await expect(page.locator("#scanner-device")).toHaveValue(
-    "Brother MFC-T920DW",
-  );
-  await expect(page.locator("#scanner-start")).toBeDisabled();
-  await expect(page.locator("#scanner-readiness")).toContainText(
-    "Selecciona un examen listo",
-  );
-  await expect(page.locator("#scanner-status")).not.toContainText(
-    "pulsa Escanear",
-  );
-  const option = page
-    .locator("#v2-import-exam option")
-    .filter({ hasText: "SIMULACRO DE DEMOSTRACIÓN" });
-  await page.selectOption(
-    "#v2-import-exam",
-    await option.getAttribute("value"),
-  );
   await expect(page.locator("#scanner-start")).toBeEnabled();
-  await expect(page.locator("#scanner-readiness")).toContainText(
-    "Listo para escanear",
-  );
+  const request = page.waitForRequest(r => r.url().endsWith("/scanner/jobs") && r.method() === "POST");
   await page.click("#scanner-start");
+  expect((await request).postDataJSON().examId).toBeUndefined();
   await expect(page.locator(".scanner-captures li")).toHaveCount(1);
   expect(fixture.counts().physicalScans).toBe(1);
 });
 
-test("scanner explains that an exam must be validated when no ready exam exists", async ({
-  page,
-}) => {
+test("scanner allows capturing originals even before any exam has been validated", async ({ page }) => {
   await scannerFixture(page);
-  await page.route("**/api/v2/exams", (route) =>
-    route.fulfill({ contentType: "application/json", body: "[]" }),
-  );
-  await login(page);
-  await navigate(page, "imports");
-  await page.click("#scanner-discover");
-  await expect(page.locator("#scanner-start")).toBeDisabled();
-  await expect(page.locator("#scanner-readiness")).toContainText(
-    "Primero crea y valida un simulacro",
-  );
+  await page.route("**/api/v2/exams", route => route.fulfill({contentType:"application/json",body:"[]"}));
+  await login(page); await navigate(page,"imports"); await page.click("#scanner-discover");
+  await expect(page.locator("#scanner-start")).toBeEnabled();
 });
 
 test("scanner explains a busy device and enables when the other request finishes", async ({
@@ -1766,7 +1750,7 @@ test("scanner explains a busy device and enables when the other request finishes
 }) => {
   await scannerFixture(page);
   let busy = true;
-  await page.route("**/api/v2/scanner/jobs?*", (route) =>
+  await page.route(/\/api\/v2\/scanner\/jobs(?:\?|$)/, (route) =>
     route.fulfill({
       contentType: "application/json",
       body: JSON.stringify({ busy, jobs: [] }),
@@ -1896,7 +1880,7 @@ test("scanner failed attempts have bounded height and cleanup preserves ready ca
     error: i < 30 ? "No se pudo completar la captura. Revisa el escáner." : "",
     fileUrl: i < 30 ? null : `/api/v2/scanner/jobs/attempt-${i}/file`,
   }));
-  await page.route("**/api/v2/scanner/jobs?*", (route) =>
+  await page.route(/\/api\/v2\/scanner\/jobs(?:\?|$)/, (route) =>
     route.fulfill({ json: { busy: false, jobs } }),
   );
   await page.route("**/api/v2/scanner/clear-failed", (route) => {
@@ -2515,4 +2499,71 @@ test("la cola de envíos por lote muestra segundos restantes y cambia a espera a
   await expect(timer).toContainText("0 s · esperando procesamiento",{timeout:2500});
   const ordinary=page.locator("#v2-outbox tbody tr").filter({hasText:"+51900000002"});
   await expect(ordinary).toContainText("—");
+});
+
+
+test("fixed saved templates skip courses, clear previous keys, and offer adaptive PDF preview", async ({ page }) => {
+  await login(page);
+  const csrf = (await page.context().cookies()).find(c=>c.name==="ingemat.csrf").value;
+  const created = await page.request.post("/api/v2/templates", { headers: { "x-csrf-token": csrf }, data: {
+    name: "PLANTILLA FIJA UI", fixedStructure: true,
+    definition: { totalQuestions: 3, keys: {1:"A",2:"A",3:"A"} },
+  }});
+  expect(created.status()).toBe(201);
+  const template = await created.json();
+  await page.reload();
+  await expect(page.locator("body")).toHaveAttribute("data-ready","true");
+  await navigate(page,"exams");
+  await expect(page.locator("#admin-sidebar [data-route=exams]")).toContainText("Exámenes");
+  await page.click("#v2-new");
+  await page.selectOption("#v2-preset",`saved:${template.id}`);
+  await expect(page.locator('[data-wizard-step="1"]')).toBeHidden();
+  await expect(page.locator('#v2-exam-editor [name=total]')).toHaveValue("3");
+  await expect(page.locator('#v2-exam-editor [name=total]')).toHaveAttribute("readonly", "");
+  await expect(page.locator("#v2-keys")).toHaveValue("");
+  await page.fill('#v2-exam-editor [name=titulo]',"EXAMEN FIJO UI");
+  await page.selectOption('#v2-exam-editor [name=ciclo]',"ANUAL");
+  await nextStep(page,2);
+  await pasteKeys(page,"B C D");
+  await nextStep(page,3);
+  await page.click("#wizard-prepare");
+  await expect(page.locator("#v2-exam-summary")).toContainText("EXAMEN FIJO UI");
+  const exams = await (await page.request.get("/api/v2/exams")).json();
+  const exam = exams.find(e=>e.titulo==="EXAMEN FIJO UI");
+  expect(exam.template_id).toBe(template.id);
+  const fullExam=await (await page.request.get(`/api/v2/exams/${exam.id}`)).json();
+  expect(fullExam.definition.keys[1].answers).toEqual(["B"]);
+  await page.click('[data-local-tab="exam-sheets"]');
+  await expect(page.locator("#v2-sheet-instructions")).toContainText("6 cartillas por A4");
+  await page.click("#v2-print-preview");
+  await expect(page.locator("#v2-dialog-title")).toHaveText("Previsualizar cartillas");
+  await expect(page.locator('#v2-dialog iframe')).toBeVisible();
+  await expect(page.locator('#v2-dialog a[download]')).toHaveAttribute("href",/^blob:/);
+});
+
+test("upload preflight sends only selected originals and cancelling creates no batch", async ({ page }) => {
+  await login(page); await navigate(page,"imports");
+  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6L9sAAAAASUVORK5CYII=","base64");
+  await page.locator('details').filter({has:page.locator('#v2-scan-form')}).evaluate(el=>el.open=true);
+  await page.setInputFiles('#v2-scan-files', [
+    {name:"correcto.png",mimeType:"image/png",buffer:png},
+    {name:"mal-escaneado.png",mimeType:"image/png",buffer:png},
+  ]);
+  let sends=0;page.on("request",r=>{if(r.method()==="POST"&&r.url().endsWith("/api/v2/scans"))sends++;});
+  await page.locator('#v2-scan-form button[type=submit]').click();
+  await expect(page.locator('.scan-preview-dialog')).toBeVisible();
+  expect(sends).toBe(0);
+  await page.click('[data-preview-cancel]');
+  expect(sends).toBe(0);
+  await page.locator('#v2-scan-form button[type=submit]').click();
+  await page.uncheck('[data-preview-include="1"]');
+  await expect(page.locator('[data-preview-count]')).toContainText("1 de 2");
+  const posted=page.waitForResponse(r=>r.request().method()==="POST"&&r.url().endsWith("/api/v2/scans"));
+  await page.click('[data-preview-confirm]');
+  const response=await posted;expect(response.status()).toBe(202);
+  const batch=await response.json();
+  expect(sends).toBe(1);
+  const stored=await (await page.request.get(`/api/v2/imports/${batch.id}`)).json();
+  expect(stored.files.map(f=>f.name)).toEqual(["correcto.png"]);
+  expect(stored.evaluation_id).toBe("");
 });

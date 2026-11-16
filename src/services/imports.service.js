@@ -7,7 +7,17 @@ const config = require("../config");
 const { layouts } = require("./omr-layout");
 const { bookletLayouts } = require("./omr-booklet-layout");
 const { runReader } = require("./omr-runtime.service");
-function sheetLayouts(def, version) {
+function sheetLayouts(def, version, sheet) {
+  if (version === 5) {
+    const saved = db
+      .prepare("SELECT definition FROM omr_layouts WHERE id=?")
+      .get(sheet?.layout_id);
+    if (!saved)
+      throw new AppError(
+        "No se encuentra el diseño registrado de esta cartilla.",
+      );
+    return JSON.parse(saved.definition);
+  }
   return version === 2
     ? layouts(def.totalQuestions)
     : bookletLayouts(def, version === 3 ? "quarter-duplex" : "half-single");
@@ -28,19 +38,20 @@ function batch(id) {
 // changes a stored reading or makes a batch eligible for grading.
 function batchView(id) {
   const b = batch(id),
-    exam = getExam(b.evaluation_id),
+    exam = b.evaluation_id ? getExam(b.evaluation_id) : null,
     groups = new Map(),
     matched = new Map(),
     cache = new Map(),
     lookup = db.prepare(
       "SELECT u.codigo,u.nombre,u.apellido,r.name_snapshot FROM usuarios u LEFT JOIN exam_roster r ON r.evaluation_id=? AND r.user_uid=u.uid WHERE u.codigo=? AND u.rol='estudiante' AND u.archived_at IS NULL AND (UPPER(u.ciclo)=UPPER(?) OR r.user_uid IS NOT NULL)",
     );
-  const findStudent = (code) => {
+  const findStudent = (exam, code) => {
+    const key = `${exam.id}:${code}`;
     if (typeof code !== "string" || !code) return null;
-    if (!cache.has(code)) {
+    if (!cache.has(key)) {
       const student = lookup.get(exam.id, code, exam.ciclo);
       cache.set(
-        code,
+        key,
         student
           ? {
               code: student.codigo,
@@ -51,22 +62,33 @@ function batchView(id) {
           : null,
       );
     }
-    return cache.get(code);
+    return cache.get(key);
   };
   for (const page of b.result.pages || []) {
     page.identifiedStudent = null;
     if (page.error || page.excluded) continue;
     try {
-      const sheet = resolveQR(page.qr);
+      const sheet = resolveQR(page.qr),
+        current = exam || getExam(sheet.evaluation_id);
       if (
-        sheet.evaluation_id !== exam.id ||
-        sheet.revision > exam.revision ||
-        !sheetLayouts(exam.definition, sheet.layout_version).some(
+        sheet.evaluation_id !== current.id ||
+        sheet.revision > current.revision ||
+        !sheetLayouts(current.definition, sheet.layout_version, sheet).some(
           (l) => l.page === sheet.page,
         )
       )
         continue;
-      const group = groups.get(sheet.id) || { pages: [], codes: new Set() };
+      page.examId = current.id;
+      page.examTitle = current.titulo;
+      page.examAreas = current.definition.areas.map(({ code, name }) => ({
+        code,
+        name,
+      }));
+      const group = groups.get(sheet.id) || {
+        pages: [],
+        codes: new Set(),
+        exam: current,
+      };
       group.pages.push(page);
       if (sheet.layout_version === 2) group.codes.add(sheet.student_code);
       else if (sheet.page === 1 && page.identification) {
@@ -84,7 +106,7 @@ function batchView(id) {
     if (group.codes.size !== 1) continue;
     const code = [...group.codes][0];
     if (!code) continue;
-    const student = findStudent(code);
+    const student = findStudent(group.exam, code);
     matched.set(sheetId, student);
     for (const page of group.pages) page.identifiedStudent = student;
   }
@@ -92,13 +114,13 @@ function batchView(id) {
     row.identifiedStudent =
       b.source === "omr"
         ? matched.get(row.sheetId) || null
-        : findStudent(row.codigoEstudiante);
+        : findStudent(exam || getExam(row.examId), row.codigoEstudiante);
   return b;
 }
 function listBatches(req) {
   return db
     .prepare(
-      "SELECT b.id,b.evaluation_id,b.revision,b.source,b.status,b.error,b.actor,b.created_at FROM import_batches b WHERE b.status NOT IN ('committed','failed') OR NOT EXISTS (SELECT 1 FROM hidden_import_batches h WHERE h.batch_id=b.id AND h.actor=?) ORDER BY b.created_at DESC,b.rowid DESC LIMIT 100",
+      "SELECT b.id,b.evaluation_id,b.revision,b.source,b.status,b.error,b.actor,b.created_at,(SELECT group_concat(e.titulo,' · ') FROM json_each(COALESCE(json_extract(b.result,'$.revisions'),'{}')) r JOIN evaluaciones e ON e.id=r.key) AS exam_titles FROM import_batches b WHERE b.status NOT IN ('committed','failed') OR NOT EXISTS (SELECT 1 FROM hidden_import_batches h WHERE h.batch_id=b.id AND h.actor=?) ORDER BY b.created_at DESC,b.rowid DESC LIMIT 100",
     )
     .all(req.session.username);
 }
@@ -150,7 +172,9 @@ function createCSV(id, text, req) {
         throw new AppError(`Código duplicado en fila ${index + 2}: ${code}`);
       codes.add(code);
       const user = db
-        .prepare("SELECT * FROM usuarios WHERE codigo=? AND rol='estudiante' AND archived_at IS NULL")
+        .prepare(
+          "SELECT * FROM usuarios WHERE codigo=? AND rol='estudiante' AND archived_at IS NULL",
+        )
         .get(code);
       if (
         !user ||
@@ -194,7 +218,8 @@ function createCSV(id, text, req) {
   audit(req, "previsualizar_csv", "lote", batchId, { filas: rows.length });
   return batch(batchId);
 }
-function createScan(id, files, req) {
+function createScan(id = "", files, req) {
+  id ||= "";
   const requestId = req.body?.requestId;
   if (requestId !== undefined) {
     if (
@@ -215,8 +240,11 @@ function createScan(id, files, req) {
       return batch(previous.batch_id);
     }
   }
-  const exam = getExam(id);
-  if (!exam.definition || !["listo", "publicado"].includes(exam.estado))
+  const exam = id ? getExam(id) : null;
+  if (
+    exam &&
+    (!exam.definition || !["listo", "publicado"].includes(exam.estado))
+  )
     throw new AppError("Valida el examen antes de escanear.");
   if (!files?.length)
     throw new AppError("Selecciona al menos un PDF o imagen.");
@@ -242,7 +270,7 @@ function createScan(id, files, req) {
       ).run(
         batchId,
         id,
-        exam.revision,
+        exam?.revision || 0,
         JSON.stringify(moved),
         req.session.username,
       );
@@ -260,7 +288,7 @@ function createScan(id, files, req) {
     throw error;
   }
 }
-function buildRows(exam, result, currentBatchId) {
+function buildExamRows(exam, result, currentBatchId) {
   const sheets = new Map();
   let needsReview = false;
   for (const page of result.pages || []) {
@@ -275,7 +303,7 @@ function buildRows(exam, result, currentBatchId) {
       if (
         sheet.evaluation_id !== exam.id ||
         sheet.revision > exam.revision ||
-        ![2, 3, 4].includes(sheet.layout_version)
+        ![2, 3, 4, 5].includes(sheet.layout_version)
       )
         throw new AppError("Cartilla de otro examen o formato incompatible.");
       if (
@@ -286,6 +314,31 @@ function buildRows(exam, result, currentBatchId) {
         throw new AppError(
           "Esta página ya fue importada. No se volverá a registrar.",
         );
+      if (
+        page.layoutVersion !== undefined &&
+        page.layoutVersion !== sheet.layout_version
+      )
+        throw new AppError(
+          "La lectura no corresponde al diseño de esta cartilla.",
+        );
+      const geometry = sheetLayouts(
+        exam.definition,
+        sheet.layout_version,
+        sheet,
+      ).find((l) => l.page === sheet.page);
+      if (!geometry) throw new AppError("Página desconocida.");
+      const expectedQuestions = geometry.bubbles
+        .map((b) => String(b.question))
+        .sort();
+      if (
+        JSON.stringify(Object.keys(page.responses || {}).sort()) !==
+        JSON.stringify(expectedQuestions)
+      )
+        throw new AppError(
+          "La lectura no contiene las preguntas exactas de esta cara.",
+        );
+      page.examId = exam.id;
+      page.examTitle = exam.titulo;
       page.sheetId = sheet.id;
       page.codigoEstudiante = sheet.student_code;
       page.area = sheet.area;
@@ -298,7 +351,7 @@ function buildRows(exam, result, currentBatchId) {
       if (group.pages.has(sheet.page))
         throw new AppError("Página duplicada dentro de este lote.");
       if (
-        !sheetLayouts(exam.definition, sheet.layout_version).some(
+        !sheetLayouts(exam.definition, sheet.layout_version, sheet).some(
           (l) => l.page === sheet.page,
         )
       )
@@ -326,6 +379,7 @@ function buildRows(exam, result, currentBatchId) {
     const expected = sheetLayouts(
       exam.definition,
       g.sheet.layout_version,
+      g.sheet,
     ).length;
     if (g.pages.size !== expected) {
       needsReview = true;
@@ -377,6 +431,9 @@ function buildRows(exam, result, currentBatchId) {
         g.sheet.form,
       );
       rows.push({
+        examId: exam.id,
+        examTitle: exam.titulo,
+        revision: exam.revision,
         sheetId,
         codigoEstudiante: g.sheet.student_code,
         area: g.sheet.area,
@@ -393,6 +450,141 @@ function buildRows(exam, result, currentBatchId) {
   result.rows = rows;
   return needsReview || !rows.length ? "review" : "ready";
 }
+// Automatic batches can contain several exams. Keep each exam's rules and
+// revisions separate while reviewing/committing the batch as one transaction.
+function buildRows(exam, result, currentBatchId) {
+  const groups = new Map();
+  let needsReview = false;
+  for (const page of result.pages || []) {
+    delete page.warning;
+    if (page.excluded) continue;
+    if (page.error) {
+      needsReview = true;
+      continue;
+    }
+    try {
+      const sheet = resolveQR(page.qr),
+        current = exam || getExam(sheet.evaluation_id);
+      if (
+        !current.definition ||
+        !["listo", "publicado"].includes(current.estado)
+      )
+        throw new AppError(
+          "El examen de esta cartilla no está listo para recibir respuestas.",
+        );
+      if (sheet.evaluation_id !== current.id)
+        throw new AppError("Cartilla de otro examen.");
+      const group = groups.get(current.id) || { exam: current, pages: [] };
+      group.pages.push(page);
+      groups.set(current.id, group);
+    } catch (error) {
+      page.error = error.message;
+      needsReview = true;
+    }
+  }
+  const rows = [],
+    revisions = {};
+  for (const group of groups.values()) {
+    const part = { pages: group.pages };
+    if (buildExamRows(group.exam, part, currentBatchId) !== "ready")
+      needsReview = true;
+    rows.push(...part.rows);
+    revisions[group.exam.id] = group.exam.revision;
+  }
+  const students = new Set();
+  for (const row of rows) {
+    const key = `${row.examId}:${row.codigoEstudiante}`;
+    if (students.has(key)) {
+      needsReview = true;
+      for (const p of result.pages || [])
+        if (
+          !p.excluded &&
+          p.examId === row.examId &&
+          p.codigoEstudiante === row.codigoEstudiante
+        )
+          p.warning =
+            "Hay varias cartillas del mismo estudiante en este examen. Excluye la repetida.";
+    }
+    students.add(key);
+  }
+  result.rows = rows;
+  result.revisions = revisions;
+  return needsReview || !rows.length ? "review" : "ready";
+}
+async function readRegisteredSheets(current, requestPath) {
+  const sourceDir = path.join(root, current.id, "sources"),
+    pageDir = path.join(root, current.id, "pages");
+  fs.writeFileSync(
+    requestPath,
+    JSON.stringify({
+      mode: "identify",
+      files: current.files.map((f) => ({
+        ...f,
+        path: path.resolve(config.dataDir, f.path),
+      })),
+      outputDir: sourceDir,
+    }),
+  );
+  const discovered = await runReader(requestPath, { batchId: current.id });
+  const files = [],
+    pages = discovered.pages;
+  for (const [index, page] of pages.entries()) {
+    try {
+      if (page.error) continue;
+      const sheet = resolveQR(page.qr),
+        exam = getExam(sheet.evaluation_id);
+      page.examId = exam.id;
+      page.examTitle = exam.titulo;
+      if (current.evaluation_id && current.evaluation_id !== exam.id)
+        throw new AppError("Cartilla de otro examen.");
+      if (!exam.definition || !["listo", "publicado"].includes(exam.estado))
+        throw new AppError(
+          "El examen del QR no está listo para recibir respuestas.",
+        );
+      if (sheet.revision > exam.revision)
+        throw new AppError("Revisión de cartilla incompatible.");
+      const layout = sheetLayouts(
+        exam.definition,
+        sheet.layout_version,
+        sheet,
+      ).find((l) => l.page === sheet.page);
+      if (!layout) throw new AppError("Cara de cartilla desconocida.");
+      const source = path.resolve(page.sourcePath || "");
+      if (!source.startsWith(sourceDir + path.sep))
+        throw new AppError("Imagen de captura inválida.");
+      files.push({
+        path: source,
+        name: page.file,
+        layout,
+        expectedQR: page.qr,
+        sourceIndex: index,
+      });
+    } catch (error) {
+      page.error = error.message;
+    }
+  }
+  if (files.length) {
+    fs.writeFileSync(
+      requestPath,
+      JSON.stringify({ mode: "read", files, outputDir: pageDir }),
+    );
+    const readings = await runReader(requestPath, { batchId: current.id });
+    for (const [i, file] of files.entries())
+      pages[file.sourceIndex] = {
+        ...pages[file.sourceIndex],
+        ...(readings.pages[i] || {
+          error: "El lector no devolvió esta cartilla.",
+        }),
+      };
+  }
+  for (const page of pages) {
+    if (!page.imagePath && page.sourcePath) page.imagePath = page.sourcePath;
+    delete page.sourcePath;
+    if (page.imagePath)
+      page.imagePath = path.relative(config.dataDir, page.imagePath);
+  }
+  return { pages, reviewVersion: 1 };
+}
 let busy = false;
 async function processScanQueue() {
   if (busy) return;
@@ -405,7 +597,7 @@ async function processScanQueue() {
   busy = true;
   try {
     const current = batch(b.id),
-      exam = getExam(current.evaluation_id);
+      exam = current.evaluation_id ? getExam(current.evaluation_id) : null;
     if (
       !db
         .prepare(
@@ -414,44 +606,13 @@ async function processScanQueue() {
         .run(b.id).changes
     )
       return;
-    if (exam.revision !== current.revision)
+    if (exam && exam.revision !== current.revision)
       db.prepare("UPDATE import_batches SET revision=? WHERE id=?").run(
         exam.revision,
         b.id,
       );
     const requestPath = path.join(root, b.id, "request.json");
-    fs.writeFileSync(
-      requestPath,
-      JSON.stringify({
-        files: current.files.map((f) => ({
-          ...f,
-          path: path.resolve(config.dataDir, f.path),
-        })),
-        layouts: [
-          ...layouts(exam.definition.totalQuestions),
-          ...(exam.definition.totalQuestions <= 120 &&
-          exam.definition.areas.length <= 5 &&
-          (exam.definition.areas.length === 1 ||
-            exam.definition.areas.every((a) => a.code.length === 1))
-            ? ["quarter-duplex", "half-single"].flatMap((format) => {
-                try {
-                  return bookletLayouts(exam.definition, format);
-                } catch {
-                  return [];
-                }
-              })
-            : []),
-        ],
-        outputDir: path.join(root, b.id, "pages"),
-      }),
-    );
-    const result = {
-      ...(await runReader(requestPath, { batchId: b.id })),
-      reviewVersion: 1,
-    };
-    for (const page of result.pages || [])
-      if (page.imagePath)
-        page.imagePath = path.relative(config.dataDir, page.imagePath);
+    const result = await readRegisteredSheets(current, requestPath);
     const state = buildRows(exam, result, b.id);
     writeResult(b.id, result, state);
     if (process.env.OMR_DEBUG === "1")
@@ -497,15 +658,15 @@ function reviewPage(id, index, body, req) {
         "Esta página no se puede identificar. Exclúyela y vuelve a escanearla.",
       );
     if (body.identification !== undefined) {
-      if (!page.identification || ![3, 4].includes(page.layoutVersion))
+      if (!page.identification || ![3, 4, 5].includes(page.layoutVersion))
         throw new AppError("Esta cara no tiene identificación editable.");
       const identity = body.identification;
       if (
         !identity ||
         !/^\d{8}$/.test(identity.code || "") ||
-        !getExam(b.evaluation_id).definition.areas.some(
-          (a) => a.code === identity.area,
-        )
+        !getExam(
+          b.evaluation_id || resolveQR(page.qr).evaluation_id,
+        ).definition.areas.some((a) => a.code === identity.area)
       )
         throw new AppError("Indica un código de 8 dígitos y un área válida.");
       page.identificationOverride = {
@@ -531,7 +692,11 @@ function reviewPage(id, index, body, req) {
     delete page.warning;
   }
   b.result.reviewVersion++;
-  const state = buildRows(getExam(b.evaluation_id), b.result, id);
+  const state = buildRows(
+    b.evaluation_id ? getExam(b.evaluation_id) : null,
+    b.result,
+    id,
+  );
   writeResult(id, b.result, state);
   audit(req, "revisar_cartilla", "lote", id, {
     index,
@@ -544,7 +709,7 @@ function refreshBatch(id, req) {
   const b = batch(id);
   if (!["ready", "review"].includes(b.status))
     throw new AppError("Este lote no se puede actualizar.", 409);
-  const exam = getExam(b.evaluation_id);
+  const exam = b.evaluation_id ? getExam(b.evaluation_id) : null;
   if (b.source === "omr") {
     for (const p of b.result.pages || []) delete p.warning;
     const state = buildRows(exam, b.result, id);
@@ -557,27 +722,34 @@ function refreshBatch(id, req) {
     writeResult(id, b.result, "ready");
   }
   db.prepare("UPDATE import_batches SET revision=? WHERE id=?").run(
-    exam.revision,
+    exam?.revision || 0,
     id,
   );
   audit(req, "actualizar_revision_lote", "lote", id, {
-    revision: exam.revision,
+    revisions: b.result.revisions || { [exam.id]: exam.revision },
   });
   return batch(id);
 }
 function commitBatch(id, body, req) {
   const b = batch(id),
-    exam = getExam(b.evaluation_id);
+    exam = b.evaluation_id ? getExam(b.evaluation_id) : null;
   if (b.status !== "ready")
     throw new AppError(
       "Resuelve las incidencias del lote antes de importar.",
       409,
     );
-  if (exam.revision !== b.revision)
-    throw new AppError(
-      "Las claves cambiaron desde la lectura. Revisa el lote de nuevo.",
-      409,
-    );
+  const revisions = b.result.revisions || { [exam.id]: b.revision };
+  for (const [examId, revision] of Object.entries(revisions)) {
+    const current = getExam(examId);
+    if (
+      current.revision !== revision ||
+      !["listo", "publicado"].includes(current.estado)
+    )
+      throw new AppError(
+        "Las claves cambiaron o el examen dejó de estar listo desde la lectura. Actualiza el lote.",
+        409,
+      );
+  }
   if (body.reviewVersion !== b.result.reviewVersion)
     throw new AppError("El lote cambió. Actualiza la previsualización.", 409);
   const results = [];
@@ -592,7 +764,7 @@ function commitBatch(id, body, req) {
       throw new AppError("El lote ya está siendo importado.", 409);
     for (const row of b.result.rows)
       results.push(
-        saveGrade(exam.id, row, req, {
+        saveGrade(row.examId || exam.id, row, req, {
           allowReplace: body.allowReplace === true,
           reason:
             body.reason ||

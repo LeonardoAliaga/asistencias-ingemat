@@ -37,7 +37,9 @@ router.get("/summary", (req, res) =>
     version: "2.0.0",
     timezone: config.timezone,
     today: businessDate(),
-    usuarios: db.prepare("SELECT COUNT(*) n FROM usuarios WHERE archived_at IS NULL").get().n,
+    usuarios: db
+      .prepare("SELECT COUNT(*) n FROM usuarios WHERE archived_at IS NULL")
+      .get().n,
     evaluaciones: db
       .prepare("SELECT COUNT(*) n FROM evaluaciones WHERE estado!='archivado'")
       .get().n,
@@ -151,8 +153,11 @@ router.patch("/students/:code", requireAdmin, (req, res) => {
   if (area && !/^[A-Z0-9_-]{1,20}$/.test(area))
     throw new AppError("Código de área inválido.");
   if (
-    !db.prepare("UPDATE usuarios SET area=? WHERE codigo=? AND archived_at IS NULL").run(area, code)
-      .changes
+    !db
+      .prepare(
+        "UPDATE usuarios SET area=? WHERE codigo=? AND archived_at IS NULL",
+      )
+      .run(area, code).changes
   )
     throw new AppError("Estudiante no encontrado.", 404);
   audit(req, "actualizar_area", "usuario", code, { area });
@@ -189,13 +194,21 @@ router.delete("/contacts/:id", requireAdmin, (req, res) => {
   audit(req, "revocar_contacto", "contacto", req.params.id);
   res.json({ exito: true });
 });
-router.get("/attendance/students", requirePermission("asistencias:write"), (req, res) => {
-  res.set("Cache-Control", "no-store").json(
-    db.prepare(
-      "SELECT codigo,nombre,apellido,ciclo,turno FROM usuarios WHERE rol='estudiante' AND archived_at IS NULL ORDER BY apellido,nombre,codigo",
-    ).all(),
-  );
-});
+router.get(
+  "/attendance/students",
+  requirePermission("asistencias:write"),
+  (req, res) => {
+    res
+      .set("Cache-Control", "no-store")
+      .json(
+        db
+          .prepare(
+            "SELECT codigo,nombre,apellido,ciclo,turno FROM usuarios WHERE rol='estudiante' AND archived_at IS NULL ORDER BY apellido,nombre,codigo",
+          )
+          .all(),
+      );
+  },
+);
 router.get("/attendance", requirePermission("reportes:read"), (req, res) =>
   res.json({
     exito: true,
@@ -253,7 +266,7 @@ router.get("/exams", read, (req, res) =>
   res.json(
     db
       .prepare(
-        "SELECT e.id,e.titulo,e.ciclo,e.fecha,e.estado,e.revision,e.numPreguntas,e.totalPreguntasCuadernillo,CASE WHEN e.definition!='' THEN json_extract(e.definition,'$.totalQuestions') ELSE NULL END AS physical_questions,COUNT(r.id) AS participants FROM evaluaciones e LEFT JOIN respuestas_evaluacion r ON r.evaluacion_id=e.id WHERE e.estado!='archivado' GROUP BY e.id ORDER BY e.creado_en DESC",
+        "SELECT e.id,e.titulo,e.ciclo,e.fecha,e.estado,e.revision,e.template_id,e.numPreguntas,e.totalPreguntasCuadernillo,CASE WHEN e.definition!='' THEN json_extract(e.definition,'$.totalQuestions') ELSE NULL END AS physical_questions,COUNT(r.id) AS participants FROM evaluaciones e LEFT JOIN respuestas_evaluacion r ON r.evaluacion_id=e.id WHERE e.estado!='archivado' GROUP BY e.id ORDER BY e.creado_en DESC",
       )
       .all()
       .map((e) => ({
@@ -318,11 +331,19 @@ router.delete("/exams/:id/student/:code/grade", requireAdmin, (req, res) => {
 });
 router.get("/exams/:id/student/:code/responses", read, (req, res) => {
   const exam = evaluations.getExam(req.params.id);
-  const code = String(req.params.code || "").trim().toUpperCase();
-  const row = db.prepare(
-    "SELECT area,respuestas,detail,revision FROM respuestas_evaluacion WHERE evaluacion_id=? AND codigoEstudiante=? ORDER BY id DESC LIMIT 1",
-  ).get(exam.id, code);
-  if (!row) throw new AppError("Este alumno aún no tiene respuestas registradas en el simulacro.", 404);
+  const code = String(req.params.code || "")
+    .trim()
+    .toUpperCase();
+  const row = db
+    .prepare(
+      "SELECT area,respuestas,detail,revision FROM respuestas_evaluacion WHERE evaluacion_id=? AND codigoEstudiante=? ORDER BY id DESC LIMIT 1",
+    )
+    .get(exam.id, code);
+  if (!row)
+    throw new AppError(
+      "Este alumno aún no tiene respuestas registradas en el simulacro.",
+      404,
+    );
   const detail = JSON.parse(row.detail || "{}");
   res.set("Cache-Control", "no-store").json({
     codigoEstudiante: code,
@@ -343,9 +364,13 @@ router.get("/exams/:id/history/:code", read, (req, res) =>
   ),
 );
 router.delete("/exams/:id/permanent", requireAdmin, (req, res) => {
-  res.json(require("../services/exam-delete.service").deleteExam(
-    req.params.id, req.body?.confirmation, req,
-  ));
+  res.json(
+    require("../services/exam-delete.service").deleteExam(
+      req.params.id,
+      req.body?.confirmation,
+      req,
+    ),
+  );
 });
 router.delete("/exams/:id", write, (req, res) => {
   db.prepare("UPDATE evaluaciones SET estado='archivado' WHERE id=?").run(
@@ -410,6 +435,32 @@ router.post(
     }
   },
 );
+// Automatic OMR upload: exam and geometry come from each registered QR.
+router.post("/scans", write, upload.array("files", 10), (req, res, next) => {
+  try {
+    res.status(202).json(imports.createScan("", req.files, req));
+  } catch (error) {
+    next(error);
+  } finally {
+    for (const f of req.files || [])
+      if (fs.existsSync(f.path)) fs.unlinkSync(f.path);
+  }
+});
+router.get("/exams/:id/sheet-layout", write, (req, res) => {
+  const exam = evaluations.getExam(req.params.id);
+  const spec = require("../services/omr-adaptive-layout").adaptiveLayout(
+    exam.definition,
+  );
+  res.json({
+    perSheet: spec.perSheet,
+    sides: spec.sides,
+    width: spec.width,
+    height: spec.height,
+    sheetWidth: spec.sheetWidth,
+    sheetHeight: spec.sheetHeight,
+    totalQuestions: exam.definition.totalQuestions,
+  });
+});
 router.get("/scanner/devices", write, async (req, res) =>
   res.json(await scanner.discover(req.query.driver || "wia")),
 );
@@ -488,7 +539,11 @@ router.get("/templates", read, (req, res) =>
     ...db
       .prepare("SELECT * FROM exam_templates ORDER BY name")
       .all()
-      .map((t) => ({ ...t, definition: JSON.parse(t.definition) })),
+      .map((t) => ({
+        ...t,
+        fixedStructure: !!t.structure_fixed,
+        definition: JSON.parse(t.definition),
+      })),
   ]),
 );
 router.post("/templates", write, (req, res) => {
@@ -498,8 +553,13 @@ router.post("/templates", write, (req, res) => {
   const def = normalizeDefinition(req.body.definition, { complete: false }),
     id = randomUUID();
   db.prepare(
-    "INSERT INTO exam_templates(id,name,definition) VALUES(?,?,?)",
-  ).run(id, name, JSON.stringify(def));
+    "INSERT INTO exam_templates(id,name,definition,structure_fixed) VALUES(?,?,?,?)",
+  ).run(
+    id,
+    name,
+    JSON.stringify(def),
+    req.body.fixedStructure === true ? 1 : 0,
+  );
   audit(req, "guardar_plantilla", "plantilla", id);
   res.status(201).json({ exito: true, id });
 });

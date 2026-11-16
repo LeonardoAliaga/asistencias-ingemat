@@ -54,7 +54,7 @@ const routes = {
     roles: all,
   },
   exams: {
-    title: "Simulacros",
+    title: "Exámenes",
     group: "Académico",
     description:
       "Prepara el examen, imprime cartillas y consulta los resultados por curso y área.",
@@ -267,7 +267,7 @@ async function loadOverview() {
     [
       summary.evaluaciones,
       "Evaluaciones",
-      "Simulacros y prácticas",
+      "Exámenes y prácticas",
       "journal-check",
     ],
     [

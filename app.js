@@ -54,7 +54,7 @@ function createApp() {
           ],
           imgSrc: ["'self'", "data:", "blob:"],
           mediaSrc: ["'self'", "blob:"],
-          frameSrc: ["'self'", "https://www.google.com"],
+          frameSrc: ["'self'", "blob:", "https://www.google.com"],
           connectSrc: ["'self'"],
           workerSrc: ["'self'", "blob:"],
           upgradeInsecureRequests: config.production ? [] : null,

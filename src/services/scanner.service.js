@@ -240,7 +240,14 @@ function createScannerService({
     }
   }
   function start(body = {}, req) {
-    const { requestId: id, examId, driver, device, source, pageSize } = body;
+    const {
+      requestId: id,
+      examId = "",
+      driver,
+      device,
+      source,
+      pageSize,
+    } = body;
     if (typeof id !== "string" || !UUID.test(id) || typeof examId !== "string")
       throw new AppError("Identificador de captura inválido.");
     const existing = database
@@ -250,7 +257,7 @@ function createScannerService({
       if (existing.actor !== actor(req))
         throw new AppError("Captura no encontrada.", 404);
       if (
-        existing.evaluation_id !== examId ||
+        (existing.evaluation_id || "") !== examId ||
         existing.driver !== driver ||
         existing.device !== device ||
         existing.source !== source ||
@@ -262,7 +269,7 @@ function createScannerService({
         );
       return view(existing);
     }
-    const exam = examReady(examId);
+    const exam = examId ? examReady(examId) : null;
     if (
       !["wia", "twain"].includes(driver) ||
       !devices.get(driver)?.includes(device)
@@ -280,9 +287,9 @@ function createScannerService({
     if (
       database
         .prepare(
-          "SELECT COUNT(*) n FROM scanner_jobs WHERE actor=? AND evaluation_id=? AND status='ready'",
+          "SELECT COUNT(*) n FROM scanner_jobs WHERE actor=? AND status='ready'",
         )
-        .get(actor(req), examId).n >= 10
+        .get(actor(req)).n >= 10
     )
       throw new AppError(
         "Procesa o quita las 10 capturas pendientes antes de añadir otra.",
@@ -294,8 +301,8 @@ function createScannerService({
       )
       .run(
         id,
-        examId,
-        exam.revision,
+        examId || null,
+        exam?.revision || 0,
         actor(req),
         driver,
         device,
@@ -317,18 +324,18 @@ function createScannerService({
       busy: !!active || discovering,
       jobs: database
         .prepare(
-          "SELECT * FROM scanner_jobs WHERE actor=? AND evaluation_id=? AND status NOT IN ('discarded','imported') ORDER BY created_at,rowid",
+          "SELECT * FROM scanner_jobs WHERE actor=? AND (?='' OR evaluation_id=?) AND status NOT IN ('discarded','imported') ORDER BY created_at,rowid",
         )
-        .all(actor(req), examId)
+        .all(actor(req), examId, examId)
         .map(view),
     };
   }
   function clearFailed(examId, req) {
     const rows = database
       .prepare(
-        "SELECT id FROM scanner_jobs WHERE actor=? AND evaluation_id=? AND status IN ('failed','cancelled')",
+        "SELECT id FROM scanner_jobs WHERE actor=? AND (?='' OR evaluation_id=?) AND status IN ('failed','cancelled')",
       )
-      .all(actor(req), examId);
+      .all(actor(req), examId, examId);
     database.transaction(() => {
       for (const row of rows)
         database
@@ -360,7 +367,7 @@ function createScannerService({
     return { exito: true };
   }
   function processCaptures(body = {}, req) {
-    const { examId, jobIds, requestId } = body;
+    const { examId = "", jobIds, requestId } = body;
     if (
       typeof requestId !== "string" ||
       !UUID.test(requestId) ||
@@ -390,11 +397,15 @@ function createScannerService({
         throw new AppError("Este envío ya pertenece a otras capturas.", 409);
       return importService.batch(previous.batch_id);
     }
-    const exam = examReady(examId);
+    const exam = examId ? examReady(examId) : null;
     const rows = jobIds.map((id) => owned(id, req));
-    if (rows.some((r) => r.evaluation_id !== examId || r.status !== "ready"))
+    if (
+      rows.some(
+        (r) => (examId && r.evaluation_id !== examId) || r.status !== "ready",
+      )
+    )
       throw new AppError(
-        "Las capturas deben estar listas y pertenecer al mismo simulacro.",
+        "Las capturas deben estar listas y corresponder al envío seleccionado.",
         409,
       );
     const temp = path.join(root, randomUUID());

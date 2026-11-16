@@ -110,7 +110,7 @@ Distingue los nuevos registros de los Excel anteriores.
 
 Sigue cuatro pasos: Datos, Cursos y áreas, Claves y Revisión.
 
-1. **Abre Simulacros.** Pulsa Nuevo examen. En Datos, el único selector Plantilla reúne las preestablecidas y las que guardaste. Elige Base de 100 preguntas para configurar sus cursos.
+1. **Abre Exámenes.** Pulsa Nuevo examen. En Datos, el único selector Plantilla reúne las preestablecidas y las que guardaste. Elige Base de 100 preguntas para configurar sus cursos.
 2. **Completa los datos.** Indica título, ciclo y fecha. El perfil GENERAL evalúa las 100 preguntas.
 3. **Distribuye los cursos.** Pulsa Continuar para abrir Cursos y áreas. Edita el curso General o agrega cursos con rangos sin solapamientos: Matemática 1-20, Física 21-30 y los demás hasta 100. Cada pregunta pertenece a un único curso. El resumen inferior indica huecos, repeticiones y cantidades por área.
 4. **Configura puntajes.** Los puntajes generales están visibles en Datos, separados del resto de los campos. En Cursos y áreas puedes ajustar Puntajes especiales para este curso si necesita otros valores. Las reglas se guardan con el examen.
@@ -123,7 +123,7 @@ Sigue cuatro pasos: Datos, Cursos y áreas, Claves y Revisión.
 
 El número impreso y el número evaluado son conceptos diferentes.
 
-1. **Elige Simulacro tipo UNMSM.** En Simulacros pulsa Nuevo examen. En Plantilla elige Simulacro tipo UNMSM: contiene 120 preguntas impresas, 19 cursos y 100 evaluables para cada área A–E.
+1. **Elige Simulacro tipo UNMSM.** En Exámenes pulsa Nuevo examen. En Plantilla elige Simulacro tipo UNMSM: contiene 120 preguntas impresas, 19 cursos y 100 evaluables para cada área A–E.
 2. **Completa los datos.** Indica título, ciclo y fecha. Los puntajes generales están visibles en Datos; las actitudinales solo suman por acierto, sin descuento por errores o blancos.
 3. **Usa la configuración establecida.** El asistente omite Cursos y áreas: sigue Datos → Claves → Revisión. La distribución queda precargada. Si deseas cambiarla, selecciona una base o Personalizado (empieza desde cero) y aparecerá ese paso.
 4. **Revisa los puntajes.** Puedes ajustar los puntajes generales en Datos. El descuento cero de actitudinales se conserva. No hace falta volver a ingresar rangos ni cantidades por curso.
@@ -168,38 +168,39 @@ Relaciona el orden impreso con las preguntas originales.
 
 - Esta versión cambia el orden de preguntas, no el orden de alternativas A-E dentro de una pregunta.
 
-## Elegir y guardar plantillas de simulacros
+## Elegir y guardar plantillas de exámenes
 
 Un solo selector Plantilla en Datos; Guardar como plantilla en Revisión.
 
 1. **Elige en Datos.** El selector Plantilla contiene Simulacro tipo UNMSM, las bases y Mis plantillas. UNMSM ya tiene la distribución establecida y omite Cursos y áreas.
 2. **Completa o adapta.** Indica título, ciclo y fecha. Para configurar cursos o áreas propios, elige Personalizado o una de las bases. Carga las claves y excepciones.
-3. **Guarda en Revisión.** Escribe Nombre de la plantilla y pulsa Guardar como plantilla. Es independiente de Guardar borrador o Guardar y validar. Se admiten claves pendientes.
-4. **Reutiliza en otro examen.** Pulsa Nuevo examen y selecciona la plantilla dentro de Mis plantillas. Revisa los datos y reemplaza las claves por las del nuevo cuadernillo. Cargar una plantilla no cambia las notas de otro examen.
+3. **Guarda en Revisión.** Escribe Nombre de la plantilla. Si deseas conservar la estructura, activa Áreas y cursos fijos y pulsa Guardar como plantilla. Puedes guardarla con claves pendientes; es independiente de guardar o validar el examen.
+4. **Reutiliza en otro examen.** Pulsa Nuevo examen y selecciona la plantilla dentro de Mis plantillas. Si tiene áreas y cursos fijos, completa los datos y Continuar te lleva directamente a Claves. Las respuestas anteriores se limpian, mientras preguntas, cursos, áreas, puntajes y versiones se conservan. Las plantillas flexibles permiten editar la estructura.
 5. **Conserva las reglas del examen.** Después de guardar, el simulacro conserva una copia de su configuración. Las actualizaciones de una plantilla no cambian exámenes existentes. Usa Revisar claves y reglas para corregir notas ya registradas con motivo e historial.
 
 ## Generar cartillas por curso y elegir tamaño de impresión
 
-Cuarto de A4 a doble cara o media A4 a una cara, siempre con cartillas horizontales.
+Tamaño automático según preguntas y cursos, con previsualización; también conserva los tamaños anteriores.
 
 1. **Valida el examen.** Solo un examen listo o publicado puede generar cartillas. La distribución por cursos y preguntas viene de su configuración.
-2. **Elige identificación.** En Simulacros selecciona el examen y abre Imprimir cartillas. La opción El alumno completa sus datos y código deja apellidos, nombres y área para escribir; incluye ocho casillas y ocho columnas de círculos del 0 al 9. Los alumnos necesitan códigos registrados de exactamente ocho dígitos; los ceros iniciales se conservan. Los nombres manuscritos son una referencia visual, no se leen por OCR.
-3. **Elige tamaño y cantidad.** Cuarto de A4 horizontal, doble cara coloca cuatro cartillas en una hoja A4 horizontal; frente y reverso se vinculan por QR y su posición se ajusta al borde de volteo elegido. Media A4 horizontal, una cara coloca dos cartillas en una hoja A4 vertical y contiene todas las respuestas en el frente. Indica la cantidad de cartillas, no la cantidad de hojas; los espacios sobrantes quedan vacíos. En media hoja caben las 120 preguntas en esa única cara; cuarto las reparte entre frente y reverso.
-4. **Imprime al 100%.** El PDF ya incluye varias cartillas por hoja. No actives dos o cuatro páginas por hoja ni ajustar al papel. Para cuarto usa doble cara, borde corto por defecto; para media desactiva la doble cara. La pantalla indica orientación, hojas y páginas. Las preferencias del PDF son una sugerencia: comprueba el diálogo y haz una impresión de prueba.
-5. **Explica cómo completar.** El alumno escribe y marca el mismo código, rellena un círculo por columna y una sola área. Rellena las respuestas según el área del examen. Las preguntas aparecen en pequeños bloques por curso; cont. indica que el mismo curso continúa en otra columna o cara. No dibujes sobre marcadores o QR.
-6. **Conserva los QR y revisa la lectura.** Cada cartilla tiene QR único. No fotocopies una sola para varios alumnos; genera la cantidad necesaria. El QR nuevo vincula examen, versión y cara; el alumno se identifica por los círculos del código. Puedes escanear la A4 completa o las cartillas recortadas en el cristal; para cuarto incluye ambas caras en el mismo lote. Un código o área dudoso queda pendiente de revisión, nunca se adivina.
+2. **Elige identificación.** En Exámenes selecciona el examen y abre Imprimir cartillas. La opción El alumno completa sus datos y código deja apellidos, nombres y área para escribir; incluye ocho casillas y ocho columnas de círculos del 0 al 9. Los alumnos necesitan códigos registrados de exactamente ocho dígitos; los ceros iniciales se conservan. Los nombres manuscritos son una referencia visual, no se leen por OCR.
+3. **Elige tamaño y cantidad.** Automático calcula seis, cuatro, tres, dos o una cartilla horizontal por A4 a una cara, respetando el tamaño de los círculos, la identificación y los títulos. Un examen sencillo de 50 preguntas cabe en seis por hoja; más cursos o títulos largos pueden requerir un tamaño mayor. La pantalla indica las dimensiones y las hojas necesarias. Cuarto a doble cara y media a una cara siguen disponibles.
+4. **Previsualiza el PDF.** Pulsa Previsualizar cartillas para revisar el diseño y descargar ese mismo PDF. Comprueba títulos, preguntas, código y márgenes antes de imprimir.
+5. **Imprime al 100%.** El PDF ya incluye varias cartillas por hoja. No actives dos o cuatro páginas por hoja ni ajustar al papel. Para cuarto usa doble cara, borde corto por defecto; para media desactiva la doble cara. La pantalla indica orientación, hojas y páginas. Las preferencias del PDF son una sugerencia: comprueba el diálogo y haz una impresión de prueba.
+6. **Explica cómo completar.** El alumno escribe y marca el mismo código, rellena un círculo por columna y una sola área. Rellena las respuestas según el área del examen. Las preguntas aparecen en pequeños bloques por curso; cont. indica que el mismo curso continúa en otra columna o cara. No dibujes sobre marcadores o QR.
+7. **Conserva los QR y revisa la lectura.** Cada cartilla tiene QR único. No fotocopies una sola para varios alumnos; genera la cantidad necesaria. El QR nuevo vincula examen, versión y cara; el alumno se identifica por los círculos del código. Puedes escanear la A4 completa o las cartillas recortadas en el cristal; para cuarto incluye ambas caras en el mismo lote. Un código o área dudoso queda pendiente de revisión, nunca se adivina.
 
-- El formato anterior QR por estudiante permanece disponible para cartillas A4 personalizadas y cuadernillos de más de 120 preguntas. Sus impresiones existentes siguen siendo legibles.
-- La disposición compacta admite hasta cinco áreas de un carácter o un único perfil general. Antes de imprimir un salón completo, prueba papel, márgenes y calidad de lectura.
+- El diseño automático admite entre 1 y 200 preguntas. Guarda la geometría utilizada para que el lector use exactamente las posiciones impresas. Las cartillas anteriores siguen siendo compatibles.
+- Cada cartilla tiene un QR distinto. Genera la cantidad necesaria; no fotocopies una sola para distintos alumnos. Haz una prueba física con la impresora y el escáner.
 
 ## Escanear un salón completo con alimentador automático
 
 Ruta recomendada para ahorrar trabajo repetitivo.
 
-1. **Prepara el escáner.** Usa alimentador automático (ADF), 300 ppp y PDF multipágina. Empieza con escala de grises y desactiva filtros que borren marcas tenues.
+1. **Prepara el escáner.** Para hojas A4 o documentos admitidos por el ADF, usa 300 ppp en grises y PDF multipágina. Para cartillas pequeñas recortadas, coloca varias separadas sobre el cristal y captura A4. Desactiva filtros que borren marcas tenues.
 2. **Revisa el papel.** Quita grapas, separa hojas pegadas y comprueba que todas tengan QR y cuatro marcadores.
-3. **Escanea el lote.** No es necesario ordenar por estudiante: las cartillas personalizadas se identifican por QR.
-4. **Carga los archivos.** En Lectura de cartillas selecciona el examen y carga PDF, PNG o JPG. Se admiten hasta 10 archivos de 20 MB y 100 páginas por lote.
+3. **Escanea el lote.** El QR identifica examen, diseño y cara. No necesitas ordenar por estudiante ni elegir el examen. Puedes incluir varios exámenes; las reglas de cada uno se aplican por separado.
+4. **Carga los archivos.** En Lectura de cartillas carga PDF, PNG o JPG. Pulsa Previsualizar archivos, recorre todos los PDF y desmarca los mal escaneados. Solo Procesar seleccionados crea el lote. Hasta 10 archivos de 20 MB y 100 caras de cartilla por lote, contando cada cartilla dentro de una A4.
 5. **Espera el procesamiento.** El estado pasa de En cola a Procesando, después a Listo o Revisar. Puedes actualizar sin volver a cargar.
 6. **Resuelve incidencias.** Revisa marcas dobles, tenues, identificadores desconocidos y páginas faltantes.
 7. **Comprueba la previsualización.** Revisa estudiante, área y puntaje antes de confirmar la importación.
@@ -207,19 +208,19 @@ Ruta recomendada para ahorrar trabajo repetitivo.
 
 ## Escanear desde NAPS2
 
-Añade capturas desde el cristal o el alimentador y envíalas juntas al lector OMR.
+Escanea sin elegir examen, comprueba cada PDF y procesa solo los archivos seleccionados.
 
 1. **Instala y prueba el escáner.** En la computadora que ejecuta INGEMAT instala NAPS2 y el controlador de escáner Brother. Comprueba una captura desde NAPS2. Si la instalación está fuera de las carpetas habituales, define NAPS2_BIN con la ruta de NAPS2.Console.exe y reinicia INGEMAT. El comando npm run scanner:doctor busca equipos sin iniciar un escaneo.
-2. **Conecta y selecciona.** Abre Lectura de cartillas y selecciona un examen listo. Pulsa Buscar escáneres. Se usa WIA inicialmente; si el equipo no aparece, selecciona TWAIN y vuelve a buscar. El escáner debe estar accesible desde la PC del servidor, aunque abras el panel desde otro dispositivo.
+2. **Conecta y selecciona.** Abre Lectura de cartillas y pulsa Buscar escáneres. No necesitas seleccionar un examen: se identifica por el QR. Usa WIA o prueba TWAIN si no aparece el equipo. NAPS2 controla el escáner conectado a la computadora que ejecuta INGEMAT.
 3. **Prepara el papel.** Para Brother MFC-T920DW usa Cristal con los cuartos recortados; su alimentador requiere al menos 148 × 148 mm. Elige A4 para el área completa del cristal o A5 para media hoja. El alimentador admite hasta 20 hojas y escanea una cara; para los cuartos debes voltear manualmente y capturar ambos lados. Se fija 300 ppp en escala de grises.
-4. **Escanea y añade.** Pulsa Escanear y añadir y espera a que aparezca Lista para procesar. Abre Ver PDF para comprobar que están el QR y los cuatro marcadores. Cambia o voltea el papel y repite; la bandeja conserva hasta diez capturas listas por examen y operador, incluso al recargar. Puedes cancelar un escaneo o quitar una captura terminada.
+4. **Escanea y añade.** Pulsa Escanear y añadir y espera a que aparezca Lista para procesar. Puedes reunir hasta diez capturas por operador, incluso de distintos exámenes. Recargar conserva los PDF terminados. Puedes abrir Ver PDF, quitar una captura o cancelar un escaneo.
 5. **Recupera una conexión interrumpida.** Si se pierde la respuesta, pulsa Verificar captura pendiente o Verificar envío pendiente. Se reutiliza el mismo identificador y no se repite una orden ya recibida. Si se reinicia el servidor durante la captura se marca Fallida; comprueba el escáner y solicita una nueva captura manualmente.
-6. **Procesa y confirma.** Pulsa Procesar capturas para crear un único lote OMR. Su estado aparece debajo del escáner, antes del historial. Corrige las incidencias y confirma la importación. Los archivos originales del lote se conservan; las notas solo se guardan tras esa confirmación.
+6. **Previsualiza, selecciona y procesa.** Pulsa Previsualizar capturas. Abre cada documento, comprueba todas sus páginas y desmarca los archivos borrosos o incompletos. Procesar seleccionados envía únicamente esos PDF al lector; los excluidos permanecen en la bandeja. Después revisa examen, estudiante y notas del lote y confirma la importación. Las notas se guardan juntas en cada examen correspondiente.
 
 - Una sesión individual de NAPS2 genera un PDF de hasta 20 MB. Divide las pilas grandes; el lector admite hasta 100 caras de cartilla por lote.
 - También puedes cargar PDF, PNG o JPG escaneados previamente desde el apartado de archivos.
 - Lotes recientes usa un selector compacto. Limpiar finalizados oculta de tu lista los lotes importados o fallidos; Restaurar lista los vuelve a mostrar. Los pendientes permanecen visibles y no se borran archivos, notas ni auditoría.
-- Limpiar intentos fallidos retira capturas fallidas o canceladas de tu examen y usuario. Conserva las capturas listas y las solicitudes activas. Los apartados Cargar PDF o imágenes e Importar CSV están al final de la sección.
+- Limpiar intentos fallidos retira capturas fallidas o canceladas de tu usuario y conserva las listas. La selección del examen se mantiene únicamente para CSV, que no incluye un QR.
 
 ## Resolver marcas dobles, dudosas y hojas no reconocidas
 
@@ -251,7 +252,7 @@ Aprovecha lectores externos conservando el motor de calificación de INGEMAT.
 
 También sirve como alternativa cuando una hoja no se puede escanear.
 
-1. **Selecciona el examen y estudiante.** En Simulacros selecciona un examen listo y abre la pestaña Ingreso manual. Selecciona al estudiante por nombre o código.
+1. **Selecciona el examen y estudiante.** En Exámenes selecciona un examen listo y abre la pestaña Ingreso manual. Selecciona al estudiante por nombre o código.
 2. **Confirma área y versión.** Estos datos determinan qué preguntas se evalúan.
 3. **Pega las respuestas.** Puedes escribir una secuencia o líneas 1,A; 2,-; 3,A/B. El guion representa blanco.
 4. **Guarda y comprueba.** Pulsa Calificar y guardar. Abre Resultados y consulta Cursos e historial para comprobar el desglose antes de publicar.

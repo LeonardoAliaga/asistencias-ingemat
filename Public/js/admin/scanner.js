@@ -1,3 +1,4 @@
+import { previewScans } from "./scan-preview.js";
 export function mountScanner({ api, escape: esc, onUploaded, username }) {
   const $ = (id) => document.getElementById(id);
   const key = `ingemat.scanner.${username}`;
@@ -7,7 +8,6 @@ export function mountScanner({ api, escape: esc, onUploaded, username }) {
     requesting = false,
     refreshing = false,
     refreshQueued = false,
-    displayedExam = "",
     queueMarkup = "";
   try {
     pending = JSON.parse(sessionStorage.getItem(key) || "{}") || {};
@@ -49,11 +49,6 @@ export function mountScanner({ api, escape: esc, onUploaded, username }) {
       return "Hay un escaneo en curso. Espera a que termine o pulsa Cancelar escaneo.";
     if (serverBusy)
       return "El escáner está ocupado por otra solicitud. El botón se habilitará cuando termine.";
-    if (!pending.start && !$("v2-import-exam").value) {
-      return [...$("v2-import-exam").options].some((option) => option.value)
-        ? "Selecciona un examen listo en este panel para habilitar el escaneo."
-        : "No hay exámenes listos. Primero crea y valida un simulacro en la sección Simulacros.";
-    }
     if (!pending.start && !$("scanner-device").value)
       return "Pulsa Buscar escáneres y selecciona el equipo que vas a usar.";
     return "";
@@ -64,7 +59,6 @@ export function mountScanner({ api, escape: esc, onUploaded, username }) {
       !!pending.start ||
       !!pending.import ||
       jobs.some((j) => j.status === "scanning");
-    $("v2-import-exam").disabled = locked;
     for (const id of [
       "scanner-driver",
       "scanner-device",
@@ -93,7 +87,7 @@ export function mountScanner({ api, escape: esc, onUploaded, username }) {
       (!pending.import && !jobs.some((j) => j.status === "ready"));
     $("scanner-process").textContent = pending.import
       ? "Verificar envío pendiente"
-      : "Procesar capturas";
+      : "Previsualizar capturas";
     $("scanner-clear-failed").disabled =
       locked || !jobs.some((j) => ["failed", "cancelled"].includes(j.status));
     const markup = jobs.length
@@ -107,29 +101,13 @@ export function mountScanner({ api, escape: esc, onUploaded, username }) {
     }
   }
   async function refresh() {
-    const examId = $("v2-import-exam").value;
-    if (displayedExam !== examId) {
-      displayedExam = examId;
-      jobs = [];
-      serverBusy = false;
-      render();
-    }
     if (refreshing) {
       refreshQueued = true;
       return;
     }
-    if (!examId) {
-      jobs = [];
-      serverBusy = false;
-      render();
-      return;
-    }
     refreshing = true;
     try {
-      const data = await api(
-        `/api/v2/scanner/jobs?examId=${encodeURIComponent(examId)}`,
-      );
-      if ($("v2-import-exam").value !== examId) return;
+      const data = await api("/api/v2/scanner/jobs");
       jobs = data.jobs;
       serverBusy = data.busy;
       if (pending.start && jobs.some((j) => j.id === pending.start.requestId)) {
@@ -183,10 +161,7 @@ export function mountScanner({ api, escape: esc, onUploaded, username }) {
   );
   $("scanner-clear-failed").addEventListener("click", () =>
     act(async () => {
-      const result = await api(
-        "/api/v2/scanner/clear-failed",
-        json({ examId: $("v2-import-exam").value }),
-      );
+      const result = await api("/api/v2/scanner/clear-failed", json({}));
       await refresh();
       status(
         `${result.cleared} intentos fallidos o cancelados retirados. Las capturas listas se conservan.`,
@@ -199,13 +174,11 @@ export function mountScanner({ api, escape: esc, onUploaded, username }) {
     render();
   });
   $("scanner-device").addEventListener("change", render);
-  $("v2-import-exam").addEventListener("change", refresh);
   $("scanner-start").addEventListener("click", () =>
     act(async () => {
       if (!pending.start)
         pending.start = {
           requestId: uuid(),
-          examId: $("v2-import-exam").value,
           driver: $("scanner-driver").value,
           device: $("scanner-device").value,
           source: $("scanner-source").value,
@@ -234,12 +207,24 @@ export function mountScanner({ api, escape: esc, onUploaded, username }) {
   );
   $("scanner-process").addEventListener("click", () =>
     act(async () => {
-      if (!pending.import)
+      if (!pending.import) {
+        const selected = await previewScans(
+          jobs
+            .filter((j) => j.status === "ready")
+            .map((j, i) => ({
+              id: j.id,
+              name: `Captura ${i + 1}.pdf`,
+              url: j.fileUrl,
+              pdf: true,
+            })),
+          { escape: esc },
+        );
+        if (!selected) return;
         pending.import = {
-          examId: $("v2-import-exam").value,
-          jobIds: jobs.filter((j) => j.status === "ready").map((j) => j.id),
+          jobIds: selected.map((j) => j.id),
           requestId: uuid(),
         };
+      }
       save();
       render();
       let batch;
@@ -276,7 +261,6 @@ export function mountScanner({ api, escape: esc, onUploaded, username }) {
     });
   });
   if (pending.start || pending.import) {
-    $("v2-import-exam").value = (pending.start || pending.import).examId;
     status(
       "Hay una solicitud pendiente de comprobar. Usa Verificar para recuperar su estado sin repetirla.",
     );

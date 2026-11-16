@@ -1,3 +1,4 @@
+import { previewScans } from "./scan-preview.js";
 import { mountScanner } from "./scanner.js";
 import { mountKeyEditor } from "./key-editor.js";
 import { mountManualStudentSearch } from "./manual-student-search.js";
@@ -224,7 +225,8 @@ async function loadTemplates() {
       ? '<optgroup label="Mis plantillas">' +
         saved
           .map(
-            (t) => `<option value="saved:${esc(t.id)}">${esc(t.name)}</option>`,
+            (t) =>
+              `<option value="saved:${esc(t.id)}">${esc(t.name)}${t.fixedStructure ? " · estructura fija" : ""}</option>`,
           )
           .join("") +
         "</optgroup>"
@@ -287,9 +289,24 @@ function syncWizardMode() {
       button.querySelector(".wizard-number").textContent = index + 1;
   }
   $("v2-fixed-preset").hidden = !state.fixedPreset;
+  const fixedTemplate = state.templates.find(
+    (t) => t.id === state.fixedTemplateId,
+  );
+  $("v2-fixed-preset").querySelector("strong").textContent = fixedTemplate
+    ? `${fixedTemplate.name}: áreas y cursos fijos`
+    : "Simulacro tipo UNMSM: configuración establecida";
+  $("v2-preset-source").textContent = fixedTemplate
+    ? "Esta plantilla conserva la cantidad de preguntas, cursos, áreas, puntajes y versiones. Continuar te lleva directamente a Claves. Las respuestas se completan para cada examen."
+    : "120 preguntas, 19 cursos y áreas A–E establecidos; 100 evaluables por área. Continuar te lleva a Claves. Las actitudinales solo suman por acierto.";
+  $("v2-template-fixed").checked = !!state.fixedPreset;
+  for (const name of ["correct", "wrong", "blank"])
+    $("v2-exam-editor").elements[name].readOnly = !!fixedTemplate;
+  $("v2-forms").readOnly = !!fixedTemplate;
   $("wizard-scoring-help").textContent = state.fixedPreset
-    ? "Valores generales. Las actitudinales mantienen 0 por error o blanco."
-    : "Valores generales del simulacro; puedes ajustar cada curso en Cursos y áreas.";
+    ? fixedTemplate
+      ? "Puntajes conservados de la plantilla fija."
+      : "Valores generales. Las actitudinales mantienen 0 por error o blanco."
+    : "Valores generales del examen; puedes ajustar cada curso en Cursos y áreas.";
   $("v2-exam-editor").elements.total.readOnly = !!state.fixedPreset;
 }
 function moveWizard(direction) {
@@ -304,9 +321,11 @@ function moveWizard(direction) {
 function manualEligibleStudents() {
   const exam = state.selected;
   if (!exam?.definition) return [];
-  return state.students.filter((student) =>
-    exam.eligibleStudentCodes?.includes(student.codigo) ??
-    student.ciclo.toUpperCase() === exam.ciclo.toUpperCase());
+  return state.students.filter(
+    (student) =>
+      exam.eligibleStudentCodes?.includes(student.codigo) ??
+      student.ciclo.toUpperCase() === exam.ciclo.toUpperCase(),
+  );
 }
 async function selectExam(id) {
   const summary = state.exams.find((e) => e.id === id);
@@ -340,7 +359,8 @@ async function selectExam(id) {
   $("v2-ready").hidden = e.estado !== "borrador" || !canWrite;
   $("v2-revise").hidden =
     !["listo", "publicado"].includes(e.estado) || !e.definition || !canWrite;
-  const canNotify = ["listo", "publicado"].includes(e.estado) && state.role === "admin";
+  const canNotify =
+    ["listo", "publicado"].includes(e.estado) && state.role === "admin";
   $("v2-share-results-group").hidden = !canNotify;
   $("v2-archive").hidden = !canWrite;
   $("v2-delete-permanent").hidden = state.role !== "admin";
@@ -377,6 +397,8 @@ async function selectExam(id) {
   $("v2-replace-reason").hidden = true;
   $("v2-print").disabled =
     !canWrite || !["listo", "publicado"].includes(e.estado);
+  $("v2-print-preview").disabled = $("v2-print").disabled;
+  void state.printGuidance?.();
   await loadResults();
 }
 function expand(text) {
@@ -429,15 +451,27 @@ function keyValues(text) {
 }
 function manualAnswerDefinition() {
   const definition = state.selected?.definition;
-  if (!definition) return { totalQuestions: 1, sections: [{ name: "Preguntas", questions: [1] }] };
-  const order = definition.forms[$("v2-manual-form").value] ||
+  if (!definition)
+    return {
+      totalQuestions: 1,
+      sections: [{ name: "Preguntas", questions: [1] }],
+    };
+  const order =
+    definition.forms[$("v2-manual-form").value] ||
     Array.from({ length: definition.totalQuestions }, (_, i) => i + 1);
   return {
     totalQuestions: definition.totalQuestions,
-    sections: definition.sections.map((section) => {
-      const originals = new Set(section.questions);
-      return { name: section.name, questions: order.flatMap((question, i) => originals.has(question) ? [i + 1] : []) };
-    }).filter((section) => section.questions.length),
+    sections: definition.sections
+      .map((section) => {
+        const originals = new Set(section.questions);
+        return {
+          name: section.name,
+          questions: order.flatMap((question, i) =>
+            originals.has(question) ? [i + 1] : [],
+          ),
+        };
+      })
+      .filter((section) => section.questions.length),
   };
 }
 function answerValues(text) {
@@ -557,6 +591,7 @@ function collectEditor({ structureOnly = false } = {}) {
     titulo: form.elements.titulo.value,
     ciclo: form.elements.ciclo.value,
     fecha: form.elements.fecha.value,
+    ...(state.fixedTemplateId ? { templateId: state.fixedTemplateId } : {}),
     definition: {
       totalQuestions: total,
       areas,
@@ -752,6 +787,9 @@ function renderSections() {
 }
 function setEditor(def, id = null) {
   state.editor = id;
+  state.fixedTemplateId = id
+    ? state.exams.find((e) => e.id === id)?.template_id || null
+    : null;
   state.definitionDirty = false;
   $("v2-template-feedback").textContent = "";
   $("v2-preset-source").hidden = true;
@@ -809,8 +847,11 @@ function setEditor(def, id = null) {
         : [100, 120].includes(def.totalQuestions)
           ? String(def.totalQuestions)
           : "custom";
-  state.fixedPreset = matchesUNMSM(def);
-  if (state.fixedPreset) state.currentPreset = "repaso-unmsm";
+  state.fixedPreset = !!state.fixedTemplateId || matchesUNMSM(def);
+  if (state.fixedPreset)
+    state.currentPreset = state.fixedTemplateId
+      ? `saved:${state.fixedTemplateId}`
+      : "repaso-unmsm";
   $("v2-preset").value = state.currentPreset;
   $("v2-preset-source").hidden = !state.fixedPreset;
   syncWizardMode();
@@ -824,7 +865,21 @@ function preset(value) {
     t.builtIn ? t.presetId === value : `saved:${t.id}` === value,
   );
   if (selectedTemplate) {
-    setEditor(selectedTemplate.definition, editorId);
+    const definition = structuredClone(selectedTemplate.definition);
+    if (selectedTemplate.fixedStructure) {
+      definition.keys = Object.fromEntries(
+        Object.entries(definition.keys || {}).map(([q, key]) => [
+          q,
+          { answers: [], noPenalty: !!key.noPenalty },
+        ]),
+      );
+    }
+    setEditor(definition, editorId);
+    state.fixedTemplateId = selectedTemplate.fixedStructure
+      ? selectedTemplate.id
+      : null;
+    state.fixedPreset = !!state.fixedTemplateId || matchesUNMSM(definition);
+    syncWizardMode();
     state.currentPreset = value;
     $("v2-preset").value = value;
     $("v2-preset-source").hidden = !state.fixedPreset;
@@ -926,9 +981,11 @@ async function loadResults() {
         `${r.correctas} / ${r.incorrectas} / ${r.enBlanco}${r.detail.anuladas ? ` · ${r.detail.anuladas} anuladas` : ""}`,
         `<strong>${r.puntajeTotal}</strong>`,
         `<button class="v2-link" data-result="${esc(r.codigoEstudiante)}">Cursos e historial</button>`,
-        ...(state.role === "admin" ? [
-          `<button type="button" class="v2-link v2-attendance-delete" data-delete-grade="${esc(r.codigoEstudiante)}" aria-label="Eliminar resultado de ${esc(r.nombreEstudiante)} (${esc(r.codigoEstudiante)})" title="Eliminar calificación y su historial"><i class="bi bi-trash3" aria-hidden="true"></i></button>`,
-        ] : []),
+        ...(state.role === "admin"
+          ? [
+              `<button type="button" class="v2-link v2-attendance-delete" data-delete-grade="${esc(r.codigoEstudiante)}" aria-label="Eliminar resultado de ${esc(r.nombreEstudiante)} (${esc(r.codigoEstudiante)})" title="Eliminar calificación y su historial"><i class="bi bi-trash3" aria-hidden="true"></i></button>`,
+            ]
+          : []),
       ];
     }),
   );
@@ -969,24 +1026,35 @@ async function loadResults() {
           }
         }),
     );
-  $("v2-results").querySelectorAll("[data-delete-grade]").forEach(button => {
-    button.onclick = async () => {
-      const code = button.dataset.deleteGrade;
-      const row = data.rows.find(r => r.codigoEstudiante === code);
-      if (!row || !state.selected || state.selected.id !== e.id) return;
-      if (!confirm(`¿Eliminar la calificación de ${row.nombreEstudiante} (${code}) en "${e.titulo}"?\n\nSe borrarán sus respuestas y el historial de correcciones de este simulacro. Los demás alumnos conservarán sus notas. Esta acción no se puede deshacer.`))
-        return;
-      button.disabled = true;
-      try {
-        await api(`/api/v2/exams/${encodeURIComponent(e.id)}/student/${encodeURIComponent(code)}/grade`, { method: "DELETE" });
-        await loadExams(e.id);
-        message(`Calificación de ${row.nombreEstudiante} eliminada. Ranking recalculado.`);
-      } catch (error) {
-        message(error.message, true);
-        button.disabled = false;
-      }
-    };
-  });
+  $("v2-results")
+    .querySelectorAll("[data-delete-grade]")
+    .forEach((button) => {
+      button.onclick = async () => {
+        const code = button.dataset.deleteGrade;
+        const row = data.rows.find((r) => r.codigoEstudiante === code);
+        if (!row || !state.selected || state.selected.id !== e.id) return;
+        if (
+          !confirm(
+            `¿Eliminar la calificación de ${row.nombreEstudiante} (${code}) en "${e.titulo}"?\n\nSe borrarán sus respuestas y el historial de correcciones de este examen. Los demás alumnos conservarán sus notas. Esta acción no se puede deshacer.`,
+          )
+        )
+          return;
+        button.disabled = true;
+        try {
+          await api(
+            `/api/v2/exams/${encodeURIComponent(e.id)}/student/${encodeURIComponent(code)}/grade`,
+            { method: "DELETE" },
+          );
+          await loadExams(e.id);
+          message(
+            `Calificación de ${row.nombreEstudiante} eliminada. Ranking recalculado.`,
+          );
+        } catch (error) {
+          message(error.message, true);
+          button.disabled = false;
+        }
+      };
+    });
   $("v2-ranking-excel").href =
     `/api/evaluaciones/${e.id}/excel${area ? "?area=" + encodeURIComponent(area) : ""}`;
 }
@@ -1006,7 +1074,7 @@ async function loadBatches() {
     ? previous
     : batches[0]?.id;
   $("v2-batches").innerHTML = batches.length
-    ? `<div class="v2-toolbar batch-history-picker"><label>Lote guardado (${batches.length})<select id="v2-batch-select">${batches.map((b) => `<option value="${esc(b.id)}" ${b.id === selected ? "selected" : ""}>${esc(stamp(b.created_at))} · ${esc(state.exams.find((e) => e.id === b.evaluation_id)?.titulo || b.evaluation_id)} · ${esc(statuses[b.status] || b.status)}</option>`).join("")}</select></label><button class="v2-button secondary" id="v2-open-batch" data-batch="${esc(selected)}" type="button">Abrir lote</button></div>`
+    ? `<div class="v2-toolbar batch-history-picker"><label>Lote guardado (${batches.length})<select id="v2-batch-select">${batches.map((b) => `<option value="${esc(b.id)}" ${b.id === selected ? "selected" : ""}>${esc(stamp(b.created_at))} · ${esc(b.exam_titles || state.exams.find((e) => e.id === b.evaluation_id)?.titulo || "Exámenes identificados por QR")} · ${esc(statuses[b.status] || b.status)}</option>`).join("")}</select></label><button class="v2-button secondary" id="v2-open-batch" data-batch="${esc(selected)}" type="button">Abrir lote</button></div>`
     : '<p class="v2-help">No hay lotes recientes en tu lista.</p>';
   $("v2-clear-batches").disabled = !batches.some((b) =>
     ["committed", "failed"].includes(b.status),
@@ -1048,9 +1116,14 @@ async function openBatch(id) {
   el.innerHTML = `<div class="v2-card-title"><h3>Lote · ${esc(b.source.toUpperCase())}</h3>${badge(b.status)}</div>${b.error ? `<p class="v2-notice warning">${esc(b.error)}</p>` : ""}${["queued", "processing"].includes(b.status) ? "<p>Procesando en segundo plano. Esta vista se actualiza automáticamente.</p>" : ""}${
     b.result.pages
       ? table(
-          ["Página", "Estudiante", "Marcas", "Incidencia", "Acción"],
+          ["Página", "Examen", "Estudiante", "Marcas", "Incidencia", "Acción"],
           b.result.pages.map((p, i) => [
-            `${i + 1} · ${esc(p.file)}`,
+            `${i + 1} · ${esc(p.file)}${p.sourcePage ? ` · hoja ${p.sourcePage}` : ""}`,
+            esc(
+              p.examTitle ||
+                state.exams.find((e) => e.id === b.evaluation_id)?.titulo ||
+                "Sin identificar",
+            ),
             scannedStudentLabel(p),
             Object.values(p.responses || {}).filter(
               (r) => r.status === "single",
@@ -1071,8 +1144,13 @@ async function openBatch(id) {
         )
       : ""
   }<h4>Previsualización de calificaciones</h4>${table(
-    ["Estudiante", "Área", "Versión", "Evaluables", "Puntaje"],
+    ["Examen", "Estudiante", "Área", "Versión", "Evaluables", "Puntaje"],
     (b.result.rows || []).map((r) => [
+      esc(
+        r.examTitle ||
+          state.exams.find((e) => e.id === b.evaluation_id)?.titulo ||
+          "",
+      ),
       scannedStudentLabel(r),
       esc(r.area),
       esc(r.form),
@@ -1152,11 +1230,16 @@ function reviewPage(index) {
         : `<div id="v2-review-student">${scannedStudentNotice(p)}</div>${
             p.identification
               ? `<div class="v2-notice warning">Comprueba el código y el área contra la cartilla. Una corrección requiere motivo.</div>${codeColumnPreview(p.identification)}${areaReadingPreview(p.identification)}<div class="v2-form-grid"><label>Código de 8 dígitos<input id="v2-review-code" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" required value="${esc((p.identificationOverride || p.identification).code)}"></label><label>Área marcada<select id="v2-review-area" required><option value="">Selecciona un área</option>${
-                  state.exams
-                    .find((e) => e.id === b.evaluation_id)
-                    ?.definition?.areas?.map(
+                  (
+                    p.examAreas ||
+                    state.exams.find(
+                      (e) => e.id === (p.examId || b.evaluation_id),
+                    )?.definition?.areas ||
+                    []
+                  )
+                    .map(
                       (a) =>
-                        `<option value="${esc(a.code)}">${esc(a.code)}</option>`,
+                        `<option value="${esc(a.code)}">${esc(a.code)} · ${esc(a.name || a.code)}</option>`,
                     )
                     .join("") || ""
                 }</select></label></div>`
@@ -1448,7 +1531,7 @@ function renderGuides() {
         .toLowerCase()
         .includes(q),
   );
-  $("v2-guide-count").textContent = `${results.length} tutoriales`;
+  $("v2-guide-count").textContent = `${results.length} ${results.length === 1 ? "tutorial" : "tutoriales"}`;
   $("v2-guide-list").innerHTML =
     results
       .map(
@@ -1664,7 +1747,7 @@ function updateWizardFeedback() {
           `${esc(a.code)} · ${esc(a.name)}`,
           `${a.assigned} de ${a.requiredQuestions}`,
         ]),
-      )}</div><p class="${keyError ? "field-error" : "v2-help"}">${esc(keyError || (complete === total ? "La clave está completa. Puedes guardar y validar el simulacro." : "Puedes guardar el borrador y completar las claves después. Para validar se requiere una clave o regla para cada pregunta."))}</p>`;
+      )}</div><p class="${keyError ? "field-error" : "v2-help"}">${esc(keyError || (complete === total ? "La clave está completa. Puedes guardar y validar el examen." : "Puedes guardar el borrador y completar las claves después. Para validar se requiere una clave o regla para cada pregunta."))}</p>`;
     $("wizard-prepare").disabled =
       issues.length > 0 || !!keyError || complete !== total;
     return { issues, def };
@@ -2043,17 +2126,22 @@ async function initialize() {
     const e = state.selected;
     if (!e || state.role !== "admin") return;
     const text = prompt(
-      `Se eliminará DEFINITIVAMENTE "${e.titulo}" con sus notas, respuestas, cartillas, lotes, historial y avisos de resultados. Esta operación no se puede deshacer.\n\nEscribe el título exacto del simulacro para confirmar:`,
+      `Se eliminará DEFINITIVAMENTE "${e.titulo}" con sus notas, respuestas, cartillas, lotes, historial y avisos de resultados. Esta operación no se puede deshacer.\n\nEscribe el título exacto del examen para confirmar:`,
     );
     if (text === null) return;
-    if (text !== e.titulo) throw new Error("El título no coincide. No se eliminó ningún registro.");
-    const result = await api(`/api/v2/exams/${encodeURIComponent(e.id)}/permanent`,
-      json({ confirmation: text }, "DELETE"));
+    if (text !== e.titulo)
+      throw new Error("El título no coincide. No se eliminó ningún registro.");
+    const result = await api(
+      `/api/v2/exams/${encodeURIComponent(e.id)}/permanent`,
+      json({ confirmation: text }, "DELETE"),
+    );
     await loadExams();
     await selectExam("");
-    message(result.cleanupWarnings?.length
-      ? `Simulacro y registros eliminados. Aviso: ${result.cleanupWarnings.join(" · ")}`
-      : "Simulacro eliminado definitivamente junto con sus registros.");
+    message(
+      result.cleanupWarnings?.length
+        ? `Examen y registros eliminados. Aviso: ${result.cleanupWarnings.join(" · ")}`
+        : "Examen eliminado definitivamente junto con sus registros.",
+    );
   });
   bind("v2-archive", "click", async () => {
     if (!confirm("¿Archivar este examen? Sus notas e historial se conservan."))
@@ -2064,33 +2152,75 @@ async function initialize() {
     message("Evaluación archivada.");
   });
   bind("v2-share-results-group", "click", async () => {
-    const exam=state.selected;
-    if (!exam || !["listo", "publicado"].includes(exam.estado)) throw new Error("Valida el simulacro antes de notificar al grupo.");
-    const { target }=await api(`/api/v2/whatsapp/attendance-target?cycle=${encodeURIComponent(exam.ciclo)}`);
-    if (!target) throw new Error("Configura primero el grupo del ciclo en Comunicación.");
-    if (!confirm(`¿Enviar imágenes del ranking de "${exam.titulo}" al grupo "${target.subject}"?\n\nCada área tendrá su propia imagen (con páginas si hay muchos alumnos). Se mostrarán nombres, buenas, malas, vacías y puntajes, SIN códigos. Confirma que todos los estudiantes cuentan con autorización para compartir estas calificaciones en ese grupo.`)) return;
-    const result=await api("/api/v2/whatsapp/exam-group-summary",json({
-      examId:exam.id,groupId:target.id,requestId:crypto.randomUUID(),
-      confirmAuthorized:true,
-    }));
-    message(result.duplicate
-      ? "Esta solicitud ya estaba registrada. Consulta su estado en Comunicación."
-      : `${result.images} imagen(es) de ranking por ${result.areas} área(s) puestas en cola para "${target.subject}". Revisa cada envío en Comunicación.`);
+    const exam = state.selected;
+    if (!exam || !["listo", "publicado"].includes(exam.estado))
+      throw new Error("Valida el examen antes de notificar al grupo.");
+    const { target } = await api(
+      `/api/v2/whatsapp/attendance-target?cycle=${encodeURIComponent(exam.ciclo)}`,
+    );
+    if (!target)
+      throw new Error("Configura primero el grupo del ciclo en Comunicación.");
+    if (
+      !confirm(
+        `¿Enviar imágenes del ranking de "${exam.titulo}" al grupo "${target.subject}"?\n\nCada área tendrá su propia imagen (con páginas si hay muchos alumnos). Se mostrarán nombres, buenas, malas, vacías y puntajes, SIN códigos. Confirma que todos los estudiantes cuentan con autorización para compartir estas calificaciones en ese grupo.`,
+      )
+    )
+      return;
+    const result = await api(
+      "/api/v2/whatsapp/exam-group-summary",
+      json({
+        examId: exam.id,
+        groupId: target.id,
+        requestId: crypto.randomUUID(),
+        confirmAuthorized: true,
+      }),
+    );
+    message(
+      result.duplicate
+        ? "Esta solicitud ya estaba registrada. Consulta su estado en Comunicación."
+        : `${result.images} imagen(es) de ranking por ${result.areas} área(s) puestas en cola para "${target.subject}". Revisa cada envío en Comunicación.`,
+    );
   });
-  const printGuidance = () => {
-    const blank = $("v2-sheet-mode").value === "blank",
-      half = $("v2-sheet-format").value === "half-single";
+  let printGuidanceToken = 0;
+  const printGuidance = async () => {
+    const token = ++printGuidanceToken,
+      blank = $("v2-sheet-mode").value === "blank",
+      format = $("v2-sheet-format").value,
+      half = format === "half-single",
+      auto = format === "auto";
     $("v2-sheet-blank").hidden = !blank;
     $("v2-sheet-student-label").hidden = blank;
-    $("v2-sheet-edge-label").hidden = half;
+    $("v2-sheet-edge-label").hidden = half || auto;
     const count = Number($("v2-sheet-count").value),
       sheets = Math.ceil(count / (half ? 2 : 4));
+    if (blank && auto) {
+      const exam = state.selected;
+      if (!exam?.definition) {
+        $("v2-sheet-instructions").textContent =
+          "Selecciona un examen para calcular la distribución.";
+        return;
+      }
+      $("v2-sheet-instructions").textContent =
+        "Calculando el tamaño de las cartillas…";
+      try {
+        const plan = await api(`/api/v2/exams/${exam.id}/sheet-layout`);
+        if (token !== printGuidanceToken) return;
+        const mm = (points) => ((points * 25.4) / 72).toFixed(1);
+        $("v2-sheet-instructions").textContent =
+          `${plan.totalQuestions} preguntas · ${plan.perSheet} cartillas por A4 · ${mm(plan.width)} × ${mm(plan.height)} mm · ${Math.ceil(count / plan.perSheet)} ${Math.ceil(count / plan.perSheet) === 1 ? "hoja" : "hojas"} a una cara. Imprime al 100%, sin ajustar ni activar varias páginas por hoja. Previsualiza antes de imprimir.`;
+      } catch (error) {
+        if (token === printGuidanceToken)
+          $("v2-sheet-instructions").textContent = error.message;
+      }
+      return;
+    }
     $("v2-sheet-instructions").textContent = !blank
       ? "Formato anterior: A4 horizontal, una cara, al 100%."
       : half
-        ? `${sheets} hojas A4 verticales, ${sheets} páginas. Cartillas horizontales a media hoja. Imprime una sola cara, al 100%, sin ajustar; no actives dos páginas por hoja.`
+        ? `${sheets} hojas A4 verticales, ${sheets} páginas. Dos cartillas por hoja, una cara, al 100%, sin ajustar.`
         : `${sheets} hojas A4 horizontales, ${sheets * 2} páginas alternadas frente/reverso. Imprime a doble cara por borde ${$("v2-sheet-edge").value === "short" ? "corto" : "largo"}, al 100%, sin ajustar; el PDF ya contiene cuatro cartillas por cara.`;
   };
+  state.printGuidance = printGuidance;
   for (const id of [
     "v2-sheet-mode",
     "v2-sheet-format",
@@ -2099,7 +2229,7 @@ async function initialize() {
   ])
     bind(id, "change", printGuidance);
   printGuidance();
-  bind("v2-print", "click", () => {
+  const printURL = () => {
     const e = state.selected;
     const q = new URLSearchParams({ form: $("v2-sheet-form").value });
     if ($("v2-sheet-mode").value === "blank") {
@@ -2112,7 +2242,32 @@ async function initialize() {
       q.set("edge", $("v2-sheet-edge").value);
     } else if ($("v2-sheet-student").value)
       q.set("code", $("v2-sheet-student").value);
-    window.open(`/api/v2/exams/${e.id}/sheets.pdf?${q}`, "_blank", "noopener");
+    return `/api/v2/exams/${e.id}/sheets.pdf?${q}`;
+  };
+  bind("v2-print", "click", () =>
+    window.open(printURL(), "_blank", "noopener"),
+  );
+  bind("v2-print-preview", "click", async () => {
+    const response = await fetch(printURL());
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.mensaje || "No se pudo generar la cartilla.");
+    }
+    const url = URL.createObjectURL(await response.blob());
+    showDialog(
+      "Previsualizar cartillas",
+      '<p class="v2-help">Este es el PDF que puedes descargar e imprimir al 100%. Conserva los márgenes y los marcadores.</p><div class="scan-preview-document" data-print-view></div><a class="v2-button" data-print-download>Descargar este PDF</a>',
+    );
+    const frame = document.createElement("iframe");
+    frame.title = "Vista previa de cartillas";
+    frame.src = url;
+    $("v2-dialog-body").querySelector("[data-print-view]").append(frame);
+    const download = $("v2-dialog-body").querySelector("[data-print-download]");
+    download.href = url;
+    download.download = "cartillas-ingemat.pdf";
+    $("v2-dialog").addEventListener("close", () => URL.revokeObjectURL(url), {
+      once: true,
+    });
   });
   window.addEventListener("ingemat:scan", async (e) => {
     await tab("imports");
@@ -2142,38 +2297,69 @@ async function initialize() {
     if (
       u?.area &&
       state.selected.definition.areas.some((a) => a.code === u.area)
-    ) $("v2-manual-area").value = u.area;
+    )
+      $("v2-manual-area").value = u.area;
     if (!code || !examId) return;
     info.textContent = "Buscando respuestas registradas...";
     info.hidden = false;
     try {
-      const response = await fetch(`/api/v2/exams/${encodeURIComponent(examId)}/student/${encodeURIComponent(code)}/responses`, { cache: "no-store" });
-      if (token !== state.manualLoadToken || $("v2-manual-student").value !== code || state.selected?.id !== examId) return;
+      const response = await fetch(
+        `/api/v2/exams/${encodeURIComponent(examId)}/student/${encodeURIComponent(code)}/responses`,
+        { cache: "no-store" },
+      );
+      if (
+        token !== state.manualLoadToken ||
+        $("v2-manual-student").value !== code ||
+        state.selected?.id !== examId
+      )
+        return;
       if (response.status === 404) {
-        info.textContent = "Este estudiante todavía no tiene respuestas registradas. Puedes ingresar respuestas nuevas.";
+        info.textContent =
+          "Este estudiante todavía no tiene respuestas registradas. Puedes ingresar respuestas nuevas.";
         return;
       }
       const stored = await response.json();
-      if (!response.ok) throw new Error(stored.mensaje || "No se pudieron cargar las respuestas.");
-      if (token !== state.manualLoadToken || $("v2-manual-student").value !== code || state.selected?.id !== examId) return;
-      if ([...$("v2-manual-area").options].some(option => option.value === stored.area))
+      if (!response.ok)
+        throw new Error(
+          stored.mensaje || "No se pudieron cargar las respuestas.",
+        );
+      if (
+        token !== state.manualLoadToken ||
+        $("v2-manual-student").value !== code ||
+        state.selected?.id !== examId
+      )
+        return;
+      if (
+        [...$("v2-manual-area").options].some(
+          (option) => option.value === stored.area,
+        )
+      )
         $("v2-manual-area").value = stored.area;
-      if ([...$("v2-manual-form").options].some(option => option.value === stored.form))
+      if (
+        [...$("v2-manual-form").options].some(
+          (option) => option.value === stored.form,
+        )
+      )
         $("v2-manual-form").value = stored.form;
-      const values = Object.entries(stored.respuestas).map(([q, r]) => {
-        if (typeof r === "string") return `${q},${r || "-"}`;
-        if (r?.status === "blank") return `${q},-`;
-        if (r?.status === "uncertain") return null; // Requiere una revisión manual antes de guardar.
-        return `${q},${Array.isArray(r?.options) ? r.options.join("/") || "-" : "-"}`;
-      }).filter(Boolean).join("\n");
+      const values = Object.entries(stored.respuestas)
+        .map(([q, r]) => {
+          if (typeof r === "string") return `${q},${r || "-"}`;
+          if (r?.status === "blank") return `${q},-`;
+          if (r?.status === "uncertain") return null; // Requiere una revisión manual antes de guardar.
+          return `${q},${Array.isArray(r?.options) ? r.options.join("/") || "-" : "-"}`;
+        })
+        .filter(Boolean)
+        .join("\n");
       $("v2-manual-answers").value = values;
       state.manualAnswerEditor?.reset();
       $("v2-manual-replace").checked = true;
       $("v2-manual-replace").closest("details").open = true;
       $("v2-replace-reason").hidden = false;
       $("v2-manual-reason").required = true;
-      info.textContent = "Respuestas anteriores cargadas (" + Object.keys(stored.respuestas).length
-        + " preguntas). Corrige las marcas necesarias y escribe el motivo antes de guardar. El historial anterior se conservará.";
+      info.textContent =
+        "Respuestas anteriores cargadas (" +
+        Object.keys(stored.respuestas).length +
+        " preguntas). Corrige las marcas necesarias y escribe el motivo antes de guardar. El historial anterior se conservará.";
     } catch (error) {
       if (token === state.manualLoadToken) {
         info.textContent = error.message;
@@ -2185,14 +2371,18 @@ async function initialize() {
   bind("v2-manual", "submit", async () => {
     if (!state.manualStudentSearch?.isSelected()) {
       $("v2-manual-student-search").focus();
-      throw new Error("Selecciona un estudiante de los resultados de búsqueda antes de calificar.");
+      throw new Error(
+        "Selecciona un estudiante de los resultados de búsqueda antes de calificar.",
+      );
     }
     const replace = $("v2-manual-replace").checked,
       reason = $("v2-manual-reason").value;
     if (replace && reason.trim().length < 5)
       throw new Error("Describe el motivo de la corrección.");
     if (!Object.keys(keyValues($("v2-manual-answers").value)).length)
-      throw new Error("Registra las respuestas del estudiante antes de calificar. Puedes marcar una pregunta en blanco.");
+      throw new Error(
+        "Registra las respuestas del estudiante antes de calificar. Puedes marcar una pregunta en blanco.",
+      );
     const data = await api(
       `/api/v2/exams/${state.selected.id}/grade`,
       json({
@@ -2219,20 +2409,35 @@ async function initialize() {
     },
   });
   bind("v2-scan-form", "submit", async () => {
-    const id = $("v2-import-exam").value,
-      files = [...$("v2-scan-files").files];
-    if (!id) throw new Error("Selecciona un examen listo.");
-    if (files.length > 10 || files.some((f) => f.size > 20 * 1024 * 1024))
-      throw new Error("Admite hasta 10 archivos de 20 MB.");
+    const files = [...$("v2-scan-files").files];
+    if (
+      !files.length ||
+      files.length > 10 ||
+      files.some((f) => f.size > 20 * 1024 * 1024)
+    )
+      throw new Error("Selecciona de 1 a 10 archivos de hasta 20 MB.");
+    const items = files.map((file) => ({
+      file,
+      name: file.name,
+      url: URL.createObjectURL(file),
+      pdf: /\.pdf$/i.test(file.name),
+    }));
+    let selected;
+    try {
+      selected = await previewScans(items, { escape: esc });
+    } finally {
+      for (const item of items) URL.revokeObjectURL(item.url);
+    }
+    if (!selected?.length) return;
     const data = new FormData();
-    for (const file of files) data.append("files", file);
-    const b = await api(`/api/v2/exams/${id}/scan`, {
-      method: "POST",
-      body: data,
-    });
+    for (const item of selected) data.append("files", item.file);
+    const b = await api("/api/v2/scans", { method: "POST", body: data });
     state.batch = { id: b.id };
+    $("v2-scan-files").value = "";
     await loadBatches();
-    message("Lote en cola. Puedes seguir trabajando mientras se procesa.");
+    message(
+      "Archivos seleccionados recibidos. El examen se identificará por el QR de cada cartilla.",
+    );
   });
   bind("v2-csv-form", "submit", async () => {
     const id = $("v2-import-exam").value;
@@ -2272,11 +2477,15 @@ async function initialize() {
     }
     await api(
       "/api/v2/templates",
-      json({ name, definition: collectEditor().definition }),
+      json({
+        name,
+        definition: collectEditor().definition,
+        fixedStructure: $("v2-template-fixed").checked,
+      }),
     );
     await loadTemplates();
     $("v2-template-feedback").textContent =
-      "Plantilla guardada. La encontrarás en Datos al crear otro simulacro.";
+      "Plantilla guardada. La encontrarás en Datos al crear otro examen.";
   });
   bind("v2-revise", "click", reviseKeysDialog);
   state.poll = setInterval(() => {
@@ -2304,7 +2513,7 @@ function reviseKeysDialog() {
   );
   showDialog(
     "Revisar claves y reglas",
-    `<form id="v2-revise-form"><p>Al confirmar se recalculan automáticamente todas las respuestas registradas. Se guarda el historial y el simulacro vuelve a Listo para revisar antes de publicarlo otra vez.</p>
+    `<form id="v2-revise-form"><p>Al confirmar se recalculan automáticamente todas las respuestas registradas. Se guarda el historial y el examen vuelve a Listo para revisar antes de publicarlo otra vez.</p>
     <details><summary>Pegar una lista de claves (opcional)</summary><label>Claves corregidas<textarea id="v2-revision-keys" rows="9" required>${esc(
       Object.entries(e.definition.keys)
         .map(([n, k]) => `${n},${k.answers.join("/")}`)
@@ -2317,7 +2526,7 @@ function reviseKeysDialog() {
       <label>Puntos por alternativa (número,A,B,C,D,E)<textarea id="v2-revision-option-scores" rows="3" placeholder="15,20,15,10,5,0">${esc(optionScoreText(e.definition.keys))}</textarea></label>
       <p class="v2-help">Deja vacía una lista para quitar esas excepciones. Revisa los valores contra el reglamento antes de confirmar.</p>
     </section>
-    <details><summary>¿Qué son las versiones A/B?</summary><p>Son órdenes diferentes de las mismas preguntas. Si la primera pregunta de B corresponde a la 51 del original, el lector aplica la clave de la 51. No son revisiones de notas. El orden de las versiones queda fijado al validar, para conservar la interpretación de respuestas y cartillas ya registradas.</p><p class="v2-help">Versiones de este simulacro: ${esc(Object.keys(e.definition.forms).join(", "))}. Para cambiar su orden crea un simulacro nuevo.</p></details>
+    <details><summary>¿Qué son las versiones A/B?</summary><p>Son órdenes diferentes de las mismas preguntas. Si la primera pregunta de B corresponde a la 51 del original, el lector aplica la clave de la 51. No son revisiones de notas. El orden de las versiones queda fijado al validar, para conservar la interpretación de respuestas y cartillas ya registradas.</p><p class="v2-help">Versiones de este examen: ${esc(Object.keys(e.definition.forms).join(", "))}. Para cambiar su orden crea un simulacro nuevo.</p></details>
     <label>Motivo de la corrección<input id="v2-revision-reason" required minlength="5"></label>
     <button type="submit" class="v2-button">Aplicar cambios y recalcular</button></form>`,
   );
