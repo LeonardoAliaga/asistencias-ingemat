@@ -2575,3 +2575,26 @@ test("upload preflight sends only selected originals and cancelling creates no b
   expect(stored.files.map(f=>f.name)).toEqual(["correcto.png"]);
   expect(stored.evaluation_id).toBe("");
 });
+
+test("UNMSM 126 skips course setup and previews cartillas from a draft", async ({ page }) => {
+  await login(page);
+  await navigate(page, "exams");
+  await page.click("#v2-new");
+  await page.fill('#v2-exam-editor [name="titulo"]', "UNMSM 126 SIN CLAVES");
+  await page.selectOption('#v2-exam-editor [name="ciclo"]', "ANUAL");
+  await page.selectOption("#v2-preset", "unmsm-126");
+  await expect(page.locator('#v2-exam-editor [name="total"]')).toHaveValue("126");
+  await nextStep(page, 2);
+  await nextStep(page, 3);
+  await page.click("#wizard-save");
+  await expect(page.locator("#v2-exam-summary")).toContainText("126 preguntas");
+  await page.click('[data-local-tab="exam-sheets"]');
+  await expect(page.locator("#v2-print")).toBeEnabled();
+  await page.locator("#v2-print-preview").click();
+  await expect(page.locator("[data-print-download]")).toBeVisible();
+  await page.locator("#v2-dialog").evaluate((dialog) => dialog.close());
+  await page.click("#v2-edit");
+  await expect(page.locator("#v2-preset")).toHaveValue("unmsm-126");
+  await nextStep(page, 2);
+  await expect(page.locator("#v2-keys")).toHaveValue("");
+});

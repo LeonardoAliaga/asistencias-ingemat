@@ -141,3 +141,52 @@ test("attitudinal keys award correct answers only, while other courses keep thei
     assert.equal(double.correctas, 0);
   }
 });
+
+test("the 126-question UNMSM booklet grades 100 per area using the supplied ranges", () => {
+  const [original, extended] = listPresets();
+  const d = extended.definition;
+  assert.deepEqual(
+    d.sections.slice(0, 3),
+    original.definition.sections.slice(0, 3),
+  );
+  assert.equal(d.totalQuestions, 126);
+  assert.deepEqual(d.scoring, original.definition.scoring);
+  const starts = [
+    1, 11, 21, 31, 35, 39, 43, 46, 54, 60, 66, 70, 75, 80, 85, 95, 103, 110,
+    117,
+  ];
+  const counts = [
+    ...expected.slice(0, 3).map((s) => s[2]),
+    [3, 4, 4, 4, 2],
+    [3, 4, 4, 3, 2],
+    [2, 4, 4, 3, 2],
+    [2, 3, 3, 2, 0],
+    ...expected.slice(7, 14).map((s) => s[2]),
+    [4, 4, 4, 10, 5],
+    [4, 4, 4, 4, 8],
+    [5, 7, 7, 4, 4],
+    [7, 7, 6, 4, 4],
+    [10, 7, 6, 4, 4],
+  ];
+  assert.ok(
+    Object.values(d.keys).every(
+      (key) => !key.answers.length && !key.voidPolicy && !key.optionScores,
+    ),
+  );
+  d.keys = Object.fromEntries(seq(1, 126).map((q) => [q, "A"]));
+  for (const [i, { code }] of d.areas.entries()) {
+    d.sections.forEach((section, s) =>
+      assert.deepEqual(
+        section.rules[code].questions,
+        seq(starts[s], counts[s][i]),
+      ),
+    );
+    const score = grade(d, d.keys, code);
+    assert.equal(score.puntajeTotal, 2000);
+    assert.equal(score.correctas, 100);
+    assert.equal(
+      score.detail.filter((q) => q.status === "not_applicable").length,
+      26,
+    );
+  }
+});

@@ -5,6 +5,7 @@ const db = require("../database/db");
 const { sessionSecret } = require("../config");
 const { layouts } = require("./omr-layout");
 const markers = require("../omr/markers.json");
+const { structureOf } = require("./exam-template-structure");
 const { AppError } = require("../utils/errors");
 function qrPayload(id, page, version = 2) {
   const body = `v${version}:${id}:${page}`;
@@ -31,16 +32,42 @@ async function makePDF(
   students,
   { form = "A", mode = "personalized", ...options } = {},
 ) {
-  if (!exam.definition || !["listo", "publicado"].includes(exam.estado))
-    throw new AppError("Valida el examen antes de imprimir sus cartillas.");
+  if (
+    !exam.definition ||
+    !["borrador", "listo", "publicado"].includes(exam.estado)
+  )
+    throw new AppError("Guarda el examen antes de imprimir sus cartillas.");
   if (!exam.definition.forms[form]) throw new AppError("Versión desconocida.");
+  const verifyCurrentExam = () => {
+    const current = db
+      .prepare("SELECT estado,definition,revision FROM evaluaciones WHERE id=?")
+      .get(exam.id);
+    if (
+      !current ||
+      current.revision !== exam.revision ||
+      !["borrador", "listo", "publicado"].includes(current.estado) ||
+      !current.definition ||
+      structureOf(JSON.parse(current.definition)) !==
+        structureOf(exam.definition)
+    )
+      throw new AppError(
+        "El examen cambió mientras se generaba el PDF. Vuelve a generar las cartillas.",
+        409,
+      );
+  };
   if (mode === "blank" && options.format === "auto")
-    return require("./omr-adaptive-pdf").makeAdaptivePDF(exam, { form, ...options }, qrPayload);
+    return require("./omr-adaptive-pdf").makeAdaptivePDF(
+      exam,
+      { form, ...options },
+      qrPayload,
+      verifyCurrentExam,
+    );
   if (mode === "blank")
     return require("./omr-booklet-pdf").makeBookletPDF(
       exam,
       { form, ...options },
       qrPayload,
+      verifyCurrentExam,
     );
   if (mode !== "personalized")
     throw new AppError("Modo de cartilla desconocido.");
@@ -70,9 +97,6 @@ async function makePDF(
   });
   const pages = layouts(exam.definition.totalQuestions);
   for (const { u, area, id } of prepared) {
-    db.prepare(
-      "INSERT INTO omr_sheets(id,evaluation_id,student_code,area,form,revision) VALUES(?,?,?,?,?,?)",
-    ).run(id, exam.id, u.codigo, area, form, exam.revision);
     for (const layout of pages) {
       doc.addPage({ size: [layout.width, layout.height], margin: 0 });
       for (const marker of layout.markers) {
@@ -169,6 +193,15 @@ async function makePDF(
     }
   }
   doc.end();
-  return done;
+  const bytes = await done;
+  db.transaction(() => {
+    verifyCurrentExam();
+    const insert = db.prepare(
+      "INSERT INTO omr_sheets(id,evaluation_id,student_code,area,form,revision) VALUES(?,?,?,?,?,?)",
+    );
+    for (const { u, area, id } of prepared)
+      insert.run(id, exam.id, u.codigo, area, form, exam.revision);
+  })();
+  return bytes;
 }
 module.exports = { makePDF, resolveQR, qrPayload };

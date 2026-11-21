@@ -218,7 +218,12 @@ async function loadTemplates() {
   state.templates = await api("/api/v2/templates");
   const saved = state.templates.filter((t) => !t.builtIn);
   $("v2-preset").innerHTML =
-    '<optgroup label="Preestablecidas"><option value="repaso-unmsm">Simulacro tipo UNMSM</option><option value="100">Base de 100 preguntas</option><option value="120">Base de 120 preguntas</option><option value="areas">Base por áreas · configurar cursos</option></optgroup>' +
+    `<optgroup label="Preestablecidas">${state.templates
+      .filter((t) => t.builtIn)
+      .map((t) => `<option value="${esc(t.presetId)}">${esc(t.name)}</option>`)
+      .join(
+        "",
+      )}<option value="100">Base de 100 preguntas</option><option value="120">Base de 120 preguntas</option><option value="areas">Base por áreas · configurar cursos</option></optgroup>` +
     (saved.length
       ? '<optgroup label="Mis plantillas">' +
         saved
@@ -234,9 +239,7 @@ async function loadTemplates() {
     $("v2-preset").value = previous;
 }
 
-function matchesUNMSM(definition) {
-  const template = state.templates.find((t) => t.presetId === "repaso-unmsm");
-  if (!template) return false;
+function matchingBuiltIn(definition) {
   const attitude = definition.sections?.[0]?.scoring;
   if (
     Number(attitude?.wrong ?? definition.scoring?.wrong ?? 1.125) !== 0 ||
@@ -264,10 +267,12 @@ function matchesUNMSM(definition) {
     })),
   });
   try {
-    return (
-      JSON.stringify(outline(definition)) ===
-      JSON.stringify(outline(template.definition))
-    );
+    const current = JSON.stringify(outline(definition));
+    return state.templates.find(
+      (template) =>
+        template.builtIn &&
+        current === JSON.stringify(outline(template.definition)),
+    )?.presetId;
   } catch {
     return false;
   }
@@ -402,7 +407,7 @@ async function selectExam(id) {
   $("v2-scan-open").hidden = !canWrite;
   $("v2-replace-reason").hidden = true;
   $("v2-print").disabled =
-    !canWrite || !["listo", "publicado"].includes(e.estado);
+    !canWrite || !["borrador", "listo", "publicado"].includes(e.estado);
   $("v2-print-preview").disabled = $("v2-print").disabled;
   void state.printGuidance?.();
   await loadResults();
@@ -854,11 +859,12 @@ function setEditor(def, id = null) {
         : [100, 120].includes(def.totalQuestions)
           ? String(def.totalQuestions)
           : "custom";
-  state.fixedPreset = !!state.fixedTemplateId || matchesUNMSM(def);
+  const builtIn = matchingBuiltIn(def);
+  state.fixedPreset = !!state.fixedTemplateId || !!builtIn;
   if (state.fixedPreset)
     state.currentPreset = state.fixedTemplateId
       ? `saved:${state.fixedTemplateId}`
-      : "repaso-unmsm";
+      : builtIn;
   $("v2-preset").value = state.currentPreset;
   $("v2-preset-source").hidden = !state.fixedPreset;
   syncWizardMode();
@@ -885,14 +891,14 @@ function preset(value) {
     state.fixedTemplateId = selectedTemplate.fixedStructure
       ? selectedTemplate.id
       : null;
-    state.fixedPreset = !!state.fixedTemplateId || matchesUNMSM(definition);
+    state.fixedPreset = !!state.fixedTemplateId || selectedTemplate.builtIn;
     syncWizardMode();
     state.currentPreset = value;
     $("v2-preset").value = value;
     $("v2-preset-source").hidden = !state.fixedPreset;
     return;
   }
-  if (value === "repaso-unmsm") {
+  if (["repaso-unmsm", "unmsm-126"].includes(value)) {
     message(
       "No se pudo cargar la plantilla. Recarga la página para intentarlo de nuevo.",
       true,
@@ -2142,7 +2148,7 @@ async function initialize() {
     message(
       prepare
         ? "Examen validado. Ya puedes imprimir e importar cartillas."
-        : "Borrador guardado. Valida el examen cuando completes todas las claves y reglas.",
+        : "Borrador guardado. Ya puedes imprimir cartillas. Completa las claves para calificar.",
     );
   });
   bind("v2-enable-all-cycles", "click", async () => {

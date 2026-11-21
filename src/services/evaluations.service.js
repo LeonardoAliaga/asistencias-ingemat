@@ -1,3 +1,4 @@
+const { structureOf } = require("./exam-template-structure");
 const { randomUUID, createHash } = require("node:crypto");
 const db = require("../database/db");
 const { normalizeDefinition, grade } = require("./grading.service");
@@ -83,6 +84,15 @@ function saveExam(body, req, id) {
       "Un examen listo o publicado conserva su estructura. Usa una revisión de claves para corregirlo.",
       409,
     );
+  if (
+    existing?.definition &&
+    structureOf(def) !== structureOf(existing.definition) &&
+    db.prepare("SELECT 1 FROM omr_sheets WHERE evaluation_id=? LIMIT 1").get(id)
+  )
+    throw new AppError(
+      "Ya se generaron cartillas para este borrador. Conserva la estructura y edita las claves, o crea otro simulacro.",
+      409,
+    );
   const templateId =
     existing?.template_id ||
     (typeof body.templateId === "string" ? body.templateId : "");
@@ -95,7 +105,6 @@ function saveExam(body, req, id) {
     const expected = normalizeDefinition(JSON.parse(template.definition), {
       complete: false,
     });
-    const { structureOf } = require("./exam-template-structure");
     if (structureOf(def) !== structureOf(expected))
       throw new AppError(
         "La plantilla tiene áreas y cursos fijos. Conserva su estructura y modifica únicamente las claves.",

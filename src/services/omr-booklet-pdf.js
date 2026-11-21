@@ -9,6 +9,7 @@ async function makeBookletPDF(
   exam,
   { count = 4, form = "A", format = "quarter-duplex", edge = "short" } = {},
   qrPayload,
+  verifyCurrentExam,
 ) {
   if (!Number.isInteger(count) || count < 1 || count > 500)
     throw new AppError("Indica entre 1 y 500 cartillas.");
@@ -267,14 +268,16 @@ async function makeBookletPDF(
         .restore();
     }
   }
+  doc.end();
+  const bytes = await done;
   // Register only after rendering succeeds, so a rejected layout leaves no sheets.
   db.transaction(() => {
+    verifyCurrentExam();
     for (const item of items)
       db.prepare(
         "INSERT INTO omr_sheets(id,evaluation_id,student_code,area,form,revision,layout_version) VALUES(?,?,'','',?,?,?)",
       ).run(item.id, exam.id, form, exam.revision, spec.version);
   })();
-  doc.end();
-  return done;
+  return bytes;
 }
 module.exports = { makeBookletPDF };

@@ -366,15 +366,15 @@
         },
         {
           "title": "Carga la clave del cuadernillo",
-          "text": "En Claves marca las alternativas con los botones A–E. El avance automático pasa al siguiente curso cuando completas el actual; usa Curso para saltar a otro y los números para revisar. También puedes abrir Pegar una lista de claves y pegar las 120 alternativas en orden. La clave del cuadernillo es única; el área del alumno determina cuáles se califican."
+          "text": "En Claves marca las alternativas con los botones A–E. El avance automático pasa al siguiente curso cuando completas el actual; usa Curso para saltar a otro y los números para revisar. También puedes abrir Pegar una lista de claves y pegar las alternativas en orden. La clave del cuadernillo es única; el área del alumno determina cuáles se califican."
         },
         {
           "title": "Asigna áreas a estudiantes",
           "text": "En Apoderados y áreas registra el perfil de cada postulante antes de imprimir."
         },
         {
-          "title": "Valida y descarga cartillas",
-          "text": "La cartilla contiene 120 filas aunque la nota de un alumno utilice solo 100."
+          "title": "Imprime las cartillas desde el borrador",
+          "text": "Guarda el borrador, abre Cartillas y descarga el PDF. El cuadernillo puede tener 120 o 126 preguntas y cada área evalúa 100. Completa las claves y valida el examen antes de importar respuestas."
         },
         {
           "title": "Revisa por curso y área",

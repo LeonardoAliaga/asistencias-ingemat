@@ -1380,3 +1380,32 @@ test("open exams enroll different cycles and export scoped rankings from saved p
   assert.equal(snapshot(created.data.id, "INTENSIVO", "C").rows.length, 1);
   assert.equal(snapshot(created.data.id, "INTENSIVO", "A").rows.length, 0);
 });
+
+test("draft cartillas can be generated without keys and survive validation", async () => {
+  const { definition } = require("../src/services/exam-presets.service")
+    .listPresets().find((p) => p.presetId === "unmsm-126");
+  const body = { titulo: "Cartillas anticipadas", allCycles: true, definition };
+  const created = await admin("/api/v2/exams", body, "POST");
+  assert.equal(created.status, 201, JSON.stringify(created.data));
+  const url = `/api/v2/exams/${created.data.id}`;
+  assert.equal((await admin(`${url}/ready`, {}, "POST")).status, 400);
+  const pdf = await admin(`${url}/sheets.pdf?mode=blank&format=auto&count=1`);
+  assert.equal(pdf.status, 200, JSON.stringify(pdf.data));
+  assert.equal(pdf.buffer.subarray(0, 5).toString(), "%PDF-");
+  const sheet = db.prepare("SELECT id,revision FROM omr_sheets WHERE evaluation_id=?").get(created.data.id);
+  assert.ok(sheet);
+  const changed = structuredClone(body);
+  changed.definition.areas[0].name = "Otra área";
+  assert.equal((await admin(url, changed, "PUT")).status, 409);
+
+  const gradeBody = { codigoEstudiante: "MULTI1", area: "E", respuestas: {} };
+  assert.equal((await admin(`${url}/grade`, gradeBody, "POST")).status, 400);
+  definition.keys = Object.fromEntries(Array.from({ length: 126 }, (_, i) => [i + 1, "A"]));
+  const saved = await admin(url, body, "PUT");
+  assert.equal(saved.status, 200, JSON.stringify(saved.data));
+  const ready = await admin(`${url}/ready`, {}, "POST");
+  assert.equal(ready.status, 200, JSON.stringify(ready.data));
+  assert.equal(ready.data.revision, sheet.revision);
+  const { qrPayload, resolveQR } = require("../src/services/omr-pdf.service");
+  assert.equal(resolveQR(qrPayload(sheet.id, 1, 5)).evaluation_id, created.data.id);
+});

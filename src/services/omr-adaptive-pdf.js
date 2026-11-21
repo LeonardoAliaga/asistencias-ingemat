@@ -10,6 +10,7 @@ async function makeAdaptivePDF(
   exam,
   { count = 6, form = "A" } = {},
   qrPayload,
+  verifyCurrentExam,
 ) {
   if (!Number.isInteger(count) || count < 1 || count > 500)
     throw new AppError("Indica entre 1 y 500 cartillas.");
@@ -215,6 +216,7 @@ async function makeAdaptivePDF(
   doc.end();
   const bytes = await done;
   db.transaction(() => {
+    verifyCurrentExam();
     db.prepare(
       "INSERT OR IGNORE INTO omr_layouts(id,definition) VALUES(?,?)",
     ).run(layoutId, definition);
