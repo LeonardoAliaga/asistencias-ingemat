@@ -1297,10 +1297,11 @@ test("one template selector, visible scoring and UNMSM three-step navigation", a
   ).toHaveCount(1);
   await expect(page.locator("#v2-template-select")).toHaveCount(0);
   await expect(
-    page
-      .locator("#v2-preset option")
-      .filter({ hasText: "Simulacro tipo UNMSM" }),
-  ).toHaveCount(1);
+    page.locator('#v2-preset option[value="repaso-unmsm"]'),
+  ).toHaveText("Simulacro tipo UNMSM");
+  await expect(
+    page.locator('#v2-preset option[value="unmsm-126"]'),
+  ).toHaveText("Simulacro tipo UNMSM · 126 preguntas");
   await expect(page.locator('[name="correct"]')).toBeVisible();
   await expect(page.locator('[name="wrong"]')).toBeVisible();
   await expect(page.locator('[name="blank"]')).toBeVisible();
@@ -2576,23 +2577,51 @@ test("upload preflight sends only selected originals and cancelling creates no b
   expect(stored.evaluation_id).toBe("");
 });
 
-test("UNMSM 126 skips course setup and previews cartillas from a draft", async ({ page }) => {
+test("UNMSM 126 skips course setup and previews cartillas from a draft", async ({
+  page,
+}) => {
+  const { readFile } = require("node:fs/promises");
   await login(page);
   await navigate(page, "exams");
   await page.click("#v2-new");
   await page.fill('#v2-exam-editor [name="titulo"]', "UNMSM 126 SIN CLAVES");
   await page.selectOption('#v2-exam-editor [name="ciclo"]', "ANUAL");
   await page.selectOption("#v2-preset", "unmsm-126");
-  await expect(page.locator('#v2-exam-editor [name="total"]')).toHaveValue("126");
+  await expect(page.locator('#v2-exam-editor [name="total"]')).toHaveValue(
+    "126",
+  );
   await nextStep(page, 2);
   await nextStep(page, 3);
   await page.click("#wizard-save");
   await expect(page.locator("#v2-exam-summary")).toContainText("126 preguntas");
   await page.click('[data-local-tab="exam-sheets"]');
-  await expect(page.locator("#v2-print")).toBeEnabled();
-  await page.locator("#v2-print-preview").click();
-  await expect(page.locator("[data-print-download]")).toBeVisible();
-  await page.locator("#v2-dialog").evaluate((dialog) => dialog.close());
+  await page.fill("#v2-sheet-count", "2");
+  await page.locator("#v2-sheet-count").blur();
+  for (const [format, guidance, pages] of [
+    ["auto", "2 cartillas por A4", 1],
+    ["quarter-duplex", "45 al frente y 81 al reverso", 2],
+    ["half-single", "Dos cartillas por hoja a una cara", 1],
+  ]) {
+    await page.selectOption("#v2-sheet-format", format);
+    await expect(page.locator("#v2-sheet-instructions")).toContainText(
+      "126 preguntas",
+    );
+    await expect(page.locator("#v2-sheet-instructions")).toContainText(
+      guidance,
+    );
+    await expect(page.locator("#v2-print")).toBeEnabled();
+    await page.locator("#v2-print-preview").click();
+    const download = page.waitForEvent("download");
+    await page.locator("[data-print-download]").click();
+    const pdf = await readFile(await (await download).path(), "latin1");
+    expect(pdf).toMatch(/^%PDF-/);
+    expect(pdf.match(/\/Type \/Page\b/g)).toHaveLength(pages);
+    await page.locator("#v2-dialog").evaluate((dialog) => dialog.close());
+  }
+  await page.selectOption("#v2-sheet-mode", "personalized");
+  await expect(page.locator("#v2-sheet-instructions")).toContainText(
+    "2 páginas por estudiante",
+  );
   await page.click("#v2-edit");
   await expect(page.locator("#v2-preset")).toHaveValue("unmsm-126");
   await nextStep(page, 2);

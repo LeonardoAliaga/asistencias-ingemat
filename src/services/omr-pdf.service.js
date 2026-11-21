@@ -1,6 +1,6 @@
 const PDFDocument = require("pdfkit");
 const QRCode = require("qrcode");
-const { randomUUID, createHmac } = require("node:crypto");
+const { randomUUID, createHmac, createHash } = require("node:crypto");
 const db = require("../database/db");
 const { sessionSecret } = require("../config");
 const { layouts } = require("./omr-layout");
@@ -55,20 +55,45 @@ async function makePDF(
         409,
       );
   };
-  if (mode === "blank" && options.format === "auto")
-    return require("./omr-adaptive-pdf").makeAdaptivePDF(
+  if (mode === "blank") {
+    const { totalQuestions, areas } = exam.definition;
+    const required = areas[0].requiredQuestions;
+    const questions =
+      required < totalQuestions &&
+      areas.every((area) => area.requiredQuestions === required)
+        ? `${totalQuestions} preguntas | ${required} evaluables por área`
+        : `${totalQuestions} preguntas`;
+    const registerSheets = db.transaction((items, pages) => {
+      verifyCurrentExam();
+      const definition = JSON.stringify(pages);
+      const layoutId = createHash("sha256").update(definition).digest("hex");
+      db.prepare(
+        "INSERT OR IGNORE INTO omr_layouts(id,definition) VALUES(?,?)",
+      ).run(layoutId, definition);
+      const insert = db.prepare(
+        "INSERT INTO omr_sheets(id,evaluation_id,student_code,area,form,revision,layout_version,layout_id) VALUES(?,?,'','',?,?,?,?)",
+      );
+      for (const { id } of items)
+        insert.run(
+          id,
+          exam.id,
+          form,
+          exam.revision,
+          pages[0].version,
+          layoutId,
+        );
+    });
+    const render =
+      options.format === "auto"
+        ? require("./omr-adaptive-pdf").makeAdaptivePDF
+        : require("./omr-booklet-pdf").makeBookletPDF;
+    return render(
       exam,
-      { form, ...options },
+      { ...options, form, questions },
       qrPayload,
-      verifyCurrentExam,
+      registerSheets,
     );
-  if (mode === "blank")
-    return require("./omr-booklet-pdf").makeBookletPDF(
-      exam,
-      { form, ...options },
-      qrPayload,
-      verifyCurrentExam,
-    );
+  }
   if (mode !== "personalized")
     throw new AppError("Modo de cartilla desconocido.");
   if (!students.length || students.length > 500)

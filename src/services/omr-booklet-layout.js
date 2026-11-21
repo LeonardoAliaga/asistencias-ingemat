@@ -20,11 +20,11 @@ const FORMATS = {
   },
 };
 function bookletLayouts(definition, format = "quarter-duplex") {
-  const spec = FORMATS[format];
-  if (!spec) throw new AppError("Formato de cartilla desconocido.");
-  if (definition.totalQuestions > 120)
+  if (!Object.hasOwn(FORMATS, format))
+    throw new AppError("Formato de cartilla desconocido.");
+  if (definition.totalQuestions > 126)
     throw new AppError(
-      "Estos formatos admiten hasta 120 preguntas. Usa el formato anterior para un cuadernillo mayor.",
+      "Los formatos compactos admiten hasta 126 preguntas. Selecciona Automático.",
     );
   if (
     definition.areas.length > 5 ||
@@ -32,9 +32,12 @@ function bookletLayouts(definition, format = "quarter-duplex") {
       definition.areas.some((a) => a.code.length !== 1))
   )
     throw new AppError(
-      "Estos formatos admiten hasta cinco áreas de una letra o dígito.",
+      "Los formatos compactos admiten hasta cinco áreas de una letra o dígito. Selecciona Automático.",
     );
-  const half = format === "half-single",
+  const spec = FORMATS[format],
+    half = format === "half-single",
+    // Leave the printed positions of the original 120-question layouts intact.
+    startY = !half && definition.totalQuestions > 120 ? 76 : 80,
     W = spec.width,
     H = spec.height;
   const pages = Array.from({ length: spec.sides }, (_, i) => ({
@@ -79,7 +82,7 @@ function bookletLayouts(definition, format = "quarter-duplex") {
   };
   let side = 0,
     col = 0,
-    y = 80;
+    y = startY;
   const geometry = () =>
     half
       ? {
@@ -118,9 +121,9 @@ function bookletLayouts(definition, format = "quarter-duplex") {
     }
     if (side >= pages.length)
       throw new AppError(
-        "Los cursos no caben con estos nombres y cantidades. Acorta los nombres o usa el formato anterior.",
+        "Los cursos no caben en este tamaño de cartilla. Selecciona Automático.",
       );
-    y = 80;
+    y = startY;
   };
   for (const section of definition.sections) {
     let remaining = [...section.questions],
@@ -129,11 +132,10 @@ function bookletLayouts(definition, format = "quarter-duplex") {
       const g = geometry(),
         title = section.name + (continued ? " (cont.)" : ""),
         header = Math.ceil(title.length / (g.width < 60 ? 18 : 26)) * 6 + 8;
-      const needed = header + remaining.length * g.row;
       const capacity = Math.floor((g.end - y - header) / g.row);
       if (
         capacity < 1 ||
-        (capacity < 3 && remaining.length > capacity && y !== 80)
+        (capacity < 3 && remaining.length > capacity && y !== startY)
       ) {
         nextColumn();
         continue;

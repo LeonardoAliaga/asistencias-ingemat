@@ -22,13 +22,13 @@ const {
   duplexSlot,
   FORMATS,
 } = require("../src/services/omr-booklet-layout");
-const { layouts } = require("../src/services/omr-layout");
+const { adaptiveLayout } = require("../src/services/omr-adaptive-layout");
 const req = { session: { username: "test", role: "admin" } },
-  definition = require("../src/services/exam-presets.service").listPresets()[0]
-    .definition;
-definition.keys = Object.fromEntries(
-  Array.from({ length: 120 }, (_, i) => [i + 1, "A"]),
-);
+  presets = require("../src/services/exam-presets.service").listPresets(),
+  definition = presets[0].definition,
+  definition126 = presets.find(
+    (preset) => preset.presetId === "unmsm-126",
+  ).definition;
 db.prepare("INSERT INTO ciclos(nombre) VALUES(?)").run("ANUAL");
 for (const [code, area] of [
   ["00123456", "A"],
@@ -85,22 +85,41 @@ test("booklet layouts cover 120 questions, eight digit columns and duplex identi
   );
   assert.throws(
     () => bookletLayouts({ ...definition, totalQuestions: 200 }),
-    /120/,
+    /126 preguntas.*Automático/,
   );
 });
-for (const format of Object.keys(FORMATS))
-  test(`${format}: actual imposed PDF, JPEG photos, student code/area OMR, manual identity review and atomic grades`, async () => {
-    const saved = exams.saveExam(
-        { titulo: format, ciclo: "ANUAL", fecha: "2026-11-09", definition },
-        req,
-      ),
-      exam = exams.readyExam(saved.id, req);
-    const bytes = await makePDF(exam, [], {
+const variants = [
+  ...Object.keys(FORMATS).map((format) => [format, definition]),
+  ...["auto", ...Object.keys(FORMATS)].map((format) => [format, definition126]),
+];
+for (const [format, examDefinition] of variants)
+  test(`${examDefinition.totalQuestions} questions in ${format}: draft PDF, scanned code/area and grading through the last question`, async () => {
+    const total = examDefinition.totalQuestions;
+    const name = `${total}-${format}`;
+    const body = {
+      titulo: name,
+      ciclo: "ANUAL",
+      fecha: "2026-11-09",
+      definition: examDefinition,
+    };
+    const draft = exams.saveExam(body, req);
+    const spec =
+      format === "auto" ? adaptiveLayout(examDefinition) : FORMATS[format];
+    const bytes = await makePDF(draft, [], {
       mode: "blank",
       format,
-      count: format === "quarter-duplex" ? 4 : 2,
+      count: spec.perSheet,
     });
-    const pdf = path.join(dir, format + ".pdf");
+    const keys = Object.fromEntries(
+      Array.from({ length: total }, (_, i) => [i + 1, "A"]),
+    );
+    exams.saveExam(
+      { ...body, definition: { ...examDefinition, keys } },
+      req,
+      draft.id,
+    );
+    const exam = exams.readyExam(draft.id, req);
+    const pdf = path.join(dir, name + ".pdf");
     fs.writeFileSync(pdf, bytes);
     const sheets = db
       .prepare("SELECT * FROM omr_sheets WHERE evaluation_id=? ORDER BY rowid")
@@ -108,24 +127,41 @@ for (const format of Object.keys(FORMATS))
     const students = db
       .prepare("SELECT codigo,area FROM usuarios ORDER BY codigo")
       .all();
-    assert.equal(sheets.length, format === "quarter-duplex" ? 4 : 2);
+    assert.equal(sheets.length, spec.perSheet);
+    assert.ok(
+      sheets.every(
+        (sheet) => sheet.layout_id && sheet.layout_id === sheets[0].layout_id,
+      ),
+    );
+    const printedLayouts = JSON.parse(
+      db
+        .prepare("SELECT definition FROM omr_layouts WHERE id=?")
+        .get(sheets[0].layout_id).definition,
+    );
+    assert.deepEqual(
+      printedLayouts.flatMap((page) =>
+        page.bubbles.map((bubble) => bubble.question),
+      ),
+      Array.from({ length: total }, (_, i) => i + 1),
+    );
     assert.equal(
       resolveQR(qrPayload(sheets[0].id, 1, sheets[0].layout_version))
         .layout_version,
       sheets[0].layout_version,
     );
-    const jsonPath = path.join(dir, format + ".json"),
-      photosDir = path.join(dir, format + "-photos");
+    // Exercise the QR reader for older compact cartillas without saved geometry.
+    if (total === 120)
+      db.prepare(
+        "UPDATE omr_sheets SET layout_id=NULL WHERE evaluation_id=?",
+      ).run(exam.id);
+    const jsonPath = path.join(dir, name + ".json"),
+      photosDir = path.join(dir, name + "-photos");
     fs.writeFileSync(
       jsonPath,
       JSON.stringify({
         pdf,
         photosDir,
-        layouts: [
-          ...layouts(120),
-          ...bookletLayouts(definition),
-          ...bookletLayouts(definition, "half-single"),
-        ],
+        layouts: printedLayouts,
         students: Object.fromEntries(sheets.map((s, i) => [s.id, students[i]])),
       }),
     );
@@ -158,7 +194,7 @@ for physical in physical_pages:
    identity=layout['identification'];assert all(c['status']=='blank' for c in p['identification']['columns'])
    for column,digit in zip(identity['columns'],student['codigo']):
     o=next(o for o in column['options'] if o['option']==digit);cv2.circle(image,(round(o['x']*r.SCALE),round(o['y']*r.SCALE)),round(o['radius']*r.SCALE*.98),(0,0,0),-1)
-   o=next(o for o in identity['areas'] if o['option']==student['area']);cv2.circle(image,(round(o['x']*r.SCALE),round(o['y']*r.SCALE)),round(o['radius']*r.SCALE*.65),(170,170,170),-1)
+   o=next(o for o in identity['areas'] if o['option']==student['area']);cv2.circle(image,(round(o['x']*r.SCALE),round(o['y']*r.SCALE)),round(o['radius']*r.SCALE*(.9 if p['layoutVersion']==5 else .65)),(170,170,170),-1)
   h,w=image.shape[:2];matrix=cv2.getPerspectiveTransform(np.float32([[0,0],[w,0],[w,h],[0,h]]),np.float32([[12,9],[w-15,5],[w-6,h-10],[4,h-18]]));image=cv2.warpPerspective(image,matrix,(w,h),borderValue=(255,255,255))
   if number==1:image=np.rot90(image).copy()
   cv2.imwrite(str(out/f'photo-{number}.jpg'),image,[cv2.IMWRITE_JPEG_QUALITY,95]);number+=1
@@ -174,7 +210,7 @@ print(number)
       .readdirSync(photosDir)
       .filter((f) => f.endsWith(".jpg"))
       .map((f) => ({ path: path.join(photosDir, f), originalname: f }));
-    assert.equal(files.length, format === "quarter-duplex" ? 8 : 2);
+    assert.equal(files.length, spec.perSheet * spec.sides);
     let batch = imports.createScan(exam.id, files, req);
     await imports.processScanQueue();
     batch = imports.batch(batch.id);
@@ -200,6 +236,13 @@ print(number)
     for (const row of batch.result.rows) {
       assert.match(row.codigoEstudiante, /^00\d{6}$/);
       assert.equal(row.preview.puntajeTotal, 2000);
+      assert.equal(row.preview.correctas, 100);
+      assert.deepEqual(row.respuestas[total].options, ["A"]);
+      if (total === 126)
+        assert.equal(
+          row.preview.detail.find((q) => q.question === 126).status,
+          row.area === "A" ? "correct" : "not_applicable",
+        );
     }
     const frontIndex = batch.result.pages.findIndex((p) => p.identification);
     const front = batch.result.pages[frontIndex];

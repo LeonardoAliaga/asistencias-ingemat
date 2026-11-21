@@ -1,23 +1,20 @@
 const PDFDocument = require("pdfkit");
 const QRCode = require("qrcode");
-const { randomUUID, createHash } = require("node:crypto");
+const { randomUUID } = require("node:crypto");
 const path = require("node:path");
-const db = require("../database/db");
 const markers = require("../omr/markers.json");
 const { adaptiveLayout } = require("./omr-adaptive-layout");
 const { AppError } = require("../utils/errors");
 async function makeAdaptivePDF(
   exam,
-  { count = 6, form = "A" } = {},
+  { count = 6, form = "A", questions },
   qrPayload,
-  verifyCurrentExam,
+  registerSheets,
 ) {
   if (!Number.isInteger(count) || count < 1 || count > 500)
     throw new AppError("Indica entre 1 y 500 cartillas.");
   const spec = adaptiveLayout(exam.definition),
     layout = spec.pages[0],
-    definition = JSON.stringify(spec.pages),
-    layoutId = createHash("sha256").update(definition).digest("hex"),
     items = Array.from({ length: count }, (_, i) => ({
       id: randomUUID(),
       number: i + 1,
@@ -89,13 +86,7 @@ async function makeAdaptivePDF(
       { width: 48, height: 21 },
     );
     text(exam.titulo, 78, 22, 7, layout.width - 152, true, 18);
-    text(
-      `${exam.definition.totalQuestions} preguntas | Versión ${form}`,
-      78,
-      42,
-      5,
-      layout.width - 152,
-    );
+    text(`${questions} | Versión ${form}`, 78, 42, 5, layout.width - 152);
     text(
       `Cartilla ${item.number} | Control ${item.id.slice(-8)}`,
       78,
@@ -215,17 +206,7 @@ async function makeAdaptivePDF(
   }
   doc.end();
   const bytes = await done;
-  db.transaction(() => {
-    verifyCurrentExam();
-    db.prepare(
-      "INSERT OR IGNORE INTO omr_layouts(id,definition) VALUES(?,?)",
-    ).run(layoutId, definition);
-    const insert = db.prepare(
-      "INSERT INTO omr_sheets(id,evaluation_id,student_code,area,form,revision,layout_version,layout_id) VALUES(?,?,'','',?,?,5,?)",
-    );
-    for (const item of items)
-      insert.run(item.id, exam.id, form, exam.revision, layoutId);
-  })();
+  registerSheets(items, spec.pages);
   return bytes;
 }
 module.exports = { makeAdaptivePDF };

@@ -25,15 +25,22 @@ class IdentityTests(unittest.TestCase):
 const definition=require('./src/services/exam-presets.service').listPresets()[0].definition;
 const {makePDF}=require('./src/services/omr-pdf.service');
 const {bookletLayouts}=require('./src/services/omr-booklet-layout');
+const {saveExam}=require('./src/services/evaluations.service');
+const req={session:{username:'test'}};
 (async()=>{for(const format of ['quarter-duplex','half-single']){
  for(const profile of ['letters','digits','single']){
  const def=structuredClone(definition);
- if(profile==='digits')def.areas=def.areas.map((a,i)=>({...a,code:String(i+1)}));
- if(profile==='single')def.areas=[{...def.areas[0],code:'GENERAL'}];
+ const originalAreas=profile==='single'?def.areas.slice(0,1):def.areas;
+ def.areas=originalAreas.map((area,i)=>({
+  ...area,code:profile==='digits'?String(i+1):profile==='single'?'GENERAL':area.code,
+ }));
+ for(const section of def.sections)
+  section.rules=Object.fromEntries(def.areas.map((area,i)=>[area.code,section.rules[originalAreas[i].code]]));
  const name=format+(profile==='letters'?'':'-'+profile);
- const data=await makePDF({id:'identity-test',titulo:'PRUEBA SINTÉTICA',ciclo:'ANUAL',estado:'listo',revision:1,definition:def},[],{mode:'blank',count:1,format});
+ const exam=saveExam({titulo:'PRUEBA SINTÉTICA',allCycles:true,definition:def},req);
+ const data=await makePDF(exam,[],{mode:'blank',count:1,format});
  fs.writeFileSync(path.join(process.argv[1],name+'.pdf'),data);
- fs.writeFileSync(path.join(process.argv[1],name+'.json'),JSON.stringify(bookletLayouts(def,format)));
+ fs.writeFileSync(path.join(process.argv[1],name+'.json'),JSON.stringify(bookletLayouts(exam.definition,format)));
 }}require('./src/database/db').close()})().catch(error=>{console.error(error);process.exit(1)});'''
         subprocess.run(['node', '-e', script, str(cls.root)], cwd=ROOT, env=env, check=True, capture_output=True)
         cls.cases, cls.area_cases, cls.fixed_cases = {}, {}, {}

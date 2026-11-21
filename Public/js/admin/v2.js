@@ -406,9 +406,6 @@ async function selectExam(id) {
   $("v2-manual-tab").hidden = !canWrite;
   $("v2-scan-open").hidden = !canWrite;
   $("v2-replace-reason").hidden = true;
-  $("v2-print").disabled =
-    !canWrite || !["borrador", "listo", "publicado"].includes(e.estado);
-  $("v2-print-preview").disabled = $("v2-print").disabled;
   void state.printGuidance?.();
   await loadResults();
 }
@@ -2238,42 +2235,60 @@ async function initialize() {
   });
   let printGuidanceToken = 0;
   const printGuidance = async () => {
-    const token = ++printGuidanceToken,
-      blank = $("v2-sheet-mode").value === "blank",
-      format = $("v2-sheet-format").value,
-      half = format === "half-single",
-      auto = format === "auto";
+    const token = ++printGuidanceToken;
+    const exam = state.selected;
+    const blank = $("v2-sheet-mode").value === "blank";
+    const format = blank ? $("v2-sheet-format").value : "personalized";
+    const instructions = $("v2-sheet-instructions");
+    const print = $("v2-print");
+    const preview = $("v2-print-preview");
     $("v2-sheet-blank").hidden = !blank;
     $("v2-sheet-student-label").hidden = blank;
-    $("v2-sheet-edge-label").hidden = half || auto;
-    const count = Number($("v2-sheet-count").value),
-      sheets = Math.ceil(count / (half ? 2 : 4));
-    if (blank && auto) {
-      const exam = state.selected;
-      if (!exam?.definition) {
-        $("v2-sheet-instructions").textContent =
-          "Selecciona un examen para calcular la distribución.";
-        return;
-      }
-      $("v2-sheet-instructions").textContent =
-        "Calculando el tamaño de las cartillas…";
-      try {
-        const plan = await api(`/api/v2/exams/${exam.id}/sheet-layout`);
-        if (token !== printGuidanceToken) return;
-        const mm = (points) => ((points * 25.4) / 72).toFixed(1);
-        $("v2-sheet-instructions").textContent =
-          `${plan.totalQuestions} preguntas · ${plan.perSheet} cartillas por A4 · ${mm(plan.width)} × ${mm(plan.height)} mm · ${Math.ceil(count / plan.perSheet)} ${Math.ceil(count / plan.perSheet) === 1 ? "hoja" : "hojas"} a una cara. Imprime al 100%, sin ajustar ni activar varias páginas por hoja. Previsualiza antes de imprimir.`;
-      } catch (error) {
-        if (token === printGuidanceToken)
-          $("v2-sheet-instructions").textContent = error.message;
-      }
+    $("v2-sheet-edge-label").hidden = format !== "quarter-duplex";
+    print.disabled = preview.disabled = true;
+    instructions.textContent = "";
+    if (
+      !exam?.definition ||
+      !["admin", "corrector"].includes(state.role) ||
+      !["borrador", "listo", "publicado"].includes(exam.estado)
+    )
+      return;
+    const count = Number($("v2-sheet-count").value);
+    if (blank && (!Number.isInteger(count) || count < 1 || count > 500)) {
+      instructions.textContent = "Indica entre 1 y 500 cartillas.";
       return;
     }
-    $("v2-sheet-instructions").textContent = !blank
-      ? "Formato anterior: A4 horizontal, una cara, al 100%."
-      : half
-        ? `${sheets} hojas A4 verticales, ${sheets} páginas. Dos cartillas por hoja, una cara, al 100%, sin ajustar.`
-        : `${sheets} hojas A4 horizontales, ${sheets * 2} páginas alternadas frente/reverso. Imprime a doble cara por borde ${$("v2-sheet-edge").value === "short" ? "corto" : "largo"}, al 100%, sin ajustar; el PDF ya contiene cuatro cartillas por cara.`;
+    instructions.textContent = "Calculando la distribución de las cartillas…";
+    try {
+      const plan = await api(
+        `/api/v2/exams/${encodeURIComponent(exam.id)}/sheet-layout?format=${encodeURIComponent(format)}`,
+      );
+      if (token !== printGuidanceToken || state.selected?.id !== exam.id)
+        return;
+      const sheets = Math.ceil(count / plan.perSheet);
+      const quantity = `${sheets} ${sheets === 1 ? "hoja" : "hojas"}`;
+      const pages = sheets * plan.sides;
+      const pageCount = `${pages} ${pages === 1 ? "página" : "páginas"}`;
+      let detail;
+      if (format === "quarter-duplex") {
+        const [front, back] = plan.questionsPerPage;
+        const edge = $("v2-sheet-edge").value === "short" ? "corto" : "largo";
+        detail = `${front} al frente y ${back} al reverso · ${quantity} A4 ${sheets === 1 ? "horizontal" : "horizontales"}, ${pageCount} · Imprime a doble cara por borde ${edge}.`;
+      } else if (format === "half-single") {
+        detail = `${quantity} A4 ${sheets === 1 ? "vertical" : "verticales"}, ${pageCount} · Dos cartillas por hoja a una cara.`;
+      } else if (format === "personalized") {
+        const n = plan.questionsPerPage.length;
+        detail = `A4 horizontal · ${n} ${n === 1 ? "página" : "páginas"} por estudiante · Imprime a una cara.`;
+      } else {
+        const mm = (points) => ((points * 25.4) / 72).toFixed(1);
+        detail = `${plan.perSheet} cartillas por A4 · ${mm(plan.width)} × ${mm(plan.height)} mm · ${quantity} a una cara.`;
+      }
+      instructions.textContent = `${plan.totalQuestions} preguntas · ${detail} Imprime al 100%, sin ajustar ni activar varias páginas por hoja.`;
+      print.disabled = preview.disabled = false;
+    } catch (error) {
+      if (token === printGuidanceToken)
+        instructions.textContent = error.message;
+    }
   };
   state.printGuidance = printGuidance;
   for (const id of [

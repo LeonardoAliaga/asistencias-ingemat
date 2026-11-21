@@ -18,6 +18,9 @@ scanner.recover();
 const attendance = require("../services/attendance.service");
 const { normalizeDefinition } = require("../services/grading.service");
 const { makePDF } = require("../services/omr-pdf.service");
+const { adaptiveLayout } = require("../services/omr-adaptive-layout");
+const { bookletLayouts, FORMATS } = require("../services/omr-booklet-layout");
+const { layouts } = require("../services/omr-layout");
 const { AppError } = require("../utils/errors");
 const { audit } = require("../services/audit.service");
 const { businessDate } = require("../utils/time");
@@ -441,10 +444,29 @@ router.post("/scans", write, upload.array("files", 10), (req, res, next) => {
   }
 });
 router.get("/exams/:id/sheet-layout", write, (req, res) => {
-  const exam = evaluations.getExam(req.params.id);
-  const spec = require("../services/omr-adaptive-layout").adaptiveLayout(
-    exam.definition,
-  );
+  const { definition } = evaluations.getExam(req.params.id);
+  if (!definition)
+    throw new AppError("El examen no tiene un diseño de cartilla.");
+  const format = req.query.format ?? "auto";
+  let spec, pages;
+  if (format === "auto") {
+    spec = adaptiveLayout(definition);
+    pages = spec.pages;
+  } else if (format === "personalized") {
+    pages = layouts(definition.totalQuestions);
+    const { width, height } = pages[0];
+    spec = {
+      width,
+      height,
+      sheetWidth: width,
+      sheetHeight: height,
+      perSheet: 1,
+      sides: 1,
+    };
+  } else {
+    pages = bookletLayouts(definition, format);
+    spec = FORMATS[format];
+  }
   res.json({
     perSheet: spec.perSheet,
     sides: spec.sides,
@@ -452,7 +474,8 @@ router.get("/exams/:id/sheet-layout", write, (req, res) => {
     height: spec.height,
     sheetWidth: spec.sheetWidth,
     sheetHeight: spec.sheetHeight,
-    totalQuestions: exam.definition.totalQuestions,
+    totalQuestions: definition.totalQuestions,
+    questionsPerPage: pages.map((page) => page.bubbles.length),
   });
 });
 router.get("/scanner/devices", write, async (req, res) =>

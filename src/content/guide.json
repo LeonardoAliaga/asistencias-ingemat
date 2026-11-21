@@ -515,8 +515,8 @@
       "summary": "Tamaño automático según preguntas y cursos, con previsualización; también conserva los tamaños anteriores.",
       "steps": [
         {
-          "title": "Valida el examen",
-          "text": "Solo un examen listo o publicado puede generar cartillas. La distribución por cursos y preguntas viene de su configuración."
+          "title": "Guarda el examen",
+          "text": "Puedes imprimir desde un borrador con la estructura completa. Completa las claves y valida el examen antes de importar respuestas."
         },
         {
           "title": "Elige identificación",
@@ -524,7 +524,7 @@
         },
         {
           "title": "Elige tamaño y cantidad",
-          "text": "Automático calcula seis, cuatro, tres, dos o una cartilla horizontal por A4 a una cara, respetando el tamaño de los círculos, la identificación y los títulos. Un examen sencillo de 50 preguntas cabe en seis por hoja; más cursos o títulos largos pueden requerir un tamaño mayor. La pantalla indica las dimensiones y las hojas necesarias. Cuarto a doble cara y media a una cara siguen disponibles."
+          "text": "Automático calcula cuántas cartillas caben por A4 a una cara según las preguntas y los cursos. La plantilla UNMSM de 126 admite dos cartillas por A4 en Automático o Media, y cuatro por A4 en Cuarto a doble cara. La pantalla indica las preguntas y hojas de cada formato."
         },
         {
           "title": "Previsualiza el PDF",
@@ -544,7 +544,7 @@
         }
       ],
       "tips": [
-        "El diseño automático admite entre 1 y 200 preguntas. Guarda la geometría utilizada para que el lector use exactamente las posiciones impresas. Las cartillas anteriores siguen siendo compatibles.",
+        "El diseño automático admite entre 1 y 200 preguntas. Para cada cartilla nueva de Automático, Cuarto o Media, el lector usa las posiciones guardadas al generar el PDF.",
         "Cada cartilla tiene un QR distinto. Genera la cantidad necesaria; no fotocopies una sola para distintos alumnos. Haz una prueba física con la impresora y el escáner."
       ]
     },

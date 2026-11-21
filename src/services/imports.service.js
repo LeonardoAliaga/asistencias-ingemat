@@ -8,7 +8,7 @@ const { layouts } = require("./omr-layout");
 const { bookletLayouts } = require("./omr-booklet-layout");
 const { runReader } = require("./omr-runtime.service");
 function sheetLayouts(def, version, sheet) {
-  if (version === 5) {
+  if (sheet?.layout_id || version === 5) {
     const saved = db
       .prepare("SELECT definition FROM omr_layouts WHERE id=?")
       .get(sheet?.layout_id);

@@ -1,15 +1,20 @@
 const PDFDocument = require("pdfkit"),
   QRCode = require("qrcode");
 const { randomUUID } = require("node:crypto");
-const db = require("../database/db");
 const markers = require("../omr/markers.json");
 const { bookletLayouts, duplexSlot, FORMATS } = require("./omr-booklet-layout");
 const { AppError } = require("../utils/errors");
 async function makeBookletPDF(
   exam,
-  { count = 4, form = "A", format = "quarter-duplex", edge = "short" } = {},
+  {
+    count = 4,
+    form = "A",
+    format = "quarter-duplex",
+    edge = "short",
+    questions,
+  },
   qrPayload,
-  verifyCurrentExam,
+  registerSheets,
 ) {
   if (!Number.isInteger(count) || count < 1 || count > 500)
     throw new AppError("Indica entre 1 y 500 cartillas.");
@@ -226,7 +231,7 @@ async function makeBookletPDF(
           5,
         );
     text(
-      `${exam.definition.totalQuestions} preguntas | ${layout.bubbles.length} en esta cara | Cartilla ${String(item.number).padStart(3, "0")}`,
+      `${questions} | ${layout.bubbles.length} en esta cara | Cartilla ${String(item.number).padStart(3, "0")}`,
       32,
       layout.height - 19,
       5.5,
@@ -270,14 +275,7 @@ async function makeBookletPDF(
   }
   doc.end();
   const bytes = await done;
-  // Register only after rendering succeeds, so a rejected layout leaves no sheets.
-  db.transaction(() => {
-    verifyCurrentExam();
-    for (const item of items)
-      db.prepare(
-        "INSERT INTO omr_sheets(id,evaluation_id,student_code,area,form,revision,layout_version) VALUES(?,?,'','',?,?,?)",
-      ).run(item.id, exam.id, form, exam.revision, spec.version);
-  })();
+  registerSheets(items, layouts);
   return bytes;
 }
 module.exports = { makeBookletPDF };

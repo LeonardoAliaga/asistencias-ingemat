@@ -87,7 +87,20 @@ class OMRTests(unittest.TestCase):
         self.assertEqual(result['responses']['1']['options'],['C'])
     def test_actual_pdf_from_node_generator(self):
         directory=Path(self.tmp.name);env={**os.environ,'DATA_DIR':str(directory/'data'),'DISABLE_MIGRATION_BACKUP':'1','SESSION_SECRET':'synthetic-omr-regression-test-secret-only-2026'}
-        code='''const fs=require('fs');const qrcode=require('qrcode');const encode=qrcode.toBuffer;let mask=0;qrcode.toBuffer=(value,opts)=>encode(value,{...opts,maskPattern:mask++%8});const {makePDF}=require('./src/services/omr-pdf.service');const {normalizeDefinition}=require('./src/services/grading.service');const def=normalizeDefinition({totalQuestions:120,keys:Object.fromEntries(Array.from({length:120},(_,i)=>[i+1,'A']))});makePDF({id:'pdf-test',titulo:'SIMULACRO SINTETICO',ciclo:'ANUAL',estado:'listo',revision:1,definition:def},Array.from({length:32},(_,i)=>({codigo:'DEMO'+i,nombre:'DEMO',apellido:'ALUMNO',area:'GENERAL'}))).then(bytes=>{fs.writeFileSync(process.argv[1],bytes);require('./src/database/db').close();}).catch(e=>{console.error(e);process.exit(1)});'''
+        code='''const fs=require('node:fs');
+const qrcode=require('qrcode');
+const encode=qrcode.toBuffer;
+let mask=0;
+qrcode.toBuffer=(value,opts)=>encode(value,{...opts,maskPattern:mask++%8});
+const {makePDF}=require('./src/services/omr-pdf.service');
+const {saveExam}=require('./src/services/evaluations.service');
+const exam=saveExam({titulo:'SIMULACRO SINTÉTICO',allCycles:true,definition:{totalQuestions:120}}, {session:{username:'test'}});
+const students=Array.from({length:32},(_,i)=>({codigo:'DEMO'+i,nombre:'DEMO',apellido:'ALUMNO',area:'GENERAL',ciclo:'ANUAL'}));
+makePDF(exam,students).then(bytes=>{
+ fs.writeFileSync(process.argv[1],bytes);
+ require('./src/database/db').close();
+}).catch(e=>{console.error(e);process.exit(1)});
+'''
         filename=directory/'cartilla.pdf'
         subprocess.run(['node','-e',code,str(filename)],cwd=ROOT,env=env,check=True,capture_output=True)
         count=0

@@ -2,7 +2,9 @@
 
 La sección se llama **Exámenes**. El modo **Automático** genera solo las preguntas del cuadernillo (1–200), con bloques por curso. Elige entre seis, cuatro, tres, dos o una cartilla por A4 a una cara según el espacio real. Mantiene círculos de 3 puntos de radio y las ocho columnas del código. Para 50 preguntas en un curso caben seis cartillas por A4; encabezados largos o más cursos pueden necesitar otra distribución. La pantalla muestra el tamaño en milímetros, cantidad por hoja y hojas requeridas. **Previsualizar cartillas** permite ver y descargar el mismo PDF antes de imprimir.
 
-La geometría completa se guarda por su hash y cada cartilla v5 conserva una referencia inmutable a ella. El QR firmado resuelve examen, diseño, versión del cuadernillo y cara. La lectura primero identifica y valida el QR; después normaliza usando el diseño guardado. No depende de seleccionar el tamaño ni el examen. Una revisión de claves no modifica las posiciones impresas. Los diseños v2, v3 y v4 siguen disponibles y legibles.
+El sistema guarda la geometría de las cartillas nuevas de los formatos Automático, Cuarto y Media. El QR firmado resuelve examen, diseño, versión del cuadernillo y cara. La lectura primero identifica y valida el QR, luego usa el diseño guardado para ubicar las marcas. Los diseños anteriores también se pueden leer.
+
+Puedes generar las cartillas desde un borrador, con las claves pendientes. La impresión fija la estructura del examen. Completa las claves y valida el simulacro antes de importar respuestas.
 
 Las plantillas pueden guardarse con **Áreas y cursos fijos**. Al reutilizarlas, el asistente pasa de Datos a Claves, limpia las respuestas anteriores y conserva preguntas, cursos, áreas, puntajes y versiones. El servidor también comprueba esa estructura al guardar un examen o editar su borrador.
 
@@ -27,7 +29,9 @@ Para cuarto se intercalan frente y reverso de cada grupo de cuatro. Borde corto 
 
 El generador coloca las preguntas en bloques con el nombre de su curso. Si un bloque continúa en otra columna o cara lo señala con «cont.». Evita fragmentos finales de una o dos preguntas cuando puede redistribuir el bloque. La misma definición usa el motor de calificación; el papel no cambia las reglas por área.
 
-En la plantilla de repaso, cuarto distribuye 45 preguntas al frente y 75 al reverso; media contiene las 120 en una sola cara. Estas cantidades dependen de cursos y nombres, no son cuotas por área. Cada alumno sigue evaluándose sobre las 100 que le corresponden. Ambos formatos compactos admiten hasta 120 preguntas y hasta cinco áreas de un carácter, o un único perfil general. Si una configuración excepcional no cabe, el generador la rechaza en vez de recortar contenido.
+En la plantilla UNMSM de 120, cuarto distribuye 45 preguntas al frente y 75 al reverso. En la de 126, distribuye 45 al frente y 81 al reverso. Media A4 y Automático colocan las 126 en una sola cara y acomodan dos cartillas por hoja. Cada alumno se evalúa sobre las 100 preguntas de su área.
+
+Cuarto y Media admiten hasta 126 preguntas y hasta cinco áreas de un carácter, o un único perfil general. Si los cursos requieren más espacio, elige Automático.
 
 ## Qué identifica cada elemento
 
