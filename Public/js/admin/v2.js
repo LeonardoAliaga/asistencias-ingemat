@@ -2234,6 +2234,7 @@ async function initialize() {
     );
   });
   let printGuidanceToken = 0;
+  let printLayout;
   const printGuidance = async () => {
     const token = ++printGuidanceToken;
     const exam = state.selected;
@@ -2245,26 +2246,33 @@ async function initialize() {
     $("v2-sheet-blank").hidden = !blank;
     $("v2-sheet-student-label").hidden = blank;
     $("v2-sheet-edge-label").hidden = format !== "quarter-duplex";
-    print.disabled = preview.disabled = true;
-    instructions.textContent = "";
     if (
       !exam?.definition ||
       !["admin", "corrector"].includes(state.role) ||
       !["borrador", "listo", "publicado"].includes(exam.estado)
-    )
+    ) {
+      print.disabled = preview.disabled = true;
+      instructions.textContent = "";
       return;
+    }
     const count = Number($("v2-sheet-count").value);
     if (blank && (!Number.isInteger(count) || count < 1 || count > 500)) {
+      print.disabled = preview.disabled = true;
       instructions.textContent = "Indica entre 1 y 500 cartillas.";
       return;
     }
-    instructions.textContent = "Calculando la distribución de las cartillas…";
     try {
-      const plan = await api(
-        `/api/v2/exams/${encodeURIComponent(exam.id)}/sheet-layout?format=${encodeURIComponent(format)}`,
-      );
-      if (token !== printGuidanceToken || state.selected?.id !== exam.id)
-        return;
+      if (printLayout?.exam !== exam || printLayout.format !== format) {
+        print.disabled = preview.disabled = true;
+        instructions.textContent =
+          "Calculando la distribución de las cartillas…";
+        const plan = await api(
+          `/api/v2/exams/${encodeURIComponent(exam.id)}/sheet-layout?format=${encodeURIComponent(format)}`,
+        );
+        if (token !== printGuidanceToken || state.selected !== exam) return;
+        printLayout = { exam, format, plan };
+      }
+      const { plan } = printLayout;
       const sheets = Math.ceil(count / plan.perSheet);
       const quantity = `${sheets} ${sheets === 1 ? "hoja" : "hojas"}`;
       const pages = sheets * plan.sides;

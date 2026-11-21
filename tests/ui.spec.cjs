@@ -1033,21 +1033,23 @@ test("printing offers quarter duplex and half single-sided with quantity and pri
   await expect(page.locator("#v2-sheet-format")).toHaveValue("auto");
   await expect(page.locator("#v2-sheet-instructions")).toContainText("100 preguntas");
   await page.selectOption("#v2-sheet-format", "quarter-duplex");
-  await page.fill("#v2-sheet-count", "5");
-  await page.locator("#v2-sheet-count").blur();
   await expect(page.locator("#v2-sheet-instructions")).toContainText(
-    "2 hojas A4 horizontales, 4 páginas",
+    "1 hoja A4 horizontal, 2 páginas",
   );
   await page.evaluate(() => {
     window.open = (url) => {
       window.__printedURL = url;
     };
   });
+  await page.fill("#v2-sheet-count", "5");
   await page.click("#v2-print");
   let url = await page.evaluate(() => window.__printedURL);
   expect(url).toContain("mode=blank");
   expect(url).toContain("format=quarter-duplex");
   expect(url).toContain("count=5");
+  await expect(page.locator("#v2-sheet-instructions")).toContainText(
+    "2 hojas A4 horizontales, 4 páginas",
+  );
   const quarter = await page.request.get(url);
   expect(quarter.status()).toBe(200);
   expect(
