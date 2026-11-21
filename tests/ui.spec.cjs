@@ -81,6 +81,11 @@ test("create, validate and grade an exam from the dashboard", async ({
   await expect(page.locator("#v2-message")).toContainText("Borrador guardado");
   await page.click("#v2-ready");
   await expect(page.locator("#v2-message")).toContainText("Examen validado");
+  await expect(page.locator("#v2-enable-all-cycles")).toBeVisible();
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.click("#v2-enable-all-cycles");
+  await expect(page.locator("#v2-exam-summary")).toContainText("Todos los ciclos");
+  await expect(page.locator("#v2-enable-all-cycles")).toBeHidden();
   await expect(page.locator("#v2-publish")).toHaveCount(0);
   await expect(page.locator("#v2-notify")).toHaveCount(0);
   await expect(page.getByRole("button",{name:"Enviar ranking por área a WhatsApp"})).toBeVisible();
@@ -97,6 +102,9 @@ test("create, validate and grade an exam from the dashboard", async ({
   await expect(page.locator("#v2-message")).toContainText("2000 puntos");
   await page.click('[data-local-tab="exam-results"]');
   await expect(page.locator("#v2-results")).toContainText("ALUMNO ANA DEMO");
+  await page.selectOption("#v2-result-cycle", "ANUAL");
+  await expect(page.locator("#v2-ranking-excel")).toHaveAttribute("href", /cycle=ANUAL/);
+
   // El editor manual debe recuperar las respuestas escaneadas o registradas.
   await page.click("#v2-manual-tab");
   await page.fill("#v2-manual-student-search", "DEMO001");

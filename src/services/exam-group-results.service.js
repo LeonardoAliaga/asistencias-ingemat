@@ -8,23 +8,26 @@ const { audit } = require("./audit.service");
 const { AppError } = require("../utils/errors");
 const UUID = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i;
 
-function snapshot(id) {
+function snapshot(id, cycle = "", area = "") {
   const exam = db.prepare(
     "SELECT id,titulo,ciclo,fecha,estado,revision,definition FROM evaluaciones WHERE id=?",
   ).get(id);
   if (!exam) throw new AppError("Simulacro no encontrado.", 404);
-  const rows = db.prepare(
-    "SELECT id,area,nombreEstudiante,correctas,incorrectas,enBlanco,puntajeTotal " +
+  const rows = db.prepare(exam.ciclo
+    ? "SELECT id,area,nombreEstudiante,correctas,incorrectas,enBlanco,puntajeTotal " +
     "FROM respuestas_evaluacion WHERE evaluacion_id=? " +
-    "ORDER BY area,puntajeTotal DESC,nombreEstudiante COLLATE NOCASE,id",
-  ).all(id);
+    "ORDER BY area,puntajeTotal DESC,nombreEstudiante COLLATE NOCASE,id"
+    : "SELECT id,area,nombreEstudiante,correctas,incorrectas,enBlanco,puntajeTotal " +
+      "FROM respuestas_evaluacion WHERE evaluacion_id=? AND ciclo=? AND (?='' OR area=?) " +
+      "ORDER BY area,puntajeTotal DESC,nombreEstudiante COLLATE NOCASE,id",
+  ).all(...(exam.ciclo ? [id] : [id, cycle, area, area]));
   const signature = crypto.createHash("sha256")
     .update(JSON.stringify({ exam, rows })).digest("hex");
-  return { exam, rows, signature };
+  return { exam, rows, signature, cycle: exam.ciclo || cycle };
 }
 
 function currentTarget(report, groupId) {
-  const target = groups.target(report.exam.ciclo);
+  const target = groups.target(report.cycle);
   if (!target)
     throw new AppError("Configura primero el grupo del ciclo en Comunicación.", 409);
   if (target.id !== groupId)
@@ -55,7 +58,10 @@ function enqueueSummary(input, req) {
     throw new AppError("Simulacro o identificador de envío inválido.");
   if (input?.confirmAuthorized !== true)
     throw new AppError("Confirma que el grupo está autorizado para recibir nombres y resultados de los estudiantes.", 400);
-  const report = snapshot(examId);
+  const area = String(input.area || "").trim().toUpperCase();
+  const report = snapshot(examId, String(input.cycle || "").trim(), area);
+  if (!report.cycle)
+    throw new AppError("Selecciona el ciclo cuyos resultados se enviarán.", 400);
   if (!["listo", "publicado"].includes(report.exam.estado))
     throw new AppError("Valida el simulacro antes de enviar el ranking.", 409);
   if (!report.rows.length)
@@ -102,6 +108,7 @@ function enqueueSummary(input, req) {
           kind: "exam_group_summary",
           payload: {
             evaluationId: examId, cycle: target.cycle, groupId: target.id,
+            ...(report.exam.ciclo ? {} : { rankingCycle: report.cycle, rankingArea: area }),
             revision: report.exam.revision, signature: report.signature,
             requestId, area: page.area, page: page.page, pages: page.total,
             attachment, text: caption,

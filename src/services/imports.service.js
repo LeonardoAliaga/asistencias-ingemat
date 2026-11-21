@@ -23,7 +23,12 @@ function sheetLayouts(def, version, sheet) {
     : bookletLayouts(def, version === 3 ? "quarter-duplex" : "half-single");
 }
 const { resolveQR } = require("./omr-pdf.service");
-const { getExam, saveGrade } = require("./evaluations.service");
+const {
+  getExam,
+  saveGrade,
+  examStudents,
+  assignedArea,
+} = require("./evaluations.service");
 const { grade, normalizeResponse } = require("./grading.service");
 const { AppError } = require("../utils/errors");
 const { audit } = require("./audit.service");
@@ -43,18 +48,21 @@ function batchView(id) {
     matched = new Map(),
     cache = new Map(),
     lookup = db.prepare(
-      "SELECT u.codigo,u.nombre,u.apellido,r.name_snapshot FROM usuarios u LEFT JOIN exam_roster r ON r.evaluation_id=? AND r.user_uid=u.uid WHERE u.codigo=? AND u.rol='estudiante' AND u.archived_at IS NULL AND (UPPER(u.ciclo)=UPPER(?) OR r.user_uid IS NOT NULL)",
+      "SELECT u.codigo,u.nombre,u.apellido,u.ciclo,r.name_snapshot,r.cycle_snapshot FROM usuarios u LEFT JOIN exam_roster r ON r.evaluation_id=? AND r.user_uid=u.uid WHERE u.codigo=? AND u.rol='estudiante' AND u.archived_at IS NULL AND (? = '' OR UPPER(u.ciclo)=UPPER(?) OR r.user_uid IS NOT NULL)",
     );
   const findStudent = (exam, code) => {
     const key = `${exam.id}:${code}`;
     if (typeof code !== "string" || !code) return null;
     if (!cache.has(key)) {
-      const student = lookup.get(exam.id, code, exam.ciclo);
+      const student = lookup.get(exam.id, code, exam.ciclo, exam.ciclo);
       cache.set(
         key,
         student
           ? {
               code: student.codigo,
+              ...(!exam.ciclo
+                ? { cycle: student.cycle_snapshot ?? student.ciclo }
+                : {}),
               name:
                 student.name_snapshot ||
                 `${student.apellido} ${student.nombre}`.trim(),
@@ -171,22 +179,10 @@ function createCSV(id, text, req) {
       if (codes.has(code))
         throw new AppError(`Código duplicado en fila ${index + 2}: ${code}`);
       codes.add(code);
-      const user = db
-        .prepare(
-          "SELECT * FROM usuarios WHERE codigo=? AND rol='estudiante' AND archived_at IS NULL",
-        )
-        .get(code);
-      if (
-        !user ||
-        (user.ciclo.toUpperCase() !== exam.ciclo.toUpperCase() &&
-          !db
-            .prepare(
-              "SELECT 1 FROM exam_roster WHERE evaluation_id=? AND user_uid=?",
-            )
-            .get(id, user.uid))
-      )
+      const user = examStudents(exam, code);
+      if (!user)
         throw new AppError(
-          `Fila ${index + 2}: estudiante ${code} no pertenece al ciclo.`,
+          `Fila ${index + 2}: estudiante ${code} no está habilitado para este examen.`,
         );
       const respuestas = {};
       for (let q = 1; q <= exam.definition.totalQuestions; q++) {
@@ -194,7 +190,7 @@ function createCSV(id, text, req) {
           throw new AppError(`Falta la columna ${q} en el CSV.`);
         respuestas[q] = normalizeResponse(r[q]);
       }
-      const area = String(r.area || user.area || "").toUpperCase(),
+      const area = String(r.area || assignedArea(user.area)).toUpperCase(),
         form = String(r.version || "A").toUpperCase();
       const preview = grade(exam.definition, respuestas, area, form);
       return {
@@ -395,11 +391,7 @@ function buildExamRows(exam, result, currentBatchId) {
           throw new AppError(
             "Revisa la identificación: marca exactamente un dígito en cada una de las 8 columnas.",
           );
-        const student = db
-          .prepare(
-            "SELECT * FROM usuarios WHERE codigo=? AND rol='estudiante' AND (UPPER(ciclo)=UPPER(?) OR uid IN (SELECT user_uid FROM exam_roster WHERE evaluation_id=?))",
-          )
-          .get(identity.code, exam.ciclo, exam.id);
+        const student = examStudents(exam, identity.code);
         if (!student)
           throw new AppError(
             "El código marcado no corresponde a un estudiante del examen. Revisa la identificación.",
@@ -410,8 +402,8 @@ function buildExamRows(exam, result, currentBatchId) {
           );
         if (
           exam.definition.areas.length > 1 &&
-          student.area &&
-          student.area !== identity.area
+          assignedArea(student.area) &&
+          assignedArea(student.area) !== identity.area
         )
           throw new AppError(
             "El área marcada no coincide con el perfil registrado. Revisa la cartilla y el perfil del alumno.",

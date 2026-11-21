@@ -279,11 +279,8 @@ router.get("/exams", read, (req, res) =>
 );
 router.get("/exams/:id", read, (req, res) => {
   const exam = evaluations.getExam(req.params.id);
-  const eligibleStudentCodes = db
-    .prepare(
-      "SELECT codigo FROM usuarios WHERE rol='estudiante' AND (UPPER(ciclo)=UPPER(?) OR uid IN (SELECT user_uid FROM exam_roster WHERE evaluation_id=?)) ORDER BY apellido,nombre",
-    )
-    .all(exam.ciclo, exam.id)
+  const eligibleStudentCodes = evaluations
+    .examStudents(exam)
     .map((u) => u.codigo);
   res.json({ ...exam, eligibleStudentCodes });
 });
@@ -292,6 +289,9 @@ router.post("/exams", write, (req, res) =>
 );
 router.put("/exams/:id", write, (req, res) =>
   res.json(evaluations.saveExam(req.body, req, req.params.id)),
+);
+router.patch("/exams/:id/all-cycles", write, (req, res) =>
+  res.json(evaluations.enableAllCycles(req.params.id, req)),
 );
 router.post("/exams/:id/ready", write, (req, res) =>
   res.json(evaluations.readyExam(req.params.id, req)),
@@ -382,16 +382,10 @@ router.delete("/exams/:id", write, (req, res) => {
 router.get("/exams/:id/sheets.pdf", write, async (req, res) => {
   const exam = evaluations.getExam(req.params.id);
   const students = req.query.code
-    ? db
-        .prepare(
-          "SELECT * FROM usuarios WHERE codigo=? AND rol='estudiante' AND (UPPER(ciclo)=UPPER(?) OR uid IN (SELECT user_uid FROM exam_roster WHERE evaluation_id=?))",
-        )
-        .all(String(req.query.code).toUpperCase(), exam.ciclo, exam.id)
-    : db
-        .prepare(
-          "SELECT * FROM usuarios WHERE rol='estudiante' AND (UPPER(ciclo)=UPPER(?) OR uid IN (SELECT user_uid FROM exam_roster WHERE evaluation_id=?)) ORDER BY apellido,nombre",
-        )
-        .all(exam.ciclo, exam.id);
+    ? [
+        evaluations.examStudents(exam, String(req.query.code).toUpperCase()),
+      ].filter(Boolean)
+    : evaluations.examStudents(exam);
   const bytes = await makePDF(exam, students, {
     form: String(req.query.form || "A"),
     mode: String(req.query.mode || "personalized"),

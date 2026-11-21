@@ -65,7 +65,7 @@ function renderPage(report, page) {
   ctx.font = "bold 26px Arial, sans-serif";
   ctx.fillText(fitText(ctx, "RANKING · ÁREA " + page.area, WIDTH - 94), 48, 101);
   ctx.font = "21px Arial, sans-serif"; ctx.fillStyle = "#d8e7ff";
-  ctx.fillText(fitText(ctx, "Ciclo: " + report.exam.ciclo + "  |  Fecha: "
+  ctx.fillText(fitText(ctx, "Ciclo: " + (report.cycle || report.exam.ciclo) + "  |  Fecha: "
     + report.exam.fecha + "  |  Evaluados en el área: " + page.areaCount, WIDTH - 96), 48, 143);
   ctx.fillStyle = "#e0eaff"; ctx.fillRect(30, 178, WIDTH - 60, 56);
   ctx.font = "bold 20px Arial, sans-serif"; ctx.fillStyle = "#152c50";

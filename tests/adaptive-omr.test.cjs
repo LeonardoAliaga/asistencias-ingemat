@@ -237,12 +237,12 @@ images[0].resize((794,1123)).save(r['merged']+'.png')
   assert.equal(db.prepare("SELECT COUNT(*) n FROM imported_sheets").get().n, 3);
 });
 
-test("adaptive courses and marked areas survive rotated JPEG perspective and audited manual review", async () => {
+test("existing adaptive cards read across cycles and validate marked areas in rotated JPEGs", async () => {
   const definition = normalizeDefinition({
     totalQuestions: 50,
     areas: [
       { code: "A", name: "Ciencias", requiredQuestions: 50 },
-      { code: "B", name: "Letras", requiredQuestions: 50 },
+      { code: "E", name: "Letras", requiredQuestions: 50 },
     ],
     sections: Array.from({ length: 5 }, (_, i) => ({
       name: `Curso ${i + 1}`,
@@ -266,6 +266,14 @@ test("adaptive courses and marked areas survive rotated JPEG perspective and aud
     pdf,
     await makePDF(exam, [], { mode: "blank", format: "auto", count: 1 }),
   );
+  db.prepare("INSERT INTO ciclos(nombre) VALUES(?)").run("REPASO");
+  db.prepare(
+    "UPDATE usuarios SET ciclo='REPASO',area='A' WHERE codigo='00000001'",
+  ).run();
+  const converted = exams.enableAllCycles(exam.id, req);
+  assert.equal(converted.ciclo, "");
+  assert.equal(converted.revision, exam.revision);
+  assert.deepEqual(converted.definition, exam.definition);
   fs.writeFileSync(input, JSON.stringify({ pdf, file, layout: spec.pages[0] }));
   const py = spawnSync(
     "python3",
@@ -295,8 +303,16 @@ a=cv2.warpPerspective(a,m,(w,h),borderValue=(255,255,255)); a=cv2.rotate(a,cv2.R
   );
   await imports.processScanQueue();
   let read = imports.batchView(batch.id);
+  assert.equal(read.status, "review");
+  assert.match(read.result.pages[0].warning, /no coincide con el perfil/);
+  db.prepare(
+    "UPDATE usuarios SET area='GENERAL' WHERE codigo='00000001'",
+  ).run();
+  imports.refreshBatch(batch.id, req);
+  read = imports.batchView(batch.id);
   assert.equal(read.status, "ready", JSON.stringify(read.result));
-  assert.equal(read.result.rows[0].area, "B");
+  assert.equal(read.result.rows[0].area, "E");
+  assert.equal(read.result.rows[0].identifiedStudent.cycle, "REPASO");
   assert.equal(read.result.rows[0].preview.correctas, 50);
   const page = read.result.pages[0];
   imports.reviewPage(
@@ -312,6 +328,17 @@ a=cv2.warpPerspective(a,m,(w,h),borderValue=(255,255,255)); a=cv2.rotate(a,cv2.R
   );
   read = imports.batch(batch.id);
   assert.equal(read.result.rows[0].area, "A");
-  assert.equal(read.result.pages[0].identification.area, "B");
+  assert.equal(read.result.pages[0].identification.area, "E");
   assert.equal(read.result.pages[0].identificationOverride.area, "A");
+  imports.commitBatch(
+    batch.id,
+    { reviewVersion: read.result.reviewVersion },
+    req,
+  );
+  const grade = db
+    .prepare(
+      "SELECT ciclo,area FROM respuestas_evaluacion WHERE evaluacion_id=?",
+    )
+    .get(exam.id);
+  assert.deepEqual(grade, { ciclo: "REPASO", area: "A" });
 });

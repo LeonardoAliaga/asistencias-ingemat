@@ -144,7 +144,7 @@ function reportState(row) {
     const payload = JSON.parse(row.payload);
     if (row.kind === "exam_group_summary") {
       const target=groups.target(payload.cycle);
-      const report=require("./exam-group-results.service").snapshot(payload.evaluationId);
+      const report=require("./exam-group-results.service").snapshot(payload.evaluationId, payload.rankingCycle, payload.rankingArea);
       if (!target || target.id !== row.recipient || !["listo", "publicado"].includes(report.exam.estado)
           || report.signature !== payload.signature)
         return { current:false,cancel:true,

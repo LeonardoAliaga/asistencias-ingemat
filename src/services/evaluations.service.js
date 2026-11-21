@@ -12,15 +12,67 @@ function getExam(id) {
     definition: row.definition ? JSON.parse(row.definition) : null,
   };
 }
+const eligibleStudent = `u.rol='estudiante' AND u.archived_at IS NULL AND
+  (? = '' OR UPPER(u.ciclo)=UPPER(?) OR EXISTS (
+    SELECT 1 FROM exam_roster r WHERE r.evaluation_id=? AND r.user_uid=u.uid
+  ))`;
+
+function examStudents(exam, code) {
+  const params = [exam.ciclo, exam.ciclo, exam.id];
+  if (code !== undefined) {
+    return db
+      .prepare(
+        `SELECT u.* FROM usuarios u WHERE ${eligibleStudent} AND u.codigo=?`,
+      )
+      .get(...params, code);
+  }
+  return db
+    .prepare(
+      `SELECT u.* FROM usuarios u WHERE ${eligibleStudent} ORDER BY u.apellido,u.nombre`,
+    )
+    .all(...params);
+}
+
+function assignedArea(value) {
+  const area = String(value || "")
+    .trim()
+    .toUpperCase();
+  return area === "GENERAL" ? "" : area;
+}
+
+function enableAllCycles(id, req) {
+  return db.transaction(() => {
+    const exam = getExam(id);
+    if (
+      !exam.definition ||
+      !["borrador", "listo", "publicado"].includes(exam.estado)
+    )
+      throw new AppError("Este examen no admite el cambio de modalidad.", 409);
+    if (!exam.ciclo) return exam;
+    if (
+      db
+        .prepare("SELECT 1 FROM respuestas_evaluacion WHERE evaluacion_id=?")
+        .get(id)
+    )
+      throw new AppError("El examen ya tiene respuestas registradas.", 409);
+    db.prepare("UPDATE evaluaciones SET ciclo='' WHERE id=?").run(id);
+    db.prepare("DELETE FROM exam_roster WHERE evaluation_id=?").run(id);
+    audit(req, "habilitar_todos_los_ciclos", "evaluacion", id, {
+      previousCycle: exam.ciclo,
+    });
+    return getExam(id);
+  })();
+}
+
 function saveExam(body, req, id) {
   const title = String(body.titulo || "").trim(),
-    cycle = String(body.ciclo || "").trim();
-  if (!title || title.length > 180 || !cycle)
+    cycle = body.allCycles === true ? "" : String(body.ciclo || "").trim();
+  if (!title || title.length > 180 || (!cycle && body.allCycles !== true))
     throw new AppError("Indica título y ciclo.");
   const registeredCycle = db
     .prepare("SELECT nombre FROM ciclos WHERE UPPER(TRIM(nombre))=UPPER(?)")
     .get(cycle);
-  if (!registeredCycle)
+  if (cycle && !registeredCycle)
     throw new AppError(
       "El ciclo seleccionado ya no existe. Actualiza los ciclos y elige uno registrado.",
     );
@@ -110,9 +162,10 @@ function readyExam(id, req) {
     db.prepare(
       "UPDATE evaluaciones SET estado='listo',definition=? WHERE id=?",
     ).run(JSON.stringify(def), id);
-    db.prepare(
-      "INSERT OR IGNORE INTO exam_roster(evaluation_id,user_uid,code_snapshot,name_snapshot,cycle_snapshot) SELECT ?,uid,codigo,TRIM(apellido||' '||nombre),ciclo FROM usuarios WHERE rol='estudiante' AND archived_at IS NULL AND UPPER(ciclo)=UPPER(?)",
-    ).run(id, exam.ciclo);
+    if (exam.ciclo)
+      db.prepare(
+        "INSERT OR IGNORE INTO exam_roster(evaluation_id,user_uid,code_snapshot,name_snapshot,cycle_snapshot) SELECT ?,uid,codigo,TRIM(apellido||' '||nombre),ciclo FROM usuarios WHERE rol='estudiante' AND archived_at IS NULL AND UPPER(ciclo)=UPPER(?)",
+      ).run(id, exam.ciclo);
     db.prepare(
       "INSERT INTO evaluation_revisions(evaluation_id,revision,definition,key_snapshot,actor,reason) VALUES(?,?,?,?,?,?)",
     ).run(
@@ -167,6 +220,7 @@ function saveGrade(
       409,
     );
   if (
+    exam.ciclo &&
     String(user.ciclo).toUpperCase() !== String(exam.ciclo).toUpperCase() &&
     !db
       .prepare("SELECT 1 FROM exam_roster WHERE evaluation_id=? AND user_uid=?")
@@ -188,7 +242,7 @@ function saveGrade(
   const result = grade(
     exam.definition,
     body.respuestas,
-    body.area || user.area,
+    body.area || assignedArea(user.area),
     body.form || "A",
   );
   result.revision = exam.revision;
@@ -201,12 +255,16 @@ function saveGrade(
     .get(id, user.uid);
   const name =
     roster?.name_snapshot || `${user.apellido} ${user.nombre}`.trim();
-  const cycle = roster?.cycle_snapshot || user.ciclo;
+  const cycle = roster?.cycle_snapshot ?? user.ciclo ?? "";
   db.transaction(() => {
     // A changed grade must be reviewed before another publication/notice.
     require("./notifications.service").cancelPendingResults(id, user.uid);
     if (exam.estado === "publicado")
       db.prepare("UPDATE evaluaciones SET estado='listo' WHERE id=?").run(id);
+    if (!exam.ciclo && !roster)
+      db.prepare(
+        "INSERT INTO exam_roster(evaluation_id,user_uid,code_snapshot,name_snapshot,cycle_snapshot) VALUES(?,?,?,?,?)",
+      ).run(id, user.uid, code, name, cycle);
     if (prev)
       db.prepare(
         "INSERT INTO grade_history(evaluation_id,student_code,revision,snapshot,actor,reason) VALUES(?,?,?,?,?,?)",
@@ -380,6 +438,9 @@ function reviseKeys(id, body, req) {
 }
 module.exports = {
   getExam,
+  examStudents,
+  assignedArea,
+  enableAllCycles,
   saveExam,
   readyExam,
   saveGrade,

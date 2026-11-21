@@ -165,11 +165,9 @@ async function loadCycles() {
         `<option value="${esc(typeof c === "string" ? c : c.nombre)}">${esc(typeof c === "string" ? c : c.nombre)}</option>`,
     )
     .join("");
-  $("v2-exam-editor").elements.ciclo.setCustomValidity(
-    list.length ? "" : "Primero registra un ciclo en la sección Ciclos.",
-  );
   $("v2-exam-editor").elements.ciclo.innerHTML =
-    '<option value="">Selecciona un ciclo</option>' + opts;
+    '<option value="">Selecciona un ciclo</option><option value="*">Todos los ciclos</option>' +
+    opts;
   $("v2-attendance-cycle").innerHTML =
     '<option value="">Todos los ciclos</option>' + opts;
   if (
@@ -196,7 +194,7 @@ async function loadExams(selected) {
     state.exams
       .map(
         (e) =>
-          `<option value="${esc(e.id)}">${esc(e.titulo)} · ${esc(e.ciclo)} · ${esc(statuses[e.estado] || e.estado)}</option>`,
+          `<option value="${esc(e.id)}">${esc(e.titulo)} · ${esc(e.ciclo || "Todos los ciclos")} · ${esc(statuses[e.estado] || e.estado)}</option>`,
       )
       .join("");
   $("v2-exam-select").innerHTML = options;
@@ -324,7 +322,7 @@ function manualEligibleStudents() {
   return state.students.filter(
     (student) =>
       exam.eligibleStudentCodes?.includes(student.codigo) ??
-      student.ciclo.toUpperCase() === exam.ciclo.toUpperCase(),
+      (!exam.ciclo || student.ciclo.toUpperCase() === exam.ciclo.toUpperCase()),
   );
 }
 async function selectExam(id) {
@@ -353,9 +351,15 @@ async function selectExam(id) {
     return;
   }
   $("v2-exam-summary").innerHTML =
-    `${badge(e.estado)} <strong>${esc(e.titulo)}</strong> · ${esc(e.fecha)} · ${e.definition?.totalQuestions || e.totalPreguntasCuadernillo || e.numPreguntas} preguntas impresas · ${e.participants} evaluados · revisión ${e.revision}${e.estado === "legacy" ? "<p>Sus notas históricas se conservan. Crea un examen v2 para utilizar cursos y lectura por lotes.</p>" : ""}`;
+    `${badge(e.estado)} <strong>${esc(e.titulo)}</strong> · ${esc(e.fecha)} · ${e.definition?.totalQuestions || e.totalPreguntasCuadernillo || e.numPreguntas} preguntas impresas · ${e.participants} evaluados · ${esc(e.ciclo || "Todos los ciclos")} · revisión ${e.revision}${e.estado === "legacy" ? "<p>Sus notas históricas se conservan. Crea un examen v2 para utilizar cursos y lectura por lotes.</p>" : ""}`;
   const canWrite = ["admin", "corrector"].includes(state.role);
   $("v2-edit").hidden = e.estado !== "borrador" || !canWrite;
+  $("v2-enable-all-cycles").hidden =
+    !canWrite ||
+    !e.definition ||
+    !e.ciclo ||
+    e.participants > 0 ||
+    !["listo", "publicado"].includes(e.estado);
   $("v2-ready").hidden = e.estado !== "borrador" || !canWrite;
   $("v2-revise").hidden =
     !["listo", "publicado"].includes(e.estado) || !e.definition || !canWrite;
@@ -373,7 +377,8 @@ async function selectExam(id) {
     )
     .join("");
   $("v2-sheet-student").innerHTML =
-    '<option value="">Todo el ciclo</option>' + options;
+    `<option value="">${e.ciclo ? "Todo el ciclo" : "Todos los estudiantes"}</option>` +
+    options;
   state.manualStudentSearch?.reset();
   const areaOptions = e.definition.areas
     .map(
@@ -382,6 +387,7 @@ async function selectExam(id) {
     )
     .join("");
   $("v2-manual-area").innerHTML = areaOptions;
+  $("v2-result-cycle").value = "";
   $("v2-result-area").innerHTML =
     '<option value="">Todas las áreas</option>' + areaOptions;
   const forms = Object.keys(e.definition.forms)
@@ -590,6 +596,7 @@ function collectEditor({ structureOnly = false } = {}) {
   const payload = {
     titulo: form.elements.titulo.value,
     ciclo: form.elements.ciclo.value,
+    allCycles: form.elements.ciclo.value === "*",
     fecha: form.elements.fecha.value,
     ...(state.fixedTemplateId ? { templateId: state.fixedTemplateId } : {}),
     definition: {
@@ -956,15 +963,30 @@ function preset(value) {
 async function loadResults() {
   const e = state.selected;
   if (!e?.definition) return;
-  const data = await api(`/api/v2/exams/${e.id}/results`),
-    area = $("v2-result-area").value,
-    rows = data.rows.filter((r) => !area || r.area === area);
+  const request = (state.resultsRequest = (state.resultsRequest || 0) + 1);
+  const data = await api(`/api/v2/exams/${e.id}/results`);
+  if (request !== state.resultsRequest || state.selected?.id !== e.id) return;
+  const cycleSelect = $("v2-result-cycle");
+  const cycles = [
+    ...new Set(data.rows.map((r) => r.ciclo).filter(Boolean)),
+  ].sort((a, b) => a.localeCompare(b, "es"));
+  const cycle = cycles.includes(cycleSelect.value) ? cycleSelect.value : "";
+  cycleSelect.replaceChildren(
+    new Option("Todos los ciclos", ""),
+    ...cycles.map((name) => new Option(name, name)),
+  );
+  cycleSelect.value = cycle;
+  const area = $("v2-result-area").value;
+  const rows = data.rows.filter(
+    (r) => (!area || r.area === area) && (!cycle || r.ciclo === cycle),
+  );
   let last,
     rank = 0;
   $("v2-results").innerHTML = table(
     [
       "Puesto",
       "Estudiante",
+      "Ciclo",
       "Área",
       "Correctas / errores / blancos",
       "Puntaje",
@@ -975,8 +997,9 @@ async function loadResults() {
       if (r.puntajeTotal !== last) rank = i + 1;
       last = r.puntajeTotal;
       return [
-        String(area ? rank : r.posicion),
+        String(rank),
         `<strong>${esc(r.nombreEstudiante)}</strong><br>${esc(r.codigoEstudiante)}`,
+        esc(r.ciclo || "Sin ciclo"),
         esc(r.area),
         `${r.correctas} / ${r.incorrectas} / ${r.enBlanco}${r.detail.anuladas ? ` · ${r.detail.anuladas} anuladas` : ""}`,
         `<strong>${r.puntajeTotal}</strong>`,
@@ -1055,8 +1078,11 @@ async function loadResults() {
         }
       };
     });
+  const query = new URLSearchParams();
+  if (area) query.set("area", area);
+  if (cycle) query.set("cycle", cycle);
   $("v2-ranking-excel").href =
-    `/api/evaluaciones/${e.id}/excel${area ? "?area=" + encodeURIComponent(area) : ""}`;
+    `/api/evaluaciones/${encodeURIComponent(e.id)}/excel?${query}`;
 }
 async function loadBatches() {
   const batches = await api("/api/v2/imports");
@@ -1088,7 +1114,7 @@ async function loadBatches() {
 function scannedStudentLabel(page) {
   const student = page.identifiedStudent;
   if (student)
-    return `<strong>${esc(student.name)}</strong><br><span>Código: ${esc(student.code)}</span>`;
+    return `<strong>${esc(student.name)}</strong><br><span>Código: ${esc(student.code)}${student.cycle ? ` · ${esc(student.cycle)}` : ""}</span>`;
   const code =
     (page.identificationOverride || page.identification)?.code ||
     page.codigoEstudiante;
@@ -1157,7 +1183,7 @@ async function openBatch(id) {
       String(r.preview.totalEvaluables),
       String(r.preview.puntajeTotal),
     ]),
-  )}${["ready", "review"].includes(b.status) ? '<button id="v2-batch-refresh-keys" class="v2-button secondary">Actualizar con las claves vigentes</button>' : ""}${b.status === "ready" ? '<label class="v2-checkbox"><input id="v2-batch-replace" type="checkbox"> Corregir calificaciones que ya existan</label><label>Motivo de la corrección<input id="v2-batch-reason" placeholder="Obligatorio si reemplazas notas"></label><button id="v2-batch-commit" class="v2-button">Confirmar importación del lote</button>' : ""}`;
+  )}${["ready", "review"].includes(b.status) ? '<button id="v2-batch-refresh-keys" class="v2-button secondary">Volver a validar el lote</button>' : ""}${b.status === "ready" ? '<label class="v2-checkbox"><input id="v2-batch-replace" type="checkbox"> Corregir calificaciones que ya existan</label><label>Motivo de la corrección<input id="v2-batch-reason" placeholder="Obligatorio si reemplazas notas"></label><button id="v2-batch-commit" class="v2-button">Confirmar importación del lote</button>' : ""}`;
   el.querySelectorAll("[data-review]").forEach(
     (button) =>
       (button.onclick = () => reviewPage(Number(button.dataset.review))),
@@ -1531,7 +1557,8 @@ function renderGuides() {
         .toLowerCase()
         .includes(q),
   );
-  $("v2-guide-count").textContent = `${results.length} ${results.length === 1 ? "tutorial" : "tutoriales"}`;
+  $("v2-guide-count").textContent =
+    `${results.length} ${results.length === 1 ? "tutorial" : "tutoriales"}`;
   $("v2-guide-list").innerHTML =
     results
       .map(
@@ -1741,7 +1768,7 @@ function updateWizardFeedback() {
       keyError = error.message;
     }
     $("v2-wizard-review").innerHTML =
-      `<div class="wizard-review-grid"><div><strong>${total}</strong><span>preguntas impresas</span></div><div><strong>${def.sections.length}</strong><span>cursos</span></div><div><strong>${complete}/${total}</strong><span>preguntas con clave o regla</span></div></div><div class="v2-card wizard-review-details"><h3>${esc($("v2-exam-editor").elements.titulo.value || "Sin título")}</h3><p>${esc($("v2-exam-editor").elements.ciclo.value)} · ${esc($("v2-exam-editor").elements.fecha.value)}</p>${table(
+      `<div class="wizard-review-grid"><div><strong>${total}</strong><span>preguntas impresas</span></div><div><strong>${def.sections.length}</strong><span>cursos</span></div><div><strong>${complete}/${total}</strong><span>preguntas con clave o regla</span></div></div><div class="v2-card wizard-review-details"><h3>${esc($("v2-exam-editor").elements.titulo.value || "Sin título")}</h3><p>${esc($("v2-exam-editor").elements.ciclo.selectedOptions[0]?.textContent || "")} · ${esc($("v2-exam-editor").elements.fecha.value)}</p>${table(
         ["Perfil", "Preguntas evaluables"],
         totals.map((a) => [
           `${esc(a.code)} · ${esc(a.name)}`,
@@ -2027,6 +2054,7 @@ async function initialize() {
   });
   bind("v2-exam-select", "change", (e) => selectExam(e.target.value));
   bind("v2-result-area", "change", loadResults);
+  bind("v2-result-cycle", "change", loadResults);
   bind("v2-new", "click", async () => {
     await loadCycles();
     await loadStudents();
@@ -2059,7 +2087,7 @@ async function initialize() {
     setEditor(e.definition, e.id);
     const f = $("v2-exam-editor");
     f.elements.titulo.value = e.titulo;
-    f.elements.ciclo.value = e.ciclo;
+    f.elements.ciclo.value = e.ciclo || "*";
     f.elements.fecha.value = e.fecha;
     f.scrollIntoView({ behavior: "smooth" });
   });
@@ -2117,6 +2145,20 @@ async function initialize() {
         : "Borrador guardado. Valida el examen cuando completes todas las claves y reglas.",
     );
   });
+  bind("v2-enable-all-cycles", "click", async () => {
+    const e = state.selected;
+    if (
+      !confirm(`¿Habilitar estudiantes de todos los ciclos en "${e.titulo}"?`)
+    )
+      return;
+    await api(
+      `/api/v2/exams/${encodeURIComponent(e.id)}/all-cycles`,
+      json({}, "PATCH"),
+    );
+    await loadExams(e.id);
+    if (state.batch) await openBatch(state.batch.id);
+    message("El examen ya acepta estudiantes de todos los ciclos.");
+  });
   bind("v2-ready", "click", async () => {
     const e = await api(`/api/v2/exams/${state.selected.id}/ready`, json({}));
     await loadExams(e.id);
@@ -2155,14 +2197,20 @@ async function initialize() {
     const exam = state.selected;
     if (!exam || !["listo", "publicado"].includes(exam.estado))
       throw new Error("Valida el examen antes de notificar al grupo.");
+    const cycle = exam.ciclo || $("v2-result-cycle").value;
+    const area = exam.ciclo ? "" : $("v2-result-area").value;
+    if (!cycle)
+      throw new Error(
+        "Selecciona un ciclo en Resultados para elegir su grupo de WhatsApp.",
+      );
     const { target } = await api(
-      `/api/v2/whatsapp/attendance-target?cycle=${encodeURIComponent(exam.ciclo)}`,
+      `/api/v2/whatsapp/attendance-target?cycle=${encodeURIComponent(cycle)}`,
     );
     if (!target)
       throw new Error("Configura primero el grupo del ciclo en Comunicación.");
     if (
       !confirm(
-        `¿Enviar imágenes del ranking de "${exam.titulo}" al grupo "${target.subject}"?\n\nCada área tendrá su propia imagen (con páginas si hay muchos alumnos). Se mostrarán nombres, buenas, malas, vacías y puntajes, SIN códigos. Confirma que todos los estudiantes cuentan con autorización para compartir estas calificaciones en ese grupo.`,
+        `¿Enviar imágenes del ranking de "${exam.titulo}" para ${cycle}${area ? ` · Área ${area}` : ""} al grupo "${target.subject}"?\n\nCada área tendrá su propia imagen (con páginas si hay muchos alumnos). Se mostrarán nombres, buenas, malas, vacías y puntajes, SIN códigos. Confirma que todos los estudiantes cuentan con autorización para compartir estas calificaciones en ese grupo.`,
       )
     )
       return;
@@ -2170,6 +2218,7 @@ async function initialize() {
       "/api/v2/whatsapp/exam-group-summary",
       json({
         examId: exam.id,
+        ...(exam.ciclo ? {} : { cycle, area }),
         groupId: target.id,
         requestId: crypto.randomUUID(),
         confirmAuthorized: true,

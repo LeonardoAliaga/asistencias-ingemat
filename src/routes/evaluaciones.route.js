@@ -557,168 +557,177 @@ router.get("/:id/ranking", (req, res) => {
 router.get("/:id/excel", async (req, res) => {
   try {
     const { id } = req.params;
-    const { area } = req.query;
+    const area = String(req.query.area || "").trim().toUpperCase();
+    const cycle = String(req.query.cycle || "").trim();
     const evalObj = getEvaluacionCompleta(id);
 
     if (!evalObj) {
       return res.status(404).send("Evaluación no encontrada.");
     }
 
-    let estudiantes = evalObj.respuestasEstudiantes;
-    let sheetName = "Ranking General";
-    let tituloBanner =
-      "ACADEMIA PREUNIVERSITARIA INGEMAT - CUADRO GENERAL DE MÉRITO Y RANKING";
-
-    if (area && area.trim() !== "" && area.toUpperCase() !== "TODOS") {
-      const areaUpper = area.trim().toUpperCase();
-      estudiantes = estudiantes
-        .filter((r) => String(r.area || "").toUpperCase() === areaUpper)
-        .map((r) => ({ ...r }));
-      estudiantes = ranks(estudiantes);
-      sheetName = `Ranking Área ${areaUpper}`;
-      tituloBanner = `ACADEMIA PREUNIVERSITARIA INGEMAT - CUADRO DE MÉRITO ÁREA ${areaUpper}`;
-    }
-
+    const rows = evalObj.respuestasEstudiantes;
     const workbook = new ExcelJS.Workbook();
-    const sheet = workbook.addWorksheet(sheetName);
+    const sheets = [{ area: area === "TODOS" ? "" : area, cycle }];
+    if (!evalObj.ciclo && !sheets[0].area && !cycle) {
+      for (const code of new Set(rows.map((row) => row.area).filter(Boolean)))
+        sheets.push({ area: code, cycle: "" });
+      for (const name of new Set(rows.map((row) => row.ciclo).filter(Boolean)))
+        sheets.push({ area: "", cycle: name });
+    }
+    for (const [index, filters] of sheets.entries()) {
+      const estudiantes = ranks(rows.filter((row) =>
+        (!filters.area || row.area?.toUpperCase() === filters.area) &&
+        (!filters.cycle || row.ciclo === filters.cycle),
+      ));
+      const label = [filters.area && `Área ${filters.area}`, filters.cycle]
+        .filter(Boolean).join(" · ") || "General";
+      const sheetName = index === 0
+        ? `Ranking ${label.replace(/[\\/:?*\[\]]/g, "-").replace(/'+$/, "")}`.slice(0, 31).replace(/'+$/, "")
+        : `${index} ${label.replace(/[\\/:?*\[\]]/g, "-")}`.slice(0, 31).replace(/'+$/, "");
+      const tituloBanner = `ACADEMIA PREUNIVERSITARIA INGEMAT - CUADRO DE MÉRITO · ${label.toUpperCase()}`;
+      const sheet = workbook.addWorksheet(sheetName);
 
-    // Ancho de Columnas
-    sheet.columns = [
-      { key: "posicion", width: 14 },
-      { key: "nombreEstudiante", width: 42 },
-      { key: "area", width: 14 },
-      { key: "correctas", width: 14 },
-      { key: "incorrectas", width: 14 },
-      { key: "enBlanco", width: 14 },
-      { key: "puntajeTotal", width: 18 },
-    ];
+      // Ancho de Columnas
+      sheet.columns = [
+        { key: "posicion", width: 14 },
+        { key: "nombreEstudiante", width: 42 },
+        { key: "area", width: 14 },
+        { key: "correctas", width: 14 },
+        { key: "incorrectas", width: 14 },
+        { key: "enBlanco", width: 14 },
+        { key: "puntajeTotal", width: 18 },
+        { key: "ciclo", width: 20 },
+      ];
 
-    // Banner de Título
-    sheet.mergeCells("A1:G1");
-    const titleCell = sheet.getCell("A1");
-    titleCell.value = tituloBanner;
-    titleCell.font = {
-      name: "Arial",
-      size: 13,
-      bold: true,
-      color: { argb: "FFFFFFFF" },
-    };
-    titleCell.fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: "FF0A2240" },
-    };
-    titleCell.alignment = { horizontal: "center", vertical: "middle" };
-    sheet.getRow(1).height = 34;
-
-    // Metadatos
-    sheet.mergeCells("A2:G2");
-    const subTitleCell = sheet.getCell("A2");
-    subTitleCell.value = `EXAMEN: ${evalObj.titulo.toUpperCase()} | CICLO: ${evalObj.ciclo} | FECHA: ${evalObj.fecha} | PREGUNTAS: ${evalObj.numPreguntas}`;
-    subTitleCell.font = {
-      name: "Arial",
-      size: 10,
-      bold: true,
-      color: { argb: "FF475569" },
-    };
-    subTitleCell.fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: "FFF1F5F9" },
-    };
-    subTitleCell.alignment = { horizontal: "center", vertical: "middle" };
-    sheet.getRow(2).height = 22;
-
-    sheet.getRow(3).height = 10;
-
-    // Cabecera
-    const headers = [
-      "POSICIÓN",
-      "ESTUDIANTE",
-      "ÁREA",
-      "CORRECTAS",
-      "INCORRECTAS",
-      "EN BLANCO",
-      "PUNTAJE TOTAL",
-    ];
-    const headerRow = sheet.getRow(4);
-    headerRow.height = 28;
-
-    headers.forEach((h, idx) => {
-      const cell = headerRow.getCell(idx + 1);
-      cell.value = h;
-      cell.font = {
+      // Banner de Título
+      sheet.mergeCells("A1:H1");
+      const titleCell = sheet.getCell("A1");
+      titleCell.value = tituloBanner;
+      titleCell.font = {
         name: "Arial",
-        size: 10,
+        size: 13,
         bold: true,
         color: { argb: "FFFFFFFF" },
       };
-      cell.fill = {
+      titleCell.fill = {
         type: "pattern",
         pattern: "solid",
-        fgColor: { argb: "FFB72107" },
+        fgColor: { argb: "FF0A2240" },
       };
-      cell.alignment = { horizontal: "center", vertical: "middle" };
-      cell.border = {
-        top: { style: "thin", color: { argb: "FFCBD5E1" } },
-        bottom: { style: "medium", color: { argb: "FF0F172A" } },
-        left: { style: "thin", color: { argb: "FFCBD5E1" } },
-        right: { style: "thin", color: { argb: "FFCBD5E1" } },
+      titleCell.alignment = { horizontal: "center", vertical: "middle" };
+      sheet.getRow(1).height = 34;
+
+      // Metadatos
+      sheet.mergeCells("A2:H2");
+      const subTitleCell = sheet.getCell("A2");
+      subTitleCell.value = `EXAMEN: ${evalObj.titulo.toUpperCase()} | CICLO: ${filters.cycle || evalObj.ciclo || "Todos los ciclos"} | FECHA: ${evalObj.fecha} | PREGUNTAS: ${evalObj.numPreguntas}`;
+      subTitleCell.font = {
+        name: "Arial",
+        size: 10,
+        bold: true,
+        color: { argb: "FF475569" },
       };
-    });
+      subTitleCell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFF1F5F9" },
+      };
+      subTitleCell.alignment = { horizontal: "center", vertical: "middle" };
+      sheet.getRow(2).height = 22;
 
-    // Filas
-    estudiantes.forEach((item, index) => {
-      const pos = item.posicion || index + 1;
-      let posText = `#${pos}`;
-      if (pos === 1) posText = "🥇 1°";
-      if (pos === 2) posText = "🥈 2°";
-      if (pos === 3) posText = "🥉 3°";
+      sheet.getRow(3).height = 10;
 
-      const row = sheet.addRow([
-        posText,
-        item.nombreEstudiante,
-        item.area ? `Área ${item.area}` : "-",
-        evalObj.tipo === "test" ? "-" : item.correctas,
-        evalObj.tipo === "test" ? "-" : item.incorrectas,
-        evalObj.tipo === "test" ? "-" : item.enBlanco,
-        item.puntajeTotal,
-      ]);
+      // Cabecera
+      const headers = [
+        "POSICIÓN",
+        "ESTUDIANTE",
+        "ÁREA",
+        "CORRECTAS",
+        "INCORRECTAS",
+        "EN BLANCO",
+        "PUNTAJE TOTAL",
+        "CICLO",
+      ];
+      const headerRow = sheet.getRow(4);
+      headerRow.height = 28;
 
-      row.height = 22;
-      let rowBg = pos % 2 === 0 ? "FFF8FAFC" : "FFFFFFFF";
-
-      if (pos === 1) {
-        rowBg = "FFFFF9C3";
-      } else if (pos === 2) {
-        rowBg = "FFF1F5F9";
-      } else if (pos === 3) {
-        rowBg = "FFFFEDD5";
-      }
-
-      row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-        cell.fill = {
-          type: "pattern",
-          pattern: "solid",
-          fgColor: { argb: rowBg },
-        };
+      headers.forEach((h, idx) => {
+        const cell = headerRow.getCell(idx + 1);
+        cell.value = h;
         cell.font = {
           name: "Arial",
           size: 10,
-          bold: colNumber === 1 || colNumber === 7 || pos <= 3,
-          color: { argb: colNumber === 7 ? "FFB72107" : "FF0F172A" },
+          bold: true,
+          color: { argb: "FFFFFFFF" },
         };
-        cell.alignment = {
-          horizontal: colNumber === 2 ? "left" : "center",
-          vertical: "middle",
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FFB72107" },
         };
+        cell.alignment = { horizontal: "center", vertical: "middle" };
         cell.border = {
-          bottom: { style: "thin", color: { argb: "FFCBD5E1" } },
+          top: { style: "thin", color: { argb: "FFCBD5E1" } },
+          bottom: { style: "medium", color: { argb: "FF0F172A" } },
           left: { style: "thin", color: { argb: "FFCBD5E1" } },
           right: { style: "thin", color: { argb: "FFCBD5E1" } },
         };
       });
-    });
+
+      // Filas
+      estudiantes.forEach((item, index) => {
+        const pos = item.posicion || index + 1;
+        let posText = `#${pos}`;
+        if (pos === 1) posText = "🥇 1°";
+        if (pos === 2) posText = "🥈 2°";
+        if (pos === 3) posText = "🥉 3°";
+
+        const row = sheet.addRow([
+          posText,
+          item.nombreEstudiante,
+          item.area ? `Área ${item.area}` : "-",
+          evalObj.tipo === "test" ? "-" : item.correctas,
+          evalObj.tipo === "test" ? "-" : item.incorrectas,
+          evalObj.tipo === "test" ? "-" : item.enBlanco,
+          item.puntajeTotal,
+          item.ciclo || "-",
+        ]);
+
+        row.height = 22;
+        let rowBg = pos % 2 === 0 ? "FFF8FAFC" : "FFFFFFFF";
+
+        if (pos === 1) {
+          rowBg = "FFFFF9C3";
+        } else if (pos === 2) {
+          rowBg = "FFF1F5F9";
+        } else if (pos === 3) {
+          rowBg = "FFFFEDD5";
+        }
+
+        row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: rowBg },
+          };
+          cell.font = {
+            name: "Arial",
+            size: 10,
+            bold: colNumber === 1 || colNumber === 7 || pos <= 3,
+            color: { argb: colNumber === 7 ? "FFB72107" : "FF0F172A" },
+          };
+          cell.alignment = {
+            horizontal: colNumber === 2 ? "left" : "center",
+            vertical: "middle",
+          };
+          cell.border = {
+            bottom: { style: "thin", color: { argb: "FFCBD5E1" } },
+            left: { style: "thin", color: { argb: "FFCBD5E1" } },
+            right: { style: "thin", color: { argb: "FFCBD5E1" } },
+          };
+        });
+      });
+    }
 
     res.setHeader(
       "Content-Type",

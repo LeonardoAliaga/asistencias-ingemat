@@ -104,7 +104,7 @@ async function makePDF(
         .font("Helvetica")
         .fontSize(9)
         .text(
-          `Código: ${u.codigo}   Ciclo: ${exam.ciclo}   Área: ${area}   Versión: ${form}   Revisión: ${exam.revision}`,
+          `Código: ${u.codigo}   Ciclo: ${exam.ciclo || u.ciclo}   Área: ${area}   Versión: ${form}   Revisión: ${exam.revision}`,
           65,
           96,
           { width: 610 },

@@ -1298,3 +1298,85 @@ test("simulate manual correction, delete one grade, and permanently purge only o
   assert(db.prepare("SELECT 1 FROM usuarios WHERE codigo='DELSTU001'").get(),"El alumno debe conservarse.");
   assert.equal((await guest(`/api/v2/exams/${exam.id}/permanent`,{confirmation:"X"},"DELETE")).status,401);
 });
+
+test("open exams enroll different cycles and export scoped rankings from saved participation", async () => {
+  const source = (await admin(`/api/v2/exams/${exam.id}`)).data;
+  const created = await admin(
+    "/api/v2/exams",
+    {
+      titulo: "Todos los ciclos",
+      allCycles: true,
+      definition: source.definition,
+    },
+    "POST",
+  );
+  assert.equal(created.status, 201, JSON.stringify(created.data));
+  assert.equal(created.data.ciclo, "");
+  const url = `/api/v2/exams/${created.data.id}`;
+  assert.equal((await admin(`${url}/ready`, {}, "POST")).status, 200);
+  assert.equal(
+    (await admin(`/api/v2/exams/${exam.id}/all-cycles`, {}, "PATCH")).status,
+    409,
+  );
+  db.prepare(
+    "INSERT INTO usuarios(codigo,nombre,apellido,rol,ciclo,uid) VALUES('MULTI1','DEMO','OTRO CICLO','estudiante','INTENSIVO','multi-user')",
+  ).run();
+  const annual = db
+    .prepare(
+      "SELECT codigo FROM usuarios WHERE rol='estudiante' AND ciclo='ANUAL' AND archived_at IS NULL LIMIT 1",
+    )
+    .get();
+  assert.ok(annual);
+  for (const [code, area] of [
+    [annual.codigo, "A"],
+    ["MULTI1", "C"],
+  ]) {
+    assert.ok((await admin(url)).data.eligibleStudentCodes.includes(code));
+    const grade = await admin(
+      `${url}/grade`,
+      {
+        codigoEstudiante: code,
+        area,
+        respuestas: {},
+      },
+      "POST",
+    );
+    assert.equal(grade.status, 200, JSON.stringify(grade.data));
+  }
+  db.prepare("UPDATE usuarios SET ciclo='ANUAL' WHERE codigo='MULTI1'").run();
+  const correction = await admin(
+    `${url}/grade`,
+    {
+      codigoEstudiante: "MULTI1",
+      area: "C",
+      respuestas: {},
+      allowReplace: true,
+      reason: "Comprobar ciclo histórico",
+    },
+    "POST",
+  );
+  assert.equal(correction.status, 200);
+  const results = (await admin(`${url}/results`)).data.rows;
+  assert.deepEqual(
+    new Set(results.map((row) => row.ciclo)),
+    new Set(["ANUAL", "INTENSIVO"]),
+  );
+
+  const ExcelJS = require("exceljs");
+  const excel = `/api/evaluaciones/${created.data.id}/excel`;
+  const general = new ExcelJS.Workbook();
+  await general.xlsx.load((await admin(excel)).buffer);
+  assert.equal(general.worksheets.length, 5);
+  const scoped = new ExcelJS.Workbook();
+  await scoped.xlsx.load(
+    (await admin(`${excel}?cycle=INTENSIVO&area=C`)).buffer,
+  );
+  assert.equal(scoped.worksheets.length, 1);
+  assert.equal(scoped.worksheets[0].getCell("H5").value, "INTENSIVO");
+  assert.equal(scoped.worksheets[0].getCell("A5").value, "🥇 1°");
+  assert.equal(scoped.worksheets[0].rowCount, 5);
+
+  const { snapshot } = require("../src/services/exam-group-results.service");
+  assert.equal(snapshot(created.data.id, "INTENSIVO", "C").rows.length, 1);
+  assert.equal(snapshot(created.data.id, "INTENSIVO", "A").rows.length, 0);
+});
