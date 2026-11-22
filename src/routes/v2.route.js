@@ -18,6 +18,7 @@ scanner.recover();
 const attendance = require("../services/attendance.service");
 const { normalizeDefinition } = require("../services/grading.service");
 const { makePDF } = require("../services/omr-pdf.service");
+const { makeAnswerKeyPDF } = require("../services/exam-answer-key-pdf.service");
 const { adaptiveLayout } = require("../services/omr-adaptive-layout");
 const { bookletLayouts, FORMATS } = require("../services/omr-booklet-layout");
 const { layouts } = require("../services/omr-layout");
@@ -400,6 +401,22 @@ router.get("/exams/:id/sheets.pdf", write, async (req, res) => {
     estudiantes: students.length,
   });
   res.type("application/pdf").attachment("cartillas-ingemat.pdf").send(bytes);
+});
+router.get("/exams/:id/answer-key.pdf", read, async (req, res) => {
+  const exam = evaluations.getExam(req.params.id);
+  const bytes = await makeAnswerKeyPDF(exam);
+  const name = exam.titulo
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .replace(/[^a-zA-Z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 70)
+    .toLowerCase();
+  res
+    .set("Cache-Control", "no-store")
+    .type("application/pdf")
+    .attachment(`claves-${name || "examen"}-${exam.fecha}.pdf`)
+    .send(bytes);
 });
 router.get("/exams/:id/csv-template", write, (req, res) => {
   const exam = evaluations.getExam(req.params.id);

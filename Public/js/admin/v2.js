@@ -368,6 +368,9 @@ async function selectExam(id) {
   $("v2-ready").hidden = e.estado !== "borrador" || !canWrite;
   $("v2-revise").hidden =
     !["listo", "publicado"].includes(e.estado) || !e.definition || !canWrite;
+  const keysPDF = $("v2-answer-key-pdf");
+  keysPDF.hidden = !e.definition || !["listo", "publicado"].includes(e.estado);
+  keysPDF.href = `/api/v2/exams/${encodeURIComponent(e.id)}/answer-key.pdf`;
   const canNotify =
     ["listo", "publicado"].includes(e.estado) && state.role === "admin";
   $("v2-share-results-group").hidden = !canNotify;
@@ -1138,7 +1141,7 @@ async function openBatch(id) {
   state.batch = b;
   const el = $("v2-batch-detail");
   const signature = JSON.stringify(b);
-  // Polling unchanged data must not erase the operator's reason or selection.
+  // Preserve the replacement checkbox while polling an unchanged batch.
   if (state.batchSignature === signature && !el.hidden) return;
   state.batchSignature = signature;
   el.hidden = false;
@@ -1186,7 +1189,7 @@ async function openBatch(id) {
       String(r.preview.totalEvaluables),
       String(r.preview.puntajeTotal),
     ]),
-  )}${["ready", "review"].includes(b.status) ? '<button id="v2-batch-refresh-keys" class="v2-button secondary">Volver a validar el lote</button>' : ""}${b.status === "ready" ? '<label class="v2-checkbox"><input id="v2-batch-replace" type="checkbox"> Corregir calificaciones que ya existan</label><label>Motivo de la corrección<input id="v2-batch-reason" placeholder="Obligatorio si reemplazas notas"></label><button id="v2-batch-commit" class="v2-button">Confirmar importación del lote</button>' : ""}`;
+  )}${["ready", "review"].includes(b.status) ? '<button id="v2-batch-refresh-keys" class="v2-button secondary">Volver a validar el lote</button>' : ""}${b.status === "ready" ? '<label class="v2-checkbox"><input id="v2-batch-replace" type="checkbox"> Corregir calificaciones que ya existan</label><button id="v2-batch-commit" class="v2-button">Confirmar importación del lote</button>' : ""}`;
   el.querySelectorAll("[data-review]").forEach(
     (button) =>
       (button.onclick = () => reviewPage(Number(button.dataset.review))),
@@ -1197,16 +1200,11 @@ async function openBatch(id) {
     message("Previsualización recalculada con las claves vigentes.");
   });
   bind("v2-batch-commit", "click", async () => {
-    const replace = $("v2-batch-replace").checked,
-      reason = $("v2-batch-reason").value;
-    if (replace && reason.trim().length < 5)
-      throw new Error("Escribe el motivo antes de reemplazar notas.");
     const r = await api(
       `/api/v2/imports/${b.id}/commit`,
       json({
         reviewVersion: b.result.reviewVersion,
-        allowReplace: replace,
-        reason,
+        allowReplace: $("v2-batch-replace").checked,
       }),
     );
     message(`${r.results.length} calificaciones importadas.`);
@@ -1250,28 +1248,28 @@ function areaReadingPreview(identification) {
 function reviewPage(index) {
   const b = state.batch,
     p = b.result.pages[index];
+  const identity = p.identificationOverride || p.identification;
+  const areas = p.examAreas || [];
+  const area = identity?.area || (areas.length === 1 ? areas[0].code : "");
+  const issue =
+    p.error ||
+    (identity && !areas.length
+      ? "No se encontraron las áreas del examen de esta cartilla. Vuelve a abrir el lote."
+      : "");
   const reviewTitle = `Revisar cartilla · ${p.identifiedStudent?.name || p.codigoEstudiante || "sin identificar"}`;
   showDialog(
     reviewTitle,
-    `<div class="v2-scan-review"><div>${p.imageUrl ? `<a href="${esc(p.imageUrl)}" target="_blank" rel="noopener"><img src="${esc(p.imageUrl)}" alt="Cartilla escaneada; abrir para ampliar"></a>` : "<p>La página no se pudo identificar. Exclúyela con un motivo y vuelve a escanearla.</p>"}</div><form id="v2-review-form">${
-      p.error
-        ? `<p class="v2-notice warning">${esc(p.error)}</p>`
+    `<div class="v2-scan-review"><div>${p.imageUrl ? `<a href="${esc(p.imageUrl)}" target="_blank" rel="noopener"><img src="${esc(p.imageUrl)}" alt="Cartilla escaneada; abrir para ampliar"></a>` : "<p>Imagen de la cartilla no disponible.</p>"}</div><form id="v2-review-form">${
+      issue
+        ? `<p class="v2-notice warning">${esc(issue)}</p>`
         : `<div id="v2-review-student">${scannedStudentNotice(p)}</div>${
-            p.identification
-              ? `<div class="v2-notice warning">Comprueba el código y el área contra la cartilla. Una corrección requiere motivo.</div>${codeColumnPreview(p.identification)}${areaReadingPreview(p.identification)}<div class="v2-form-grid"><label>Código de 8 dígitos<input id="v2-review-code" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" required value="${esc((p.identificationOverride || p.identification).code)}"></label><label>Área marcada<select id="v2-review-area" required><option value="">Selecciona un área</option>${
-                  (
-                    p.examAreas ||
-                    state.exams.find(
-                      (e) => e.id === (p.examId || b.evaluation_id),
-                    )?.definition?.areas ||
-                    []
+            identity
+              ? `<p class="v2-help">Comprueba el código y el área contra la cartilla.</p>${codeColumnPreview(p.identification)}${areaReadingPreview(p.identification)}<div class="v2-form-grid"><label>Código de 8 dígitos<input id="v2-review-code" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" required value="${esc(identity.code)}"></label><label>Área marcada<select id="v2-review-area" required><option value="">Selecciona un área</option>${areas
+                  .map(
+                    (a) =>
+                      `<option value="${esc(a.code)}"${a.code === area ? " selected" : ""}>${esc(a.name ? `${a.code} · ${a.name}` : a.code)}</option>`,
                   )
-                    .map(
-                      (a) =>
-                        `<option value="${esc(a.code)}">${esc(a.code)} · ${esc(a.name || a.code)}</option>`,
-                    )
-                    .join("") || ""
-                }</select></label></div>`
+                  .join("")}</select></label></div>`
               : ""
           }<div class="v2-question-grid">${Object.entries(p.responses)
             .map(
@@ -1279,10 +1277,10 @@ function reviewPage(index) {
                 `<label class="${["multiple", "uncertain"].includes(r.status) ? "doubt" : ""}">Pregunta ${q}<select data-review-question="${q}"><option value="?" ${r.status === "uncertain" ? "selected" : ""}>Revisar</option><option value="-" ${r.status === "blank" ? "selected" : ""}>Blanco</option>${["A", "B", "C", "D", "E"].map((o) => `<option value="${o}" ${r.status === "single" && r.options[0] === o ? "selected" : ""}>${o}</option>`).join("")}${r.status === "multiple" ? '<option value="MULTIPLE" selected>Marca doble</option>' : ""}</select></label>`,
             )
             .join("")}</div>`
-    }<label>Motivo<input id="v2-review-reason" required minlength="5" placeholder="Revisado contra la cartilla física"></label>${p.error ? "" : '<button class="v2-button" type="submit">Confirmar revisión</button>'}<button class="v2-button danger" type="button" id="v2-review-exclude">Excluir esta página</button></form></div>`,
+    }${issue ? "" : '<button class="v2-button" type="submit">Confirmar revisión</button>'}<button class="v2-button danger" type="button" id="v2-review-exclude">Excluir esta página</button></form></div>`,
   );
   bind("v2-review-code", "input", () => {
-    const original = (p.identificationOverride || p.identification).code || "";
+    const original = identity.code || "";
     $("v2-dialog-title").textContent =
       $("v2-review-code").value === original
         ? reviewTitle
@@ -1292,27 +1290,7 @@ function reviewPage(index) {
         ? scannedStudentNotice(p)
         : '<p class="v2-help">El nuevo código se verificará al confirmar la revisión.</p>';
   });
-  if (p.identification)
-    api(`/api/v2/exams/${b.evaluation_id}`)
-      .then((exam) => {
-        const select = $("v2-review-area");
-        if (!select) return;
-        select.innerHTML =
-          '<option value="">Selecciona un área</option>' +
-          exam.definition.areas
-            .map(
-              (a) =>
-                `<option value="${esc(a.code)}">${esc(a.code)} · ${esc(a.name)}</option>`,
-            )
-            .join("");
-        select.value =
-          (p.identificationOverride || p.identification).area || "";
-      })
-      .catch((error) => message(error.message, true));
   const save = async (exclude) => {
-    const reason = $("v2-review-reason").value;
-    if (reason.trim().length < 5)
-      throw new Error("Describe el motivo de la revisión.");
     const responses = {};
     if (!exclude)
       for (const input of document.querySelectorAll("[data-review-question]")) {
@@ -1331,10 +1309,9 @@ function reviewPage(index) {
       json(
         {
           reviewVersion: b.result.reviewVersion,
-          reason,
           responses,
           exclude,
-          ...(!exclude && p.identification
+          ...(!exclude && identity
             ? {
                 identification: {
                   code: $("v2-review-code").value,

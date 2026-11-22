@@ -145,4 +145,11 @@ test("printed personalized PDF -> Python reader -> review -> revised keys -> ato
   );
   // Sheets printed before a key correction remain valid: only the keys changed, not the layout.
   assert.equal(read.result.pages[0].page, 1);
+  const excluded = imports.reviewPage(
+    duplicate.id,
+    0,
+    { reviewVersion: read.result.reviewVersion, exclude: true },
+    req,
+  );
+  assert.equal(excluded.result.pages[0].excluded, true);
 });

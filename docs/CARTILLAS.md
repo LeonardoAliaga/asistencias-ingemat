@@ -49,7 +49,7 @@ Puedes cargar PDF de A4 completas con cuatro o dos cartillas, o fotografías de 
 
 En cuarto, incluye frente y reverso en el mismo lote. Se agrupan por identificador único, sin depender del orden del archivo ni del nombre escrito. Si falta una cara, se solicita revisión y no se importa parcialmente el alumno.
 
-Un código desconocido, incompleto o con varias marcas, un área inexistente o incompatible y las lecturas dudosas impiden confirmar el lote. La revisión permite cotejar la imagen y corregir código/área con motivo. Se conservan las lecturas originales, sus densidades y la corrección auditada. Las notas solo se guardan al confirmar el lote. La firma, el examen, la versión y la protección frente a páginas ya importadas se comprueban en el servidor.
+Un código desconocido, incompleto o con varias marcas, un área inexistente o incompatible y las lecturas dudosas impiden confirmar el lote. La revisión conserva el área leída y ofrece las áreas del examen de cada cartilla. Puedes cotejar la imagen y corregir el código o el área. Se conservan las lecturas originales, sus densidades y la corrección auditada. Las notas solo se guardan al confirmar el lote. La firma, el examen, la versión y la protección frente a páginas ya importadas se comprueban en el servidor.
 
 El formato A4 anterior personalizado sigue disponible y sus cartillas impresas siguen siendo válidas. Los nuevos diseños usan versiones geométricas independientes (cuarto v3, media v4); no se reinterpretan las coordenadas de las cartillas v2.
 
@@ -65,7 +65,7 @@ Los nombres se consultan al abrir el lote, sin alterar sus lecturas originales n
 
 El código de ocho dígitos se reconoce por separado de las respuestas. Se mide el relleno interior en escala de grises con una referencia de papel local; una apertura morfológica separa los trazos finos del número impreso y del borde. La lectura anterior del anillo exterior podía perder rellenos centrados. Una segunda medida sensible a trazos tenues solo genera una incidencia, nunca elige un dígito.
 
-Se exige una única marca clara en cada una de las ocho columnas. Se conservan ceros iniciales, lecturas originales y densidades. No se completa un código por parecido con el padrón. En Revisar se muestran ocho casillas con el dígito leído o `?`, indicando Sin marca, Revisar o Varias marcas; coteja las dudas con la cartilla y registra un motivo para cualquier corrección.
+Se exige una única marca clara en cada una de las ocho columnas. Se conservan ceros iniciales, lecturas originales y densidades. En Revisar se muestran ocho casillas con el dígito leído o `?`, con el estado Sin marca, Revisar o Varias marcas. Coteja las dudas con la cartilla antes de confirmar.
 
 Las coordenadas, QR y plantillas de cuarto/media hoja no cambian, de modo que se pueden seguir utilizando las cartillas ya impresas. El nuevo análisis se aplica al procesar archivos de nuevo; los lotes anteriores conservan sus lecturas registradas. Mantén 300 ppp en grises y rellena un círculo por columna con presión uniforme. La letra manuscrita en los recuadros no sustituye los círculos.
 
@@ -75,7 +75,7 @@ Los círculos del área usan el mismo análisis de relleno interior que los del 
 
 Marca una sola área con relleno uniforme. Las letras o dígitos impresos no cuentan como selección. La pantalla de revisión muestra la lectura original del área o Sin marca, Revisar marca tenue o incompleta o Varias marcas. Si no existe una única marca clara, el área queda pendiente de cotejo; no se deduce del código ni se elige por la opción más oscura. Un examen con un único perfil sigue asignándolo sin pedir una marca.
 
-Procesa un lote nuevo para aplicar el análisis a archivos ya escaneados; los lotes guardados mantienen su lectura anterior. Una corrección manual conserva el resultado original y requiere motivo.
+Puedes abrir y corregir un lote pendiente ya escaneado. El historial conserva la lectura original junto con la corrección.
 
 ## Respuestas: tolerancia a puntos y rellenos parciales
 

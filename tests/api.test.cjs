@@ -1409,3 +1409,43 @@ test("draft cartillas can be generated without keys and survive validation", asy
   const { qrPayload, resolveQR } = require("../src/services/omr-pdf.service");
   assert.equal(resolveQR(qrPayload(sheet.id, 1, 5)).evaluation_id, created.data.id);
 });
+
+test("validated exams download branded answer keys with a separate page per form", async () => {
+  const created = await admin(
+    "/api/v2/exams",
+    {
+      titulo: "Simulacro de evaluación",
+      fecha: "2026-11-08",
+      allCycles: true,
+      definition: {
+        totalQuestions: 4,
+        forms: { A: [1, 2, 3, 4], B: [4, 3, 1, 2] },
+        keys: {
+          1: "A",
+          2: { answers: ["B", "D"] },
+          3: { voidPolicy: "credit" },
+          4: { optionScores: { D: 20, E: 10 } },
+        },
+      },
+    },
+    "POST",
+  );
+  assert.equal(created.status, 201, JSON.stringify(created.data));
+  const examURL = `/api/v2/exams/${created.data.id}`;
+  const url = `${examURL}/answer-key.pdf`;
+  assert.equal((await guest(url)).status, 401);
+  assert.equal((await admin(url)).status, 409);
+  assert.equal((await admin(`${examURL}/ready`, {}, "POST")).status, 200);
+  const pdf = await admin(url);
+  assert.equal(pdf.status, 200);
+  assert.match(pdf.headers.get("content-type"), /^application\/pdf/);
+  assert.match(
+    pdf.headers.get("content-disposition"),
+    /^attachment; filename="?claves-simulacro-de-evaluacion-2026-11-08\.pdf"?$/,
+  );
+  assert.equal(pdf.headers.get("cache-control"), "no-store");
+  const contents = pdf.buffer.toString("latin1");
+  assert.match(contents, /^%PDF-/);
+  assert.match(contents, /\/Subtype \/Image\b/);
+  assert.equal(contents.match(/\/Type \/Page\b/g).length, 2);
+});

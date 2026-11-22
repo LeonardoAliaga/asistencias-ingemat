@@ -314,15 +314,25 @@ a=cv2.warpPerspective(a,m,(w,h),borderValue=(255,255,255)); a=cv2.rotate(a,cv2.R
   assert.equal(read.result.rows[0].area, "E");
   assert.equal(read.result.rows[0].identifiedStudent.cycle, "REPASO");
   assert.equal(read.result.rows[0].preview.correctas, 50);
+  // A batch saved before the reader included the layout version can still be reviewed.
+  const stored = imports.batch(batch.id);
+  delete stored.result.pages[0].layoutVersion;
+  db.prepare("UPDATE import_batches SET result=? WHERE id=?").run(
+    JSON.stringify(stored.result),
+    batch.id,
+  );
   const page = read.result.pages[0];
+  assert.deepEqual(
+    page.examAreas.map(({ code }) => code),
+    ["A", "E"],
+  );
   imports.reviewPage(
     batch.id,
     0,
     {
       reviewVersion: read.result.reviewVersion,
       identification: { code: "00000001", area: "A" },
-      responses: page.responses,
-      reason: "Área cotejada con cartilla física",
+      responses: { ...page.responses, 1: "B" },
     },
     req,
   );
@@ -330,9 +340,16 @@ a=cv2.warpPerspective(a,m,(w,h),borderValue=(255,255,255)); a=cv2.rotate(a,cv2.R
   assert.equal(read.result.rows[0].area, "A");
   assert.equal(read.result.pages[0].identification.area, "E");
   assert.equal(read.result.pages[0].identificationOverride.area, "A");
+  assert.deepEqual(read.result.pages[0].originalResponses[1].options, ["A"]);
+  assert.equal(read.result.rows[0].preview.correctas, 49);
+  exams.saveGrade(
+    exam.id,
+    { codigoEstudiante: "00000001", area: "E", respuestas: {} },
+    req,
+  );
   imports.commitBatch(
     batch.id,
-    { reviewVersion: read.result.reviewVersion },
+    { reviewVersion: read.result.reviewVersion, allowReplace: true },
     req,
   );
   const grade = db
@@ -341,4 +358,15 @@ a=cv2.warpPerspective(a,m,(w,h),borderValue=(255,255,255)); a=cv2.rotate(a,cv2.R
     )
     .get(exam.id);
   assert.deepEqual(grade, { ciclo: "REPASO", area: "A" });
+  assert.match(
+    db
+      .prepare("SELECT reason FROM grade_history WHERE evaluation_id=?")
+      .get(exam.id).reason,
+    /Importación del lote/,
+  );
+  const {
+    makeAnswerKeyPDF,
+  } = require("../src/services/exam-answer-key-pdf.service");
+  const pdfAfterImport = await makeAnswerKeyPDF(exams.getExam(exam.id));
+  assert.equal(pdfAfterImport.subarray(0, 5).toString(), "%PDF-");
 });

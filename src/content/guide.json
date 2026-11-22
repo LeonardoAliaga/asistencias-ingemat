@@ -646,12 +646,12 @@
           "text": "Elige A-E, blanco o confirma una marca doble inválida. No conviertas una marca tenue en blanco sin inspeccionarla."
         },
         {
-          "title": "Escribe un motivo",
-          "text": "La revisión conserva las respuestas detectadas inicialmente y registra al operador."
+          "title": "Confirma la revisión",
+          "text": "El formulario conserva el área leída. Al confirmar se guardan las correcciones junto con la lectura inicial y el operador."
         },
         {
           "title": "Excluye páginas ilegibles",
-          "text": "Si el QR no se puede reconocer, excluye esa página con motivo y vuelve a escanear la cartilla. No asignes un estudiante por suposición."
+          "text": "Si el QR no se puede reconocer, excluye esa página y vuelve a escanear la cartilla."
         },
         {
           "title": "Comprueba páginas y duplicados",
@@ -663,7 +663,7 @@
         }
       ],
       "tips": [
-        "En una cartilla con código marcado, revisa también la identificación: las ocho casillas muestran lo leído por columna. Un ? indica Sin marca, Revisar o Varias marcas. El lector busca relleno interior y separa los números y letras impresos, tanto en el código como en el área. La lectura original del área indica la opción reconocida, Sin marca, Revisar marca tenue o incompleta o Varias marcas. El código debe existir en el padrón y el área debe ser válida. El lote y la revisión muestran los apellidos, nombres y código del estudiante encontrado en el padrón del examen, incluso si falta resolver el área o el reverso. Mostrar un nombre no habilita la importación si hay incidencias. Si editas el código, el nuevo estudiante se verifica al confirmar la revisión. Si corriges a mano el código o el área, compara con la imagen, indica el motivo y confirma la revisión. El lector original y sus densidades se conservan.",
+        "Si una columna del código muestra ?, coteja la cartilla. El formulario muestra también la lectura original del área y las opciones del examen asociado al QR. Si editas el código, se verifica al confirmar. En un lote con varios exámenes, cada cartilla usa las áreas de su propio examen.",
         "Las respuestas usan una lectura más estricta del relleno interior: los puntos pequeños no se consideran una alternativa ni crean una falsa marca doble. Una marca parcial significativa o muy tenue pasa a revisión. Rellena los círculos de forma uniforme; el código y el área conservan su lectura independiente. Procesa un lote nuevo para aplicar este análisis a un escaneo anterior."
       ]
     },
@@ -770,6 +770,7 @@
       ],
       "tips": [
         "Al confirmar, se recalculan todas las respuestas registradas, también las ingresadas manualmente, y se actualiza el ranking. Se conserva el historial; un examen publicado vuelve a Listo para revisar y publicar nuevamente.",
+        "Usa Descargar claves en PDF para compartir las claves vigentes del examen, enumeradas en el orden de cada versión del cuadernillo.",
         "Las versiones A/B son órdenes de preguntas, no revisiones de notas. En B:51-100,1-50, la pregunta 1 impresa usa la clave original 51. El orden queda fijado al validar; para cambiarlo crea otro simulacro. Las cartillas ya impresas siguen usando su versión original."
       ]
     },

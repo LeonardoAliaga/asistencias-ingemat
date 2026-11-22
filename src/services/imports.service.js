@@ -639,33 +639,43 @@ function reviewPage(id, index, body, req) {
     );
   const page = b.result.pages?.[index];
   if (!page) throw new AppError("Página no encontrada.", 404);
-  if (String(body.reason || "").trim().length < 5)
-    throw new AppError("Describe el motivo de la revisión.");
+  const suppliedReason =
+    typeof body.reason === "string" ? body.reason.trim() : "";
+  const reason =
+    suppliedReason ||
+    (body.exclude ? "Página excluida en revisión" : "Revisión de cartilla");
   if (body.exclude) {
     page.excluded = true;
-    page.exclusionReason = body.reason;
+    page.exclusionReason = reason;
   } else {
     if (page.error)
       throw new AppError(
         "Esta página no se puede identificar. Exclúyela y vuelve a escanearla.",
       );
     if (body.identification !== undefined) {
-      if (!page.identification || ![3, 4, 5].includes(page.layoutVersion))
+      const sheet = resolveQR(page.qr);
+      if (
+        !page.identification ||
+        ![3, 4, 5].includes(sheet.layout_version) ||
+        (page.layoutVersion !== undefined &&
+          page.layoutVersion !== sheet.layout_version)
+      )
         throw new AppError("Esta cara no tiene identificación editable.");
+      if (b.evaluation_id && b.evaluation_id !== sheet.evaluation_id)
+        throw new AppError("Cartilla de otro examen.");
+      const { definition } = getExam(sheet.evaluation_id);
       const identity = body.identification;
       if (
         !identity ||
         !/^\d{8}$/.test(identity.code || "") ||
-        !getExam(
-          b.evaluation_id || resolveQR(page.qr).evaluation_id,
-        ).definition.areas.some((a) => a.code === identity.area)
+        !definition?.areas?.some((a) => a.code === identity.area)
       )
         throw new AppError("Indica un código de 8 dígitos y un área válida.");
       page.identificationOverride = {
         code: identity.code,
         area: identity.area,
         actor: req.session.username,
-        reason: body.reason,
+        reason,
       };
     }
     const normalized = {};
@@ -680,7 +690,7 @@ function reviewPage(id, index, body, req) {
     page.responses = normalized;
     page.reviewed = true;
     page.reviewedBy = req.session.username;
-    page.reviewReason = body.reason;
+    page.reviewReason = reason;
     delete page.warning;
   }
   b.result.reviewVersion++;
@@ -689,12 +699,14 @@ function reviewPage(id, index, body, req) {
     b.result,
     id,
   );
-  writeResult(id, b.result, state);
-  audit(req, "revisar_cartilla", "lote", id, {
-    index,
-    reason: body.reason,
-    excluded: !!body.exclude,
-  });
+  db.transaction(() => {
+    writeResult(id, b.result, state);
+    audit(req, "revisar_cartilla", "lote", id, {
+      index,
+      reason,
+      excluded: !!body.exclude,
+    });
+  })();
   return batch(id);
 }
 function refreshBatch(id, req) {
@@ -744,6 +756,10 @@ function commitBatch(id, body, req) {
   }
   if (body.reviewVersion !== b.result.reviewVersion)
     throw new AppError("El lote cambió. Actualiza la previsualización.", 409);
+  const suppliedReason =
+    typeof body.reason === "string" ? body.reason.trim() : "";
+  const reason =
+    suppliedReason.length >= 5 ? suppliedReason : `Importación del lote ${id}`;
   const results = [];
   db.transaction(() => {
     if (
@@ -758,9 +774,7 @@ function commitBatch(id, body, req) {
       results.push(
         saveGrade(row.examId || exam.id, row, req, {
           allowReplace: body.allowReplace === true,
-          reason:
-            body.reason ||
-            (body.allowReplace ? "" : `Importación del lote ${id}`),
+          reason,
           source: b.source,
         }),
       );

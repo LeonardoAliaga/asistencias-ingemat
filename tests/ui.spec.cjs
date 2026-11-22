@@ -1081,6 +1081,7 @@ for (const {
   uncertainCode = false,
   unknownStudent = false,
   areaStatus,
+  reviewedArea,
   label,
 } of [
   { label: "complete" },
@@ -1090,6 +1091,7 @@ for (const {
     label: `area ${areaStatus}`,
     areaStatus,
   })),
+  { label: "saved area correction", areaStatus: "single", reviewedArea: "D" },
 ])
   test(`identity review preserves leading zeros and shows original readings (${label})`, async ({
     page,
@@ -1097,14 +1099,9 @@ for (const {
     const mobile = uncertainCode || areaStatus === "uncertain";
     if (mobile) await page.setViewportSize({ width: 390, height: 844 });
     const examId = await selectScannerExam(page);
-    if (areaStatus) {
-      const response = await page.request.get(`/api/v2/exams/${examId}`);
-      const exam = await response.json();
-      exam.definition.areas = [..."ABCDE"].map((code) => ({ code }));
-      await page.route(`**/api/v2/exams/${examId}`, (route) =>
-        route.fulfill({ json: exam }),
-      );
-    }
+    const examAreas = (areaStatus ? [..."ABCDE"] : ["GENERAL"]).map(
+      (code) => ({ code, name: code }),
+    );
     const originalArea = areaStatus
       ? areaStatus === "single"
         ? "C"
@@ -1125,7 +1122,7 @@ for (const {
     const batch = {
       id: "identity-ui",
       created_at: "2026-11-09 12:00:00",
-      evaluation_id: examId,
+      evaluation_id: areaStatus ? "" : examId,
       source: "omr",
       status: "review",
       files: [],
@@ -1146,6 +1143,8 @@ for (const {
         pages: [
           {
             identifiedStudent,
+            examId,
+            examAreas,
             page: 1,
             layoutVersion: 4,
             file: "foto.jpg",
@@ -1177,6 +1176,9 @@ for (const {
               })),
             },
             responses: { 1: { status: "blank", options: [] } },
+            ...(reviewedArea
+              ? { identificationOverride: { code: originalCode, area: reviewedArea } }
+              : {}),
             warning: "Revisar identificación",
           },
         ],
@@ -1232,7 +1234,9 @@ for (const {
         "Sin marca",
       );
     }
-    await expect(page.locator("#v2-review-area")).toHaveValue(originalArea);
+    await expect(page.locator("#v2-review-area")).toHaveValue(
+      reviewedArea || originalArea,
+    );
     if (areaStatus) {
       const statusLabels = {
         single: "Lectura original del área: C.",
@@ -1266,25 +1270,22 @@ for (const {
       "código en revisión",
     );
     const correctedArea =
-      areaStatus && areaStatus !== "single" ? "B" : originalArea;
-    if (correctedArea !== originalArea) {
+      areaStatus && areaStatus !== "single" ? "B" : reviewedArea || originalArea;
+    if (correctedArea !== (reviewedArea || originalArea)) {
       await page.selectOption("#v2-review-area", correctedArea);
       // Manual correction must not replace the original reader's warning.
       await expect(page.locator("[data-area-reading]")).toContainText(
         "Coteja la cartilla",
       );
     }
-    await page.fill(
-      "#v2-review-reason",
-      "Código cotejado con la cartilla física",
-    );
+    await expect(page.locator("#v2-review-form")).not.toContainText("Motivo");
     await page.click("#v2-review-form button[type=submit]");
     await expect(page.locator("#v2-dialog")).toBeHidden();
     expect(submitted.identification).toEqual({
       code: "00234567",
       area: correctedArea,
     });
-    expect(submitted.reason).toContain("cotejado");
+    expect(submitted).not.toHaveProperty("reason");
     expect(submitted.responses[1].status).toBe("blank");
   });
 
@@ -1859,15 +1860,11 @@ for (const width of [390, 1440])
     await page.selectOption("#v2-batch-select", "history-39");
     await page.click("#v2-open-batch");
     await page.check("#v2-batch-replace");
-    await page.fill(
-      "#v2-batch-reason",
-      "Motivo que no debe perderse al actualizar",
+    await expect(page.locator("#v2-batch-detail")).not.toContainText(
+      "Motivo de la corrección",
     );
     await page.click("#v2-refresh-batches");
     await expect(page.locator("#v2-batch-replace")).toBeChecked();
-    await expect(page.locator("#v2-batch-reason")).toHaveValue(
-      "Motivo que no debe perderse al actualizar",
-    );
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth),
     ).toBeLessThanOrEqual(width);
@@ -2596,6 +2593,7 @@ test("UNMSM 126 skips course setup and previews cartillas from a draft", async (
   await nextStep(page, 3);
   await page.click("#wizard-save");
   await expect(page.locator("#v2-exam-summary")).toContainText("126 preguntas");
+  await expect(page.locator("#v2-answer-key-pdf")).toBeHidden();
   await page.click('[data-local-tab="exam-sheets"]');
   await page.fill("#v2-sheet-count", "2");
   await page.locator("#v2-sheet-count").blur();
@@ -2628,4 +2626,21 @@ test("UNMSM 126 skips course setup and previews cartillas from a draft", async (
   await expect(page.locator("#v2-preset")).toHaveValue("unmsm-126");
   await nextStep(page, 2);
   await expect(page.locator("#v2-keys")).toHaveValue("");
+});
+
+test("the selected validated exam offers its answer keys as a PDF download", async ({
+  page,
+}) => {
+  const { readFile } = require("node:fs/promises");
+  await login(page);
+  await navigate(page, "exams");
+  const option = page
+    .locator("#v2-exam-select option")
+    .filter({ hasText: "SIMULACRO DE DEMOSTRACIÓN" });
+  await page.selectOption("#v2-exam-select", await option.getAttribute("value"));
+  const downloading = page.waitForEvent("download");
+  await page.getByRole("link", { name: "Descargar claves en PDF" }).click();
+  const pdf = await downloading;
+  expect(pdf.suggestedFilename()).toMatch(/^claves-simulacro-de-demostracion-/);
+  expect(await readFile(await pdf.path(), "latin1")).toMatch(/^%PDF-/);
 });
