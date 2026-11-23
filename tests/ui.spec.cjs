@@ -504,6 +504,7 @@ test("public navbar and hero fill the viewport from mobile to ultrawide", async 
     [390, 844],
     [760, 1024],
     [950, 900],
+    [951, 768],
     [1280, 720],
     [1440, 900],
     [1440, 1080],
@@ -515,6 +516,14 @@ test("public navbar and hero fill the viewport from mobile to ultrawide", async 
     expect(hero.y).toBe(header.y + header.height);
     expect(hero.height).toBe(height - header.height);
     expect((await page.locator("#ciclos").boundingBox()).y).toBe(height);
+    const logo = await page.locator("#navbar .site-brand").boundingBox();
+    const actions = await page.locator(".site-header-actions").boundingBox();
+    const gallery = await page.locator(".site-gallery").boundingBox();
+    const motion = await page.locator("#hero-motion-toggle").boundingBox();
+    const right = actions.x + actions.width;
+    expect(gallery.x).toBeCloseTo(logo.x, 1);
+    expect(motion.x + motion.width).toBeCloseTo(right, 1);
+    expect(right - logo.x).toBeLessThanOrEqual(1200);
     for (const selector of [
       ".site-header-inner",
       ".site-hero-background",
