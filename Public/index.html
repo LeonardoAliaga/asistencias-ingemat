@@ -16,6 +16,7 @@
     <script src="/js/session.js" defer></script>
     <script src="/js/navbar.js" defer></script>
     <script src="/js/carousel.js" defer></script>
+    <script src="/js/hero-media.js" defer></script>
     <script src="/js/ciclos-public.js" defer></script>
     <script src="/js/reception.js" type="module"></script>
   </head>
@@ -26,8 +27,8 @@
         <a class="site-brand" href="#inicio" aria-label="Inicio de INGEMAT">
           <img
             src="/img/logo-examen.png"
-            width="129"
-            height="56"
+            width="153"
+            height="66"
             alt="Academia INGEMAT"
           />
         </a>
@@ -105,6 +106,38 @@
     </header>
     <main id="main-content" tabindex="-1">
       <div class="site-hero" id="inicio">
+        <div class="site-hero-background" aria-hidden="true">
+          <img
+            id="hero-background-photo"
+            class="site-hero-media"
+            src="/img/portada/grupo-ingemat.webp"
+            width="1600"
+            height="720"
+            alt=""
+            fetchpriority="high"
+          />
+          <video
+            class="site-hero-media"
+            data-src="/img/portada/jornada-de-practica.mp4"
+            muted
+            playsinline
+            preload="none"
+          ></video>
+          <video
+            class="site-hero-media"
+            data-src="/img/portada/encuentro-academico.mp4"
+            muted
+            playsinline
+            preload="none"
+          ></video>
+          <video
+            class="site-hero-media"
+            data-src="/img/portada/aula-ingemat.mp4"
+            muted
+            playsinline
+            preload="none"
+          ></video>
+        </div>
         <div class="site-shell site-hero-inner">
           <div class="site-side">
             <div class="site-hero-copy" id="home-intro">
@@ -570,6 +603,14 @@
                 <button
                   type="button"
                   class="site-icon-button"
+                  id="gallery-toggle"
+                  aria-label="Pausar carrusel"
+                >
+                  <i class="bi bi-pause-fill" aria-hidden="true"></i>
+                </button>
+                <button
+                  type="button"
+                  class="site-icon-button"
                   id="gallery-prev"
                   aria-label="Imagen anterior"
                 >
@@ -588,6 +629,17 @@
               </div>
             </div>
           </div>
+        </div>
+        <div class="site-shell site-hero-controls">
+          <button
+            class="site-icon-button"
+            id="hero-background-toggle"
+            type="button"
+            hidden
+          >
+            <i class="bi bi-pause-fill" aria-hidden="true"></i>
+            <span>Pausar fondo</span>
+          </button>
         </div>
       </div>
       <section

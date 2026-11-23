@@ -538,6 +538,13 @@ test("homepage presents published cycles, manual gallery and accessible content 
     "src",
     "/img/logo-examen.png",
   );
+  await expect(
+    page.getByRole("button", { name: "Reproducir fondo" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Reproducir carrusel" }),
+  ).toBeVisible();
+  await expect(page.locator(".site-hero-background video[src]")).toHaveCount(0);
   await expect(page.locator("#gallery-position")).toHaveText("1 / 2");
   await page.getByRole("button", { name: "Imagen siguiente" }).press("Enter");
   await expect(page.locator("#gallery-status")).toContainText("Imagen 2 de 2");
@@ -585,6 +592,82 @@ test("homepage presents published cycles, manual gallery and accessible content 
   const homepagePalette = await getPalette();
   await login(page, "recepcion");
   expect(await getPalette()).toEqual(homepagePalette);
+});
+
+test("homepage rotates the gallery and plays all background clips to the end", async ({
+  page,
+}) => {
+  await page.route("https://www.google.com/**", (route) => route.abort());
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.addInitScript(() => {
+    window.heroPlayback = [];
+    for (const name of ["load", "playing", "ended"]) {
+      document.addEventListener(
+        name,
+        (event) => {
+          if (!event.target.matches?.(".site-hero-media")) return;
+          window.heroPlayback.push({
+            name,
+            source:
+              event.target.dataset.src || event.target.getAttribute("src"),
+            time: performance.now(),
+            duration: event.target.duration ?? 0,
+            position: event.target.currentTime ?? 0,
+          });
+        },
+        true,
+      );
+    }
+  });
+  await page.goto("/");
+  const videos = page.locator(".site-hero-background video");
+  const firstVideo = videos.first();
+  const galleryToggle = page.getByRole("button", { name: "Pausar carrusel" });
+  const backgroundToggle = page.getByRole("button", { name: "Pausar fondo" });
+
+  await expect(videos).toHaveCount(3);
+  await expect(
+    page.locator(".site-hero-background video.is-visible"),
+  ).toHaveCount(0);
+  await expect(page.locator("#gallery-position")).toHaveText(/^2 \/ /, {
+    timeout: 10000,
+  });
+  await galleryToggle.click();
+  await expect(
+    page.getByRole("button", { name: "Reproducir carrusel" }),
+  ).toBeVisible();
+
+  await expect(firstVideo).toHaveClass(/is-visible/, { timeout: 10000 });
+  await backgroundToggle.click();
+  await expect(firstVideo).toHaveJSProperty("paused", true);
+  await page.getByRole("button", { name: "Reproducir fondo" }).click();
+
+  await expect
+    .poll(
+      () =>
+        page.evaluate(
+          () =>
+            window.heroPlayback.filter(({ name }) => name === "ended").length,
+        ),
+      { timeout: 18000 },
+    )
+    .toBe(3);
+  await expect(
+    page.locator(".site-hero-background video.is-visible"),
+  ).toHaveCount(0);
+  await expect(page.locator("#gallery-position")).toHaveText(/^2 \/ /);
+  const playback = await page.evaluate(() => window.heroPlayback);
+  const photo = playback.find(({ name }) => name === "load");
+  const firstPlay = playback.find(({ name }) => name === "playing");
+  expect(firstPlay.time - photo.time).toBeGreaterThanOrEqual(4900);
+  const endings = playback.filter(({ name }) => name === "ended");
+  expect(endings.map(({ source }) => source)).toEqual([
+    "/img/portada/jornada-de-practica.mp4",
+    "/img/portada/encuentro-academico.mp4",
+    "/img/portada/aula-ingemat.mp4",
+  ]);
+  for (const ending of endings)
+    expect(ending.position).toBeCloseTo(ending.duration, 1);
 });
 
 test.describe("Recepción en móvil táctil", () => {
