@@ -1,51 +1,82 @@
-// Proyecto/Public/js/carousel.js
+(() => {
+  const image = document.getElementById("gallery-image");
+  const controls = document.getElementById("gallery-controls");
+  const position = document.getElementById("gallery-position");
+  const status = document.getElementById("gallery-status");
+  const pictureFolder = "/img/ingresantes/";
+  const fallback = "/img/ingresantes.png";
+  const motion = window.matchMedia("(prefers-reduced-motion: no-preference)");
+  const descriptions = new Map([
+    [
+      "Ingresantes2.png",
+      "Ingresantes de INGEMAT a la Universidad Nacional de Ingeniería",
+    ],
+    [
+      "Ingresantes3.png",
+      "Ingresante de INGEMAT a Ingeniería Agroindustrial en San Marcos",
+    ],
+    [
+      "Ingresantes4.png",
+      "Ingresantes de INGEMAT a Economía e Ingeniería de Telecomunicaciones en San Marcos",
+    ],
+    [
+      "Ingresantes5.png",
+      "Ingresante de INGEMAT a Administración en San Marcos",
+    ],
+    ["Ingresantes6.png", "Ingresante de INGEMAT a Pesquería"],
+    [
+      "Ingresantes7.png",
+      "Ingresante de INGEMAT a Psicología en la Universidad de San Martín de Porres",
+    ],
+  ]);
+  let files = [];
+  let current = 0;
 
-// --- MODIFICADO: Envolver todo en una función ---
-function initCarousel() {
-  const slidesContainer = document.querySelector(".carousel-slides");
-  const slides = document.querySelectorAll(".carousel-slide");
-  const prevBtn = document.querySelector(".prev-btn");
-  const nextBtn = document.querySelector(".next-btn");
-
-  if (!slidesContainer || slides.length === 0 || !prevBtn || !nextBtn) {
-    console.warn("Elementos del carrusel no encontrados. No se iniciará.");
-    return;
+  function showPhoto(index) {
+    current = (index + files.length) % files.length;
+    const file = files[current];
+    const src = pictureFolder + encodeURIComponent(file);
+    image.alt = descriptions.get(file) || "Ingresantes de la academia INGEMAT";
+    if (image.getAttribute("src") !== src) image.src = src;
+    position.textContent = `${current + 1} / ${files.length}`;
+    status.textContent = `Imagen ${current + 1} de ${files.length}. ${image.alt}`;
   }
 
-  let currentIndex = 0;
+  image.addEventListener("error", () => {
+    if (image.getAttribute("src") !== fallback) {
+      image.alt = "Estudiantes de la academia INGEMAT";
+      image.src = fallback;
+    }
+  });
+  image.addEventListener("load", () => {
+    if (motion.matches && files.length > 1)
+      image.animate([{ opacity: 0.78 }, { opacity: 1 }], { duration: 180 });
+  });
 
-  function updateCarousel() {
-    slides.forEach((slide, index) => {
-      slide.classList.remove("active");
-      if (index === currentIndex) {
-        slide.classList.add("active");
+  document
+    .getElementById("gallery-prev")
+    .addEventListener("click", () => showPhoto(current - 1));
+  document
+    .getElementById("gallery-next")
+    .addEventListener("click", () => showPhoto(current + 1));
+
+  async function loadPhotos() {
+    try {
+      const response = await fetch("/api/carousel");
+      const data = await response.json();
+      if (!response.ok || !data.exito || !Array.isArray(data.images)) return;
+      files = data.images.filter(
+        (file) =>
+          typeof file === "string" && /^I[^/\\]+\.(?:png|jpe?g)$/i.test(file),
+      );
+      if (files.length) {
+        showPhoto(0);
+        controls.hidden = files.length < 2;
       }
-    });
+    } catch {
+      // The HTML already contains an image for offline use.
+    }
   }
 
-  function nextSlide() {
-    currentIndex = (currentIndex + 1) % slides.length;
-    updateCarousel();
-  }
-
-  function prevSlide() {
-    currentIndex = (currentIndex - 1 + slides.length) % slides.length;
-    updateCarousel();
-  }
-
-  // Event Listeners for buttons
-  nextBtn.addEventListener("click", nextSlide);
-  prevBtn.addEventListener("click", prevSlide);
-
-  // Auto-play, cambia de diapositiva
-  setInterval(nextSlide, 5000);
-
-  // Asegurarse que el primer slide esté activo
-  updateCarousel();
-}
-
-// --- MODIFICADO: Esperar al evento personalizado ---
-document.addEventListener("carouselReady", () => {
-  console.log("Carousel Ready: Inicializando carrusel...");
-  initCarousel();
-});
+  void loadPhotos();
+})();

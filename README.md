@@ -48,7 +48,7 @@ Para la primera cuenta define `ADMIN_INITIAL_PASSWORD` con al menos 12 caractere
 npm start
 ```
 
-El panel está en `http://localhost:3001/admin` y la página pública en `/`. Para registrar ingresos o préstamos, abre `http://localhost:3001/recepcion` e inicia sesión con una cuenta de Administración o Recepción. También puedes entrar desde **Abrir recepción** en el panel.
+Abre `http://localhost:3001/` y usa **Asistencia** o **Préstamos** en Recepción. Inicia sesión con una cuenta de Administración o Recepción. En el móvil también puedes pulsar **Escanear carné**. Desde el panel en `/admin`, **Abrir recepción** te lleva a Asistencia en la página principal.
 
 No es necesario ejecutar Node, el navegador o `start.bat` como administrador del sistema operativo. El script inicia únicamente el proceso `ingemat` y no elimina otros procesos de PM2. Para un servidor con PM2:
 

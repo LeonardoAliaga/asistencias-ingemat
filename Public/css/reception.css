@@ -1,122 +1,10 @@
-:root {
-  color-scheme: light;
-  --ink: #241f24;
-  --muted: #5f575e;
-  --brand: #a12415;
-  --brand-hover: #861a0e;
-  --brand-wash: #faeae6;
-  --canvas: #f7f5f2;
-  --line: #e8e1df;
-  --focus: #1a62a4;
-  --radius: 20px;
-  --shadow: 0 6px 24px #39222709;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-[hidden] {
-  display: none !important;
-}
-
-body {
-  margin: 0;
-  min-block-size: 100vh;
-  font:
-    1rem/1.55 system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
-  color: var(--ink);
-  background: var(--canvas);
-}
-
-h1,
-h2,
-p,
-dl,
-dd {
-  margin: 0;
-}
-
-button,
-input {
-  font: inherit;
-}
-
-a,
-button {
-  touch-action: manipulation;
-}
-
-button {
-  cursor: pointer;
-}
-
-a {
-  color: inherit;
-}
-
-:focus-visible {
-  outline: 3px solid var(--focus);
-  outline-offset: 3px;
-}
-
-.station-skip {
-  position: absolute;
-  inset-block-start: 8px;
-  inset-inline-start: 8px;
-  z-index: 1;
-  border-radius: 8px;
-  background: white;
-  padding: 12px 16px;
-  transform: translateY(-160%);
-}
-
-.station-skip:focus {
-  transform: none;
-}
-
-.station-header {
-  background: white;
-  border-bottom: 1px solid var(--line);
-  box-shadow: 0 2px 8px #291b2105;
-}
-
-.station-header-inner,
-.station-main {
-  max-inline-size: 1184px;
-  margin-inline: auto;
-  padding-inline: clamp(16px, 4vw, 40px);
-}
-
-.station-header-inner {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  gap: 16px;
-  min-block-size: 80px;
-}
-
-.station-brand {
+.station-topline {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
   align-items: center;
-  gap: 16px;
-  font-size: 0.94rem;
-  font-weight: 720;
-}
-
-.station-brand img {
-  display: block;
-  inline-size: clamp(100px, 13vw, 129px);
-  block-size: auto;
-}
-
-.station-brand span {
-  border-inline-start: 1px solid var(--line);
-  padding-inline-start: 16px;
+  gap: 6px 18px;
+  margin-block-end: 24px;
 }
 
 .station-nav {
@@ -128,15 +16,16 @@ a {
   background: #faf8f7;
 }
 
-.station-nav a,
-.station-dashboard-link {
+.station-nav button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   min-block-size: 44px;
   padding: 7px 13px;
+  border: 1px solid transparent;
   border-radius: 9px;
+  background: transparent;
   color: var(--muted);
   font-size: 0.9rem;
   font-weight: 650;
@@ -144,22 +33,14 @@ a {
   text-align: center;
 }
 
-.station-nav a[aria-current] {
+.station-nav button[aria-pressed="true"] {
   color: var(--brand);
   background: white;
   box-shadow: 0 1px 4px #311c2020;
 }
 
-.station-nav a:hover,
-.station-dashboard-link:hover {
+.station-nav button:hover {
   color: var(--brand);
-}
-
-.station-dashboard-link {
-  grid-column: 3;
-  justify-self: end;
-  border: 1px solid var(--line);
-  color: var(--ink);
 }
 
 .station-main {
@@ -174,7 +55,7 @@ a {
   margin-block-end: 28px;
 }
 
-h1 {
+.station-main h1 {
   max-inline-size: 22ch;
   font-size: clamp(2rem, 4.8vw, 3.35rem);
   font-weight: 760;
@@ -248,7 +129,7 @@ h1 {
   font-size: 1.4rem;
 }
 
-.station-access h1 {
+.station-main .station-access h1 {
   font-size: clamp(1.75rem, 4vw, 2.35rem);
 }
 
@@ -258,7 +139,8 @@ h1 {
 
 .station-methods {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   gap: 5px;
   padding: 5px;
   border: 1px solid var(--line);
@@ -668,26 +550,6 @@ h1 {
 }
 
 @media (max-width: 760px) {
-  .station-header-inner {
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 6px 10px;
-    min-block-size: 64px;
-    padding-block: 8px;
-  }
-
-  .station-dashboard-link {
-    grid-column: 2;
-    grid-row: 1;
-  }
-
-  .station-nav {
-    grid-column: 1 / -1;
-  }
-
-  .station-nav a {
-    flex: 1;
-  }
-
   .station-main {
     padding-block-start: 24px;
   }
@@ -720,21 +582,18 @@ h1 {
 }
 
 @media (max-width: 440px) {
-  .station-brand {
-    gap: 9px;
-    font-size: 0.85rem;
+  .station-topline {
+    align-items: flex-start;
+    flex-direction: column;
+    margin-block-end: 18px;
   }
 
-  .station-brand span {
-    padding-inline-start: 9px;
+  .station-nav {
+    inline-size: 100%;
   }
 
-  .station-dashboard-link {
-    padding-inline: 9px;
-  }
-
-  .station-methods {
-    grid-template-columns: 1fr 1.35fr 1fr;
+  .station-nav button {
+    flex: 1;
   }
 
   .station-methods button {
@@ -758,7 +617,7 @@ h1 {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .station-nav a,
+  .station-nav button,
   .station-methods button,
   .station-primary,
   .station-secondary {

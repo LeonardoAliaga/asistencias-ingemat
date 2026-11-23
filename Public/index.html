@@ -1,233 +1,871 @@
-<!DOCTYPE html>
-<html lang="es">
+<!doctype html>
+<html lang="es-PE">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="shortcut icon" href="img/Logo 1x1 b&w.jpg" type="image/x-icon" />
-
-
-
-    <link rel="stylesheet" href="css/index.css" />
-    <link rel="stylesheet" href="css/index-responsive.css" />
-    <link
-      rel="stylesheet"
-      href="/vendor/bootstrap-icons/bootstrap-icons.css"
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Academia preuniversitaria INGEMAT en San Juan de Lurigancho. Consulta los ciclos y abre el registro de asistencias y préstamos desde Inicio."
     />
-    <title>Ingemat - Grupo de Estudio Preuniversitario</title>
-    <script src="/vendor/purify.min.js"></script>
-    <script src="/js/session.js"></script>
+    <title>INGEMAT · Academia preuniversitaria</title>
+    <link rel="icon" href="/img/Logo 1x1 b&amp;w.jpg" />
+    <link rel="stylesheet" href="/vendor/bootstrap-icons/bootstrap-icons.css" />
+    <link rel="stylesheet" href="/css/index.css" />
+    <link rel="stylesheet" href="/css/reception.css" />
+    <script src="/js/session.js" defer></script>
+    <script src="/js/navbar.js" defer></script>
+    <script src="/js/carousel.js" defer></script>
+    <script src="/js/ciclos-public.js" defer></script>
+    <script src="/js/reception.js" type="module"></script>
   </head>
   <body>
-    <nav class="navbar" id="navbar" aria-label="Navegación principal">
-      <a href="#"><img id="navbar-logo" src="img/logo-examen.png" alt="Academia INGEMAT" /></a>
-      <ul id="navbar-menu">
-        <li>
-          <a href="/" id="btn-inicio">Inicio</a>
-        </li>
-        <li>
-          <a href="/recepcion" id="btn-asistencias">Asistencias</a>
-        </li>
-        <li>
-          <a href="/recepcion#prestamos" id="btn-prestamo-libros"><i class="bi bi-book" aria-hidden="true"></i> Libros</a>
-        </li>
-        <li class="mobile-only">
-          <a href="/recepcion#camara" id="btn-scan">Escanear</a>
-        </li>
-        <li><a href="#ciclos">Ciclos</a></li>
-        <li><a href="#sobre-nosotros">Sobre Nosotros</a></li>
-        <li><a href="/admin">Admin</a></li>
-      </ul>
-      <button class="toggle" id="navbar-toggle" type="button" aria-controls="navbar-menu" aria-expanded="false" aria-label="Abrir menú"></button>
-    </nav>
-    <header>
-      <div class="carousel-ingresantes">
-        <button class="carousel-btn prev-btn">
-          <i class="bi bi-chevron-left"></i>
-        </button>
-        <div class="carousel-slides">
-          <div class="carousel-slide active">
-            <img src="img/ingresantes2.png" alt="Ingresantes UNI" />
-          </div>
-        </div>
-        <button class="carousel-btn next-btn">
-          <i class="bi bi-chevron-right"></i>
-        </button>
-      </div>
-      <div class="box-header">
-        <img src="img/universidades.png" alt="Universidades" />
-        <div class="text-header">
-          <span>Grupo Ingemat</span>
-          <h1>CONTIGO HASTA<br />TU INGRESO</h1>
-          <a class="btn-red" href="#">Nuestros ciclos</a>
+    <a class="site-skip" href="#main-content">Saltar al contenido</a>
+    <header class="site-header" id="navbar">
+      <div class="site-shell site-header-inner">
+        <a class="site-brand" href="#inicio" aria-label="Inicio de INGEMAT">
+          <img
+            src="/img/logo-examen.png"
+            width="129"
+            height="56"
+            alt="Academia INGEMAT"
+          />
+        </a>
+        <nav
+          class="site-navigation"
+          id="navbar-menu"
+          aria-label="Navegación principal"
+        >
+          <ul>
+            <li>
+              <button
+                id="btn-inicio"
+                type="button"
+                data-view="inicio"
+                aria-controls="homepage"
+              >
+                Inicio
+              </button>
+            </li>
+            <li><a href="#ciclos">Ciclos</a></li>
+            <li><a href="#sobre-nosotros">Academia</a></li>
+            <li><a href="#ubicacion">Ubicación</a></li>
+            <li data-mobile-camera hidden>
+              <button
+                type="button"
+                data-view="camara"
+                aria-controls="reception-screen"
+              >
+                <i class="bi bi-camera" aria-hidden="true"></i> Escanear carné
+              </button>
+            </li>
+            <li>
+              <a href="/admin" class="site-panel-link"
+                ><i class="bi bi-grid" aria-hidden="true"></i> Panel</a
+              >
+            </li>
+          </ul>
+        </nav>
+        <div class="site-header-actions">
+          <button
+            id="nav-reception"
+            class="site-reception-button"
+            type="button"
+            data-view="asistencia"
+            aria-controls="reception-screen"
+            aria-pressed="false"
+          >
+            <i class="bi bi-person-badge" aria-hidden="true"></i> Recepción
+          </button>
+          <button
+            id="navbar-toggle"
+            class="site-icon-button site-menu-toggle"
+            type="button"
+            aria-controls="navbar-menu"
+            aria-expanded="false"
+            aria-label="Abrir menú"
+          >
+            <i class="bi bi-list" aria-hidden="true"></i>
+          </button>
         </div>
       </div>
     </header>
 
-    <section id="spam">
-      <div class="text">
-        <h3>¿QUE ESPERAS?</h3>
-        <span>Escribenos para más información sobre nuestros ciclos.</span>
-      </div>
-      <a
-        href="https://api.whatsapp.com/send?phone=51960606020&text=%F0%9F%99%80%20Quisiera%20m%C3%A1s%20informaci%C3%B3n%20sobre%20sus%20ciclos.%20%F0%9F%93%9A"
-        class="btn"
-        ><i class="bi bi-whatsapp"></i> ¡INSCRIBETE YA!</a
-      >
-      <div class="estudiantes">
-        <div class="logo-carousel-track">
-          <img src="img/UNMSM.png" alt="Logo UNMSM" />
-          <img src="img/UNI.png" alt="Logo UNI" />
-          <img src="img/UNFV.png" alt="Logo UNFV" />
-          <img src="img/UNE.png" alt="Logo UNE" />
-          <img src="img/UNAC.png" alt="Logo UNAC" />
-          <img src="img/MOLINA.png" alt="Logo MOLINA" />
-          <img src="img/BECA18.png" alt="Logo BECA 18" />
+    <main id="main-content" tabindex="-1">
+      <div id="homepage">
+        <section class="site-hero" id="inicio" aria-labelledby="home-title">
+          <div class="site-shell site-hero-inner">
+            <div class="site-hero-copy">
+              <p class="site-hero-label">Academia preuniversitaria</p>
+              <h1 id="home-title" tabindex="-1">
+                Contigo hasta <span>tu ingreso.</span>
+              </h1>
+              <p class="site-hero-description">
+                Prepárate para el examen de admisión con clases, material de
+                estudio y simulacros.
+              </p>
+              <div class="site-actions">
+                <a class="site-button site-button-primary" href="#ciclos"
+                  >Ver ciclos
+                  <i class="bi bi-arrow-right" aria-hidden="true"></i
+                ></a>
+                <a
+                  class="site-button site-button-secondary"
+                  href="https://api.whatsapp.com/send?phone=51960606020&amp;text=Hola%2C%20quisiera%20informaci%C3%B3n%20sobre%20los%20ciclos%20de%20INGEMAT."
+                >
+                  <i class="bi bi-whatsapp" aria-hidden="true"></i> Consultar
+                  por WhatsApp
+                </a>
+              </div>
+            </div>
+            <div
+              class="site-gallery"
+              role="group"
+              aria-roledescription="carrusel"
+              aria-label="Ingresantes de la academia"
+            >
+              <div class="site-gallery-image">
+                <img
+                  id="gallery-image"
+                  src="/img/ingresantes/Ingresantes2.png"
+                  width="1080"
+                  height="1080"
+                  alt="Ingresantes de INGEMAT a la Universidad Nacional de Ingeniería"
+                  fetchpriority="high"
+                />
+              </div>
+              <div class="site-gallery-footer">
+                <p class="site-gallery-label">
+                  <i class="bi bi-mortarboard" aria-hidden="true"></i> Nuestros
+                  ingresantes
+                </p>
+                <div class="site-gallery-controls" id="gallery-controls" hidden>
+                  <button
+                    type="button"
+                    class="site-icon-button"
+                    id="gallery-prev"
+                    aria-label="Imagen anterior"
+                  >
+                    <i class="bi bi-chevron-left" aria-hidden="true"></i>
+                  </button>
+                  <p id="gallery-position" aria-hidden="true"></p>
+                  <p id="gallery-status" class="site-sr-only" role="status"></p>
+                  <button
+                    type="button"
+                    class="site-icon-button"
+                    id="gallery-next"
+                    aria-label="Imagen siguiente"
+                  >
+                    <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
 
-          <img src="img/UNMSM.png" alt="Logo UNMSM" />
-          <img src="img/UNI.png" alt="Logo UNI" />
-          <img src="img/UNFV.png" alt="Logo UNFV" />
-          <img src="img/UNE.png" alt="Logo UNE" />
-          <img src="img/UNAC.png" alt="Logo UNAC" />
-          <img src="img/MOLINA.png" alt="Logo MOLINA" />
-          <img src="img/BECA18.png" alt="Logo BECA 18" />
+        <section
+          class="site-shell"
+          id="accesos"
+          aria-labelledby="quick-heading"
+        >
+          <div class="site-quick">
+            <div class="site-quick-heading">
+              <h2 id="quick-heading">Recepción</h2>
+              <p>Asistencia y biblioteca</p>
+            </div>
+            <div class="site-quick-actions">
+              <button
+                id="btn-asistencias"
+                type="button"
+                data-view="asistencia"
+                aria-controls="reception-screen"
+              >
+                <span class="site-quick-icon"
+                  ><i class="bi bi-calendar-check" aria-hidden="true"></i
+                ></span>
+                <span
+                  ><strong>Asistencia</strong
+                  ><small>Código o búsqueda de alumno</small></span
+                >
+                <i class="bi bi-arrow-right" aria-hidden="true"></i>
+              </button>
+              <button
+                id="btn-scan"
+                type="button"
+                data-view="camara"
+                data-mobile-camera
+                aria-controls="reception-screen"
+                hidden
+              >
+                <span class="site-quick-icon"
+                  ><i class="bi bi-camera" aria-hidden="true"></i
+                ></span>
+                <span
+                  ><strong>Escanear carné</strong
+                  ><small>Cámara del móvil</small></span
+                >
+                <i class="bi bi-arrow-right" aria-hidden="true"></i>
+              </button>
+              <button
+                id="btn-prestamo-libros"
+                type="button"
+                data-view="prestamos"
+                aria-controls="reception-screen"
+              >
+                <span class="site-quick-icon"
+                  ><i class="bi bi-book" aria-hidden="true"></i
+                ></span>
+                <span
+                  ><strong>Préstamos</strong
+                  ><small>Entrega de libros</small></span
+                >
+                <i class="bi bi-arrow-right" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+        </section>
 
-          <img src="img/UNMSM.png" alt="Logo UNMSM" />
-          <img src="img/UNI.png" alt="Logo UNI" />
-          <img src="img/UNFV.png" alt="Logo UNFV" />
-          <img src="img/UNE.png" alt="Logo UNE" />
-          <img src="img/UNAC.png" alt="Logo UNAC" />
-          <img src="img/MOLINA.png" alt="Logo MOLINA" />
-          <img src="img/BECA18.png" alt="Logo BECA 18" />
-        </div>
-    </section>
-
-    <section id="ciclos">
-      <div class="container">
-        <h2>Nuestros Ciclos</h2>
-        <div
-          class="ciclos-grid"
-          style="
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 18px;
-            margin-top: 12px;
-          "
-        ></div>
-      </div>
-    </section>
-
-    <section id="sobre-nosotros">
-      <div class="container">
-        <h2>Sobre Nosotros</h2>
-        <p>
-          Nuestro grupo de estudio está diseñado para ayudar a los estudiantes
-          preuniversitarios a prepararse para sus exámenes de ingreso a diversas
-          universidades. Ofrecemos un ambiente de aprendizaje colaborativo y
-          recursos educativos de alta calidad.
-        </p>
-        <ul>
-          <li>
-            <i class="bi bi-check-lg"></i> Clases personalizadas con tutores
-            expertos
-          </li>
-          <li>
-            <i class="bi bi-check-lg"></i> Material de estudio actualizado
-          </li>
-          <li><i class="bi bi-check-lg"></i> Simulacros de exámenes</li>
-          <li>
-            <i class="bi bi-check-lg"></i> Asesoría en técnicas de estudio
-          </li>
-          <li>
-            <i class="bi bi-check-lg"></i> Acceso a una comunidad de estudiantes
-            motivados
-          </li>
-        </ul>
-        <div class="redes">
-          <a
-            href="https://api.whatsapp.com/send?phone=51960606020&text=%F0%9F%99%80%20Quisiera%20m%C3%A1s%20informaci%C3%B3n%20sobre%20sus%20ciclos.%20%F0%9F%93%9A"
-            ><i class="bi bi-whatsapp"></i> Whatsapp</a
-          >
-          <a href="https://www.facebook.com/profile.php?id=100043734836276"
-            ><i class="bi bi-facebook"></i> Facebook</a
-          >
-          <a href="https://www.tiktok.com/@grupoingemat"
-            ><i class="bi bi-tiktok"></i> TikTok</a
-          >
-        </div>
-      </div>
-      <div class="mapa">
-        <iframe
-          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3902.356923148911!2d-76.96421952502885!3d-12.018930841382964!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9105c5003a25f383%3A0xaaf025ee2a9ff8ac!2sINGEMAT!5e0!3m2!1ses!2spe!4v1728868352765!5m2!1ses!2spe"
-          width="600"
-          height="450"
-          style="border: 0"
-          allowfullscreen=""
-          loading="lazy"
-          referrerpolicy="no-referrer-when-downgrade"
-        ></iframe>
-      </div>
-    </section>
-
-    <footer class="footer">
-      <div class="footer-container">
-        <div class="footer-section about">
-          <h2>Sobre Nosotros</h2>
-          <p>
-            Somos INGEMAT, dedicados a proporcionar educación de alta calidad
-            para estudiantes preuniversitarios. Nuestro objetivo es ayudarte a
-            alcanzar tus metas académicas.
+        <section
+          id="ciclos"
+          class="site-shell site-section"
+          tabindex="-1"
+          aria-labelledby="cycles-heading"
+        >
+          <div class="site-section-heading">
+            <h2 id="cycles-heading">Nuestros ciclos</h2>
+            <a
+              class="site-text-link"
+              id="cycles-contact"
+              href="https://api.whatsapp.com/send?phone=51960606020&amp;text=Hola%2C%20quisiera%20informaci%C3%B3n%20sobre%20los%20ciclos%20de%20INGEMAT."
+            >
+              Consultar por WhatsApp
+              <i class="bi bi-arrow-up-right" aria-hidden="true"></i>
+            </a>
+          </div>
+          <p id="cycles-status" class="site-cycles-status" role="status">
+            Cargando ciclos…
           </p>
+          <div class="ciclos-grid" id="cycles-list"></div>
+          <noscript
+            ><p>Activa JavaScript para ver los ciclos publicados.</p></noscript
+          >
+        </section>
+
+        <section
+          id="sobre-nosotros"
+          class="site-academy"
+          tabindex="-1"
+          aria-labelledby="academy-heading"
+        >
+          <div class="site-shell site-section">
+            <div class="site-section-heading">
+              <div>
+                <h2 id="academy-heading">Así te acompañamos</h2>
+                <p>
+                  Preparación en la academia y práctica para tu examen de
+                  admisión.
+                </p>
+              </div>
+            </div>
+            <ul class="site-feature-grid">
+              <li>
+                <i class="bi bi-person-video3" aria-hidden="true"></i>
+                <h3>Clases con tutores</h3>
+                <p>
+                  Resuelve dudas por curso con acompañamiento de tus profesores.
+                </p>
+              </li>
+              <li>
+                <i class="bi bi-journal-text" aria-hidden="true"></i>
+                <h3>Material de estudio</h3>
+                <p>
+                  Repasa los temas con recursos actualizados y ejercicios de
+                  práctica.
+                </p>
+              </li>
+              <li>
+                <i class="bi bi-clipboard-check" aria-hidden="true"></i>
+                <h3>Simulacros</h3>
+                <p>
+                  Practica en formato de examen y revisa cómo vas por curso.
+                </p>
+              </li>
+              <li>
+                <i class="bi bi-chat-square-text" aria-hidden="true"></i>
+                <h3>Asesorías</h3>
+                <p>
+                  Organiza tus repasos y refuerza los temas que requieren más
+                  práctica.
+                </p>
+              </li>
+            </ul>
+            <div class="site-institutions">
+              <h3>Universidades y becas</h3>
+              <ul>
+                <li>
+                  <img
+                    src="/img/UNI.png"
+                    width="50"
+                    height="50"
+                    alt="UNI"
+                    loading="lazy"
+                  />
+                </li>
+                <li>
+                  <img
+                    src="/img/UNMSM.png"
+                    width="50"
+                    height="50"
+                    alt="UNMSM"
+                    loading="lazy"
+                  />
+                </li>
+                <li>
+                  <img
+                    src="/img/UNFV.png"
+                    width="50"
+                    height="50"
+                    alt="UNFV"
+                    loading="lazy"
+                  />
+                </li>
+                <li>
+                  <img
+                    src="/img/UNE.png"
+                    width="50"
+                    height="50"
+                    alt="UNE"
+                    loading="lazy"
+                  />
+                </li>
+                <li>
+                  <img
+                    src="/img/UNAC.png"
+                    width="50"
+                    height="50"
+                    alt="UNAC"
+                    loading="lazy"
+                  />
+                </li>
+                <li>
+                  <img
+                    src="/img/MOLINA.png"
+                    width="50"
+                    height="50"
+                    alt="Universidad Nacional Agraria La Molina"
+                    loading="lazy"
+                  />
+                </li>
+                <li>
+                  <img
+                    src="/img/BECA18.png"
+                    width="50"
+                    height="50"
+                    alt="Beca 18"
+                    loading="lazy"
+                  />
+                </li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section
+          id="ubicacion"
+          class="site-shell site-section site-visit"
+          tabindex="-1"
+          aria-labelledby="visit-heading"
+        >
+          <div>
+            <h2 id="visit-heading">Visítanos en SJL</h2>
+            <address>
+              <i class="bi bi-geo-alt" aria-hidden="true"></i>
+              <span>Calle 8 151<br />San Juan de Lurigancho, Lima</span>
+            </address>
+            <a
+              class="site-button site-button-secondary"
+              href="https://www.google.com/maps/search/?api=1&amp;query=INGEMAT%20Calle%208%20151%20San%20Juan%20de%20Lurigancho"
+            >
+              Cómo llegar
+              <i class="bi bi-arrow-up-right" aria-hidden="true"></i>
+            </a>
+          </div>
+          <iframe
+            title="Mapa de la academia INGEMAT en San Juan de Lurigancho"
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3902.356923148911!2d-76.96421952502885!3d-12.018930841382964!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9105c5003a25f383%3A0xaaf025ee2a9ff8ac!2sINGEMAT!5e0!3m2!1ses!2spe!4v1728868352765!5m2!1ses!2spe"
+            width="600"
+            height="320"
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"
+          ></iframe>
+        </section>
+      </div>
+
+      <section
+        id="reception-screen"
+        class="site-shell station-main"
+        aria-label="Recepción"
+        hidden
+      >
+        <div class="station-topline">
+          <button class="site-text-link" type="button" data-view="inicio">
+            <i class="bi bi-arrow-left" aria-hidden="true"></i> Volver al inicio
+          </button>
+          <div
+            class="station-nav"
+            aria-label="Vistas de recepción"
+            role="group"
+          >
+            <button
+              id="station-attendance-link"
+              type="button"
+              data-view="asistencia"
+              aria-pressed="true"
+            >
+              <i class="bi bi-calendar-check" aria-hidden="true"></i> Asistencia
+            </button>
+            <button
+              id="station-loans-link"
+              type="button"
+              data-view="prestamos"
+              aria-pressed="false"
+            >
+              <i class="bi bi-book" aria-hidden="true"></i> Préstamos
+            </button>
+          </div>
         </div>
-        <div class="footer-section links">
-          <h2>Enlaces Rápidos</h2>
-          <ul>
-            <li><a href="#intranet">Intranet</a></li>
-            <li><a href="#ciclos">Ciclos</a></li>
-            <li><a href="#sobre-nosotros">Sobre Nosotros</a></li>
-          </ul>
+        <div class="station-access station-card" id="station-access">
+          <i
+            class="bi bi-person-badge station-access-icon"
+            aria-hidden="true"
+          ></i>
+          <h1 id="station-access-title" tabindex="-1">Acceso a Recepción</h1>
+          <p id="station-access-message" role="status">
+            Comprobando la sesión…
+          </p>
+          <a
+            class="station-primary"
+            id="station-access-link"
+            href="/pages/admin-login.html?destino=recepcion"
+            hidden
+            >Iniciar sesión<i class="bi bi-arrow-right" aria-hidden="true"></i
+          ></a>
         </div>
-        <div class="footer-section contact">
+
+        <div id="station-operations" hidden>
+          <div class="station-heading">
+            <div>
+              <h1 id="station-title" tabindex="-1">Registrar asistencia</h1>
+              <p id="station-intro">Ingreso de estudiantes y docentes.</p>
+            </div>
+            <div class="station-date">
+              <i class="bi bi-calendar3" aria-hidden="true"></i>
+              <time id="station-date"></time>
+            </div>
+          </div>
+
+          <div id="attendance-view" class="station-workspace">
+            <section
+              class="station-card station-form-card"
+              aria-label="Registro de asistencia"
+            >
+              <div
+                class="station-methods"
+                role="tablist"
+                aria-label="Método de registro"
+              >
+                <button
+                  id="method-asistencia"
+                  type="button"
+                  role="tab"
+                  data-method="asistencia"
+                  aria-selected="true"
+                  aria-controls="method-code-panel"
+                >
+                  <i class="bi bi-upc-scan" aria-hidden="true"></i> Código
+                </button>
+                <button
+                  id="method-alumno"
+                  type="button"
+                  role="tab"
+                  data-method="alumno"
+                  aria-selected="false"
+                  aria-controls="method-search-panel"
+                  tabindex="-1"
+                >
+                  <i class="bi bi-search" aria-hidden="true"></i> Buscar alumno
+                </button>
+                <button
+                  id="method-camara"
+                  type="button"
+                  role="tab"
+                  data-method="camara"
+                  data-mobile-camera
+                  hidden
+                  aria-selected="false"
+                  aria-controls="method-camera-panel"
+                  tabindex="-1"
+                >
+                  <i class="bi bi-camera" aria-hidden="true"></i> Cámara
+                </button>
+              </div>
+
+              <div
+                id="method-code-panel"
+                class="station-method-panel"
+                role="tabpanel"
+                aria-labelledby="method-asistencia"
+              >
+                <form id="attendance-code-form" class="station-form" novalidate>
+                  <div class="station-field">
+                    <label for="codigo">Código del carné</label>
+                    <p class="station-hint" id="code-hint">
+                      Escríbelo o usa el lector USB. Pulsa Enter para registrar.
+                    </p>
+                    <div class="station-input-wrap">
+                      <i class="bi bi-upc" aria-hidden="true"></i>
+                      <input
+                        id="codigo"
+                        type="text"
+                        name="codigo"
+                        class="station-code"
+                        placeholder="Ej. 00001234"
+                        autocomplete="off"
+                        autocapitalize="characters"
+                        spellcheck="false"
+                        maxlength="40"
+                        aria-describedby="code-hint code-error"
+                        required
+                      />
+                    </div>
+                    <p id="code-error" class="station-field-error"></p>
+                  </div>
+                  <div class="station-actions">
+                    <button
+                      id="registrar-btn"
+                      class="station-primary"
+                      type="submit"
+                    >
+                      Registrar asistencia
+                      <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              <div
+                id="method-search-panel"
+                class="station-method-panel"
+                role="tabpanel"
+                aria-labelledby="method-alumno"
+                hidden
+              >
+                <form id="attendance-search-form" class="station-form">
+                  <div class="station-field">
+                    <label for="reception-student-search"
+                      >Nombre, apellido o código</label
+                    >
+                    <p class="station-hint" id="student-search-hint">
+                      Elige una coincidencia para registrar al estudiante.
+                    </p>
+                    <div class="station-input-wrap">
+                      <i class="bi bi-search" aria-hidden="true"></i>
+                      <input
+                        id="reception-student-search"
+                        type="search"
+                        role="combobox"
+                        aria-autocomplete="list"
+                        aria-controls="reception-student-results"
+                        aria-expanded="false"
+                        aria-describedby="student-search-hint"
+                        autocomplete="off"
+                        placeholder="Ej. María Fernández"
+                        disabled
+                      />
+                    </div>
+                    <div
+                      id="reception-student-results"
+                      class="station-options"
+                      role="listbox"
+                      aria-label="Estudiantes"
+                      hidden
+                    ></div>
+                    <input type="hidden" id="reception-student-code" />
+                    <p
+                      id="reception-student-selected"
+                      class="station-option-note"
+                      role="status"
+                    ></p>
+                    <p
+                      id="student-load-status"
+                      class="station-hint"
+                      role="status"
+                    ></p>
+                  </div>
+                  <div class="station-actions">
+                    <button
+                      id="reception-register-student"
+                      class="station-primary"
+                      type="submit"
+                      disabled
+                    >
+                      Registrar asistencia
+                      <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                    </button>
+                    <button
+                      id="student-retry"
+                      class="station-secondary"
+                      type="button"
+                      hidden
+                    >
+                      Reintentar búsqueda
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              <div
+                id="method-camera-panel"
+                class="station-method-panel"
+                role="tabpanel"
+                aria-labelledby="method-camara"
+                hidden
+              >
+                <h2 class="station-field-title">Escanear carné</h2>
+                <p class="station-hint">
+                  Enfoca el código de barras o QR dentro del recuadro.
+                </p>
+                <div
+                  class="station-camera"
+                  id="station-camera"
+                  data-state="idle"
+                >
+                  <div class="station-camera-placeholder" aria-hidden="true">
+                    <i class="bi bi-upc-scan"></i>
+                  </div>
+                  <div id="reader" class="station-camera-reader"></div>
+                </div>
+                <p
+                  id="camera-status"
+                  class="station-hint station-camera-status"
+                  role="status"
+                ></p>
+                <button
+                  id="camera-result-link"
+                  class="station-camera-result"
+                  type="button"
+                  hidden
+                >
+                  <span></span
+                  ><i class="bi bi-arrow-down" aria-hidden="true"></i>
+                </button>
+                <div class="station-actions station-camera-actions">
+                  <button
+                    id="camera-start"
+                    class="station-primary"
+                    type="button"
+                  >
+                    Activar cámara
+                    <i class="bi bi-camera" aria-hidden="true"></i>
+                  </button>
+                  <button
+                    id="camera-stop"
+                    class="station-secondary"
+                    type="button"
+                    hidden
+                  >
+                    Apagar cámara
+                  </button>
+                  <button
+                    class="station-secondary"
+                    type="button"
+                    data-view="asistencia"
+                  >
+                    Usar código
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <section
+              class="station-result-card"
+              aria-labelledby="attendance-result-heading"
+            >
+              <h2 id="attendance-result-heading" tabindex="-1">
+                <i class="bi bi-clock-history" aria-hidden="true"></i> Resultado
+                de asistencia
+              </h2>
+              <div
+                id="resultado"
+                class="station-result"
+                role="status"
+                data-state="idle"
+              >
+                <span class="station-result-icon" aria-hidden="true"
+                  ><i class="bi bi-upc-scan"></i
+                ></span>
+                <p class="station-result-title">Esperando un registro</p>
+                <p class="station-result-detail">
+                  Aquí verás el nombre, la hora y el estado del ingreso.
+                </p>
+              </div>
+            </section>
+          </div>
+
+          <div id="loans-view" class="station-workspace" hidden>
+            <section
+              class="station-card station-form-card"
+              aria-label="Registro de préstamos"
+            >
+              <form
+                id="loan-form"
+                class="station-form station-loan-form"
+                novalidate
+              >
+                <div class="station-field">
+                  <label for="codigo-libro-input">Libro</label>
+                  <p class="station-hint" id="book-hint">
+                    Busca por código, título, editorial o sección.
+                  </p>
+                  <div class="station-input-wrap">
+                    <i class="bi bi-book" aria-hidden="true"></i>
+                    <input
+                      id="codigo-libro-input"
+                      type="text"
+                      role="combobox"
+                      aria-autocomplete="list"
+                      aria-controls="libro-search-dropdown"
+                      aria-expanded="false"
+                      aria-describedby="book-hint book-error"
+                      autocomplete="off"
+                      placeholder="Ej. Álgebra o MAT-001"
+                      required
+                    />
+                  </div>
+                  <div
+                    id="libro-search-dropdown"
+                    class="station-options"
+                    role="listbox"
+                    aria-label="Libros"
+                    hidden
+                  ></div>
+                  <p
+                    id="libro-selected-preview"
+                    class="station-option-note"
+                    role="status"
+                  ></p>
+                  <p
+                    id="book-catalog-status"
+                    class="station-hint"
+                    role="status"
+                  ></p>
+                  <p id="book-error" class="station-field-error"></p>
+                </div>
+                <div class="station-field">
+                  <label for="codigo-estudiante-input"
+                    >Código del estudiante</label
+                  >
+                  <div class="station-input-wrap">
+                    <i class="bi bi-person-vcard" aria-hidden="true"></i>
+                    <input
+                      id="codigo-estudiante-input"
+                      type="text"
+                      class="station-code"
+                      autocomplete="off"
+                      autocapitalize="characters"
+                      spellcheck="false"
+                      placeholder="Ej. 00001234"
+                      aria-describedby="borrower-error"
+                      required
+                    />
+                  </div>
+                  <p id="borrower-error" class="station-field-error"></p>
+                </div>
+                <div class="station-actions">
+                  <button
+                    id="btn-submit-prestamo"
+                    class="station-primary"
+                    type="submit"
+                  >
+                    Registrar préstamo
+                    <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                  </button>
+                </div>
+              </form>
+            </section>
+
+            <section
+              class="station-result-card"
+              aria-labelledby="loan-result-heading"
+            >
+              <h2 id="loan-result-heading">
+                <i class="bi bi-clock-history" aria-hidden="true"></i> Resultado
+                del préstamo
+              </h2>
+              <div
+                id="resultado-prestamo"
+                class="station-result"
+                role="status"
+                data-state="idle"
+              >
+                <span class="station-result-icon" aria-hidden="true"
+                  ><i class="bi bi-journal-check"></i
+                ></span>
+                <p class="station-result-title">Esperando un préstamo</p>
+                <p class="station-result-detail">
+                  Aquí verás el libro, el estudiante y la hora.
+                </p>
+              </div>
+            </section>
+          </div>
+        </div>
+        <noscript
+          ><p>
+            Activa JavaScript para usar el registro de Recepción.
+          </p></noscript
+        >
+      </section>
+    </main>
+
+    <footer id="site-footer" class="site-footer">
+      <div class="site-shell site-footer-inner">
+        <a
+          class="site-brand"
+          href="#inicio"
+          aria-label="Volver al inicio de INGEMAT"
+        >
+          <img
+            src="/img/logo-examen.png"
+            width="115"
+            height="50"
+            alt="Academia INGEMAT"
+            loading="lazy"
+          />
+        </a>
+        <div>
           <h2>Contacto</h2>
           <ul>
-            <li>
-              <i class="bi bi-geo-alt"></i> Dirección: C. 8 151, San Juan de
-              Lurigancho 15457
-            </li>
-            <li><i class="bi bi-telephone"></i> Teléfono: 960 606 020</li>
-            <li><i class="bi bi-envelope"></i> Email: info@ingemat.com</li>
+            <li><a href="tel:+51960606020">960 606 020</a></li>
+            <li><a href="mailto:info@ingemat.com">info@ingemat.com</a></li>
           </ul>
         </div>
-        <div class="footer-section social">
+        <div>
           <h2>Síguenos</h2>
           <ul>
             <li>
-              <a
-                href="https://api.whatsapp.com/send?phone=51960606020&text=%F0%9F%99%80%20Quisiera%20m%C3%A1s%20informaci%C3%B3n%20sobre%20sus%20ciclos.%20%F0%9F%93%9A"
-                ><i class="bi bi-whatsapp"></i> Whatsapp</a
-              >
-            </li>
-            <li>
               <a href="https://www.facebook.com/profile.php?id=100043734836276"
-                ><i class="bi bi-facebook"></i> Facebook</a
+                ><i class="bi bi-facebook" aria-hidden="true"></i> Facebook</a
               >
             </li>
             <li>
               <a href="https://www.tiktok.com/@grupoingemat"
-                ><i class="bi bi-tiktok"></i> TikTok</a
+                ><i class="bi bi-tiktok" aria-hidden="true"></i> TikTok</a
               >
             </li>
           </ul>
         </div>
       </div>
-      <div class="footer-bottom">
-        © 2024 INGEMAT. Todos los derechos reservados.
-      </div>
+      <p class="site-shell site-copyright">© INGEMAT</p>
     </footer>
-
-    <script src="js/navbar.js"></script>
-
-    <script src="js/carousel-loader.js"></script>
-    <script src="js/carousel.js"></script>
-    <script src="js/ciclos-public.js"></script>
   </body>
 </html>

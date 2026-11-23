@@ -64,7 +64,7 @@ Registra ingresos con una cuenta autorizada y permisos limitados.
 
 1. **Crea una cuenta de recepción.** En Cuentas y respaldo, un administrador crea una cuenta individual con rol Recepción para el encargado.
 2. **Inicia sesión.** Abre /admin e ingresa el usuario y contraseña de recepción. Cambia la contraseña inicial cuando se solicite.
-3. **Abre Recepción.** Pulsa Abrir recepción en el panel o visita /recepcion en el mismo navegador. Desde allí puedes registrar asistencias y préstamos.
+3. **Abre Recepción.** Abre la página principal en el mismo navegador y pulsa Asistencia o Préstamos en Recepción. También puedes pulsar Abrir recepción desde el panel.
 4. **Registra y comprueba.** Escanea el carnet o escribe el código del alumno. Revisa la confirmación, hora y estado; los ingresos duplicados para el mismo turno se rechazan.
 5. **Protege la cuenta.** El rol Recepción permite gestionar asistencias y biblioteca, pero no acceder a simulacros. Cierra la sesión al terminar; un administrador puede desactivar la cuenta.
 
@@ -72,7 +72,7 @@ Registra ingresos con una cuenta autorizada y permisos limitados.
 
 Registra desde el carné o busca al estudiante por nombre.
 
-1. **Abre el registro.** Abre Recepción desde el panel o pulsa Asistencias en la página principal. Inicia sesión con una cuenta de Administración o Recepción.
+1. **Abre el registro.** Pulsa Asistencia en la página principal. Inicia sesión con una cuenta de Administración o Recepción.
 2. **Elige el método de registro.** En Código, escribe el código del carné o usa el lector USB. Si no tienes el carné, abre Buscar alumno, escribe el nombre o apellido y elige una coincidencia. Para leer un carné con el móvil, abre Cámara y pulsa Activar cámara.
 3. **Comprueba el resultado.** Revisa el nombre, la hora y el estado del ingreso en Resultado de asistencia. La fecha y hora se calculan en America/Lima.
 4. **Evita registros repetidos.** Una segunda lectura del mismo usuario, fecha y turno informa que ya existe un ingreso.

@@ -66,7 +66,9 @@
             new URLSearchParams(window.location.search).get("destino") ===
               "recepcion" && !data.mustChangePassword;
           window.location.assign(
-            openReception ? "/recepcion" + window.location.hash : "/admin",
+            openReception
+              ? "/" + (window.location.hash || "#asistencia")
+              : "/admin",
           );
         } catch (error) {
           message.textContent = error.message;

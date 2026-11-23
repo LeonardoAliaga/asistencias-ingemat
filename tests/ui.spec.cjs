@@ -317,8 +317,13 @@ test("Recepción registra asistencia desde búsqueda inteligente por nombre o c�
 }) => {
   await login(page, "recepcion");
   await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.evaluate(() => {
+    window.homeDocument = true;
+  });
   await page.click("#btn-asistencias");
-  await expect(page).toHaveURL(/\/recepcion$/);
+  await expect(page).toHaveURL(/\/#asistencia$/);
+  await expect(page.locator("#homepage")).toBeHidden();
+  await expect(page.locator("#method-camara")).toBeHidden();
   const codeTab = page.getByRole("tab", { name: "Código", exact: true });
   const studentTab = page.getByRole("tab", { name: "Buscar alumno" });
   const search = page.getByRole("combobox", {
@@ -383,6 +388,14 @@ test("Recepción registra asistencia desde búsqueda inteligente por nombre o c�
   await studentTab.press("Home");
   await expect(codeTab).toBeFocused();
   await expect(page.locator("#codigo")).toBeVisible();
+  await page.getByRole("button", { name: "Volver al inicio" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Contigo hasta tu ingreso." }),
+  ).toBeVisible();
+  await expect(page.locator("#reception-screen")).toBeHidden();
+  expect(await page.evaluate(() => window.homeDocument)).toBe(true);
+  await page.goBack();
+  await expect(page.locator("#codigo")).toBeVisible();
 });
 
 test("public library returns to the loan form after reception login", async ({
@@ -393,7 +406,7 @@ test("public library returns to the loan form after reception login", async ({
   await page.route("https://www.google.com/**", (route) => route.abort());
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await page.click("#btn-prestamo-libros");
-  await expect(page).toHaveURL(/\/recepcion#prestamos$/);
+  await expect(page).toHaveURL(/\/#prestamos$/);
   await expect(page.locator("#station-access")).toContainText(
     "Una cuenta de Recepción",
   );
@@ -403,7 +416,7 @@ test("public library returns to the loan form after reception login", async ({
   await page.getByLabel("Usuario").fill("recepcion");
   await page.getByLabel("Contraseña").fill("Browser-test-only-2026");
   await page.getByRole("button", { name: "Iniciar sesión" }).click();
-  await expect(page).toHaveURL(/\/recepcion#prestamos$/);
+  await expect(page).toHaveURL(/\/#prestamos$/);
   const book = page.getByRole("combobox", { name: "Libro" });
   const borrower = page.getByLabel("Código del estudiante");
   await book.fill("editorial de demostracion");
@@ -432,6 +445,7 @@ test("reception reflows at 320px, reports errors and honors reduced motion", asy
   await page.setViewportSize({ width: 320, height: 760 });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/recepcion");
+  await expect(page).toHaveURL(/\/#asistencia$/);
   const code = page.getByRole("textbox", { name: "Código del carné" });
   const register = page.getByRole("button", { name: "Registrar asistencia" });
   await expect(code).toBeVisible();
@@ -463,96 +477,186 @@ test("reception reflows at 320px, reports errors and honors reduced motion", asy
   expect(audit.violations.map(({ id }) => id)).toEqual([]);
 });
 
-test("reception camera loads on request and releases when changing methods", async ({
+test("homepage presents published cycles, manual gallery and accessible content at 320px", async ({
   page,
 }) => {
-  await login(page, "recepcion");
-  await page.setViewportSize({ width: 390, height: 844 });
-  let libraryRequests = 0;
-  await page.route("**/vendor/html5-qrcode.min.js", (route) => {
-    libraryRequests++;
-    return route.fulfill({
-      contentType: "application/javascript",
-      body: `window.Html5Qrcode = class {
-        async start(config, options, onCode) {
-          window.readReceptionCode = onCode;
-          if (window.delayReceptionCamera)
-            await new Promise(resolve => { window.resolveReceptionCamera = resolve; });
-        }
-        async stop() {
-          window.receptionCameraStops = (window.receptionCameraStops || 0) + 1;
-        }
-        clear() {}
-      }`,
-    });
-  });
-  let reads = 0;
-  await page.route("**/api/registrar", (route) => {
-    reads++;
-    expect(route.request().postDataJSON()).toEqual({ codigo: "DOC001" });
-    return route.fulfill({
+  await page.setViewportSize({ width: 320, height: 820 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.route("https://www.google.com/**", (route) => route.abort());
+  await page.route("**/api/carousel", (route) =>
+    route.fulfill({
+      json: { exito: true, images: ["Ingresantes2.png", "Ingresantes3.png"] },
+    }),
+  );
+  await page.route("**/api/ciclos-visual", (route) =>
+    route.fulfill({
       json: {
         exito: true,
-        rol: "docente",
-        estado: "registrado",
-        nombre: "PROFESOR DEMO CARLOS",
-        hora: "10:00",
+        ciclos: [
+          {
+            titulo: "Semestral",
+            orden: 2,
+            published: true,
+            price: "250",
+            beneficios: ["Material de práctica"],
+          },
+          {
+            titulo: "Anual",
+            orden: 1,
+            published: true,
+            priceHistory: [
+              { price: 400, to: "2026-06-01" },
+              { price: 350, to: null },
+            ],
+          },
+          { titulo: "Borrador privado", orden: 0, published: false },
+        ],
       },
-    });
-  });
-  await page.goto("/recepcion#camara");
-  const start = page.getByRole("button", { name: "Activar cámara" });
-  await expect(start).toBeVisible();
-  expect(libraryRequests).toBe(0);
-  await start.click();
-  await expect(page.locator("#camera-status")).toContainText("Cámara activa");
-  await page.evaluate(() => {
-    window.readReceptionCode("doc001");
-    window.readReceptionCode("doc001");
-  });
-  await expect(page.locator("#resultado")).toContainText(
-    "PROFESOR DEMO CARLOS",
+    }),
   );
-  await page
-    .getByRole("button", { name: "Asistencia registrada. Ver resultado" })
-    .click();
-  await expect(page.locator("#attendance-result-heading")).toBeFocused();
-  await page.evaluate(() => window.readReceptionCode("doc001"));
-  await page.getByRole("tab", { name: "Código", exact: true }).click();
-  await expect(page.locator("#codigo")).toBeVisible();
-  await expect
-    .poll(() => page.evaluate(() => window.receptionCameraStops))
-    .toBe(1);
-  await page.evaluate(() => {
-    window.delayReceptionCamera = true;
+  await page.goto("/");
+  const heading = page.getByRole("heading", {
+    name: "Contigo hasta tu ingreso.",
   });
-  await page.getByRole("tab", { name: "Cámara" }).click();
-  await start.click();
-  await expect
-    .poll(() => page.evaluate(() => typeof window.resolveReceptionCamera))
-    .toBe("function");
-  await page.getByRole("link", { name: "Préstamos" }).click();
+  await expect(heading).toBeVisible();
+  await expect(page.locator(".site-header img")).toHaveAttribute(
+    "src",
+    "/img/logo-examen.png",
+  );
+  await expect(page.locator("#gallery-position")).toHaveText("1 / 2");
+  await page.getByRole("button", { name: "Imagen siguiente" }).press("Enter");
+  await expect(page.locator("#gallery-status")).toContainText("Imagen 2 de 2");
+  await expect(page.locator("#gallery-image")).toHaveAttribute(
+    "src",
+    /Ingresantes3\.png$/,
+  );
+  await page.getByRole("button", { name: "Imagen anterior" }).press("Enter");
+  await expect(page.locator("#gallery-position")).toHaveText("1 / 2");
+  await page.getByRole("link", { name: "Ver ciclos" }).click();
+  await expect(page).toHaveURL(/\/#ciclos$/);
+  await expect(page.locator("#cycles-list h3")).toHaveText([
+    "Anual",
+    "Semestral",
+  ]);
+  await expect(page.locator(".ciclo-card").nth(0)).toContainText("Oferta");
+  await expect(page.locator(".ciclo-card").nth(1)).toContainText(/S\/\s*250/);
   await expect(
-    page.getByRole("heading", { name: "Registrar préstamo" }),
+    page.getByRole("heading", { name: "Visítanos en SJL" }),
   ).toBeVisible();
-  expect(
-    await page.locator("#reader").evaluate((reader) => reader.clientWidth),
-  ).toBeGreaterThan(0);
-  await page.evaluate(() => window.resolveReceptionCamera());
-  await expect
-    .poll(() => page.evaluate(() => window.receptionCameraStops))
-    .toBe(2);
-  await page.getByRole("link", { name: "Asistencia", exact: true }).click();
-  await page.evaluate(() =>
-    Object.defineProperty(window, "isSecureContext", { value: false }),
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(
+    320,
   );
-  await page.getByRole("tab", { name: "Cámara" }).click();
-  await start.click();
-  await expect(page.locator("#camera-status")).toContainText("HTTPS");
-  await page.getByRole("link", { name: "Usar código" }).click();
-  await expect(page.locator("#codigo")).toBeVisible();
-  expect(reads).toBe(1);
-  expect(libraryRequests).toBe(1);
+  expect(
+    await page
+      .locator(".site-hero-copy")
+      .evaluate((node) => getComputedStyle(node).animationName),
+  ).toBe("none");
+  const audit = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
+    .analyze();
+  expect(audit.violations.map(({ id }) => id)).toEqual([]);
+});
+
+test.describe("Recepción en móvil táctil", () => {
+  test.use({
+    hasTouch: true,
+    isMobile: true,
+    viewport: { width: 390, height: 844 },
+  });
+
+  test("reception camera loads on request and releases when changing methods", async ({
+    page,
+  }) => {
+    await login(page, "recepcion");
+    let libraryRequests = 0;
+    await page.route("**/vendor/html5-qrcode.min.js", (route) => {
+      libraryRequests++;
+      return route.fulfill({
+        contentType: "application/javascript",
+        body: `window.Html5Qrcode = class {
+          async start(config, options, onCode) {
+            window.readReceptionCode = onCode;
+            if (window.delayReceptionCamera)
+              await new Promise(resolve => { window.resolveReceptionCamera = resolve; });
+          }
+          async stop() {
+            window.receptionCameraStops = (window.receptionCameraStops || 0) + 1;
+          }
+          clear() {}
+        }`,
+      });
+    });
+    let reads = 0;
+    await page.route("**/api/registrar", (route) => {
+      reads++;
+      expect(route.request().postDataJSON()).toEqual({ codigo: "DOC001" });
+      return route.fulfill({
+        json: {
+          exito: true,
+          rol: "docente",
+          estado: "registrado",
+          nombre: "PROFESOR DEMO CARLOS",
+          hora: "10:00",
+        },
+      });
+    });
+    await page.goto("/");
+    await expect(page.locator("#btn-scan")).toBeVisible();
+    await page.locator("#btn-scan").click();
+    await expect(page).toHaveURL(/\/#camara$/);
+    const start = page.getByRole("button", { name: "Activar cámara" });
+    await expect(start).toBeVisible();
+    expect(libraryRequests).toBe(0);
+    await start.click();
+    await expect(page.locator("#camera-status")).toContainText("Cámara activa");
+    await page.evaluate(() => {
+      window.readReceptionCode("doc001");
+      window.readReceptionCode("doc001");
+    });
+    await expect(page.locator("#resultado")).toContainText(
+      "PROFESOR DEMO CARLOS",
+    );
+    await page
+      .getByRole("button", { name: "Asistencia registrada. Ver resultado" })
+      .click();
+    await expect(page.locator("#attendance-result-heading")).toBeFocused();
+    await page.evaluate(() => window.readReceptionCode("doc001"));
+    await page.getByRole("tab", { name: "Código", exact: true }).click();
+    await expect(page.locator("#codigo")).toBeVisible();
+    await expect
+      .poll(() => page.evaluate(() => window.receptionCameraStops))
+      .toBe(1);
+    await page.evaluate(() => {
+      window.delayReceptionCamera = true;
+    });
+    await page.getByRole("tab", { name: "Cámara" }).click();
+    await start.click();
+    await expect
+      .poll(() => page.evaluate(() => typeof window.resolveReceptionCamera))
+      .toBe("function");
+    await page.getByRole("button", { name: "Préstamos", exact: true }).click();
+    await expect(
+      page.getByRole("heading", { name: "Registrar préstamo" }),
+    ).toBeVisible();
+    expect(
+      await page.locator("#reader").evaluate((reader) => reader.clientWidth),
+    ).toBeGreaterThan(0);
+    await page.evaluate(() => window.resolveReceptionCamera());
+    await expect
+      .poll(() => page.evaluate(() => window.receptionCameraStops))
+      .toBe(2);
+    await page.getByRole("button", { name: "Asistencia", exact: true }).click();
+    await page.evaluate(() =>
+      Object.defineProperty(window, "isSecureContext", { value: false }),
+    );
+    await page.getByRole("tab", { name: "Cámara" }).click();
+    await start.click();
+    await expect(page.locator("#camera-status")).toContainText("HTTPS");
+    await page.getByRole("button", { name: "Usar código" }).click();
+    await expect(page.locator("#codigo")).toBeVisible();
+    expect(reads).toBe(1);
+    expect(libraryRequests).toBe(1);
+  });
 });
 
 test("wizard validates area quotas, preserves step data and prepares a 120-question exam", async ({
@@ -1683,13 +1787,9 @@ for (const width of [390, 768, 950]) {
     await button.click();
     await page.locator('#navbar-menu a[href="#sobre-nosotros"]').click();
     await expect(menu).toBeHidden();
-    await button.click();
-    await page
-      .locator(width === 390 ? "#btn-scan" : "#btn-asistencias")
-      .click();
-    await expect(page).toHaveURL(
-      width === 390 ? /\/recepcion#camara$/ : /\/recepcion$/,
-    );
+    await expect(page.locator("#btn-scan")).toBeHidden();
+    await page.locator("#nav-reception").click();
+    await expect(page).toHaveURL(/\/#asistencia$/);
     await expect(
       page.getByRole("heading", { name: "Acceso a Recepción" }),
     ).toBeVisible();

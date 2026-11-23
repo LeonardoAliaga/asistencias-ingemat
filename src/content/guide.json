@@ -187,7 +187,7 @@
         },
         {
           "title": "Abre Recepción",
-          "text": "Pulsa Abrir recepción en el panel o visita /recepcion en el mismo navegador. Desde allí puedes registrar asistencias y préstamos."
+          "text": "Abre la página principal en el mismo navegador y pulsa Asistencia o Préstamos en Recepción. También puedes pulsar Abrir recepción desde el panel."
         },
         {
           "title": "Registra y comprueba",
@@ -208,7 +208,7 @@
       "steps": [
         {
           "title": "Abre el registro",
-          "text": "Abre Recepción desde el panel o pulsa Asistencias en la página principal. Inicia sesión con una cuenta de Administración o Recepción."
+          "text": "Pulsa Asistencia en la página principal. Inicia sesión con una cuenta de Administración o Recepción."
         },
         {
           "title": "Elige el método de registro",

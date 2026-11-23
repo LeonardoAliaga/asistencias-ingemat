@@ -9,6 +9,13 @@ const $ = (id) => document.getElementById(id);
 const tabs = [...document.querySelectorAll("[data-method]")];
 const modeNames = tabs.map((tab) => tab.dataset.method);
 const signInUrl = "/pages/admin-login.html?destino=recepcion";
+const mobileCamera = window.matchMedia(
+  "(max-width: 950px) and (pointer: coarse)",
+);
+const mobileControls = document.querySelectorAll("[data-mobile-camera]");
+const homeTitle = document.title;
+const homepage = $("homepage");
+const receptionScreen = $("reception-screen");
 const codeInput = $("codigo");
 const searchInput = $("reception-student-search");
 const bookInput = $("codigo-libro-input");
@@ -17,6 +24,8 @@ const attendanceResult = $("resultado");
 const loanResult = $("resultado-prestamo");
 const studentSubmit = $("reception-register-student");
 let mode;
+let hasReceptionAccess = false;
+let accessTarget = signInUrl;
 let attendanceBusy = false;
 let loanBusy = false;
 let students;
@@ -28,7 +37,7 @@ const codeOf = (value) => value.trim().toUpperCase();
 const modes = [...modeNames, "prestamos"];
 const getHashMode = () => {
   const hash = window.location.hash.slice(1);
-  return modes.includes(hash) ? hash : "asistencia";
+  return modes.includes(hash) ? hash : "inicio";
 };
 
 async function requestJson(url, options) {
@@ -421,24 +430,81 @@ $("camera-result-link").addEventListener("click", () => {
   $("attendance-result-heading").focus();
 });
 
-function updateMode() {
+function loadCurrentForm() {
+  if (!hasReceptionAccess) return;
+  if (mode === "alumno") void loadStudents();
+  if (mode === "prestamos") void loadBooks();
+}
+
+function focusReception() {
+  if (
+    hasReceptionAccess &&
+    mode === "asistencia" &&
+    window.matchMedia("(pointer: fine)").matches
+  ) {
+    codeInput.focus({ preventScroll: true });
+  } else {
+    $(hasReceptionAccess ? "station-title" : "station-access-title").focus({
+      preventScroll: true,
+    });
+  }
+}
+
+function updateAccessLink() {
+  const destination = modes.includes(mode) ? mode : "asistencia";
+  $("station-access-link").href =
+    accessTarget === signInUrl
+      ? `${accessTarget}#${destination}`
+      : accessTarget;
+}
+
+function updateMode(moveFocus = false) {
   const previous = mode;
   const focused = document.activeElement;
   mode = getHashMode();
+  if (mode === "camara" && !mobileCamera.matches) {
+    window.history.replaceState(null, "", "#asistencia");
+    mode = "asistencia";
+  }
+  const isHome = mode === "inicio";
+  const hash = window.location.hash;
+  homepage.hidden = !isHome;
+  $("site-footer").hidden = !isHome;
+  receptionScreen.hidden = isHome;
+  $("nav-reception").setAttribute("aria-pressed", String(!isHome));
+  const homeButton = $("btn-inicio");
+  if (isHome && (!hash || hash === "#inicio"))
+    homeButton.setAttribute("aria-current", "page");
+  else homeButton.removeAttribute("aria-current");
+  for (const link of $("navbar-menu").querySelectorAll('a[href^="#"]')) {
+    if (isHome && link.hash === hash)
+      link.setAttribute("aria-current", "location");
+    else link.removeAttribute("aria-current");
+  }
+  document.title = isHome ? homeTitle : "Recepción · INGEMAT";
+  updateAccessLink();
   if (previous === mode) return;
   if (previous === "camara") void camera.stop();
   if (previous === "alumno") studentSearch.close();
   if (previous === "prestamos") bookSearch.close();
+  if (isHome) {
+    if (moveFocus && previous) {
+      const section = document.getElementById(hash.slice(1));
+      if (section && hash !== "#inicio" && homepage.contains(section)) {
+        section.focus({ preventScroll: true });
+        section.scrollIntoView();
+      } else {
+        window.scrollTo(0, 0);
+        $("home-title").focus({ preventScroll: true });
+      }
+    }
+    return;
+  }
   const isLoan = mode === "prestamos";
   $("attendance-view").hidden = isLoan;
   $("loans-view").hidden = !isLoan;
-  if (isLoan) {
-    $("station-attendance-link").removeAttribute("aria-current");
-    $("station-loans-link").setAttribute("aria-current", "page");
-  } else {
-    $("station-loans-link").removeAttribute("aria-current");
-    $("station-attendance-link").setAttribute("aria-current", "page");
-  }
+  $("station-attendance-link").setAttribute("aria-pressed", String(!isLoan));
+  $("station-loans-link").setAttribute("aria-pressed", String(isLoan));
   const title = $("station-title");
   title.textContent = isLoan ? "Registrar préstamo" : "Registrar asistencia";
   $("station-intro").textContent = isLoan
@@ -450,40 +516,58 @@ function updateMode() {
     tab.setAttribute("aria-selected", String(active));
     $(tab.getAttribute("aria-controls")).hidden = !active;
   });
-  if (previous && (previous === "prestamos") !== isLoan) title.focus();
-  else if (focused.closest('[role="tabpanel"][hidden]'))
+  if (
+    moveFocus &&
+    (previous === "inicio" || (previous === "prestamos") !== isLoan)
+  ) {
+    window.scrollTo(0, 0);
+    focusReception();
+  } else if (
+    focused.closest('[role="tabpanel"][hidden], [data-method][hidden]')
+  )
     tabs.find((tab) => tab.dataset.method === mode)?.focus();
-  if (mode === "alumno") void loadStudents();
-  if (isLoan) void loadBooks();
+  loadCurrentForm();
 }
 
-tabs.forEach((tab, index) => {
-  tab.addEventListener("click", () => {
-    window.location.hash = tab.dataset.method;
-  });
+function selectView(view) {
+  if (window.location.hash === `#${view}` && view === "inicio") {
+    window.scrollTo(0, 0);
+    $("home-title").focus({ preventScroll: true });
+  } else window.location.hash = view;
+}
+
+document.querySelectorAll("button[data-view]").forEach((button) => {
+  button.addEventListener("click", () => selectView(button.dataset.view));
+});
+
+tabs.forEach((tab) => {
+  tab.addEventListener("click", () => selectView(tab.dataset.method));
   tab.addEventListener("keydown", (event) => {
+    const enabled = tabs.filter((item) => !item.hidden);
+    const index = enabled.indexOf(tab);
     const nextTab = {
-      ArrowLeft: (index - 1 + tabs.length) % tabs.length,
-      ArrowRight: (index + 1) % tabs.length,
+      ArrowLeft: (index - 1 + enabled.length) % enabled.length,
+      ArrowRight: (index + 1) % enabled.length,
       Home: 0,
-      End: tabs.length - 1,
+      End: enabled.length - 1,
     }[event.key];
     if (nextTab === undefined) return;
     event.preventDefault();
-    tabs[nextTab].focus();
-    tabs[nextTab].click();
+    enabled[nextTab].focus();
+    enabled[nextTab].click();
   });
 });
 
-document.querySelector(".station-skip").addEventListener("click", (event) => {
+document.querySelector(".site-skip").addEventListener("click", (event) => {
   event.preventDefault();
-  $("station-main").focus();
+  $("main-content").focus();
 });
 
-function showAccess(message, label, href = signInUrl + window.location.hash) {
+function showAccess(message, label, href = signInUrl) {
   $("station-access-message").textContent = message;
   const button = $("station-access-link");
-  button.href = href;
+  accessTarget = href;
+  updateAccessLink();
   button.replaceChildren(label, icon("bi-arrow-right"));
   button.hidden = false;
 }
@@ -513,17 +597,15 @@ async function init() {
       dateStyle: "long",
       timeZone: "UTC",
     }).format(new Date(date.dateTime + "T12:00:00Z"));
+    hasReceptionAccess = true;
+    const shouldFocus =
+      mode !== "inicio" &&
+      (document.activeElement === document.body ||
+        document.activeElement === $("station-access-title"));
     $("station-access").hidden = true;
-    $("station-nav").hidden = false;
     $("station-operations").hidden = false;
-    updateMode();
-    window.addEventListener("hashchange", updateMode);
-    if (
-      mode === "asistencia" &&
-      window.matchMedia("(pointer: fine)").matches &&
-      document.activeElement === document.body
-    )
-      codeInput.focus({ preventScroll: true });
+    if (shouldFocus) focusReception();
+    loadCurrentForm();
   } catch {
     showAccess(
       "No pudimos comprobar tu acceso. Revisa la conexión y vuelve a intentarlo.",
@@ -533,4 +615,25 @@ async function init() {
   }
 }
 
+function updateMobileControls() {
+  mobileControls.forEach((control) => {
+    control.hidden = !mobileCamera.matches;
+  });
+  updateMode();
+}
+
+if (
+  ["/recepcion", "/pages/recepcion.html"].includes(
+    window.location.pathname.replace(/\/$/, ""),
+  )
+) {
+  window.history.replaceState(
+    null,
+    "",
+    "/" + (window.location.hash || "#asistencia"),
+  );
+}
+window.addEventListener("hashchange", () => updateMode(true));
+mobileCamera.addEventListener("change", updateMobileControls);
+updateMobileControls();
 void init();
