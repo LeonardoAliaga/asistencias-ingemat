@@ -1,0 +1,19 @@
+:root {
+  --red: #b72107;
+  --red2: #941f0b;
+  --blue1: #174c8f;
+  --blue2: #103c73;
+  --ink: #172b4d;
+  --muted: #596b82;
+  --line: #dfe5ee;
+  --surface: #fff;
+  --canvas: #f5f7fb;
+  --focus: #2774c9;
+  --accent-soft: #fff0eb;
+  --accent-text: #9d260f;
+  --success: #187454;
+  --radius: 12px;
+  --shadow: 0 8px 32px #172b4d0a;
+  --font-body:
+    system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}

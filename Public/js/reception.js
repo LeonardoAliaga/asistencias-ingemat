@@ -14,8 +14,11 @@ const mobileCamera = window.matchMedia(
 );
 const mobileControls = document.querySelectorAll("[data-mobile-camera]");
 const homeTitle = document.title;
-const homepage = $("homepage");
+const homeIntro = $("home-intro");
 const receptionScreen = $("reception-screen");
+const navigation = $("navbar-menu");
+const navigationButtons = navigation.querySelectorAll("[data-view]");
+const informationLinks = navigation.querySelectorAll('a[href^="#"]');
 const codeInput = $("codigo");
 const searchInput = $("reception-student-search");
 const bookInput = $("codigo-libro-input");
@@ -458,7 +461,13 @@ function updateAccessLink() {
       : accessTarget;
 }
 
-function updateMode(moveFocus = false) {
+function focusSide() {
+  window.scrollTo(0, 0);
+  if (mode === "inicio") $("home-title").focus({ preventScroll: true });
+  else focusReception();
+}
+
+function updateMode(moveFocus = false, fromButton = false) {
   const previous = mode;
   const focused = document.activeElement;
   mode = getHashMode();
@@ -467,44 +476,52 @@ function updateMode(moveFocus = false) {
     mode = "asistencia";
   }
   const isHome = mode === "inicio";
+  const isLoan = mode === "prestamos";
   const hash = window.location.hash;
-  homepage.hidden = !isHome;
-  $("site-footer").hidden = !isHome;
+  homeIntro.hidden = !isHome;
   receptionScreen.hidden = isHome;
-  $("nav-reception").setAttribute("aria-pressed", String(!isHome));
-  const homeButton = $("btn-inicio");
-  if (isHome && (!hash || hash === "#inicio"))
-    homeButton.setAttribute("aria-current", "page");
-  else homeButton.removeAttribute("aria-current");
-  for (const link of $("navbar-menu").querySelectorAll('a[href^="#"]')) {
+  const navView = mode === "alumno" ? "asistencia" : mode;
+  for (const button of navigationButtons) {
+    if (
+      button.dataset.view === navView &&
+      (!isHome || !hash || hash === "#inicio")
+    )
+      button.setAttribute("aria-current", "page");
+    else button.removeAttribute("aria-current");
+  }
+  for (const link of informationLinks) {
     if (isHome && link.hash === hash)
       link.setAttribute("aria-current", "location");
     else link.removeAttribute("aria-current");
   }
-  document.title = isHome ? homeTitle : "Recepción · INGEMAT";
+  document.title = isHome
+    ? homeTitle
+    : `${isLoan ? "Préstamos" : "Asistencia"} · INGEMAT`;
   updateAccessLink();
-  if (previous === mode) return;
+  if (previous === mode) {
+    if (fromButton) focusSide();
+    return;
+  }
   if (previous === "camara") void camera.stop();
   if (previous === "alumno") studentSearch.close();
   if (previous === "prestamos") bookSearch.close();
   if (isHome) {
     if (moveFocus && previous) {
       const section = document.getElementById(hash.slice(1));
-      if (section && hash !== "#inicio" && homepage.contains(section)) {
+      if (section?.matches("#main-content > section")) {
         section.focus({ preventScroll: true });
         section.scrollIntoView();
       } else {
-        window.scrollTo(0, 0);
-        $("home-title").focus({ preventScroll: true });
+        focusSide();
       }
     }
     return;
   }
-  const isLoan = mode === "prestamos";
   $("attendance-view").hidden = isLoan;
   $("loans-view").hidden = !isLoan;
-  $("station-attendance-link").setAttribute("aria-pressed", String(!isLoan));
-  $("station-loans-link").setAttribute("aria-pressed", String(isLoan));
+  $("station-access-title").textContent = isLoan
+    ? "Inicia sesión para registrar préstamos"
+    : "Inicia sesión para registrar asistencia";
   const title = $("station-title");
   title.textContent = isLoan ? "Registrar préstamo" : "Registrar asistencia";
   $("station-intro").textContent = isLoan
@@ -518,10 +535,11 @@ function updateMode(moveFocus = false) {
   });
   if (
     moveFocus &&
-    (previous === "inicio" || (previous === "prestamos") !== isLoan)
+    (fromButton ||
+      previous === "inicio" ||
+      (previous === "prestamos") !== isLoan)
   ) {
-    window.scrollTo(0, 0);
-    focusReception();
+    focusSide();
   } else if (
     focused.closest('[role="tabpanel"][hidden], [data-method][hidden]')
   )
@@ -529,15 +547,14 @@ function updateMode(moveFocus = false) {
   loadCurrentForm();
 }
 
-function selectView(view) {
-  if (window.location.hash === `#${view}` && view === "inicio") {
-    window.scrollTo(0, 0);
-    $("home-title").focus({ preventScroll: true });
-  } else window.location.hash = view;
+function selectView(view, fromButton = false) {
+  const hash = `#${view}`;
+  if (window.location.hash !== hash) window.history.pushState(null, "", hash);
+  updateMode(true, fromButton);
 }
 
 document.querySelectorAll("button[data-view]").forEach((button) => {
-  button.addEventListener("click", () => selectView(button.dataset.view));
+  button.addEventListener("click", () => selectView(button.dataset.view, true));
 });
 
 tabs.forEach((tab) => {
@@ -578,14 +595,14 @@ async function init() {
     const user = session.usuario;
     if (!["admin", "recepcion"].includes(user?.role)) {
       showAccess(
-        "Una cuenta de Recepción o Administración puede registrar asistencias y préstamos.",
+        "Usa una cuenta autorizada para registrar asistencias y préstamos.",
         user ? "Cambiar de cuenta" : "Iniciar sesión",
       );
       return;
     }
     if (user.mustChangePassword) {
       showAccess(
-        "Cambia tu contraseña inicial en el panel para usar Recepción.",
+        "Cambia tu contraseña inicial en el panel para continuar.",
         "Ir al panel",
         "/admin",
       );

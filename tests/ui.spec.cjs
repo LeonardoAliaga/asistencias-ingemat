@@ -320,9 +320,24 @@ test("Recepción registra asistencia desde búsqueda inteligente por nombre o c�
   await page.evaluate(() => {
     window.homeDocument = true;
   });
+  await page.getByRole("button", { name: "Imagen siguiente" }).click();
+  const gallery = page.locator(".site-gallery");
+  const photo = await page.locator("#gallery-image").getAttribute("src");
+  const galleryPosition = await gallery.boundingBox();
   await page.click("#btn-asistencias");
   await expect(page).toHaveURL(/\/#asistencia$/);
-  await expect(page.locator("#homepage")).toBeHidden();
+  await expect(page.locator("#home-intro")).toBeHidden();
+  await expect(page.locator("#btn-asistencias")).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  await expect(page.locator("#ciclos")).toBeVisible();
+  await expect(gallery).toBeVisible();
+  await expect(page.locator("#gallery-image")).toHaveAttribute("src", photo);
+  expect((await gallery.boundingBox()).x).toBe(galleryPosition.x);
+  expect(galleryPosition.x + galleryPosition.width).toBeLessThan(
+    (await page.locator("#reception-screen").boundingBox()).x,
+  );
   await expect(page.locator("#method-camara")).toBeHidden();
   const codeTab = page.getByRole("tab", { name: "Código", exact: true });
   const studentTab = page.getByRole("tab", { name: "Buscar alumno" });
@@ -388,7 +403,7 @@ test("Recepción registra asistencia desde búsqueda inteligente por nombre o c�
   await studentTab.press("Home");
   await expect(codeTab).toBeFocused();
   await expect(page.locator("#codigo")).toBeVisible();
-  await page.getByRole("button", { name: "Volver al inicio" }).click();
+  await page.locator("#btn-inicio").click();
   await expect(
     page.getByRole("heading", { name: "Contigo hasta tu ingreso." }),
   ).toBeVisible();
@@ -408,7 +423,7 @@ test("public library returns to the loan form after reception login", async ({
   await page.click("#btn-prestamo-libros");
   await expect(page).toHaveURL(/\/#prestamos$/);
   await expect(page.locator("#station-access")).toContainText(
-    "Una cuenta de Recepción",
+    "Usa una cuenta autorizada",
   );
   await expect(page.locator("#loan-form")).toBeHidden();
   await expect(page.locator("#kiosk-status, #kiosk-pair-form")).toHaveCount(0);
@@ -555,6 +570,21 @@ test("homepage presents published cycles, manual gallery and accessible content 
     .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
     .analyze();
   expect(audit.violations.map(({ id }) => id)).toEqual([]);
+  const panel = page.getByRole("link", { name: "Panel", exact: true });
+  await expect(panel).toHaveAttribute("href", "/admin");
+  await expect(panel).toHaveCSS("background-color", "rgb(183, 33, 7)");
+  const getPalette = () =>
+    page.evaluate(() => {
+      const styles = getComputedStyle(document.body);
+      return [
+        styles.backgroundColor,
+        styles.color,
+        styles.getPropertyValue("--red").trim(),
+      ];
+    });
+  const homepagePalette = await getPalette();
+  await login(page, "recepcion");
+  expect(await getPalette()).toEqual(homepagePalette);
 });
 
 test.describe("Recepción en móvil táctil", () => {
@@ -601,6 +631,7 @@ test.describe("Recepción en móvil táctil", () => {
       });
     });
     await page.goto("/");
+    await page.locator("#navbar-toggle").click();
     await expect(page.locator("#btn-scan")).toBeVisible();
     await page.locator("#btn-scan").click();
     await expect(page).toHaveURL(/\/#camara$/);
@@ -634,7 +665,8 @@ test.describe("Recepción en móvil táctil", () => {
     await expect
       .poll(() => page.evaluate(() => typeof window.resolveReceptionCamera))
       .toBe("function");
-    await page.getByRole("button", { name: "Préstamos", exact: true }).click();
+    await page.locator("#navbar-toggle").click();
+    await page.locator("#btn-prestamo-libros").click();
     await expect(
       page.getByRole("heading", { name: "Registrar préstamo" }),
     ).toBeVisible();
@@ -645,7 +677,8 @@ test.describe("Recepción en móvil táctil", () => {
     await expect
       .poll(() => page.evaluate(() => window.receptionCameraStops))
       .toBe(2);
-    await page.getByRole("button", { name: "Asistencia", exact: true }).click();
+    await page.locator("#navbar-toggle").click();
+    await page.locator("#btn-asistencias").click();
     await page.evaluate(() =>
       Object.defineProperty(window, "isSecureContext", { value: false }),
     );
@@ -1745,7 +1778,7 @@ test("custom template starts clean and confirms before discarding configuration"
 });
 
 for (const width of [390, 768, 950]) {
-  test(`public menu opens and reaches Reception under CSP at ${width}px`, async ({
+  test(`public menu opens and reaches Asistencia under CSP at ${width}px`, async ({
     page,
   }) => {
     await page.setViewportSize({ width, height: 844 });
@@ -1782,16 +1815,20 @@ for (const width of [390, 768, 950]) {
     await page.setViewportSize({ width, height: 844 });
     await expect(button).toHaveAttribute("aria-expanded", "false");
     await expect(menu).toBeHidden();
-    // The short landscape viewport must let reception reach the last link.
+    // The menu remains scrollable in a short landscape viewport.
     await page.setViewportSize({ width, height: 280 });
     await button.click();
     await page.locator('#navbar-menu a[href="#sobre-nosotros"]').click();
     await expect(menu).toBeHidden();
+    await button.click();
     await expect(page.locator("#btn-scan")).toBeHidden();
-    await page.locator("#nav-reception").click();
+    await page.locator("#btn-asistencias").click();
+    await expect(menu).toBeHidden();
     await expect(page).toHaveURL(/\/#asistencia$/);
     await expect(
-      page.getByRole("heading", { name: "Acceso a Recepción" }),
+      page.getByRole("heading", {
+        name: "Inicia sesión para registrar asistencia",
+      }),
     ).toBeVisible();
     expect(violations).toEqual([]);
   });

@@ -64,7 +64,7 @@ Registra ingresos con una cuenta autorizada y permisos limitados.
 
 1. **Crea una cuenta de recepción.** En Cuentas y respaldo, un administrador crea una cuenta individual con rol Recepción para el encargado.
 2. **Inicia sesión.** Abre /admin e ingresa el usuario y contraseña de recepción. Cambia la contraseña inicial cuando se solicite.
-3. **Abre Recepción.** Abre la página principal en el mismo navegador y pulsa Asistencia o Préstamos en Recepción. También puedes pulsar Abrir recepción desde el panel.
+3. **Abre Asistencia o Préstamos.** Abre la página principal en el mismo navegador y elige Asistencia o Préstamos desde la barra de navegación. También puedes pulsar Abrir asistencia desde el panel.
 4. **Registra y comprueba.** Escanea el carnet o escribe el código del alumno. Revisa la confirmación, hora y estado; los ingresos duplicados para el mismo turno se rechazan.
 5. **Protege la cuenta.** El rol Recepción permite gestionar asistencias y biblioteca, pero no acceder a simulacros. Cierra la sesión al terminar; un administrador puede desactivar la cuenta.
 

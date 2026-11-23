@@ -7,27 +7,16 @@
   src: url("/fonts/coolvetica rg.otf");
 }
 :root {
-  --red: #b72107;
-  --red2: #941f0b;
-  --black: #172b4d;
-  --white1: #fff;
+  --black: var(--ink);
+  --white1: var(--surface);
   --white2: #e3e8ef;
-  --blue1: #174c8f;
-  --blue2: #103c73;
-  --font-body:
-    system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-heading: var(--font-body);
   --color-primario: var(--red);
   --color-secundario: var(--black);
-  --color-fondo: #f5f7fb;
-  --color-card: #fff;
-  --color-exito: #187454;
-  --color-error: #b72107;
-  --ink: #172b4d;
-  --muted: #596b82;
-  --line: #dfe5ee;
-  --surface: #fff;
-  --canvas: #f5f7fb;
+  --color-fondo: var(--canvas);
+  --color-card: var(--surface);
+  --color-exito: var(--success);
+  --color-error: var(--red);
   --sidebar: 252px;
   --space-1: 4px;
   --space-2: 8px;
@@ -35,8 +24,6 @@
   --space-4: 16px;
   --space-5: 24px;
   --space-6: 32px;
-  --radius: 12px;
-  --shadow: 0 8px 32px #172b4d0a;
 }
 * {
   box-sizing: border-box;
@@ -94,7 +81,7 @@ select:focus-visible,
 textarea:focus-visible,
 summary:focus-visible,
 [tabindex]:focus-visible {
-  outline: 3px solid #2774c9;
+  outline: 3px solid var(--focus);
   outline-offset: 3px;
 }
 h1,
@@ -376,12 +363,12 @@ form > button[type="submit"]:hover {
   color: var(--ink);
 }
 .nav-item[aria-current="page"] {
-  background: #fff0eb;
-  color: #9d260f;
+  background: var(--accent-soft);
+  color: var(--accent-text);
   font-weight: 650;
 }
 .nav-item[aria-current="page"] i {
-  color: #b72107;
+  color: var(--red);
 }
 .sidebar-footer {
   padding: 12px;

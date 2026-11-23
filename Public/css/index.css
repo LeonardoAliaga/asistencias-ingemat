@@ -1,18 +1,8 @@
 :root {
   color-scheme: light;
-  --ink: #241f24;
-  --muted: #5f575e;
-  --brand: #a12415;
-  --brand-hover: #861a0e;
-  --brand-wash: #faeae6;
-  --canvas: #f7f5f2;
-  --line: #e8e1df;
-  --focus: #1a62a4;
-  --radius: 20px;
-  --shadow: 0 6px 24px #39222709;
+  --control-border: #8494aa;
   --header-height: 76px;
 }
-
 * {
   box-sizing: border-box;
 }
@@ -24,12 +14,7 @@
 body {
   margin: 0;
   min-block-size: 100vh;
-  font:
-    1rem/1.55 system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
+  font: 1rem/1.55 var(--font-body);
   background: var(--canvas);
   color: var(--ink);
 }
@@ -70,12 +55,13 @@ h1[tabindex="-1"]:focus {
   outline: none;
 }
 
-#homepage section[id] {
+#inicio,
+#main-content > section[id] {
   scroll-margin-block-start: calc(var(--header-height) + 18px);
 }
 
 .site-shell {
-  inline-size: min(calc(100% - clamp(32px, 7vw, 80px)), 1128px);
+  inline-size: min(calc(100% - clamp(32px, 7vw, 88px)), 1200px);
   margin-inline: auto;
 }
 
@@ -113,7 +99,7 @@ h1[tabindex="-1"]:focus {
 
 .site-header-inner {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 18px;
   min-block-size: var(--header-height);
@@ -147,13 +133,13 @@ h1[tabindex="-1"]:focus {
 
 .site-navigation ul {
   display: flex;
+  justify-content: center;
   gap: 3px;
   align-items: center;
 }
 
 .site-navigation a,
 .site-navigation button,
-.site-reception-button,
 .site-icon-button,
 .site-text-link,
 .site-button {
@@ -180,26 +166,8 @@ h1[tabindex="-1"]:focus {
 .site-navigation :is(a, button):hover,
 .site-navigation [aria-current="page"],
 .site-navigation [aria-current="location"] {
-  color: var(--brand);
-  background: #f9f4f2;
-}
-
-.site-navigation .site-panel-link {
-  color: var(--ink);
-}
-
-.site-reception-button {
-  padding: 8px 13px;
-  color: var(--brand);
-  background: #fff;
-  border-color: #e6c6bd;
-  font-size: 0.91rem;
-  white-space: nowrap;
-}
-
-.site-reception-button:hover,
-.site-reception-button[aria-pressed="true"] {
-  background: var(--brand-wash);
+  color: var(--accent-text);
+  background: var(--accent-soft);
 }
 
 .site-icon-button {
@@ -211,7 +179,7 @@ h1[tabindex="-1"]:focus {
 }
 
 .site-icon-button:hover {
-  background: #f8f4f2;
+  background: var(--canvas);
 }
 
 .site-menu-toggle {
@@ -220,34 +188,43 @@ h1[tabindex="-1"]:focus {
 }
 
 .site-hero {
-  background: radial-gradient(ellipse at 83% 0%, #f2e4df, transparent 65%);
+  background: radial-gradient(ellipse at 15% 0%, #e6eef9, transparent 65%);
 }
 
 .site-hero-inner {
   display: grid;
-  grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
-  align-items: center;
-  gap: clamp(30px, 6vw, 76px);
-  padding-block: clamp(32px, 5vw, 66px) clamp(28px, 4vw, 52px);
+  grid-template-columns: minmax(0, 0.94fr) minmax(0, 1.06fr);
+  grid-template-areas: "gallery content";
+  align-items: start;
+  gap: clamp(22px, 4vw, 58px);
+  padding-block: clamp(24px, 4vw, 52px) clamp(24px, 4vw, 44px);
+}
+
+.site-side {
+  grid-area: content;
+  display: grid;
+  align-content: center;
+  align-self: stretch;
+  min-inline-size: 0;
 }
 
 .site-hero-label {
-  color: var(--brand);
+  color: var(--red);
   font-size: 0.95rem;
   font-weight: 720;
 }
 
-.site-hero h1 {
+.site-hero-copy h1 {
   margin-block-start: 15px;
-  font-size: clamp(3rem, 6vw, 5.45rem);
+  font-size: clamp(2.55rem, 5.65vw, 5.1rem);
   font-weight: 790;
   letter-spacing: -0.067em;
   line-height: 0.99;
 }
 
-.site-hero h1 span {
+.site-hero-copy h1 span {
   display: block;
-  color: var(--brand);
+  color: var(--red);
 }
 
 .site-hero-description {
@@ -270,31 +247,38 @@ h1[tabindex="-1"]:focus {
 }
 
 .site-button-primary {
-  background: var(--brand);
+  background: var(--red);
   color: #fff;
 }
 
 .site-button-primary:hover {
-  background: var(--brand-hover);
+  background: var(--red2);
 }
 
 .site-button-secondary {
-  border-color: #a69a9e;
-  background: #fff;
+  border-color: var(--control-border);
+  background: var(--surface);
   color: var(--ink);
 }
 
 .site-button-secondary:hover {
-  background: #fbf4f1;
+  background: var(--canvas);
+}
+
+.site-panel-button {
+  min-block-size: 44px;
+  white-space: nowrap;
+  font-size: 0.92rem;
 }
 
 .site-gallery {
+  grid-area: gallery;
   min-inline-size: 0;
   overflow: hidden;
-  border: 1px solid #422c35;
+  border: 1px solid #2b4569;
   border-radius: var(--radius);
-  background: #30252e;
-  box-shadow: 0 13px 36px #3b25252b;
+  background: var(--ink);
+  box-shadow: 0 13px 36px #172b4d30;
   color: #fff;
 }
 
@@ -302,7 +286,7 @@ h1[tabindex="-1"]:focus {
   display: grid;
   place-items: center;
   aspect-ratio: 1.15;
-  background: radial-gradient(ellipse at 50% 34%, #62424b, #30252e 80%);
+  background: radial-gradient(ellipse at 50% 34%, #335683, var(--ink) 80%);
 }
 
 .site-gallery-image img {
@@ -321,7 +305,7 @@ h1[tabindex="-1"]:focus {
   align-items: center;
   gap: 6px 10px;
   min-block-size: 60px;
-  border-block-start: 1px solid #5c4853;
+  border-block-start: 1px solid #3e5372;
   padding: 7px 13px 7px 16px;
 }
 
@@ -334,7 +318,7 @@ h1[tabindex="-1"]:focus {
 }
 
 .site-gallery-label i {
-  color: #f7c1b7;
+  color: #c0d6f2;
 }
 
 .site-gallery-controls {
@@ -344,100 +328,23 @@ h1[tabindex="-1"]:focus {
 }
 
 .site-gallery-controls .site-icon-button {
-  border-color: #826b77;
+  border-color: #7186a4;
 }
 
 .site-gallery-controls .site-icon-button:hover {
-  background: #604953;
+  background: #304b70;
 }
 
 .site-gallery-controls :focus-visible {
-  outline-color: #ffdbcf;
+  outline-color: #c6e0ff;
 }
 
 #gallery-position {
   min-inline-size: 3ch;
   text-align: center;
-  color: #eee4e9;
+  color: #e2ebf7;
   font-size: 0.83rem;
   font-variant-numeric: tabular-nums;
-}
-
-.site-quick {
-  display: grid;
-  grid-template-columns: minmax(132px, 0.34fr) minmax(0, 1.66fr);
-  gap: 18px;
-  align-items: center;
-  padding: clamp(15px, 3vw, 23px);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: #fff;
-  box-shadow: var(--shadow);
-}
-
-.site-quick h2 {
-  font-size: clamp(1.25rem, 2.15vw, 1.65rem);
-  line-height: 1.15;
-}
-
-.site-quick-heading p {
-  margin-block-start: 4px;
-  color: var(--muted);
-  font-size: 0.92rem;
-}
-
-.site-quick-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.site-quick-actions button {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  min-inline-size: 0;
-  gap: 10px;
-  padding: 11px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: #fcfaf9;
-  color: var(--ink);
-  text-align: start;
-}
-
-.site-quick-actions button:hover {
-  border-color: #cc978c;
-  background: #fff5f2;
-}
-
-.site-quick-icon {
-  display: grid;
-  place-items: center;
-  flex: 0 0 38px;
-  block-size: 38px;
-  border-radius: 10px;
-  background: var(--brand-wash);
-  color: var(--brand);
-}
-
-.site-quick-actions strong,
-.site-quick-actions small {
-  display: block;
-}
-
-.site-quick-actions strong {
-  font-size: 0.96rem;
-}
-
-.site-quick-actions small {
-  color: var(--muted);
-  font-size: 0.81rem;
-  line-height: 1.4;
-}
-
-.site-quick-actions button > i {
-  margin-inline-start: auto;
-  color: var(--brand);
 }
 
 .site-section {
@@ -469,7 +376,7 @@ h1[tabindex="-1"]:focus {
   gap: 7px;
   padding: 0;
   background: transparent;
-  color: var(--brand);
+  color: var(--red);
   font-size: 0.92rem;
 }
 
@@ -481,7 +388,7 @@ h1[tabindex="-1"]:focus {
 .site-cycles-status:not(:empty) {
   padding: 19px 21px;
   border-radius: 12px;
-  border: 1px dashed #aa9a9c;
+  border: 1px dashed var(--control-border);
   color: var(--muted);
   background: #fff;
 }
@@ -534,7 +441,7 @@ h1[tabindex="-1"]:focus {
 }
 
 .ciclo-card li i {
-  color: var(--brand);
+  color: var(--red);
 }
 
 .ciclo-card-footer {
@@ -564,14 +471,14 @@ h1[tabindex="-1"]:focus {
 .ciclo-price-tag {
   padding: 3px 7px;
   border-radius: 6px;
-  color: var(--brand);
-  background: var(--brand-wash);
+  color: var(--red);
+  background: var(--accent-soft);
   font-size: 0.8rem;
 }
 
 .site-academy {
   border-block: 1px solid var(--line);
-  background: #f2ede9;
+  background: #edf2f8;
 }
 
 .site-feature-grid {
@@ -581,7 +488,7 @@ h1[tabindex="-1"]:focus {
 }
 
 .site-feature-grid li > i {
-  color: var(--brand);
+  color: var(--red);
   font-size: 1.4rem;
 }
 
@@ -597,7 +504,7 @@ h1[tabindex="-1"]:focus {
   gap: 13px 23px;
   margin-block-start: 25px;
   padding-block-start: 18px;
-  border-block-start: 1px solid #ddd3ce;
+  border-block-start: 1px solid var(--line);
 }
 
 .site-institutions h3 {
@@ -635,7 +542,7 @@ h1[tabindex="-1"]:focus {
 }
 
 .site-visit address i {
-  color: var(--brand);
+  color: var(--red);
 }
 
 .site-visit iframe {
@@ -644,7 +551,7 @@ h1[tabindex="-1"]:focus {
   block-size: clamp(240px, 34vw, 325px);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: #efe7e4;
+  background: #e6edf6;
 }
 
 .site-footer {
@@ -677,7 +584,7 @@ h1[tabindex="-1"]:focus {
 }
 
 .site-footer a:hover {
-  color: var(--brand);
+  color: var(--red);
   text-decoration: underline;
 }
 
@@ -720,6 +627,7 @@ h1[tabindex="-1"]:focus {
 
   .site-navigation ul {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .site-navigation :is(a, button) {
@@ -727,27 +635,32 @@ h1[tabindex="-1"]:focus {
     inline-size: 100%;
   }
 
-  .site-quick {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-
   .site-feature-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
+@media (min-width: 761px) and (min-height: 650px) {
+  .site-gallery {
+    position: sticky;
+    inset-block-start: calc(var(--header-height) + 20px);
+  }
+}
+
+@media (max-width: 760px) {
+  .site-hero-inner {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "content" "gallery";
+    gap: 24px;
+  }
+}
+
 @media (max-width: 670px) {
-  .site-hero-inner,
   .site-visit {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .site-hero-inner {
-    gap: 24px;
-  }
-
-  .site-hero h1 {
+  .site-hero-copy h1 {
     margin-block-start: 9px;
   }
 
@@ -757,10 +670,6 @@ h1[tabindex="-1"]:focus {
 
   .site-actions {
     margin-block-start: 17px;
-  }
-
-  .site-quick-actions {
-    flex-direction: column;
   }
 
   .site-footer-inner {
@@ -798,9 +707,7 @@ h1[tabindex="-1"]:focus {
   }
 
   .site-navigation :is(a, button),
-  .site-quick-actions button,
-  .site-button,
-  .site-reception-button {
+  .site-button {
     transition:
       background-color 160ms ease,
       border-color 160ms ease,
