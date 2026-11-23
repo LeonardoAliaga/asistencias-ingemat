@@ -99,6 +99,7 @@ h1[tabindex="-1"]:focus {
 }
 
 .site-header {
+  --page-gutter: clamp(20px, 4.5vw, 72px);
   position: sticky;
   z-index: 10;
   inset-block-start: 0;
@@ -190,7 +191,6 @@ h1[tabindex="-1"]:focus {
   padding: 8px;
   color: inherit;
   background: transparent;
-  border-color: var(--line);
 }
 
 .site-icon-button:hover {
@@ -224,7 +224,7 @@ h1[tabindex="-1"]:focus {
 .site-hero-background::after {
   position: absolute;
   inset: 0;
-  background: rgb(14 30 55 / 12%);
+  background: rgb(30 96 192 / 12%);
   content: "";
 }
 
@@ -275,26 +275,7 @@ h1[tabindex="-1"]:focus {
   min-inline-size: 0;
 }
 
-.site-hero-copy h1,
-.site-hero .station-heading h1 {
-  paint-order: stroke fill;
-  -webkit-text-stroke: 2px rgb(8 19 32 / 85%);
-  text-shadow: 0 1px 2px rgb(8 19 32 / 65%);
-}
-
-.site-hero-label,
-.site-hero-description,
-.site-hero .station-heading p,
-.site-gallery-label {
-  inline-size: fit-content;
-  max-inline-size: 100%;
-  padding: 0.15em 0.5em;
-  border-radius: 4px;
-  background: rgb(8 19 32 / 64%);
-}
-
 .site-hero-label {
-  background: rgb(8 19 32 / 91%);
   color: var(--hero-red);
   font-size: 0.95rem;
   font-weight: 720;
@@ -321,8 +302,9 @@ h1[tabindex="-1"]:focus {
   color: #eaf2fc;
 }
 
-.site-hero-copy .site-button-primary {
-  border-color: #ffffff88;
+.site-header :is(button, nav a, .site-button),
+.site-hero :is(button, .site-button, .station-primary, .station-secondary) {
+  border: 0;
 }
 
 .site-hero-copy :focus-visible {
@@ -452,7 +434,6 @@ h1[tabindex="-1"]:focus {
 }
 
 .site-hero-controls .site-icon-button {
-  border-color: #b4c6e0;
   background: #172b4dd9;
   color: #fff;
 }
