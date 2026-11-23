@@ -62,7 +62,12 @@
           const data = await res.json();
           if (!res.ok || !data.exito)
             throw new Error(data.mensaje || "No se pudo iniciar sesión.");
-          window.location.assign("/admin");
+          const openReception =
+            new URLSearchParams(window.location.search).get("destino") ===
+              "recepcion" && !data.mustChangePassword;
+          window.location.assign(
+            openReception ? "/recepcion" + window.location.hash : "/admin",
+          );
         } catch (error) {
           message.textContent = error.message;
           message.hidden = false;

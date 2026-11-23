@@ -219,6 +219,9 @@ function createApp() {
     );
   };
   app.get(["/admin", "/pages/admin.html"], adminPage);
+  app.get("/recepcion", (req, res) =>
+    res.sendFile(path.join(__dirname, "Public/pages/recepcion.html")),
+  );
   app.get("/vendor/purify.min.js", (req, res) =>
     res.sendFile(
       path.join(__dirname, "node_modules/dompurify/dist/purify.min.js"),

@@ -1817,7 +1817,7 @@ body[data-account-role="docente"] .btn-delete-seccion {
 .manual-student-search .student-autocomplete-item.active {
   background: #edf3fc;
 }
-.manual-student-search .manual-student-empty { color: var(--muted); cursor: default; }
+.manual-student-search .suggestion-detail { display: block; color: var(--muted); font-size: .86em; }
 #v2-manual-student-selected:not(:empty) { color: #17633b; font-weight: 600; }
 
 /* Edición de apoderados dentro del formulario de usuario. */

@@ -186,8 +186,8 @@
           "text": "Abre /admin e ingresa el usuario y contraseña de recepción. Cambia la contraseña inicial cuando se solicite."
         },
         {
-          "title": "Abre el registro público",
-          "text": "En el mismo navegador, abre la página principal y pulsa Asistencias. La sesión de la cuenta autoriza el registro de ingresos."
+          "title": "Abre Recepción",
+          "text": "Pulsa Abrir recepción en el panel o visita /recepcion en el mismo navegador. Desde allí puedes registrar asistencias y préstamos."
         },
         {
           "title": "Registra y comprueba",
@@ -204,19 +204,19 @@
       "id": "asistencia",
       "category": "Asistencia",
       "title": "Registrar ingresos sin duplicados",
-      "summary": "Usa código, lector USB o cámara.",
+      "summary": "Registra desde el carné o busca al estudiante por nombre.",
       "steps": [
         {
           "title": "Abre el registro",
-          "text": "En la página pública pulsa Asistencias o el lector con cámara. Inicia sesión antes con una cuenta de administración o recepción en el mismo navegador."
+          "text": "Abre Recepción desde el panel o pulsa Asistencias en la página principal. Inicia sesión con una cuenta de Administración o Recepción."
         },
         {
-          "title": "Introduce el código",
-          "text": "Escríbelo o usa un lector USB. El sistema identifica por código, no por nombre."
+          "title": "Elige el método de registro",
+          "text": "En Código, escribe el código del carné o usa el lector USB. Si no tienes el carné, abre Buscar alumno, escribe el nombre o apellido y elige una coincidencia. Para leer un carné con el móvil, abre Cámara y pulsa Activar cámara."
         },
         {
           "title": "Comprueba el resultado",
-          "text": "Revisa nombre, ciclo, turno y hora. La fecha y hora se calculan en America/Lima."
+          "text": "Revisa el nombre, la hora y el estado del ingreso en Resultado de asistencia. La fecha y hora se calculan en America/Lima."
         },
         {
           "title": "Evita registros repetidos",
@@ -232,6 +232,7 @@
         }
       ],
       "tips": [
+        "El navegador exige una conexión HTTPS para activar la cámara desde otro equipo en la red. El registro por código está disponible desde la misma página.",
         "Un aviso en cola no equivale a un mensaje entregado. Consulta Comunicación para comprobar el estado.",
         "Para enviar el reporte al grupo del ciclo, selecciona un ciclo con grupo configurado en Comunicación. Enviar reporte del día usa la fecha y turno seleccionados; puedes escoger imagen o PDF. No se envía automáticamente por abrir la lista."
       ]

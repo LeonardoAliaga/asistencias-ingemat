@@ -64,21 +64,22 @@ Registra ingresos con una cuenta autorizada y permisos limitados.
 
 1. **Crea una cuenta de recepción.** En Cuentas y respaldo, un administrador crea una cuenta individual con rol Recepción para el encargado.
 2. **Inicia sesión.** Abre /admin e ingresa el usuario y contraseña de recepción. Cambia la contraseña inicial cuando se solicite.
-3. **Abre el registro público.** En el mismo navegador, abre la página principal y pulsa Asistencias. La sesión de la cuenta autoriza el registro de ingresos.
+3. **Abre Recepción.** Pulsa Abrir recepción en el panel o visita /recepcion en el mismo navegador. Desde allí puedes registrar asistencias y préstamos.
 4. **Registra y comprueba.** Escanea el carnet o escribe el código del alumno. Revisa la confirmación, hora y estado; los ingresos duplicados para el mismo turno se rechazan.
 5. **Protege la cuenta.** El rol Recepción permite gestionar asistencias y biblioteca, pero no acceder a simulacros. Cierra la sesión al terminar; un administrador puede desactivar la cuenta.
 
 ## Registrar ingresos sin duplicados
 
-Usa código, lector USB o cámara.
+Registra desde el carné o busca al estudiante por nombre.
 
-1. **Abre el registro.** En la página pública pulsa Asistencias o el lector con cámara. Inicia sesión antes con una cuenta de administración o recepción en el mismo navegador.
-2. **Introduce el código.** Escríbelo o usa un lector USB. El sistema identifica por código, no por nombre.
-3. **Comprueba el resultado.** Revisa nombre, ciclo, turno y hora. La fecha y hora se calculan en America/Lima.
+1. **Abre el registro.** Abre Recepción desde el panel o pulsa Asistencias en la página principal. Inicia sesión con una cuenta de Administración o Recepción.
+2. **Elige el método de registro.** En Código, escribe el código del carné o usa el lector USB. Si no tienes el carné, abre Buscar alumno, escribe el nombre o apellido y elige una coincidencia. Para leer un carné con el móvil, abre Cámara y pulsa Activar cámara.
+3. **Comprueba el resultado.** Revisa el nombre, la hora y el estado del ingreso en Resultado de asistencia. La fecha y hora se calculan en America/Lima.
 4. **Evita registros repetidos.** Una segunda lectura del mismo usuario, fecha y turno informa que ya existe un ingreso.
 5. **Continúa aunque falle Internet.** La asistencia se guarda en SQLite. Los avisos quedan en cola y se envían cuando WhatsApp vuelva a estar disponible.
 6. **Consulta la lista.** En Asistencia filtra por fecha, ciclo y turno. Descarga Excel o pulsa Copiar imagen para pegar el reporte PNG con Ctrl+V. Administración y Recepción pueden pulsar la papelera de una fila y confirmar para eliminar un registro incorrecto. Se actualizan los reportes, se cancelan sus avisos pendientes y queda constancia en auditoría; los mensajes ya enviados no se retiran.
 
+- El navegador exige una conexión HTTPS para activar la cámara desde otro equipo en la red. El registro por código está disponible desde la misma página.
 - Un aviso en cola no equivale a un mensaje entregado. Consulta Comunicación para comprobar el estado.
 - Para enviar el reporte al grupo del ciclo, selecciona un ciclo con grupo configurado en Comunicación. Enviar reporte del día usa la fecha y turno seleccionados; puedes escoger imagen o PDF. No se envía automáticamente por abrir la lista.
 

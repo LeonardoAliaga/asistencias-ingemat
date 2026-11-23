@@ -312,52 +312,80 @@ test("legacy user and library forms still save once after repeated navigation", 
     "Física: edición corregida",
   );
 });
-test("Recepción registra asistencia desde búsqueda inteligente por nombre o código", async ({ page }) => {
+test("Recepción registra asistencia desde búsqueda inteligente por nombre o código", async ({
+  page,
+}) => {
   await login(page, "recepcion");
-  await page.goto("/");
+  await page.goto("/", { waitUntil: "domcontentloaded" });
   await page.click("#btn-asistencias");
-  const toggle=page.locator("#reception-search-toggle");
-  const panel=page.locator("#reception-search-panel");
-  await expect(panel).toBeHidden();
-  const studentsResponse = page.waitForResponse(r => r.url().endsWith("/api/v2/attendance/students"));
-  await toggle.click();
+  await expect(page).toHaveURL(/\/recepcion$/);
+  const codeTab = page.getByRole("tab", { name: "Código", exact: true });
+  const studentTab = page.getByRole("tab", { name: "Buscar alumno" });
+  const search = page.getByRole("combobox", {
+    name: "Nombre, apellido o código",
+  });
+  await expect(search).toBeHidden();
+  const studentsResponse = page.waitForResponse((r) =>
+    r.url().endsWith("/api/v2/attendance/students"),
+  );
+  await codeTab.press("ArrowRight");
+  await expect(studentTab).toBeFocused();
+  await expect(studentTab).toHaveAttribute("aria-selected", "true");
   const studentsRead = await studentsResponse;
   expect(studentsRead.status()).toBe(200);
-  expect((await studentsRead.json()).some(s => s.codigo === "DEMO003")).toBe(true);
-  await expect(panel).toBeVisible();
-  await expect(toggle).toHaveAttribute("data-ready", "true");
-  const search=page.locator("#reception-student-search");
+  expect((await studentsRead.json()).some((s) => s.codigo === "DEMO003")).toBe(
+    true,
+  );
   await search.fill("fernandez maria");
-  await expect(page.locator('#reception-student-results [data-code="DEMO003"]')).toBeVisible();
-  await page.locator('#reception-student-results [data-code="DEMO003"]').click();
-  const register=page.locator("#reception-register-student");
+  const suggestion = page.getByRole("option", { name: /FERNÁNDEZ.*DEMO003/ });
+  await expect(suggestion).toBeVisible();
+  await suggestion.click();
+  const register = page.locator("#reception-register-student");
   await expect(register).toBeEnabled();
   await expect(page.locator("#reception-student-code")).toHaveValue("DEMO003");
   await search.fill("no existe");
   await expect(register).toBeDisabled();
+  await expect(page.locator("#reception-student-selected")).toContainText(
+    "No hay estudiantes",
+  );
   await search.fill("DEMO003");
+  await search.press("ArrowDown");
+  await expect(suggestion).toHaveAttribute("aria-selected", "true");
+  await search.press("Escape");
+  await expect(search).toBeFocused();
+  await expect(search).toHaveAttribute("aria-expanded", "false");
   await search.press("ArrowDown");
   await search.press("Enter");
   await expect(register).toBeEnabled();
-  let requestData=null;
+  let requestData;
   await page.route("**/api/registrar", (r) => {
-    requestData=r.request().postDataJSON();
-    return r.fulfill({ json: {
-      exito:true,rol:"estudiante",ciclo:"ANUAL",turno:"tarde",
-      nombre:"FERNÁNDEZ DE LA CRUZ MARÍA FERNANDA",hora:"10:00",estado:"puntual",
-    } });
+    requestData = r.request().postDataJSON();
+    return r.fulfill({
+      json: {
+        exito: true,
+        rol: "estudiante",
+        ciclo: "ANUAL",
+        turno: "tarde",
+        nombre: "FERNÁNDEZ DE LA CRUZ MARÍA FERNANDA",
+        hora: "10:00",
+        estado: "puntual",
+      },
+    });
   });
   await register.click();
-  expect(requestData).toEqual({codigo:"DEMO003"});
-  await expect(page.locator("#resultado")).toContainText("registrado");
+  await expect(page.locator("#resultado")).toContainText(
+    "Asistencia registrada",
+  );
+  expect(requestData).toEqual({ codigo: "DEMO003" });
   await expect(search).toHaveValue("");
+  await expect(search).toBeFocused();
   await expect(register).toBeDisabled();
-  await toggle.click();
-  await expect(panel).toBeHidden();
-  await expect(page.locator("#codigo")).toBeFocused();
+  await studentTab.press("Home");
+  await expect(codeTab).toBeFocused();
+  await expect(page.locator("#codigo")).toBeVisible();
 });
 
-test("public library explains account access without reception pairing", async ({
+test("public library returns to the loan form after reception login", async ({
   page,
 }) => {
   const errors = [];
@@ -365,11 +393,166 @@ test("public library explains account access without reception pairing", async (
   await page.route("https://www.google.com/**", (route) => route.abort());
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await page.click("#btn-prestamo-libros");
-  await expect(page.locator(".box-header")).toContainText(
-    "Una cuenta de recepción",
+  await expect(page).toHaveURL(/\/recepcion#prestamos$/);
+  await expect(page.locator("#station-access")).toContainText(
+    "Una cuenta de Recepción",
   );
+  await expect(page.locator("#loan-form")).toBeHidden();
   await expect(page.locator("#kiosk-status, #kiosk-pair-form")).toHaveCount(0);
+  await page.getByRole("link", { name: "Iniciar sesión" }).click();
+  await page.getByLabel("Usuario").fill("recepcion");
+  await page.getByLabel("Contraseña").fill("Browser-test-only-2026");
+  await page.getByRole("button", { name: "Iniciar sesión" }).click();
+  await expect(page).toHaveURL(/\/recepcion#prestamos$/);
+  const book = page.getByRole("combobox", { name: "Libro" });
+  const borrower = page.getByLabel("Código del estudiante");
+  await book.fill("editorial de demostracion");
+  await expect(page.getByRole("option", { name: /MAT-001/ })).toBeVisible();
+  await book.press("ArrowDown");
+  await book.press("Enter");
+  await expect(book).toHaveValue("MAT-001");
+  await expect(borrower).toBeFocused();
+  await borrower.fill("demo001");
+  await borrower.press("Enter");
+  await expect(page.locator("#resultado-prestamo")).toContainText(
+    "Préstamo registrado",
+  );
+  await expect(page.locator("#resultado-prestamo")).toContainText(
+    "ALUMNO ANA DEMO",
+  );
+  await expect(book).toHaveValue("");
+  await expect(book).toBeFocused();
   expect(errors).toEqual([]);
+});
+
+test("reception reflows at 320px, reports errors and honors reduced motion", async ({
+  page,
+}) => {
+  await login(page, "recepcion");
+  await page.setViewportSize({ width: 320, height: 760 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/recepcion");
+  const code = page.getByRole("textbox", { name: "Código del carné" });
+  const register = page.getByRole("button", { name: "Registrar asistencia" });
+  await expect(code).toBeVisible();
+  expect(await page.locator("header img").getAttribute("src")).toBe(
+    "/img/logo-examen.png",
+  );
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(
+    320,
+  );
+  expect((await register.boundingBox()).height).toBeGreaterThanOrEqual(44);
+  await register.click();
+  await expect(code).toBeFocused();
+  await expect(code).toHaveAttribute("aria-invalid", "true");
+  await expect(code).toHaveAccessibleDescription(/Ingresa el código del carné/);
+  await code.fill("demo003");
+  await code.press("Enter");
+  const feedback = page.locator("#resultado");
+  await expect(feedback).toContainText("Ya existe un registro");
+  await expect(feedback).toHaveAttribute("role", "status");
+  await expect(code).toHaveValue("demo003");
+  await expect(code).toBeFocused();
+  const animation = await feedback
+    .locator(".station-result-content")
+    .evaluate((element) => getComputedStyle(element).animationName);
+  expect(animation).toBe("none");
+  const audit = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
+    .analyze();
+  expect(audit.violations.map(({ id }) => id)).toEqual([]);
+});
+
+test("reception camera loads on request and releases when changing methods", async ({
+  page,
+}) => {
+  await login(page, "recepcion");
+  await page.setViewportSize({ width: 390, height: 844 });
+  let libraryRequests = 0;
+  await page.route("**/vendor/html5-qrcode.min.js", (route) => {
+    libraryRequests++;
+    return route.fulfill({
+      contentType: "application/javascript",
+      body: `window.Html5Qrcode = class {
+        async start(config, options, onCode) {
+          window.readReceptionCode = onCode;
+          if (window.delayReceptionCamera)
+            await new Promise(resolve => { window.resolveReceptionCamera = resolve; });
+        }
+        async stop() {
+          window.receptionCameraStops = (window.receptionCameraStops || 0) + 1;
+        }
+        clear() {}
+      }`,
+    });
+  });
+  let reads = 0;
+  await page.route("**/api/registrar", (route) => {
+    reads++;
+    expect(route.request().postDataJSON()).toEqual({ codigo: "DOC001" });
+    return route.fulfill({
+      json: {
+        exito: true,
+        rol: "docente",
+        estado: "registrado",
+        nombre: "PROFESOR DEMO CARLOS",
+        hora: "10:00",
+      },
+    });
+  });
+  await page.goto("/recepcion#camara");
+  const start = page.getByRole("button", { name: "Activar cámara" });
+  await expect(start).toBeVisible();
+  expect(libraryRequests).toBe(0);
+  await start.click();
+  await expect(page.locator("#camera-status")).toContainText("Cámara activa");
+  await page.evaluate(() => {
+    window.readReceptionCode("doc001");
+    window.readReceptionCode("doc001");
+  });
+  await expect(page.locator("#resultado")).toContainText(
+    "PROFESOR DEMO CARLOS",
+  );
+  await page
+    .getByRole("button", { name: "Asistencia registrada. Ver resultado" })
+    .click();
+  await expect(page.locator("#attendance-result-heading")).toBeFocused();
+  await page.evaluate(() => window.readReceptionCode("doc001"));
+  await page.getByRole("tab", { name: "Código", exact: true }).click();
+  await expect(page.locator("#codigo")).toBeVisible();
+  await expect
+    .poll(() => page.evaluate(() => window.receptionCameraStops))
+    .toBe(1);
+  await page.evaluate(() => {
+    window.delayReceptionCamera = true;
+  });
+  await page.getByRole("tab", { name: "Cámara" }).click();
+  await start.click();
+  await expect
+    .poll(() => page.evaluate(() => typeof window.resolveReceptionCamera))
+    .toBe("function");
+  await page.getByRole("link", { name: "Préstamos" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Registrar préstamo" }),
+  ).toBeVisible();
+  expect(
+    await page.locator("#reader").evaluate((reader) => reader.clientWidth),
+  ).toBeGreaterThan(0);
+  await page.evaluate(() => window.resolveReceptionCamera());
+  await expect
+    .poll(() => page.evaluate(() => window.receptionCameraStops))
+    .toBe(2);
+  await page.getByRole("link", { name: "Asistencia", exact: true }).click();
+  await page.evaluate(() =>
+    Object.defineProperty(window, "isSecureContext", { value: false }),
+  );
+  await page.getByRole("tab", { name: "Cámara" }).click();
+  await start.click();
+  await expect(page.locator("#camera-status")).toContainText("HTTPS");
+  await page.getByRole("link", { name: "Usar código" }).click();
+  await expect(page.locator("#codigo")).toBeVisible();
+  expect(reads).toBe(1);
+  expect(libraryRequests).toBe(1);
 });
 
 test("wizard validates area quotas, preserves step data and prepares a 120-question exam", async ({
@@ -1458,7 +1641,7 @@ test("custom template starts clean and confirms before discarding configuration"
 });
 
 for (const width of [390, 768, 950]) {
-  test(`reception menu opens, closes and navigates under CSP at ${width}px`, async ({
+  test(`public menu opens and reaches Reception under CSP at ${width}px`, async ({
     page,
   }) => {
     await page.setViewportSize({ width, height: 844 });
@@ -1479,12 +1662,7 @@ for (const width of [390, 768, 950]) {
     await button.click();
     await expect(button).toHaveAttribute("aria-expanded", "true");
     await expect(menu).toBeVisible();
-    await page.click("#btn-asistencias");
-    await expect(page.locator("#codigo")).toBeVisible();
-    await expect(menu).toBeHidden();
     await button.focus();
-    await page.keyboard.press("Enter");
-    await expect(menu).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(menu).toBeHidden();
     await expect(button).toBeFocused();
@@ -1505,6 +1683,16 @@ for (const width of [390, 768, 950]) {
     await button.click();
     await page.locator('#navbar-menu a[href="#sobre-nosotros"]').click();
     await expect(menu).toBeHidden();
+    await button.click();
+    await page
+      .locator(width === 390 ? "#btn-scan" : "#btn-asistencias")
+      .click();
+    await expect(page).toHaveURL(
+      width === 390 ? /\/recepcion#camara$/ : /\/recepcion$/,
+    );
+    await expect(
+      page.getByRole("heading", { name: "Acceso a Recepción" }),
+    ).toBeVisible();
     expect(violations).toEqual([]);
   });
 }
@@ -2448,7 +2636,8 @@ test("manual student search supports names, ignores accents and prevents arbitra
   await expect(page.locator("#v2-manual-student")).toHaveValue("DEMO001");
   await search.fill("identificador inexistente");
   await expect(page.locator("#v2-manual-student")).toHaveValue("");
-  await expect(page.locator("#v2-manual-student-results")).toContainText("No hay estudiantes");
+  await expect(page.locator("#v2-manual-student-selected")).toContainText("No hay estudiantes");
+  await expect(search).toHaveAttribute("aria-expanded", "false");
   await page.click("#v2-manual button[type=submit]");
   await expect(page.locator("#v2-message")).toContainText("Selecciona un estudiante");
 });
