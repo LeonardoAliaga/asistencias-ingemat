@@ -498,8 +498,23 @@ test("public navbar and hero fill the viewport from mobile to ultrawide", async 
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.route("https://www.google.com/**", (route) => route.abort());
   await page.goto("/");
-  for (const width of [320, 950, 1440, 2560]) {
-    await page.setViewportSize({ width, height: 900 });
+  for (const [width, height] of [
+    [320, 900],
+    [375, 667],
+    [390, 844],
+    [760, 1024],
+    [950, 900],
+    [1280, 720],
+    [1440, 900],
+    [1440, 1080],
+    [2560, 1080],
+  ]) {
+    await page.setViewportSize({ width, height });
+    const header = await page.locator("#navbar").boundingBox();
+    const hero = await page.locator("#inicio").boundingBox();
+    expect(hero.y).toBe(header.y + header.height);
+    expect(hero.height).toBe(height - header.height);
+    expect((await page.locator("#ciclos").boundingBox()).y).toBe(height);
     for (const selector of [
       ".site-header-inner",
       ".site-hero-background",
@@ -514,6 +529,16 @@ test("public navbar and hero fill the viewport from mobile to ultrawide", async 
       width,
     );
   }
+  await page.setViewportSize({ width: 320, height: 480 });
+  const hero = await page.locator("#inicio").boundingBox();
+  const gallery = await page.locator(".site-gallery").boundingBox();
+  const controls = await page.locator(".site-hero-controls").boundingBox();
+  expect(hero.y + hero.height).toBeGreaterThan(480);
+  expect(gallery.y + gallery.height).toBeLessThanOrEqual(controls.y);
+  expect(controls.y + controls.height).toBe(hero.y + hero.height);
+  expect((await page.locator("#ciclos").boundingBox()).y).toBe(
+    hero.y + hero.height,
+  );
 });
 
 test("homepage presents published cycles, manual gallery and accessible content at 320px", async ({
