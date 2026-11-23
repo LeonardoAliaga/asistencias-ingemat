@@ -492,6 +492,30 @@ test("reception reflows at 320px, reports errors and honors reduced motion", asy
   expect(audit.violations.map(({ id }) => id)).toEqual([]);
 });
 
+test("public navbar and hero fill the viewport from mobile to ultrawide", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.route("https://www.google.com/**", (route) => route.abort());
+  await page.goto("/");
+  for (const width of [320, 950, 1440, 2560]) {
+    await page.setViewportSize({ width, height: 900 });
+    for (const selector of [
+      ".site-header-inner",
+      ".site-hero-background",
+      ".site-hero-inner",
+      ".site-hero-controls",
+    ]) {
+      const box = await page.locator(selector).boundingBox();
+      expect(box.x, selector).toBe(0);
+      expect(box.width, selector).toBe(width);
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(
+      width,
+    );
+  }
+});
+
 test("homepage presents published cycles, manual gallery and accessible content at 320px", async ({
   page,
 }) => {
@@ -500,7 +524,10 @@ test("homepage presents published cycles, manual gallery and accessible content 
   await page.route("https://www.google.com/**", (route) => route.abort());
   await page.route("**/api/carousel", (route) =>
     route.fulfill({
-      json: { exito: true, images: ["Ingresantes2.png", "Ingresantes3.png"] },
+      json: {
+        exito: true,
+        images: ["Ingresantes2.png", "Ingresantes3.png", "Ingresantes4.png"],
+      },
     }),
   );
   await page.route("**/api/ciclos-visual", (route) =>
@@ -539,21 +566,27 @@ test("homepage presents published cycles, manual gallery and accessible content 
     "/img/logo-examen.png",
   );
   await expect(
-    page.getByRole("button", { name: "Reproducir fondo" }),
+    page.getByRole("button", { name: "Reproducir animaciones" }),
   ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Reproducir carrusel" }),
-  ).toBeVisible();
+  const gallery = page.getByRole("group", {
+    name: "Ingresantes de la academia",
+  });
+  await expect(gallery.getByRole("button")).toHaveCount(2);
   await expect(page.locator(".site-hero-background video[src]")).toHaveCount(0);
-  await expect(page.locator("#gallery-position")).toHaveText("1 / 2");
-  await page.getByRole("button", { name: "Imagen siguiente" }).press("Enter");
-  await expect(page.locator("#gallery-status")).toContainText("Imagen 2 de 2");
-  await expect(page.locator("#gallery-image")).toHaveAttribute(
+  const previous = gallery.getByRole("button", { name: "Imagen anterior" });
+  const next = gallery.getByRole("button", { name: "Imagen siguiente" });
+  await previous.press("Enter");
+  await expect(gallery.getByRole("img")).toHaveAttribute(
+    "src",
+    /Ingresantes4\.png$/,
+  );
+  await next.press("Enter");
+  await expect(gallery.getByRole("status")).toContainText("Imagen 1 de 3");
+  await next.press("Enter");
+  await expect(gallery.getByRole("img")).toHaveAttribute(
     "src",
     /Ingresantes3\.png$/,
   );
-  await page.getByRole("button", { name: "Imagen anterior" }).press("Enter");
-  await expect(page.locator("#gallery-position")).toHaveText("1 / 2");
   await page.getByRole("link", { name: "Ver ciclos" }).click();
   await expect(page).toHaveURL(/\/#ciclos$/);
   await expect(page.locator("#cycles-list h3")).toHaveText([
@@ -622,25 +655,23 @@ test("homepage rotates the gallery and plays all background clips to the end", a
   await page.goto("/");
   const videos = page.locator(".site-hero-background video");
   const firstVideo = videos.first();
-  const galleryToggle = page.getByRole("button", { name: "Pausar carrusel" });
-  const backgroundToggle = page.getByRole("button", { name: "Pausar fondo" });
+  const galleryStatus = page.locator("#gallery-status");
+  const pause = page.getByRole("button", { name: "Pausar animaciones" });
 
   await expect(videos).toHaveCount(3);
   await expect(
     page.locator(".site-hero-background video.is-visible"),
   ).toHaveCount(0);
-  await expect(page.locator("#gallery-position")).toHaveText(/^2 \/ /, {
+  await expect(galleryStatus).toHaveText(/^Imagen 2 de /, {
     timeout: 10000,
   });
-  await galleryToggle.click();
-  await expect(
-    page.getByRole("button", { name: "Reproducir carrusel" }),
-  ).toBeVisible();
 
   await expect(firstVideo).toHaveClass(/is-visible/, { timeout: 10000 });
-  await backgroundToggle.click();
+  await pause.click();
   await expect(firstVideo).toHaveJSProperty("paused", true);
-  await page.getByRole("button", { name: "Reproducir fondo" }).click();
+  await expect(galleryStatus).toHaveAttribute("aria-live", "polite");
+  await page.getByRole("button", { name: "Reproducir animaciones" }).click();
+  await expect(galleryStatus).toHaveAttribute("aria-live", "off");
 
   await expect
     .poll(
@@ -655,7 +686,7 @@ test("homepage rotates the gallery and plays all background clips to the end", a
   await expect(
     page.locator(".site-hero-background video.is-visible"),
   ).toHaveCount(0);
-  await expect(page.locator("#gallery-position")).toHaveText(/^2 \/ /);
+  await expect(galleryStatus).not.toHaveText(/^Imagen 2 de /);
   const playback = await page.evaluate(() => window.heroPlayback);
   const photo = playback.find(({ name }) => name === "load");
   const firstPlay = playback.find(({ name }) => name === "playing");

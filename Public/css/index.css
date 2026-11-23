@@ -2,6 +2,8 @@
   color-scheme: light;
   --control-border: #8494aa;
   --header-height: 92px;
+  --hero-red: #ff4b50;
+  --page-gutter: clamp(14px, 2.5vw, 40px);
 }
 * {
   box-sizing: border-box;
@@ -63,6 +65,13 @@ h1[tabindex="-1"]:focus {
 .site-shell {
   inline-size: min(calc(100% - clamp(32px, 7vw, 88px)), 1200px);
   margin-inline: auto;
+}
+
+.site-header-inner,
+.site-hero-inner,
+.site-hero-controls {
+  inline-size: 100%;
+  padding-inline: var(--page-gutter);
 }
 
 .site-skip {
@@ -213,9 +222,10 @@ h1[tabindex="-1"]:focus {
   background: linear-gradient(
     90deg,
     rgb(14 30 55 / 52%) 0%,
-    rgb(14 30 55 / 48%) 36%,
-    rgb(14 30 55 / 80%) 72%,
-    rgb(14 30 55 / 88%) 100%
+    rgb(14 30 55 / 48%) 32%,
+    rgb(4 12 25 / 90%) 51%,
+    rgb(4 12 25 / 90%) 82%,
+    rgb(14 30 55 / 76%) 100%
   );
   content: "";
 }
@@ -247,11 +257,6 @@ h1[tabindex="-1"]:focus {
   padding-block: clamp(24px, 3vw, 42px) 0;
 }
 
-.site-hero-inner,
-.site-hero-controls {
-  inline-size: min(calc(100% - clamp(32px, 5vw, 96px)), 1520px);
-}
-
 .site-hero-controls {
   display: flex;
   justify-content: flex-end;
@@ -272,7 +277,7 @@ h1[tabindex="-1"]:focus {
 }
 
 .site-hero-label {
-  color: #ffcab8;
+  color: var(--hero-red);
   font-size: 0.95rem;
   font-weight: 720;
 }
@@ -288,7 +293,7 @@ h1[tabindex="-1"]:focus {
 
 .site-hero-copy h1 span {
   display: block;
-  color: #ffcab8;
+  color: var(--hero-red);
 }
 
 .site-hero-description {
@@ -358,9 +363,14 @@ h1[tabindex="-1"]:focus {
 }
 
 .site-gallery-image {
+  --image-ratio: 1.12;
+  position: relative;
   display: grid;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
   place-items: center;
-  aspect-ratio: 1.12;
+  inline-size: 100%;
+  margin-inline: auto;
+  aspect-ratio: var(--image-ratio);
 }
 
 .site-gallery-image img {
@@ -372,21 +382,12 @@ h1[tabindex="-1"]:focus {
   filter: drop-shadow(0 4px 12px #08152d65);
 }
 
-.site-gallery-footer {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  gap: 6px 10px;
-  min-block-size: 60px;
-  border-block-start: 1px solid #ffffff65;
-  padding: 7px 0;
-}
-
 .site-gallery-label {
   display: flex;
+  justify-content: center;
   align-items: center;
   gap: 8px;
+  margin-block-start: 6px;
   font-weight: 680;
   font-size: 0.93rem;
   text-shadow: 0 1px 6px #08152d;
@@ -397,19 +398,48 @@ h1[tabindex="-1"]:focus {
 }
 
 .site-gallery-controls {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  pointer-events: none;
 }
 
-.site-gallery-controls .site-icon-button,
+.site-gallery-arrow {
+  display: grid;
+  place-items: center;
+  inline-size: 44px;
+  block-size: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #fff;
+  pointer-events: auto;
+}
+
+.site-gallery-arrow i {
+  display: grid;
+  place-items: center;
+  inline-size: 30px;
+  block-size: 30px;
+  border-radius: 50%;
+  background: rgb(10 23 43 / 68%);
+  font-size: 0.88rem;
+  line-height: 1;
+}
+
+.site-gallery-arrow:is(:hover, :focus-visible, :active) i {
+  background: #172b4d;
+}
+
 .site-hero-controls .site-icon-button {
   border-color: #b4c6e0;
   background: #172b4dd9;
   color: #fff;
 }
 
-.site-gallery-controls .site-icon-button:hover,
 .site-hero-controls .site-icon-button:hover {
   background: #304b70;
 }
@@ -417,15 +447,6 @@ h1[tabindex="-1"]:focus {
 .site-gallery-controls :focus-visible,
 .site-hero-controls :focus-visible {
   outline-color: #c6e0ff;
-}
-
-#gallery-position {
-  min-inline-size: 3ch;
-  text-align: center;
-  color: #fff;
-  font-size: 0.83rem;
-  font-variant-numeric: tabular-nums;
-  text-shadow: 0 1px 6px #08152d;
 }
 
 .site-section {
@@ -695,7 +716,7 @@ h1[tabindex="-1"]:focus {
     inset: 100% 0 auto;
     display: none;
     max-block-size: calc(100dvh - var(--header-height));
-    padding: 8px max(16px, calc((100vw - 900px) / 2)) 12px;
+    padding: 8px var(--page-gutter) 12px;
     border-block: 1px solid var(--line);
     background: #fff;
     box-shadow: var(--shadow);
@@ -721,6 +742,12 @@ h1[tabindex="-1"]:focus {
   }
 }
 
+@media (min-width: 761px) {
+  .site-gallery-image {
+    max-inline-size: calc(clamp(360px, 70svh, 820px) * var(--image-ratio));
+  }
+}
+
 @media (min-width: 761px) and (min-height: 650px) {
   .site-gallery {
     position: sticky;
@@ -732,8 +759,8 @@ h1[tabindex="-1"]:focus {
   .site-hero-background::after {
     background: linear-gradient(
       180deg,
-      rgb(14 30 55 / 86%),
-      rgb(14 30 55 / 74%) 44%,
+      rgb(4 12 25 / 92%),
+      rgb(4 12 25 / 84%) 40%,
       rgb(14 30 55 / 56%) 78%,
       rgb(14 30 55 / 72%)
     );
@@ -776,10 +803,6 @@ h1[tabindex="-1"]:focus {
   .site-gallery-label {
     gap: 5px;
     font-size: 0.86rem;
-  }
-
-  .site-gallery-controls {
-    gap: 4px;
   }
 
   .site-feature-grid {

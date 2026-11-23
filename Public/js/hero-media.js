@@ -1,32 +1,57 @@
-(() => {
+import { initGallery } from "./carousel.js";
+
+function initHero() {
   const hero = document.getElementById("inicio");
   const photo = document.getElementById("hero-background-photo");
   const videos = [...hero.querySelectorAll(".site-hero-background video")];
-  const toggle = document.getElementById("hero-background-toggle");
+  const toggle = document.getElementById("hero-motion-toggle");
   const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const unavailable = new Set();
   const photoDuration = 5000;
   let enabled = !motion.matches;
+  let autoplayBlocked = false;
+  let hasMultiplePhotos = false;
   let inView = false;
   let current;
   let visibleVideo;
   let photoTimer;
   let photoStarted;
   let photoRemaining = photoDuration;
+  const setGalleryRotation = initGallery((available) => {
+    hasMultiplePhotos = available;
+    updateToggle();
+  });
+
+  function motionActive() {
+    return enabled && (hasMultiplePhotos || !autoplayBlocked);
+  }
 
   function updateToggle() {
-    toggle.hidden = unavailable.size === videos.length;
-    toggle.querySelector("span").textContent = enabled
-      ? "Pausar fondo"
-      : "Reproducir fondo";
-    toggle.querySelector("i").className = enabled
+    const playing = motionActive();
+    toggle.hidden = !hasMultiplePhotos && unavailable.size === videos.length;
+    toggle.querySelector("span").textContent = playing
+      ? "Pausar animaciones"
+      : "Reproducir animaciones";
+    toggle.querySelector("i").className = playing
       ? "bi bi-pause-fill"
       : "bi bi-play-fill";
   }
 
+  function setMotion(next) {
+    enabled = next;
+    if (enabled) autoplayBlocked = false;
+    setGalleryRotation(enabled);
+    updateToggle();
+    syncPlayback();
+  }
+
   function mayPlay() {
     return (
-      enabled && inView && !document.hidden && unavailable.size < videos.length
+      enabled &&
+      !autoplayBlocked &&
+      inView &&
+      !document.hidden &&
+      unavailable.size < videos.length
     );
   }
 
@@ -100,9 +125,8 @@
       if (video !== current || !mayPlay() || error.name === "AbortError")
         return;
       if (error.name === "NotAllowedError") {
-        enabled = false;
+        autoplayBlocked = true;
         updateToggle();
-        pause();
       } else {
         skip(video);
       }
@@ -126,22 +150,14 @@
 
   for (const event of ["load", "error"])
     photo.addEventListener(event, syncPlayback);
-  toggle.addEventListener("click", () => {
-    enabled = !enabled;
-    updateToggle();
-    syncPlayback();
-  });
-  motion.addEventListener("change", () => {
-    if (motion.matches) {
-      enabled = false;
-      updateToggle();
-      pause();
-    }
-  });
+  toggle.addEventListener("click", () => setMotion(!motionActive()));
+  motion.addEventListener("change", () => setMotion(!motion.matches));
   document.addEventListener("visibilitychange", syncPlayback);
   new IntersectionObserver(([entry]) => {
     inView = entry.isIntersecting;
     syncPlayback();
   }).observe(hero);
-  updateToggle();
-})();
+  setMotion(enabled);
+}
+
+initHero();
