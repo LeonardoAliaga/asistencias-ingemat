@@ -787,6 +787,15 @@ h1[tabindex="-1"]:focus {
     gap: 6px;
   }
 
+  .site-actions {
+    display: grid;
+    grid-template-columns: repeat(
+      auto-fit,
+      minmax(min(8rem, 100%), max-content)
+    );
+    justify-content: start;
+  }
+
   .site-actions .site-button {
     padding-inline: 0.6rem;
     font-size: 0.94rem;
@@ -804,7 +813,7 @@ h1[tabindex="-1"]:focus {
     flex: 1 1 0;
     inline-size: auto;
     max-inline-size: 100%;
-    min-block-size: 11rem;
+    min-block-size: clamp(9rem, 23svh, 11rem);
     max-block-size: min(
       48svh,
       calc((100vw - 2 * var(--page-gutter)) / var(--image-ratio))
